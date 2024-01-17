@@ -1,0 +1,32 @@
+cache:
+  key: $CI_BUILD_REF_NAME
+  paths:
+    - .m2/repository
+
+variables:
+  COMMON_BIND_HOST: "0.0.0.0"
+  DOCKER_DRIVER: "$DIND_DRIVER"
+  DOCKER_HOST: "$DIND_HOST"
+  DOCKER_TLS_CERTDIR: "$DIND_TLS_CERTDIR"
+  DOCKER_USERNAME: "$DOCKER_USERNAME"
+  DOCKER_PASSWORD: "$DOCKER_PASSWORD"
+  MAVEN_CLI: "-Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASES -Dmaven.deploy.snapshots=$MAVEN_DEPLOY_SNAPSHOTS --batch-mode --errors --fail-fast --show-version"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+default:
+  image: maven:3.8.4-eclipse-temurin-17
+  services:
+    - name: "$DIND_IMAGE"
+      alias: docker
+      entrypoint: [ "env", "-u", "DOCKER_HOST" ]
+      command: [ "dockerd-entrypoint.sh" ]
+
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  variables:
+    ENABLE_DOCKER_DAEMON_BUILD: "false"
+  script:
+    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy -DskipTests
