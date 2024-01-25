@@ -1,13 +1,19 @@
 package org.edu_sharing.rendering.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.redis.core.RedisHash
+import jakarta.persistence.*
 
-@RedisHash("RenderingJobs")
+@Entity(name = "rendering_job")
+@Table(indexes = [
+    Index(name = "idx_hash", columnList = "hash"),
+])
 data class RenderingJob (
-    val position: Int,
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    val id: Long = 0,
+    @Column(name = "hash")
+    val hash: String,
+    @Column(name = "type")
+    val type: String,
+    @Column(name = "status")
     val status: String
-) {
-    @get:Id
-    var id: String? = null
-}
+)
