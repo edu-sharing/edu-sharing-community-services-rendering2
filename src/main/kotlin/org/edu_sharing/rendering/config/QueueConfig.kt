@@ -1,25 +1,28 @@
 package org.edu_sharing.rendering.config
 
-import org.edu_sharing.rendering.queue.Receiver
-import org.springframework.amqp.core.Binding
-import org.springframework.amqp.core.BindingBuilder
-import org.springframework.amqp.core.Queue
-import org.springframework.amqp.core.TopicExchange
+import org.edu_sharing.rendering.queue.FileJobReceiver
+import org.springframework.amqp.core.*
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
+import org.springframework.amqp.support.converter.MessageConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
 class QueueConfig {
 
-    val queueName = "rendering-queue"
+    val fileQueueName = "file_transfer_queue"
 
     val topicExchangeName = "rendering-exchange"
+
+    val fileRoutingKey = "file"
+
     @Bean
-    fun queue(): Queue {
-        return Queue(queueName, false)
+    fun fileTransferQueue(): Queue {
+        return Queue(fileQueueName, false)
     }
 
     @Bean
@@ -28,21 +31,35 @@ class QueueConfig {
     }
 
     @Bean
-    fun binding(queue: Queue, topicExchange: TopicExchange): Binding {
-        return BindingBuilder.bind(queue).to(topicExchange).with("foo.bar.#")
+    fun fileBinding(fileTransferQueue: Queue, topicExchange: TopicExchange): Binding {
+        return BindingBuilder.bind(fileTransferQueue).to(topicExchange).with(fileRoutingKey)
     }
 
     @Bean
-    fun container(connectionFactory: ConnectionFactory, listenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
+    fun fileContainer(connectionFactory: ConnectionFactory, fileListenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
         val container = SimpleMessageListenerContainer()
         container.connectionFactory = connectionFactory
-        container.setQueueNames(queueName)
-        container.setMessageListener(listenerAdapter)
+        container.setQueueNames(fileQueueName)
+        container.setMessageListener(fileListenerAdapter)
         return container
     }
 
     @Bean
-    fun listenerAdapter(receiver: Receiver): MessageListenerAdapter {
-        return MessageListenerAdapter(receiver, "receiveMessage")
+    fun fileListenerAdapter(receiver: FileJobReceiver): MessageListenerAdapter {
+        val adapter = MessageListenerAdapter(receiver, "receiveMessage")
+        adapter.setMessageConverter(messageConverter())
+        return adapter
+    }
+
+    @Bean
+    fun messageConverter(): MessageConverter {
+        return Jackson2JsonMessageConverter()
+    }
+
+    @Bean
+    fun amqpTemplate(connectionFactory: ConnectionFactory): AmqpTemplate {
+        val template = RabbitTemplate(connectionFactory)
+        template.messageConverter = messageConverter()
+        return template
     }
 }
