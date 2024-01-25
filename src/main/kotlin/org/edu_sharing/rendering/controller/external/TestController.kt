@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.controller
+package org.edu_sharing.rendering.controller.external
 
 import org.edu_sharing.rendering.dto.TestResponse
 import org.edu_sharing.rendering.service.TestService

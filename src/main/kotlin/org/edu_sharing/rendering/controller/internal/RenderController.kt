@@ -1,0 +1,19 @@
+package org.edu_sharing.rendering.controller.internal
+
+import jakarta.validation.Valid
+import org.edu_sharing.rendering.dto.RenderDataRequest
+import org.edu_sharing.rendering.dto.RenderDataResponse
+import org.edu_sharing.rendering.service.RenderDataService
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+
+@RestController
+@RequestMapping("/renderdata")
+class RenderController (private val service: RenderDataService){
+    @PostMapping
+    fun getRenderData(@RequestBody @Valid body: RenderDataRequest): RenderDataResponse {
+        return service.getRenderData(body)
+    }
+}

@@ -11,8 +11,8 @@ services:
       - MINIO_ROOT_USER=adminuser
       - MINIO_ROOT_PASSWORD=adminpassword
       - MINIO_DEFAULT_BUCKETS=edu-test-bucket
-    volumes:
-      - "minio-data-volume:/bitnami/minio/data"
+    #volumes:
+    #  - "minio-data-volume:/bitnami/minio/data"
 
   repository-cache:
     image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:6.2.7
@@ -20,6 +20,22 @@ services:
       ALLOW_EMPTY_PASSWORD: "yes"
     ports:
       - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - "35432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: rendering
 
 volumes:
   minio-data-volume:
