@@ -1,19 +1,19 @@
 package org.edu_sharing.rendering.entity
 
-import jakarta.persistence.*
+import org.bson.types.ObjectId
+import org.springframework.data.annotation.Id
 
-@Entity(name = "rendering_job")
-@Table(indexes = [
-    Index(name = "idx_hash", columnList = "hash"),
-])
-data class RenderingJob (
+data class RenderingJob(
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    val id: Long = 0,
-    @Column(name = "hash")
-    val hash: String,
-    @Column(name = "type")
-    val type: String,
-    @Column(name = "status")
-    val status: String
+    val id: ObjectId = ObjectId(),
+    var status: JobStatus = JobStatus.QUEUED,
+    val esObjectType: String,
+    val esObjectId: String,
+    val esHash: String,
+    val origin: String,
+    val extension: String,
+    val mimeType: String,
+    val creationTimestamp: Long = System.currentTimeMillis(),
+    var finishedTimestamp: Long? = null,
+    var subJobs: MutableList<SubJob> = ArrayList(),
 )

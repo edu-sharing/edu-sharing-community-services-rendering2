@@ -17,7 +17,7 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         )
         eduMinioClient.putObject(
             PutObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).stream(
-                inputStream, cacheObject.size, -1).userMetadata(metadata).contentType("image/jpg").build()
+                inputStream, cacheObject.size, -1).userMetadata(metadata).contentType("image/jpeg").build()
         )
     }
 
@@ -38,6 +38,23 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
             .`object`(getStoragePath(cacheObject)).build())
     }
 
+    override fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean): GetObjectResponse {
+        return eduMinioClient.getObject(
+            GetObjectArgs.Builder()
+                .bucket(cacheObject.type)
+                .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject))
+                .build()
+        )
+    }
+
+    override fun putTempFile(cacheObject: CacheObject, inputStream: FileInputStream) {
+        createBucket("temp")
+        eduMinioClient.putObject(
+            PutObjectArgs.builder().bucket("temp").`object`(this.getTempPath(cacheObject)).stream(
+                inputStream, cacheObject.size, -1).contentType(cacheObject.mimeType).build()
+        )
+    }
+
     private fun createBucket(name: String) {
         if (eduMinioClient.bucketExists(BucketExistsArgs.builder().bucket(name).build())) {
             return
@@ -50,6 +67,12 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         if (cacheObject.quality != null) {
             name = name.plus("_").plus(cacheObject.quality)
         }
+        name = name.plus(cacheObject.mimeType.substringAfter("/"))
         return name
+    }
+
+    private fun getTempPath(cacheObject: CacheObject): String {
+        return cacheObject.type + "/" + cacheObject.nodeId + "/" + cacheObject.hash + "." + cacheObject
+            .mimeType.substringAfter("/")
     }
 }

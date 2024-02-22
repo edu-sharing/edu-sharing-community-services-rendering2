@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.config
 
-import org.edu_sharing.rendering.queue.FileJobReceiver
+import org.edu_sharing.rendering.queue.ImageReceiver
+import org.edu_sharing.rendering.queue.JobReceiver
 import org.springframework.amqp.core.*
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -8,48 +9,114 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
 class QueueConfig {
 
-    val fileQueueName = "file_transfer_queue"
+    /**
+     * Variables from app props
+     */
 
-    val topicExchangeName = "rendering-exchange"
+    @Value("\${edu_sharing.jobQueueName}")
+    lateinit var jobQueueName: String
 
-    val fileRoutingKey = "file"
+    @Value("\${edu_sharing.imageQueueName}")
+    lateinit var imageQueueName: String
+
+    @Value("\${edu_sharing.topicExchangeName}")
+    lateinit var topicExchangeName: String
+
+    @Value("\${edu_sharing.jobRoutingKey}")
+    lateinit var jobRoutingKey: String
+
+    @Value("\${edu_sharing.imageRoutingKey}")
+    lateinit var imageRoutingKey: String
+
+    /**
+     * Queue definitions
+     */
 
     @Bean
-    fun fileTransferQueue(): Queue {
-        return Queue(fileQueueName, false)
+    fun renderingJobQueue(): Queue {
+        return Queue(jobQueueName, false)
     }
+
+    @Bean
+    fun imageJobQueue(): Queue {
+        return Queue(imageQueueName, false)
+    }
+
+    /**
+     * Topic exchange
+     */
 
     @Bean
     fun topicExchange(): TopicExchange {
         return TopicExchange(topicExchangeName)
     }
 
+    /**
+     * Bindings: Binding queues to exchanges with routing keys
+     */
+
     @Bean
-    fun fileBinding(fileTransferQueue: Queue, topicExchange: TopicExchange): Binding {
-        return BindingBuilder.bind(fileTransferQueue).to(topicExchange).with(fileRoutingKey)
+    fun renderingJobBinding(renderingJobQueue: Queue, topicExchange: TopicExchange): Binding {
+        return BindingBuilder.bind(renderingJobQueue).to(topicExchange).with(jobRoutingKey)
     }
 
     @Bean
-    fun fileContainer(connectionFactory: ConnectionFactory, fileListenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
+    fun imageJobBinding(imageJobQueue: Queue, topicExchange: TopicExchange): Binding {
+        return BindingBuilder.bind(imageJobQueue).to(topicExchange).with(imageRoutingKey)
+    }
+
+    /**
+     * Listener container
+     *
+     * And baby you can turn me on! And off, for that matter...
+     */
+
+    @Bean
+    fun jobContainer(connectionFactory: ConnectionFactory, jobListenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
         val container = SimpleMessageListenerContainer()
         container.connectionFactory = connectionFactory
-        container.setQueueNames(fileQueueName)
-        container.setMessageListener(fileListenerAdapter)
+        container.setQueueNames(jobQueueName)
+        container.setMessageListener(jobListenerAdapter)
         return container
     }
 
     @Bean
-    fun fileListenerAdapter(receiver: FileJobReceiver): MessageListenerAdapter {
+    fun imageJobContainer(connectionFactory: ConnectionFactory, imageListenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer  {
+        val container = SimpleMessageListenerContainer()
+        container.connectionFactory = connectionFactory
+        container.setQueueNames(imageQueueName)
+        container.setMessageListener(imageListenerAdapter)
+        return container
+    }
+
+    /**
+     * Listener: Specifying listener classes and methods
+     */
+
+    @Bean
+    fun jobListenerAdapter(receiver: JobReceiver): MessageListenerAdapter {
         val adapter = MessageListenerAdapter(receiver, "receiveMessage")
         adapter.setMessageConverter(messageConverter())
         return adapter
     }
+
+    @Bean
+    fun imageListenerAdapter(receiver: ImageReceiver): MessageListenerAdapter {
+        val adapter = MessageListenerAdapter(receiver, "receiveMessage")
+        adapter.setMessageConverter(messageConverter())
+        return adapter
+    }
+
+    /**
+     * Template config
+     */
 
     @Bean
     fun messageConverter(): MessageConverter {

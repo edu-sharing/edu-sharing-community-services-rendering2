@@ -5,8 +5,7 @@ import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
-import org.edu_sharing.rendering.entity.CachedObject
-import org.edu_sharing.rendering.repository.jpa.CachedObjectRepository
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Service
@@ -14,8 +13,7 @@ import org.springframework.stereotype.Service
 @Service
 class RenderDataService (
     private val storageImplementation: StorageService,
-    private val resourceLoader: ResourceLoader,
-    private val dbRepository: CachedObjectRepository
+    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader
 ) {
     @Value("\${edu_sharing.video_resolutions}")
     lateinit var videoResolutions: List<Int>
@@ -33,11 +31,9 @@ class RenderDataService (
         // push job to appropriate queue
         val cacheObject = CacheObject(
             nodeId = request.nodeId,
-            version = request.version,
             type = request.type,
             hash = request.hash,
             size = request.size,
-            extension = request.extension,
             mimeType = request.mimeType
         )
         this.compileResponseLists(cacheObject)
@@ -67,7 +63,6 @@ class RenderDataService (
 
     private fun retrieveObjectLink(cacheObject: CacheObject): String? {
         try {
-            updateLastAccessed(cacheObject)
             return storageImplementation.getObjectLink(cacheObject)
         } catch (_: ErrorResponseException) {
             return null
@@ -86,23 +81,5 @@ class RenderDataService (
         val file = resourceLoader.getResource("classpath:lviv.jpg").file
         cacheObject.size = file.length()
         this.storageImplementation.putObject(cacheObject, file.inputStream())
-        val dbEntry = CachedObject(
-            objectId = cacheObject.nodeId,
-            hash = cacheObject.hash,
-            lastAccessed = System.currentTimeMillis(),
-            quality = cacheObject.quality,
-            mimeType = cacheObject.mimeType,
-            version = cacheObject.version
-        )
-        this.dbRepository.save(dbEntry)
-        this.objectLinkList.add(storageImplementation.getObjectLink(cacheObject))
-    }
-
-    private fun updateLastAccessed(cacheObject: CacheObject) {
-        val entries = dbRepository.findAllByHash(cacheObject.hash)
-        entries.forEach {
-            it.lastAccessed = System.currentTimeMillis()
-            dbRepository.save(it)
-        }
     }
 }

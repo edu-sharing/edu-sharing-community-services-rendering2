@@ -27,15 +27,14 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  db:
-    image: postgres
+  mongo:
+    image: mongo
     restart: always
-    ports:
-      - "35432:5432"
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: rendering
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
 
 volumes:
   minio-data-volume:

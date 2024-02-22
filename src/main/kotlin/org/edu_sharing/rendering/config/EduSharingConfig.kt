@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class EduSharingConfig {
     @Value("\${edu_sharing.basePath}")
-    var restBasePath: String? = null
+    lateinit var restBasePath: String
 
     @Value("\${edu_sharing.username}")
     var username: String? = null
