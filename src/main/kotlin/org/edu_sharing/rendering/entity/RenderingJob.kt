@@ -11,7 +11,6 @@ data class RenderingJob(
     val esObjectId: String,
     val esHash: String,
     val origin: String,
-    val extension: String,
     val mimeType: String,
     val creationTimestamp: Long = System.currentTimeMillis(),
     var finishedTimestamp: Long? = null,

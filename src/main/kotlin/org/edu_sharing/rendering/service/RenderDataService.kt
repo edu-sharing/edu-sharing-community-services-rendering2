@@ -5,6 +5,11 @@ import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
+import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
+import org.edu_sharing.rendering.entity.JobStatus
+import org.edu_sharing.rendering.entity.RenderingJob
+import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
@@ -13,22 +18,24 @@ import org.springframework.stereotype.Service
 @Service
 class RenderDataService (
     private val storageImplementation: StorageService,
-    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader
-) {
-    @Value("\${edu_sharing.video_resolutions}")
-    lateinit var videoResolutions: List<Int>
+    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader,
+    private val mongoRepo: RenderingJobRepository,
+    private val amqpTemplate: AmqpTemplate
+    ) {
+    @Value("\${edu_sharing.image_sizes}")
+    lateinit var imageSizes: List<Int>
+
+    @Value("\${edu_sharing.topicExchangeName}")
+    lateinit var topicExchangeName: String
+
+    @Value("\${edu_sharing.jobRoutingKey}")
+    lateinit var jobRoutingKey: String
 
     var objectLinkList = mutableListOf<String>()
-    var jobIds = mutableListOf<Int>()
+    var jobId: String? = null
 
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
-        // a) check if object(s) with same hash already exist(s)
-        // IF YES: get links -> return stuff (maybe data enrichment)
-        // IF NO:
-        // - get object type
-        //      IF job type: create job(s)
-        //      ELSE get objects from repo and cache them, write to db for bookkeeping -> get links -> return
-        // push job to appropriate queue
+        this.objectLinkList = mutableListOf()
         val cacheObject = CacheObject(
             nodeId = request.nodeId,
             type = request.type,
@@ -37,19 +44,23 @@ class RenderDataService (
             mimeType = request.mimeType
         )
         this.compileResponseLists(cacheObject)
-        return RenderDataResponse(objectLinkList, jobIds)
+        return RenderDataResponse(objectLinkList, jobId)
     }
 
     fun compileResponseLists(cacheObject: CacheObject) {
-        if (cacheObject.type != "video") {
-            this.videoResolutions.forEach {
+        if (cacheObject.type == "image") {
+            val missingResolutions = mutableListOf<Int>()
+            this.imageSizes.forEach {
                 cacheObject.quality = it
                 val link = this.retrieveObjectLink(cacheObject)
                 if (link != null) {
                     this.objectLinkList.add(link)
                 } else {
-                    this.jobIds.add(this.createJob(cacheObject))
+                    missingResolutions.add(it)
                 }
+            }
+            if (missingResolutions.size > 0) {
+                this.jobId = this.createJob(cacheObject, missingResolutions)
             }
         } else {
             val link = retrieveObjectLink(cacheObject)
@@ -62,19 +73,40 @@ class RenderDataService (
     }
 
     private fun retrieveObjectLink(cacheObject: CacheObject): String? {
-        try {
-            return storageImplementation.getObjectLink(cacheObject)
+        return try {
+            storageImplementation.getObjectLink(cacheObject)
         } catch (_: ErrorResponseException) {
-            return null
+            null
         }
     }
 
-    private fun createJob(cacheObject: CacheObject): Int {
-        // Make sure to return matching job ids if currently processing
-        //      How? check if jobs for the object are currently active
-        // 1. Create copy job to tmp bucket and push to copy job queue
-        // 2. Consumer of copy job creates conversion jobs
-        return 0
+    private fun createJob(cacheObject: CacheObject, qualities: MutableList<Int>): String {
+        val existingJobs = mongoRepo.findAllByEsObjectId(cacheObject.nodeId)
+        try {
+            val unfinishedJob = existingJobs.first { it.status != JobStatus.FINISHED && it.status != JobStatus.FAILED }
+            unfinishedJob.subJobs.forEach {
+                qualities.remove(it.quality)
+            }
+            if (qualities.size == 0) {
+                return unfinishedJob.id.toString()
+            } else {
+                throw Exception(unfinishedJob.id.toString() + ": Quality list changed amidst ongoing conversion")
+            }
+        } catch (_: NoSuchElementException) {}
+        val renderingJob = RenderingJob(
+            esObjectType = cacheObject.type,
+            esObjectId = cacheObject.nodeId,
+            esHash = cacheObject.hash,
+            mimeType = cacheObject.mimeType,
+            origin = "lviv.jpg"
+        )
+        mongoRepo.save(renderingJob)
+        val jobMessage = RenderingJobMessage(
+            id = renderingJob.id.toString(),
+            missingQualities = qualities.toList()
+        )
+        amqpTemplate.convertAndSend(this.topicExchangeName, this.jobRoutingKey, jobMessage)
+        return renderingJob.id.toString()
     }
 
     private fun cacheObjectData(cacheObject: CacheObject) {

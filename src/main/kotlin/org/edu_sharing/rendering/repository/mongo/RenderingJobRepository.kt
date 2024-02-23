@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface RenderingJobRepository: MongoRepository<RenderingJob, ObjectId> {
+    fun findAllByEsObjectId(id: String): List<RenderingJob>
 }

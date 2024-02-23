@@ -17,18 +17,12 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class JobReceiver (
+class JobReceiver(
     @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader,
     private val mongoRepo: RenderingJobRepository,
     private val storageImplementation: StorageService,
     private val amqpTemplate: AmqpTemplate,
-    ) {
-    @Value("\${edu_sharing.video_resolutions}")
-    lateinit var videoResolutions: List<Int>
-
-    @Value("\${edu_sharing.image_sizes}")
-    lateinit var imageSizes: List<Int>
-
+) {
     @Value("\${edu_sharing.imageRoutingKey}")
     lateinit var imageRoutingKey: String
 
@@ -49,12 +43,12 @@ class JobReceiver (
         this.storageImplementation.putTempFile(cacheObject, file.inputStream())
         jobEntry.status = JobStatus.FINISHED
         if (cacheObject.type == "image") {
-            this.createImageJobs(jobEntry)
+            this.createImageJob(jobEntry, message)
         }
     }
 
-    private fun createImageJobs(jobEntry: RenderingJob) {
-        imageSizes.forEach {
+    private fun createImageJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
+        message.missingQualities.forEach {
             val imageJob = SubJob(quality = it)
             jobEntry.subJobs.add(imageJob)
         }

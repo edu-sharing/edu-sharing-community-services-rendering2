@@ -7,5 +7,6 @@ package org.edu_sharing.rendering.dto.queue
  * my attribute id references a document in the rendering_job collection
  */
 data class RenderingJobMessage(
-    val id: String
+    val id: String,
+    val missingQualities: List<Int> = emptyList()
 )

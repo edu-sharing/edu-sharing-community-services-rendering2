@@ -9,13 +9,12 @@ data class RenderDataRequest(
     val nodeId: String,
     @NotNull
     val size: Long,
-    val version: String,
     @NotNull
     val type: String,
     @NotNull
     val hash: String,
     @NotNull
-    val extension: String,
+    val mimeType: String,
     @NotNull
-    val mimeType: String
+    val origin: String
 )

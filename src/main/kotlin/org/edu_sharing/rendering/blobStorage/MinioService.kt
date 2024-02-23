@@ -5,11 +5,12 @@ import io.minio.http.Method
 import org.edu_sharing.rendering.dto.CacheObject
 import org.springframework.stereotype.Service
 import java.io.FileInputStream
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Service
 class MinioService(private val eduMinioClient: MinioClient) : StorageService {
-    override fun putObject(cacheObject: CacheObject, inputStream: FileInputStream) {
+    override fun putObject(cacheObject: CacheObject, inputStream: InputStream) {
         createBucket(cacheObject.type)
         val metadata = mapOf(
             "hash" to cacheObject.hash,
@@ -41,7 +42,7 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
     override fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean): GetObjectResponse {
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
-                .bucket(cacheObject.type)
+                .bucket(if (isTemp) "temp" else cacheObject.type)
                 .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject))
                 .build()
         )
@@ -67,7 +68,7 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         if (cacheObject.quality != null) {
             name = name.plus("_").plus(cacheObject.quality)
         }
-        name = name.plus(cacheObject.mimeType.substringAfter("/"))
+        name = name.plus(".").plus(cacheObject.mimeType.substringAfter("/"))
         return name
     }
 

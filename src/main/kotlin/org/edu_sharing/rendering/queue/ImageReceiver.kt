@@ -15,9 +15,9 @@ class ImageReceiver(
     private val conversionService: ImageConversionService
 ) {
     fun receiveMessage(message: SubJobMessage) {
+        this.conversionService.reset()
         println("received sub job message")
         val jobEntry = mongoRepo.findByIdOrNull(ObjectId(message.id)) ?: return
-        conversionService.setRenderingJob(jobEntry)
         val cacheObject = CacheObject(
             nodeId = jobEntry.esObjectId,
             type = jobEntry.esObjectType,
@@ -34,6 +34,7 @@ class ImageReceiver(
                 it.status = JobStatus.FAILED
             }
         }
+        jobEntry.finishedTimestamp = System.currentTimeMillis()
         mongoRepo.save(jobEntry)
     }
 }
