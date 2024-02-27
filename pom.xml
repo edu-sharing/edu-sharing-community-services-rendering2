@@ -225,11 +225,17 @@
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
-            <version>8.5.7</version>
+            <version>8.5.8</version>
         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.10.1</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
@@ -249,9 +255,12 @@
                         <arg>-Xjsr305=strict</arg>
                     </args>
                     <compilerPlugins>
-                        <!--<plugin>jpa</plugin> no arg kotlin-->
                         <plugin>spring</plugin>
+                        <plugin>all-open</plugin>
                     </compilerPlugins>
+                    <pluginOptions>
+                        <option>all-open:annotation=org.springframework.data.mongodb.core.mapping.Document</option>
+                    </pluginOptions>
                 </configuration>
                 <dependencies>
                     <dependency>

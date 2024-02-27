@@ -1,40 +1,46 @@
 package org.edu_sharing.rendering.queue
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.edu_sharing.rendering.service.ImageConversionService
+import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
 class ImageReceiver(
-    private val mongoRepo: RenderingJobRepository,
-    private val conversionService: ImageConversionService
+    private val jobRepository: RenderingJobRepository,
+    private val subJobRepository: SubJobRepository,
+    private val conversionService: ImageConversionService,
+    private val mapper: Mapper
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     fun receiveMessage(message: SubJobMessage) {
         this.conversionService.reset()
-        println("received sub job message")
-        val jobEntry = mongoRepo.findByIdOrNull(ObjectId(message.id)) ?: return
-        val cacheObject = CacheObject(
-            nodeId = jobEntry.esObjectId,
-            type = jobEntry.esObjectType,
-            hash = jobEntry.esHash,
-            mimeType = jobEntry.mimeType
-        )
+        val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id))
+        if (jobEntry == null) {
+            logger.warn("Expected main job not found: " + message.id)
+            return
+        }
+        val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         jobEntry.subJobs.forEach {
             try {
                 it.status = JobStatus.PROCESSING
-                mongoRepo.save(jobEntry)
+                subJobRepository.save(it)
                 this.conversionService.convert(cacheObject, it.quality)
                 it.status = JobStatus.FINISHED
             } catch (exception: Exception) {
+                logger.warn(exception.message)
                 it.status = JobStatus.FAILED
             }
+            subJobRepository.save(it)
         }
         jobEntry.finishedTimestamp = System.currentTimeMillis()
-        mongoRepo.save(jobEntry)
+        jobRepository.save(jobEntry)
     }
 }

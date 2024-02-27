@@ -2,16 +2,16 @@ package org.edu_sharing.rendering.entity
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.ReadOnlyProperty
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
 
 @Document
-data class SubJob(
+data class JobTest(
     @Id
     var id: ObjectId = ObjectId(),
-    var status: JobStatus = JobStatus.QUEUED,
-    val quality: Int = 0,
-    var progress: Int = 0,
-    @DocumentReference(lazy = true)
-    var parent: RenderingJob
+    var name: String,
+    @ReadOnlyProperty
+    @DocumentReference(lazy = true, lookup = "{'parent':?#{#self._id} }")
+    var subJobs: MutableList<SubJobTest>? = null
 )

@@ -6,12 +6,10 @@ import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
 
 @Document
-data class SubJob(
+data class SubJobTest(
     @Id
     var id: ObjectId = ObjectId(),
-    var status: JobStatus = JobStatus.QUEUED,
-    val quality: Int = 0,
-    var progress: Int = 0,
     @DocumentReference(lazy = true)
-    var parent: RenderingJob
+    var parent: JobTest,
+    var name: String
 )

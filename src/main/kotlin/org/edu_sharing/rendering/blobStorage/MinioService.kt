@@ -56,6 +56,19 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         )
     }
 
+    override fun isObjectExisting(cacheObject: CacheObject): Boolean {
+        try {
+            eduMinioClient.statObject(
+                StatObjectArgs.builder()
+                    .bucket(cacheObject.type)
+                    .`object`(this.getStoragePath(cacheObject)).build()
+            )
+            return true
+        } catch (exception: Exception) {
+            return false
+        }
+    }
+
     private fun createBucket(name: String) {
         if (eduMinioClient.bucketExists(BucketExistsArgs.builder().bucket(name).build())) {
             return

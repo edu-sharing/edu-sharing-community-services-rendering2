@@ -6,5 +6,6 @@ data class CacheObject(
     var size: Long = 0,
     val hash: String,
     var quality: Int? = null,
-    var mimeType: String
+    var mimeType: String,
+    var origin: String? = null
 )

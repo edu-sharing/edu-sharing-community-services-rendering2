@@ -26,8 +26,6 @@ class ImageConversionService (
         if (this.sourceImage == null) {
             this.fetchSourceImage(cacheObject)
         }
-        val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
-        val inputImage = ImageIO.read(fileInputStream)
         val originalHeight = this.sourceImage!!.height
         val originalWidth = this.sourceImage!!.width
         val ratio = originalWidth.toFloat()/originalHeight
@@ -40,7 +38,7 @@ class ImageConversionService (
             targetHeight = size
             targetWidth = (size * ratio).toInt()
         }
-        val outputImage = inputImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
+        val outputImage = sourceImage!!.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
         val bufferedOutputImage = BufferedImage(
             outputImage.getWidth(null),
             outputImage.getHeight(null),
@@ -51,12 +49,14 @@ class ImageConversionService (
         ImageIO.write(bufferedOutputImage, this.imageFormat, byteArrayOutputStream)
         cacheObject.quality = size
         cacheObject.size = byteArrayOutputStream.size().toLong()
+        cacheObject.mimeType = "image/" + this.imageFormat
         this.storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()))
     }
 
     private fun fetchSourceImage(cacheObject: CacheObject) {
         val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
         this.sourceImage = ImageIO.read(fileInputStream)
+        fileInputStream.close()
     }
 
     fun reset() {

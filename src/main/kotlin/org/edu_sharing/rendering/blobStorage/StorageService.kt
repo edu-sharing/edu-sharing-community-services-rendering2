@@ -11,4 +11,5 @@ interface StorageService {
     fun removeObject(cacheObject: CacheObject)
     fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): GetObjectResponse
     fun putTempFile(cacheObject: CacheObject, inputStream: FileInputStream)
+    fun isObjectExisting(cacheObject: CacheObject): Boolean
 }
