@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.DocumentReference
 data class SubJob(
     @Id
     var id: ObjectId = ObjectId(),
+    var routingKey: String,
     var status: JobStatus = JobStatus.QUEUED,
     val quality: Int = 0,
     var progress: Int = 0,

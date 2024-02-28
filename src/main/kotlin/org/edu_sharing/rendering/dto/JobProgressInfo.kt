@@ -1,7 +1,10 @@
 package org.edu_sharing.rendering.dto
 
+import org.edu_sharing.rendering.entity.JobStatus
+
 data class JobProgressInfo(
-    val quality: Int,
-    val progress: Int,
-    val objectLink: String
+    val quality: Int = 0,
+    var progress: Long = 0,
+    var objectLink: String? = null,
+    var status: JobStatus
 )

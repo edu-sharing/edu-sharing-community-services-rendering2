@@ -54,9 +54,9 @@ class JobReceiver(
 
     private fun createImageJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
         message.missingQualities.forEach {
-            val imageJob = SubJob(quality = it, parent = jobEntry)
+            val imageJob = SubJob(routingKey = imageRoutingKey, quality = it, parent = jobEntry)
             subJobRepository.save(imageJob)
         }
-        amqpTemplate.convertAndSend(this.topicExchangeName, this.imageRoutingKey, SubJobMessage(jobEntry.id.toString()))
+        amqpTemplate.convertAndSend(topicExchangeName, imageRoutingKey, SubJobMessage(jobEntry.id.toString()))
     }
 }

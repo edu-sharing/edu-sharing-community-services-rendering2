@@ -15,7 +15,7 @@ class ImageLogic {
     @Value("\${edu_sharing.converted_image_mime_types}")
     lateinit var convertedFormats: List<String>
     fun getCacheObjectWithConvertedMimeType(cacheObject: CacheObject): CacheObject {
-        if (cacheObject.mimeType.substringBefore("/") !== "image" || !convertedFormats.contains(cacheObject.mimeType)) {
+        if (cacheObject.mimeType.substringBefore("/") != "image" || !convertedFormats.contains(cacheObject.mimeType)) {
             return cacheObject
         }
         val tempObject = cacheObject.copy()

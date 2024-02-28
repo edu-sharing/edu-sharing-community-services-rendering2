@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.config
 
+import org.edu_sharing.rendering.queue.AvReceiver
 import org.edu_sharing.rendering.queue.ImageReceiver
 import org.edu_sharing.rendering.queue.JobReceiver
 import org.springframework.amqp.core.*
@@ -26,6 +27,9 @@ class QueueConfig {
     @Value("\${edu_sharing.imageQueueName}")
     lateinit var imageQueueName: String
 
+    @Value("\${edu_sharing.avQueueName}")
+    lateinit var avQueueName: String
+
     @Value("\${edu_sharing.topicExchangeName}")
     lateinit var topicExchangeName: String
 
@@ -34,6 +38,10 @@ class QueueConfig {
 
     @Value("\${edu_sharing.imageRoutingKey}")
     lateinit var imageRoutingKey: String
+
+    @Value("\${edu_sharing.avRoutingKey}")
+    lateinit var avRoutingKey: String
+
 
     /**
      * Queue definitions
@@ -47,6 +55,11 @@ class QueueConfig {
     @Bean
     fun imageJobQueue(): Queue {
         return Queue(imageQueueName, false)
+    }
+
+    @Bean
+    fun avJobQueue(): Queue {
+        return Queue(avQueueName, false)
     }
 
     /**
@@ -70,6 +83,11 @@ class QueueConfig {
     @Bean
     fun imageJobBinding(imageJobQueue: Queue, topicExchange: TopicExchange): Binding {
         return BindingBuilder.bind(imageJobQueue).to(topicExchange).with(imageRoutingKey)
+    }
+
+    @Bean
+    fun avJobBinding(avJobQueue: Queue, topicExchange: TopicExchange): Binding {
+        return BindingBuilder.bind(avJobQueue).to(topicExchange).with(avRoutingKey)
     }
 
     /**
@@ -96,6 +114,15 @@ class QueueConfig {
         return container
     }
 
+    @Bean
+    fun avJobContainer(connectionFactory: ConnectionFactory, avListenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
+        val container = SimpleMessageListenerContainer()
+        container.connectionFactory = connectionFactory
+        container.setQueueNames(imageQueueName)
+        container.setMessageListener(avListenerAdapter)
+        return container
+    }
+
     /**
      * Listener: Specifying listener classes and methods
      */
@@ -109,6 +136,13 @@ class QueueConfig {
 
     @Bean
     fun imageListenerAdapter(receiver: ImageReceiver): MessageListenerAdapter {
+        val adapter = MessageListenerAdapter(receiver, "receiveMessage")
+        adapter.setMessageConverter(messageConverter())
+        return adapter
+    }
+
+    @Bean
+    fun avListenerAdapter(receiver: AvReceiver): MessageListenerAdapter {
         val adapter = MessageListenerAdapter(receiver, "receiveMessage")
         adapter.setMessageConverter(messageConverter())
         return adapter
