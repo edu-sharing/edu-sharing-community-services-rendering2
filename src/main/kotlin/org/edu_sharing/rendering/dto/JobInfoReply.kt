@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.dto
 
 data class JobInfoReply(
-    val jobs: MutableList<JobProgressInfo>
+    val jobs: MutableList<JobProgressInfo>,
+    val module: RenderModules = RenderModules.IMAGE
 )
