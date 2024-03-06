@@ -49,8 +49,7 @@ class JobReceiver(
         jobRepository.save(jobEntry)
         if (cacheObject.type == "image") {
             this.createImageJob(jobEntry, message)
-        }
-    }
+        } }
 
     private fun createImageJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
         message.missingQualities.forEach {

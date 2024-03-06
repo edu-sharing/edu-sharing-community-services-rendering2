@@ -8,7 +8,7 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.exception.EntryNotFoundException
-import org.edu_sharing.rendering.logic.ImageLogic
+import org.edu_sharing.rendering.logic.ConversionRetrieval
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -19,7 +19,7 @@ class JobInfoService (
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val mapper: Mapper,
-    private val imageLogic: ImageLogic,
+    private val conversionRetrieval: ConversionRetrieval,
     private val storageImplementation: StorageService,
     ){
     fun getJobInfo(jobId: String): JobInfoReply {
@@ -37,9 +37,10 @@ class JobInfoService (
                 }
                 JobStatus.PROCESSING -> { jobInfo.progress = it.progress.toLong() }
                 JobStatus.FINISHED -> {
-                    // what do i do if there is nothing cached? For whatever reason
+                    // what do I do if there is nothing cached? For whatever reason
                     var cacheObject = mapper.renderingJobToCacheObject(job)
-                    cacheObject = imageLogic.getCacheObjectWithConvertedMimeType(cacheObject)
+                    // This needs to be more abstract
+                    cacheObject = conversionRetrieval.getCacheObjectWithConvertedMimeType(cacheObject)
                     jobInfo.objectLink = storageImplementation.getObjectLink(cacheObject)
                 }
                 JobStatus.FAILED -> {}

@@ -8,7 +8,7 @@ import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.logic.ImageLogic
+import org.edu_sharing.rendering.logic.ConversionRetrieval
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Qualifier
@@ -24,7 +24,7 @@ class RenderDataService (
     private val mongoRepo: RenderingJobRepository,
     private val amqpTemplate: AmqpTemplate,
     private val mapper: Mapper,
-    private val imageLogic: ImageLogic
+    private val conversionRetrieval: ConversionRetrieval
     ) {
 
     @Value("\${edu_sharing.topicExchangeName}")
@@ -43,9 +43,9 @@ class RenderDataService (
     }
 
     fun compileResponseLists(cacheObject: CacheObject) {
-        if (cacheObject.type == "image") {
+        if (conversionRetrieval.checkIsConversionObject(cacheObject)) {
             val missingResolutions = mutableListOf<Int>()
-            this.imageLogic.getImageSizeList().forEach {
+            this.conversionRetrieval.getMimeTypeSpecificQualities(cacheObject.mimeType).forEach {
                 cacheObject.quality = it
                 val link = this.retrieveObjectLink(cacheObject)
                 if (link != null) {
@@ -68,7 +68,7 @@ class RenderDataService (
     }
 
     private fun retrieveObjectLink(cacheObject: CacheObject): String? {
-        val lookUpObject = imageLogic.getCacheObjectWithConvertedMimeType(cacheObject)
+        val lookUpObject = conversionRetrieval.getCacheObjectWithConvertedMimeType(cacheObject)
         if (! storageImplementation.isObjectExisting(lookUpObject)) {
             return null
         }
@@ -83,9 +83,7 @@ class RenderDataService (
         val existingJobs = mongoRepo.findAllByEsObjectId(cacheObject.nodeId)
         try {
             val unfinishedJob = existingJobs.first { it.status != JobStatus.FINISHED && it.status != JobStatus.FAILED }
-            unfinishedJob.subJobs.forEach {
-                qualities.remove(it.quality)
-            }
+            unfinishedJob.subJobs.forEach { qualities.remove(it.quality) }
             if (qualities.size == 0) {
                 return unfinishedJob.id.toString()
             } else {

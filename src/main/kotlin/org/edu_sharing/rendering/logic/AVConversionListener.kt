@@ -8,20 +8,18 @@ import ws.schild.jave.info.MultimediaInfo
 import ws.schild.jave.progress.EncoderProgressListener
 
 class AVConversionListener(
-    @Autowired private val subJobRepository: SubJobRepository
+    @Autowired private val subJobRepository: SubJobRepository,
+    private val subJob: SubJob
 ): EncoderProgressListener {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-
-    private lateinit var subJob: SubJob
-
     override fun sourceInfo(p0: MultimediaInfo?) {
         // This is executed when the mm object was analyzed
         return
     }
 
     override fun progress(p0: Int) {
-        if (this::subJob.isInitialized && p0%10 == 0) {
+        if (p0%10 == 0) {
             subJob.progress = p0/10
             subJobRepository.save(subJob)
         }
