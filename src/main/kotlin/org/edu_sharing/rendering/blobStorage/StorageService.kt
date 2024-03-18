@@ -6,7 +6,7 @@ import java.io.FileInputStream
 import java.io.InputStream
 
 interface StorageService {
-    fun putObject(cacheObject: CacheObject, inputStream: InputStream)
+    fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String> = emptyMap())
     fun getObjectLink(cacheObject: CacheObject): String
     fun removeObject(cacheObject: CacheObject)
     fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): GetObjectResponse

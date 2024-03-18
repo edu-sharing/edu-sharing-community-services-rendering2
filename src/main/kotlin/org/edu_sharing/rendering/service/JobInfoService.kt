@@ -40,6 +40,7 @@ class JobInfoService (
                     // what do I do if there is nothing cached? For whatever reason
                     var cacheObject = mapper.renderingJobToCacheObject(job)
                     // This needs to be more abstract
+                    cacheObject.quality = it.quality
                     cacheObject = conversionRetrieval.getCacheObjectWithConvertedMimeType(cacheObject)
                     jobInfo.objectLink = storageImplementation.getObjectLink(cacheObject)
                 }

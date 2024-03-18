@@ -21,18 +21,18 @@ class ImageReceiver(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun receiveMessage(message: SubJobMessage) {
-        this.conversionService.reset()
         val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id))
         if (jobEntry == null) {
             logger.warn("Expected main job not found: " + message.id)
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        val sourceImage = conversionService.fetchSourceImage(cacheObject)
         jobEntry.subJobs.forEach {
             try {
                 it.status = JobStatus.PROCESSING
                 subJobRepository.save(it)
-                this.conversionService.convert(cacheObject, it.quality)
+                this.conversionService.convert(cacheObject, it.quality, sourceImage)
                 it.status = JobStatus.FINISHED
             } catch (exception: Exception) {
                 logger.warn(exception.message)

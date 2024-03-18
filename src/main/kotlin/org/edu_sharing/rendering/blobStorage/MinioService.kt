@@ -10,15 +10,11 @@ import java.util.concurrent.TimeUnit
 
 @Service
 class MinioService(private val eduMinioClient: MinioClient) : StorageService {
-    override fun putObject(cacheObject: CacheObject, inputStream: InputStream) {
+    override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
         createBucket(cacheObject.type)
-        val metadata = mapOf(
-            "hash" to cacheObject.hash,
-            "size" to cacheObject.size.toString()
-        )
         eduMinioClient.putObject(
             PutObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).stream(
-                inputStream, cacheObject.size, -1).userMetadata(metadata).contentType("image/jpeg").build()
+                inputStream, cacheObject.size, -1).userMetadata(metadata).contentType(cacheObject.mimeType).build()
         )
     }
 

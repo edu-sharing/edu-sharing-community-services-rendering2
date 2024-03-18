@@ -118,8 +118,10 @@ class QueueConfig {
     fun avJobContainer(connectionFactory: ConnectionFactory, avListenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
         val container = SimpleMessageListenerContainer()
         container.connectionFactory = connectionFactory
-        container.setQueueNames(imageQueueName)
+        container.setQueueNames(avQueueName)
         container.setMessageListener(avListenerAdapter)
+        container.setPrefetchCount(1)
+        container.setConcurrency("1")
         return container
     }
 

@@ -13,6 +13,7 @@ data class SubJob(
     var status: JobStatus = JobStatus.QUEUED,
     val quality: Int = 0,
     var progress: Int = 0,
+    var message: String? = null,
     @DocumentReference(lazy = true)
     var parent: RenderingJob
 )

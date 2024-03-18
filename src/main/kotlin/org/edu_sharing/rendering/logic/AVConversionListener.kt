@@ -3,14 +3,14 @@ package org.edu_sharing.rendering.logic
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import ws.schild.jave.info.MultimediaInfo
 import ws.schild.jave.progress.EncoderProgressListener
 
 class AVConversionListener(
-    @Autowired private val subJobRepository: SubJobRepository,
-    private val subJob: SubJob
-): EncoderProgressListener {
+    private val subJob: SubJob,
+    private val subJobRepository: SubJobRepository
+    ): EncoderProgressListener {
+
 
     private val logger = LoggerFactory.getLogger(javaClass)
     override fun sourceInfo(p0: MultimediaInfo?) {
@@ -23,7 +23,6 @@ class AVConversionListener(
             subJob.progress = p0/10
             subJobRepository.save(subJob)
         }
-        // This is called everytime progress changes (0-1000)
     }
 
     override fun message(p0: String?) {

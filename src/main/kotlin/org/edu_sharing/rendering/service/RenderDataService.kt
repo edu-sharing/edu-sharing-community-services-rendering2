@@ -33,38 +33,37 @@ class RenderDataService (
     @Value("\${edu_sharing.jobRoutingKey}")
     lateinit var jobRoutingKey: String
 
-    var objectLinkList = mutableListOf<String>()
-    var jobId: String? = null
-
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
-        this.objectLinkList = mutableListOf()
-        this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
+        val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
         return RenderDataResponse(objectLinkList, jobId)
     }
 
-    fun compileResponseLists(cacheObject: CacheObject) {
+    fun compileResponseLists(cacheObject: CacheObject): Pair<MutableList<String>, String?> {
+        val objectLinkList = mutableListOf<String>()
+        var jobId: String? = null
         if (conversionRetrieval.checkIsConversionObject(cacheObject)) {
             val missingResolutions = mutableListOf<Int>()
             this.conversionRetrieval.getMimeTypeSpecificQualities(cacheObject.mimeType).forEach {
                 cacheObject.quality = it
                 val link = this.retrieveObjectLink(cacheObject)
                 if (link != null) {
-                    this.objectLinkList.add(link)
+                    objectLinkList.add(link)
                 } else {
                     missingResolutions.add(it)
                 }
             }
             if (missingResolutions.size > 0) {
-                this.jobId = this.createJob(cacheObject, missingResolutions)
+                jobId = this.createJob(cacheObject, missingResolutions)
             }
         } else {
             val link = retrieveObjectLink(cacheObject)
             if (link != null) {
-                this.objectLinkList.add(link)
+                objectLinkList.add(link)
             } else {
                 this.cacheObjectData(cacheObject)
             }
         }
+        return objectLinkList to jobId
     }
 
     private fun retrieveObjectLink(cacheObject: CacheObject): String? {

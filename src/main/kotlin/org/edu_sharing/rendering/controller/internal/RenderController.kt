@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/renderdata")
 class RenderController (private val service: RenderDataService){
-    @PostMapping(produces = arrayOf(MediaType.APPLICATION_JSON_VALUE))
+    @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getRenderData(@RequestBody @Valid body: RenderDataRequest): RenderDataResponse {
         return service.getRenderData(body)
     }

@@ -17,17 +17,12 @@ import javax.imageio.ImageIO
 class ImageConversionService (
     private val storageImplementation: StorageService,
 ){
-    private var sourceImage: BufferedImage? = null
-
     @Value("\${edu_sharing.image_format}")
     lateinit var imageFormat: String
 
-    fun convert(cacheObject: CacheObject, size: Int) {
-        if (this.sourceImage == null) {
-            this.fetchSourceImage(cacheObject)
-        }
-        val originalHeight = this.sourceImage!!.height
-        val originalWidth = this.sourceImage!!.width
+    fun convert(cacheObject: CacheObject, size: Int, sourceImage: BufferedImage) {
+        val originalHeight = sourceImage.height
+        val originalWidth = sourceImage.width
         val ratio = originalWidth.toFloat()/originalHeight
         val targetWidth: Int
         val targetHeight: Int
@@ -38,7 +33,7 @@ class ImageConversionService (
             targetHeight = size
             targetWidth = (size * ratio).toInt()
         }
-        val outputImage = sourceImage!!.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
+        val outputImage = sourceImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
         val bufferedOutputImage = BufferedImage(
             outputImage.getWidth(null),
             outputImage.getHeight(null),
@@ -49,17 +44,14 @@ class ImageConversionService (
         ImageIO.write(bufferedOutputImage, this.imageFormat, byteArrayOutputStream)
         cacheObject.quality = size
         cacheObject.size = byteArrayOutputStream.size().toLong()
-        cacheObject.mimeType = "image/" + this.imageFormat
+        cacheObject.mimeType = "image/${imageFormat}"
         this.storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()))
     }
 
-    private fun fetchSourceImage(cacheObject: CacheObject) {
+    fun fetchSourceImage(cacheObject: CacheObject): BufferedImage {
         val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
-        this.sourceImage = ImageIO.read(fileInputStream)
+        val sourceImage = ImageIO.read(fileInputStream)
         fileInputStream.close()
-    }
-
-    fun reset() {
-        this.sourceImage = null
+        return sourceImage
     }
 }

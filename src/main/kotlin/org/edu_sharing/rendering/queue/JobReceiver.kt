@@ -29,12 +29,16 @@ class JobReceiver(
     @Value("\${edu_sharing.imageRoutingKey}")
     lateinit var imageRoutingKey: String
 
+    @Value("\${edu_sharing.avRoutingKey}")
+    lateinit var avRoutingKey: String
+
     @Value("\${edu_sharing.topicExchangeName}")
     lateinit var topicExchangeName: String
     fun receiveMessage(message: RenderingJobMessage) {
         val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
         jobEntry.status = JobStatus.PROCESSING
         jobRepository.save(jobEntry)
+        // This is just for testing
         val file = resourceLoader.getResource("classpath:" + jobEntry.origin).file
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         cacheObject.size = file.length()
@@ -45,11 +49,12 @@ class JobReceiver(
             jobRepository.save(jobEntry)
             return
         }
-        jobEntry.status = JobStatus.FINISHED
-        jobRepository.save(jobEntry)
         if (cacheObject.type == "image") {
             this.createImageJob(jobEntry, message)
-        } }
+        } else if (cacheObject.type == "video") {
+            createVideoJobs(jobEntry, message)
+        }
+    }
 
     private fun createImageJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
         message.missingQualities.forEach {
@@ -57,5 +62,13 @@ class JobReceiver(
             subJobRepository.save(imageJob)
         }
         amqpTemplate.convertAndSend(topicExchangeName, imageRoutingKey, SubJobMessage(jobEntry.id.toString()))
+    }
+
+    private fun createVideoJobs(jobEntry: RenderingJob, message: RenderingJobMessage) {
+        message.missingQualities.forEach {
+            val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = jobEntry)
+            subJobRepository.save(avJob)
+            amqpTemplate.convertAndSend(topicExchangeName, avRoutingKey, SubJobMessage(jobEntry.id.toString(), it))
+        }
     }
 }
