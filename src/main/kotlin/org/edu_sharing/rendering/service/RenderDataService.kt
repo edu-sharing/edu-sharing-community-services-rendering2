@@ -27,10 +27,10 @@ class RenderDataService (
     private val conversionRetrieval: ConversionRetrieval
     ) {
 
-    @Value("\${edu_sharing.topicExchangeName}")
+    @Value("\${edu_sharing.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${edu_sharing.jobRoutingKey}")
+    @Value("\${edu_sharing.queue.job.key}")
     lateinit var jobRoutingKey: String
 
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {

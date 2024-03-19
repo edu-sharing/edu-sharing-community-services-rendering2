@@ -8,6 +8,10 @@ import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.edu_sharing.rendering.service.ImageConversionService
 import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Queue
+import org.springframework.amqp.rabbit.annotation.QueueBinding
+import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
@@ -20,6 +24,16 @@ class ImageReceiver(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    @RabbitListener(
+        bindings = [
+            QueueBinding(
+                value = Queue(name = "\${edu_sharing.queue.image.name}", durable = "false"),
+                exchange = Exchange(name = "\${edu_sharing.queue.topicExchange}", type = "topic"),
+                key = ["\${edu_sharing.queue.image.key}"]
+            )
+        ],
+        containerFactory = "singlePrefetchConnectionFactory"
+    )
     fun receiveMessage(message: SubJobMessage) {
         val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id))
         if (jobEntry == null) {

@@ -8,24 +8,38 @@ import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.edu_sharing.rendering.service.AudioVideoConversionService
 import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Queue
+import org.springframework.amqp.rabbit.annotation.QueueBinding
+import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class AvReceiver (
+class AvReceiver(
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val conversionService: AudioVideoConversionService,
     private val mapper: Mapper
-){
+) {
     private val logger = LoggerFactory.getLogger(javaClass)
+
+    @RabbitListener(
+        bindings = [
+            QueueBinding(
+                value = Queue(name = "\${edu_sharing.queue.av.name}", durable = "false"),
+                exchange = Exchange(name = "\${edu_sharing.queue.topicExchange}", type = "topic"),
+                key = ["\${edu_sharing.queue.av.key}"]
+            )
+        ], containerFactory = "singlePrefetchConnectionFactory"
+    )
     fun receiveMessage(message: SubJobMessage) {
         val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id))
         if (jobEntry == null) {
             logger.warn("Expected main job not found: " + message.id)
             return
         }
-        val subJob = jobEntry.subJobs.first {it.quality == message.quality}
+        val subJob = jobEntry.subJobs.first { it.quality == message.quality }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         subJob.status = JobStatus.PROCESSING
         subJobRepository.save(subJob)
@@ -50,7 +64,7 @@ class AvReceiver (
             if (areSomeProcessingOrQueued) {
                 return
             }
-            val areAllFinished = jobEntry.subJobs.firstOrNull { it.status == JobStatus.FAILED} == null
+            val areAllFinished = jobEntry.subJobs.firstOrNull { it.status == JobStatus.FAILED } == null
             jobEntry.status = if (areAllFinished) JobStatus.FINISHED else JobStatus.FAILED
             jobRepository.save(jobEntry)
         }
