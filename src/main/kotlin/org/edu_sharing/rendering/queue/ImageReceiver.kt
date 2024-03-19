@@ -1,10 +1,8 @@
 package org.edu_sharing.rendering.queue
 
-import org.bson.types.ObjectId
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.edu_sharing.rendering.service.ImageConversionService
 import org.slf4j.LoggerFactory
@@ -12,12 +10,11 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
 class ImageReceiver(
-    private val jobRepository: RenderingJobRepository,
+    private val mainJobLogic: MainJobLogic,
     private val subJobRepository: SubJobRepository,
     private val conversionService: ImageConversionService,
     private val mapper: Mapper
@@ -35,7 +32,7 @@ class ImageReceiver(
         containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SubJobMessage) {
-        val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id))
+        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null) {
             logger.warn("Expected main job not found: " + message.id)
             return
@@ -54,7 +51,6 @@ class ImageReceiver(
             }
             subJobRepository.save(it)
         }
-        jobEntry.finishedTimestamp = System.currentTimeMillis()
-        jobRepository.save(jobEntry)
+        mainJobLogic.processMainJob(message.id)
     }
 }
