@@ -14,6 +14,7 @@ import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 
 @Service
@@ -33,6 +34,7 @@ class RenderDataService (
     @Value("\${edu_sharing.queue.job.key}")
     lateinit var jobRoutingKey: String
 
+    @PreAuthorize("hasRole('Read') and #request.nodeId == authentication.principal.node")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
         val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
         return RenderDataResponse(objectLinkList, jobId)
