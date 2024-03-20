@@ -23,6 +23,12 @@ class ConversionRetrieval {
 
     @Value("\${edu_sharing.converted_video_mime_types}")
     lateinit var convertedVideoMimeTypes: List<String>
+
+    @Value("\${edu_sharing.converted_audio_mime_types}")
+    lateinit var convertedAudioMimeTypes: List<String>
+
+    @Value("\${edu_sharing.audio_bitrate}")
+    lateinit var audioBitrate: String
     fun getCacheObjectWithConvertedMimeType(cacheObject: CacheObject): CacheObject {
         if (! checkIsConversionObject(cacheObject)) {
             return cacheObject
@@ -33,7 +39,7 @@ class ConversionRetrieval {
     }
 
     fun checkIsConversionObject(cacheObject: CacheObject): Boolean {
-        val combinedMimeTypes = convertedImageMimeTypes + convertedVideoMimeTypes
+        val combinedMimeTypes = convertedImageMimeTypes + convertedVideoMimeTypes + convertedAudioMimeTypes
         return combinedMimeTypes.contains(cacheObject.mimeType)
     }
 
@@ -41,6 +47,7 @@ class ConversionRetrieval {
         return when (mimeType.substringBefore("/")) {
             "video" -> if (this::videoResolutions.isInitialized) videoResolutions else emptyList()
             "image" -> if (this::imageSizes.isInitialized) imageSizes else emptyList()
+            "audio" -> if (this::audioBitrate.isInitialized) listOf(audioBitrate.toInt()) else emptyList()
             else -> emptyList()
         }
     }
@@ -49,6 +56,7 @@ class ConversionRetrieval {
         return when (cacheObject.mimeType.substringBefore("/")) {
             "video" -> "video/$videoFormat"
             "image" -> "image/$imageFormat"
+            "audio" -> "audio/mpeg"
             else -> ""
         }
     }

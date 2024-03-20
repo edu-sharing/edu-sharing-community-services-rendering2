@@ -65,8 +65,8 @@ class JobReceiver(
         }
         if (cacheObject.type == "image") {
             this.createImageJob(jobEntry, message)
-        } else if (cacheObject.type == "video") {
-            createVideoJobs(jobEntry, message)
+        } else if (cacheObject.type == "video" || cacheObject.type == "audio") {
+            createAvJobs(jobEntry, message)
         }
     }
 
@@ -78,7 +78,7 @@ class JobReceiver(
         amqpTemplate.convertAndSend(topicExchangeName, imageRoutingKey, SubJobMessage(jobEntry.id.toString()))
     }
 
-    private fun createVideoJobs(jobEntry: RenderingJob, message: RenderingJobMessage) {
+    private fun createAvJobs(jobEntry: RenderingJob, message: RenderingJobMessage) {
         message.missingQualities.forEach {
             val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = jobEntry)
             subJobRepository.save(avJob)
