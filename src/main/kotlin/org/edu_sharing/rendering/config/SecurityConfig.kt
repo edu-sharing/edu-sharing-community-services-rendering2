@@ -71,6 +71,9 @@ class SecurityConfig {
             ).permitAll()
             it.anyRequest().authenticated()
         }.addFilterBefore(authenticationJwtTokenFilter(jwtUtils()), UsernamePasswordAuthenticationFilter::class.java)
+//            .securityContext{
+//                it.securityContextRepository()
+//            }
             .build()
     }
 

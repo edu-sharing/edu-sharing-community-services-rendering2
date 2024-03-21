@@ -9,19 +9,11 @@ import org.springframework.stereotype.Service
 class MetadataService (
     private val repository: AppConfigRepository
 ) {
-    fun getMetadata(): MetadataResponse {
+    fun getMetadata(): AppConfig {
         val appConfigs = repository.findAll()
         if (appConfigs.size == 0) {
             throw EntryNotFoundException("No config found in database.")
         }
-        val appConfig = appConfigs[0]
-        return MetadataResponse(
-            appid = appConfig.appId,
-            appcaption = appConfig.appCaption,
-            trustedclient = true,
-            host = appConfig.host,
-            port = appConfig.port,
-            public_key = appConfig.publicKey ?: ""
-        )
+        return appConfigs[0];
     }
 }
