@@ -1,10 +1,14 @@
 package org.edu_sharing.rendering.config
 
 import org.edu_sharing.rendering.security.jwt.AuthTokenFilter
+import org.edu_sharing.rendering.security.jwt.JwtPermissionEvaluator
 import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.security.access.PermissionEvaluator
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
@@ -33,6 +37,18 @@ class SecurityConfig {
             publicKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "")
         val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
         return JwtUtils(KeyFactory.getInstance("RSA").generatePublic(keySpec))
+    }
+
+    @Bean
+    fun permissionEvaluator(): PermissionEvaluator {
+        return JwtPermissionEvaluator()
+    }
+
+    @Bean
+    fun expressionHandler() : MethodSecurityExpressionHandler {
+        val defaultMethodSecurityExpressionHandler = DefaultMethodSecurityExpressionHandler()
+        defaultMethodSecurityExpressionHandler.setPermissionEvaluator(permissionEvaluator())
+        return defaultMethodSecurityExpressionHandler
     }
 
     @Bean

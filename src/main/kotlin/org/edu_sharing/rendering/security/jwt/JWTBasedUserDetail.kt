@@ -4,12 +4,13 @@ import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import java.util.Date
 
-data class NodeBasedUserDetail(
+data class JWTBasedUserDetail(
     private val username: String,
     val node: String,
     private val notBefore: Date,
     private val expirationDate: Date,
-    private val authorities: MutableCollection<out GrantedAuthority>
+    private val authorities: MutableCollection<out GrantedAuthority>,
+    val permissions: MutableCollection<out String>
 ) : UserDetails {
     override fun getAuthorities(): MutableCollection<out GrantedAuthority> {
         return authorities

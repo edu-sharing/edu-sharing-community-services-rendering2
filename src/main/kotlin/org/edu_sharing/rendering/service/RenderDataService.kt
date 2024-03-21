@@ -34,7 +34,7 @@ class RenderDataService (
     @Value("\${edu_sharing.queue.job.key}")
     lateinit var jobRoutingKey: String
 
-    @PreAuthorize("hasRole('Read') and #request.nodeId == authentication.principal.node")
+   @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
         val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
         return RenderDataResponse(objectLinkList, jobId)

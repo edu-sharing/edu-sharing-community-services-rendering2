@@ -6,7 +6,7 @@ import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException
 import org.slf4j.LoggerFactory
-import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.GrantedAuthority
 import java.security.PublicKey
 
 class JwtUtils(publicKey: PublicKey) {
@@ -32,21 +32,19 @@ class JwtUtils(publicKey: PublicKey) {
         return false
     }
 
-    fun getUserDetailsFromJwt(jwt: String): NodeBasedUserDetail {
+    @Suppress("UNCHECKED_CAST")
+    fun getUserDetailsFromJwt(jwt: String): JWTBasedUserDetail {
         val jwtObj = jwtParser.parseSignedClaims(jwt)
 
-        val grantedAuthority = jwtObj.payload.get("permissions", List::class.java)
-            .stream()
-            .map { it as String }
-            .map { SimpleGrantedAuthority("ROLE_$it") }
-            .toList()
+        val grantedAuthority = mutableListOf<GrantedAuthority>()
 
-        return NodeBasedUserDetail(
+        return JWTBasedUserDetail(
             jwtObj.payload.issuer,
             jwtObj.payload.get("node", String::class.java),
             jwtObj.payload.notBefore,
             jwtObj.payload.expiration,
-            grantedAuthority
+            grantedAuthority,
+            jwtObj.payload.get("permissions", List::class.java) as MutableCollection<String>,
         )
     }
 }
