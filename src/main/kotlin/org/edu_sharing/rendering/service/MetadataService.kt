@@ -16,13 +16,12 @@ class MetadataService (
         }
         val appConfig = appConfigs[0]
         return MetadataResponse(
-            appId = appConfig.appId,
-            appCaption = appConfig.appCaption,
-            trustedClient = true,
+            appid = appConfig.appId,
+            appcaption = appConfig.appCaption,
+            trustedclient = true,
             host = appConfig.host,
             port = appConfig.port,
-            scheme = appConfig.scheme,
-            publicKey = appConfig.publicKey ?: ""
+            public_key = appConfig.publicKey ?: ""
         )
     }
 }

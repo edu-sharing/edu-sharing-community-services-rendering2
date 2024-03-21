@@ -66,7 +66,7 @@ class RegistrationRunner(
         } catch (e: Exception) {
             logger.error(e.message)
         }
+
         // getMetadata
-        // PUT /admin/v1/applications with metadataUrl (secured with user pw)
     }
 }
