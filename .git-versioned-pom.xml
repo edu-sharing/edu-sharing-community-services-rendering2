@@ -11,7 +11,7 @@
 
   <groupId>org.edu_sharing</groupId>
   <artifactId>edu_sharing-community-services-rendering2</artifactId>
-  <version>master-SNAPSHOT</version>
+  <version>develop-SNAPSHOT</version>
 
   <name>services-rendering-service2</name>
   <description>services-rendering-service2</description>
@@ -152,6 +152,11 @@
       <artifactId>imageio-webp</artifactId>
       <version>3.10.1</version>
       <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
     </dependency>
 
     <dependency>

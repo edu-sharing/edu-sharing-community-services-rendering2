@@ -44,6 +44,22 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         )
     }
 
+    override fun getObjectChunkStream(
+        cacheObject: CacheObject,
+        isTemp: Boolean,
+        offset: Long,
+        length: Long
+    ): GetObjectResponse {
+        return eduMinioClient.getObject(
+            GetObjectArgs.Builder()
+                .bucket(if (isTemp) "temp" else cacheObject.type)
+                .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject))
+                .offset(offset)
+                .length(length)
+                .build()
+        )
+    }
+
     override fun putTempFile(cacheObject: CacheObject, inputStream: FileInputStream) {
         createBucket("temp")
         eduMinioClient.putObject(
@@ -63,6 +79,12 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         } catch (exception: Exception) {
             return false
         }
+    }
+
+    override fun getFileProperties(cacheObject: CacheObject): StatObjectResponse {
+        return eduMinioClient.statObject(
+            StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
+        )
     }
 
     private fun createBucket(name: String) {

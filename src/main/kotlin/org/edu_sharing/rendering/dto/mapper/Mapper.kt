@@ -36,4 +36,18 @@ class Mapper {
             mimeType = renderingJob.mimeType,
         )
     }
+
+    fun fileRequestParamToCacheObject(requestParam: String): CacheObject {
+        // I expect: "type_objectid_hash_quality" or "type_objectid_hash"
+        val parts = requestParam.split("_")
+        if (parts.size < 3 || parts.size > 4 || parts[3].toIntOrNull() != null) {
+            throw IllegalArgumentException()
+        }
+        return CacheObject(
+            nodeId = parts[1],
+            type = parts[0],
+            hash = parts[2],
+            quality = if (parts.size == 4) parts[3].toIntOrNull() else null,
+        )
+    }
 }

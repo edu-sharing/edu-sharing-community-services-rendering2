@@ -14,7 +14,7 @@ class ApiExceptionHandler {
     fun handleNotFoundException(exception: EntryNotFoundException): ResponseEntity<ErrorMessage> {
         val errorMessage = ErrorMessage(
             HttpStatus.NOT_FOUND.value(),
-            "Invalid job id"
+            "Resource not found"
         )
         return ResponseEntity(errorMessage, HttpStatus.NOT_FOUND)
     }
