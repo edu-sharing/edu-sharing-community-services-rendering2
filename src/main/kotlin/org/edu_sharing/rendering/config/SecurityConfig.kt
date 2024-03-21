@@ -66,7 +66,8 @@ class SecurityConfig {
             it.requestMatchers(
                 "/swagger-ui/**",
                 "/swagger-ui.html",
-                "/v3/api-docs/**"
+                "/v3/api-docs/**",
+                "/public/metadata"
             ).permitAll()
             it.anyRequest().authenticated()
         }.addFilterBefore(authenticationJwtTokenFilter(jwtUtils()), UsernamePasswordAuthenticationFilter::class.java)
