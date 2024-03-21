@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.config
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
+import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.BulkV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.NodeV1Api
 import org.edu_sharing.rendering.repository.rest.ApiClientFixes
@@ -36,5 +37,10 @@ class EduSharingConfig {
     @Bean
     fun nodeV1Api(apiClient: ApiClient?): NodeV1Api {
         return NodeV1Api(apiClient)
+    }
+
+    @Bean
+    fun adminApi(apiClient: ApiClient?): AdminV1Api {
+        return AdminV1Api(apiClient)
     }
 }
