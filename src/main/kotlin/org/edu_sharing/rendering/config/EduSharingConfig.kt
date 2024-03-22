@@ -8,11 +8,12 @@ import org.edu_sharing.rendering.repository.rest.ApiClientFixes
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
 class EduSharingConfig {
     @Value("\${edu_sharing.basePath}")
-    lateinit var restBasePath: String
+    lateinit var eduBasePath: String
 
     @Value("\${edu_sharing.username}")
     var username: String? = null
@@ -23,7 +24,7 @@ class EduSharingConfig {
     @Bean
     fun apiClient(): ApiClient {
         val apiClient: ApiClient = ApiClientFixes()
-        apiClient.setBasePath("$restBasePath/rest")
+        apiClient.setBasePath("$eduBasePath/rest")
         apiClient.setUsername(username)
         apiClient.setPassword(password)
         return apiClient
@@ -42,5 +43,13 @@ class EduSharingConfig {
     @Bean
     fun adminApi(apiClient: ApiClient?): AdminV1Api {
         return AdminV1Api(apiClient)
+    }
+
+    @Bean
+    fun eduSharingWebClient(): WebClient {
+        return WebClient
+            .builder()
+            .baseUrl(eduBasePath)
+            .build()
     }
 }

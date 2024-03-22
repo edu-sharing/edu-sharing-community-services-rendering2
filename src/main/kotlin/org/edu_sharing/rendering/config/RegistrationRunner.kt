@@ -8,14 +8,19 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.scheduler.Schedulers
 import java.security.KeyPairGenerator
+import java.util.*
 
 @Component
 class RegistrationRunner(
     private val appConfigRepository: AppConfigRepository,
-    private val adminV1Api: AdminV1Api
+    private val adminV1Api: AdminV1Api,
+    private val eduSharingWebClient: WebClient
 ): ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -25,8 +30,6 @@ class RegistrationRunner(
 
     @Value("\${app.public.port}")
     lateinit var port: String
-
-
 
     @Transactional
     override fun run(args: ApplicationArguments?) {
@@ -42,14 +45,7 @@ class RegistrationRunner(
     }
 
     private fun initValues(): AppConfig {
-        return AppConfig(
-            appId = "Renderer2",
-            appCaption = "I am the new renderer",
-            trustedClient = true,
-            host = publicUrl,
-            port = port.toInt(),
-            scheme = "http"
-        )
+        return AppConfig()
     }
 
     private fun generateKeys(appConfig: AppConfig) {
@@ -67,7 +63,23 @@ class RegistrationRunner(
         } catch (e: Exception) {
             log.error(e.message)
         }
-
-        // getMetadata
+        val publicKey = eduSharingWebClient
+            .get()
+            .uri { it.path("/metadata")
+                .queryParam("format", "lms")
+                .queryParam("external", true)
+                .build()
+            }.accept(MediaType.APPLICATION_XML)
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .publishOn(Schedulers.boundedElastic())
+            .mapNotNull {
+                val buffer = it.byteInputStream()
+                val props = Properties()
+                props.loadFromXML(buffer)
+                props["public_key"]
+            }
+            .block()
+        val test = 0
     }
 }
