@@ -18,12 +18,12 @@ class RegistrationRunner(
     private val adminV1Api: AdminV1Api
 ): ApplicationRunner {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-    @Value("\${app.publicUrl}")
+    @Value("\${app.public.url}")
     lateinit var publicUrl: String
 
-    @Value("\${app.port}")
+    @Value("\${app.public.port}")
     lateinit var port: String
 
 
@@ -63,8 +63,9 @@ class RegistrationRunner(
     private fun register(appConfig: AppConfig) {
         try {
             val result = adminV1Api.addApplication1("$publicUrl:$port/public/metadata")
+            log.info("Registration completed: {}", result)
         } catch (e: Exception) {
-            logger.error(e.message)
+            log.error(e.message)
         }
 
         // getMetadata
