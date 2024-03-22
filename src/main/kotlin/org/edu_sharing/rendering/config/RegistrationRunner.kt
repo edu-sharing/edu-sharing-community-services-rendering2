@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.entity.AppConfig
@@ -21,7 +22,7 @@ class RegistrationRunner(
     private val appConfigRepository: AppConfigRepository,
     private val adminV1Api: AdminV1Api,
     private val eduSharingWebClient: WebClient
-): ApplicationRunner {
+) : ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -53,33 +54,42 @@ class RegistrationRunner(
         generator.initialize(2048)
         val keyPair = generator.generateKeyPair()
         appConfig.privateKey = String(Base64().encode(keyPair.private.encoded))
-        appConfig.publicKey = "-----BEGIN PUBLIC KEY-----\n" + String(Base64().encode(keyPair.public.encoded)) + "-----END PUBLIC KEY-----"
+        appConfig.publicKey =
+            "-----BEGIN PUBLIC KEY-----\n" + String(Base64().encode(keyPair.public.encoded)) + "-----END PUBLIC KEY-----"
     }
 
     private fun register(appConfig: AppConfig) {
         try {
             val result = adminV1Api.addApplication1("$publicUrl:$port/public/metadata")
-            log.info("Registration completed: {}", result)
+
+            val publicKey = eduSharingWebClient
+                .get()
+                .uri {
+                    it.path("/metadata")
+                        .queryParam("format", "lms")
+                        .queryParam("external", true)
+                        .build()
+                }.accept(MediaType.APPLICATION_XML)
+                .retrieve()
+                .bodyToMono(String::class.java)
+                .publishOn(Schedulers.boundedElastic())
+                .mapNotNull {
+                    val buffer = it.byteInputStream()
+                    val props = Properties()
+                    props.loadFromXML(buffer)
+                    props["public_key"].toString()
+                }
+                .block()
+
+            if (publicKey != null) {
+                appConfig.repoPublicKey = publicKey
+                appConfigRepository.save(appConfig)
+                log.info("Registration completed: {}", result)
+            } else {
+                log.warn("Registration uncompleted: repo response doesn't contains a public_key {}", result)
+            }
         } catch (e: Exception) {
             log.error(e.message)
         }
-        val publicKey = eduSharingWebClient
-            .get()
-            .uri { it.path("/metadata")
-                .queryParam("format", "lms")
-                .queryParam("external", true)
-                .build()
-            }.accept(MediaType.APPLICATION_XML)
-            .retrieve()
-            .bodyToMono(String::class.java)
-            .publishOn(Schedulers.boundedElastic())
-            .mapNotNull {
-                val buffer = it.byteInputStream()
-                val props = Properties()
-                props.loadFromXML(buffer)
-                props["public_key"]
-            }
-            .block()
-        val test = 0
     }
 }

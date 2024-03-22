@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 data class AppConfig(
     @Id
     val id: String ="0",
-    val repoPublicKey: String? = null,
+    var repoPublicKey: String? = null,
     var privateKey: String? = null,
     var publicKey: String? = null
 )
