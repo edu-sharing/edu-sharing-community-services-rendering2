@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.config
 import org.edu_sharing.rendering.security.jwt.AuthTokenFilter
 import org.edu_sharing.rendering.security.jwt.JwtPermissionEvaluator
 import org.edu_sharing.rendering.security.jwt.JwtUtils
+import org.edu_sharing.rendering.security.jwt.RepositoryPublicKeyProvider
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -28,15 +29,10 @@ class SecurityConfig {
     @Value("\${app.security.allowedOrigins}")
     lateinit var allowedOrigins: List<String>
 
-    var publicKey =
-        "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAprqEcRQVkWUkWfzMhrTtfK09P1hiARnyGRt9C+EvrZAmsRocdlN+6Bb4xpzz37pGkIsXy8sq/ZfbBpsc9Mz0f2YU5AJpdVq+lN9OLGGZc0+wH7UB3js+McbAhURmj3AYz8pBCAA2vvm4+GBXYZrfEOry9Lp6qkSGt+jvFTPRgf5pExnR5/24MLa5Kz9ATaoCcv1okeftddU2C+HC5HZ6NTe/uxRzSP05N/BhHqrSlBVocFjy8Ak6wzbaP4wtdZjVv+LqKTwRiTNJDPjxRv2bbsIDjSTVD6tlcaLsSbHBhHJCXLIMaO9jLcfV7yG0tcK6reI2QGxdlPo9lSkklEfqPwIDAQAB-----END PUBLIC KEY-----"
 
     @Bean
-    fun jwtUtils(): JwtUtils {
-        val publicKeyData =
-            publicKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "")
-        val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
-        return JwtUtils(KeyFactory.getInstance("RSA").generatePublic(keySpec))
+    fun jwtUtils(publicKeyProvider: RepositoryPublicKeyProvider): JwtUtils {
+        return JwtUtils(publicKeyProvider)
     }
 
     @Bean
@@ -57,7 +53,7 @@ class SecurityConfig {
     }
 
     @Bean
-    fun filterChain(httpSecurity: HttpSecurity): SecurityFilterChain {
+    fun filterChain(httpSecurity: HttpSecurity, jwtUtils: JwtUtils): SecurityFilterChain {
         return httpSecurity.csrf {
             it.disable()
         }.cors {
@@ -70,7 +66,7 @@ class SecurityConfig {
                 "/public/metadata"
             ).permitAll()
             it.anyRequest().authenticated()
-        }.addFilterBefore(authenticationJwtTokenFilter(jwtUtils()), UsernamePasswordAuthenticationFilter::class.java)
+        }.addFilterBefore(authenticationJwtTokenFilter(jwtUtils), UsernamePasswordAuthenticationFilter::class.java)
 //            .securityContext{
 //                it.securityContextRepository()
 //            }

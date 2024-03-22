@@ -7,18 +7,25 @@ import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.GrantedAuthority
+import java.security.InvalidKeyException
 import java.security.PublicKey
 
-class JwtUtils(publicKey: PublicKey) {
+class JwtUtils(private var publicKeyProvider: RepositoryPublicKeyProvider) {
 
     private val log = LoggerFactory.getLogger(javaClass)
-    private val jwtParser: JwtParser = Jwts.parser()
-        .verifyWith(publicKey)
-        .build()
+    private fun getJwtParser() : JwtParser{
+        if(publicKeyProvider.getPublicKey() == null){
+            throw InvalidKeyException("No public key available. Please register the application with edu-sharing repository first");
+        }
+
+        return Jwts.parser()
+            .verifyWith(publicKeyProvider.getPublicKey())
+            .build()
+    }
 
     fun validateJwtToken(jwt: String): Boolean {
         try {
-            jwtParser.parse(jwt)
+            getJwtParser().parse(jwt)
             return true
         } catch (e: MalformedJwtException) {
             log.error("Invalid JWT token: {}", e.message)
@@ -34,7 +41,7 @@ class JwtUtils(publicKey: PublicKey) {
 
     @Suppress("UNCHECKED_CAST")
     fun getUserDetailsFromJwt(jwt: String): JWTBasedUserDetail {
-        val jwtObj = jwtParser.parseSignedClaims(jwt)
+        val jwtObj = getJwtParser().parseSignedClaims(jwt)
 
         val grantedAuthority = mutableListOf<GrantedAuthority>()
 
