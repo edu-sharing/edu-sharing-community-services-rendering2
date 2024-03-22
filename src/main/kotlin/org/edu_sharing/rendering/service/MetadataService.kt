@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.service
 
-import org.edu_sharing.rendering.dto.MetadataResponse
+import org.edu_sharing.rendering.entity.AppConfig
 import org.edu_sharing.rendering.exception.EntryNotFoundException
 import org.edu_sharing.rendering.repository.mongo.AppConfigRepository
 import org.springframework.stereotype.Service
@@ -14,6 +14,6 @@ class MetadataService (
         if (appConfigs.size == 0) {
             throw EntryNotFoundException("No config found in database.")
         }
-        return appConfigs[0];
+        return appConfigs[0]
     }
 }
