@@ -19,8 +19,9 @@ class RepositoryPublicKeyProvider(
         val publicKey = metadata.repoPublicKey ?: return null;
 
         val publicKeyData = publicKey
-            .replace("-----BEGIN PUBLIC KEY-----\n", "")
+            .replace("-----BEGIN PUBLIC KEY-----", "")
             .replace("-----END PUBLIC KEY-----", "")
+            .replace("\n","")
 
         val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
         return KeyFactory.getInstance("RSA").generatePublic(keySpec)
