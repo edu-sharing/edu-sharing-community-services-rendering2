@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.controller.external
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.edu_sharing.rendering.dto.TestResponse
 import org.edu_sharing.rendering.service.TestService
 import org.springframework.http.HttpStatus
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/test")
 class TestController(private val service: TestService) {
 
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     @ResponseStatus(HttpStatus.OK)
     fun getMessage(): TestResponse {
