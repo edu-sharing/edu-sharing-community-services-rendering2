@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 class TestService(
     ) {
     private val logger = LoggerFactory.getLogger(javaClass)
+
     fun getMessage(): TestResponse {
         return TestResponse("session", "set")
     }
