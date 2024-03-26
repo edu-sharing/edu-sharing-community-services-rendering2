@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.config
 import org.edu_sharing.rendering.security.jwt.AuthTokenFilter
 import org.edu_sharing.rendering.security.jwt.JwtPermissionEvaluator
 import org.edu_sharing.rendering.security.jwt.JwtUtils
-import org.edu_sharing.rendering.security.jwt.RepositoryPublicKeyProvider
+import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -17,9 +17,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
-import java.security.KeyFactory
-import java.security.spec.X509EncodedKeySpec
-import java.util.*
 
 
 @Configuration
@@ -31,8 +28,8 @@ class SecurityConfig {
 
 
     @Bean
-    fun jwtUtils(publicKeyProvider: RepositoryPublicKeyProvider): JwtUtils {
-        return JwtUtils(publicKeyProvider)
+    fun jwtUtils(keyService: PrivatePublicKeyService): JwtUtils {
+        return JwtUtils(keyService)
     }
 
     @Bean
@@ -63,7 +60,8 @@ class SecurityConfig {
                 "/swagger-ui/**",
                 "/swagger-ui.html",
                 "/v3/api-docs/**",
-                "/public/metadata"
+                "/public/metadata",
+                "/renderdata"
             ).permitAll()
             it.anyRequest().authenticated()
         }.addFilterBefore(authenticationJwtTokenFilter(jwtUtils), UsernamePasswordAuthenticationFilter::class.java)

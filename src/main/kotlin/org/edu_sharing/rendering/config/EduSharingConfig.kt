@@ -16,10 +16,10 @@ class EduSharingConfig {
     lateinit var eduBasePath: String
 
     @Value("\${edu_sharing.username}")
-    var username: String? = null
+    lateinit var username: String
 
     @Value("\${edu_sharing.password}")
-    var password: String? = null
+    lateinit var password: String
 
     @Bean
     fun apiClient(): ApiClient {

@@ -15,10 +15,10 @@ class RedisConfig {
     lateinit var redisUrl: String
 
     @Value("\${edu_sharing.redis_port}")
-    var redisPort: Int = 0
+    lateinit var redisPort: String
     @Bean
     fun jedisConnectionFactory(): JedisConnectionFactory {
-        val redisConfig = RedisStandaloneConfiguration(redisUrl, redisPort)
+        val redisConfig = RedisStandaloneConfiguration(redisUrl, redisPort.toInt())
         val factory = JedisConnectionFactory(redisConfig)
         return factory
     }

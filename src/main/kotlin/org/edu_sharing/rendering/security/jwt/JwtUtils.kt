@@ -1,25 +1,16 @@
 package org.edu_sharing.rendering.security.jwt
 
-import io.jsonwebtoken.ExpiredJwtException
-import io.jsonwebtoken.JwtParser
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.MalformedJwtException
-import io.jsonwebtoken.UnsupportedJwtException
+import io.jsonwebtoken.*
+import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.GrantedAuthority
-import java.security.InvalidKeyException
-import java.security.PublicKey
 
-class JwtUtils(private var publicKeyProvider: RepositoryPublicKeyProvider) {
+class JwtUtils(private var keyService: PrivatePublicKeyService) {
 
     private val log = LoggerFactory.getLogger(javaClass)
-    private fun getJwtParser() : JwtParser{
-        if(publicKeyProvider.getPublicKey() == null){
-            throw InvalidKeyException("No public key available. Please register the application with edu-sharing repository first");
-        }
-
+    private fun getJwtParser() : JwtParser {
         return Jwts.parser()
-            .verifyWith(publicKeyProvider.getPublicKey())
+            .verifyWith(keyService.getRepoPublicKey())
             .build()
     }
 
