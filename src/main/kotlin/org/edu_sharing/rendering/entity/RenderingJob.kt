@@ -15,9 +15,11 @@ data class RenderingJob(
     var status: JobStatus = JobStatus.QUEUED,
     val esObjectType: String,
     val esObjectId: String,
+    val repoId: String,
     val esHash: String,
-    val origin: String,
     val mimeType: String,
+    val version: String,
+    val size: Long? = null,
     val creationTimestamp: Long = System.currentTimeMillis(),
     var finishedTimestamp: Long? = null,
     @ReadOnlyProperty

@@ -7,5 +7,6 @@ data class CacheObject(
     val hash: String,
     var quality: Int? = null,
     var mimeType: String = "",
-    var origin: String? = null
+    val repoId: String? = null,
+    val version: String? = null
 )

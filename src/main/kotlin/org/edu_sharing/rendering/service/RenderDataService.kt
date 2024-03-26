@@ -11,22 +11,18 @@ import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.logic.ConversionRetrieval
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.springframework.amqp.core.AmqpTemplate
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.core.io.ResourceLoader
-import org.springframework.security.access.prepost.PostAuthorize
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 
 @Service
 class RenderDataService (
     private val storageImplementation: StorageService,
-    @Qualifier("webApplicationContext")
-    private val resourceLoader: ResourceLoader,
     private val mongoRepo: RenderingJobRepository,
     private val amqpTemplate: AmqpTemplate,
     private val mapper: Mapper,
-    private val conversionRetrieval: ConversionRetrieval
+    private val conversionRetrieval: ConversionRetrieval,
+    private val contentTransferService: ContentTransferService
     ) {
 
     @Value("\${edu_sharing.queue.topicExchange}")
@@ -103,8 +99,7 @@ class RenderDataService (
     }
 
     private fun cacheObjectData(cacheObject: CacheObject) {
-        val file = resourceLoader.getResource("classpath:lviv.jpg").file
-        cacheObject.size = file.length()
-        this.storageImplementation.putObject(cacheObject, file.inputStream())
+        val objectInputStream = contentTransferService.getAsInputStream(cacheObject)
+        this.storageImplementation.putObject(cacheObject, objectInputStream)
     }
 }

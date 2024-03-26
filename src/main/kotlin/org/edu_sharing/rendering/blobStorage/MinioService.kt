@@ -4,7 +4,6 @@ import io.minio.*
 import io.minio.http.Method
 import org.edu_sharing.rendering.dto.CacheObject
 import org.springframework.stereotype.Service
-import java.io.FileInputStream
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
@@ -13,8 +12,13 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
         createBucket(cacheObject.type)
         eduMinioClient.putObject(
-            PutObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).stream(
-                inputStream, cacheObject.size, -1).userMetadata(metadata).contentType(cacheObject.mimeType).build()
+            PutObjectArgs.builder()
+                .bucket(cacheObject.type)
+                .`object`(getStoragePath(cacheObject))
+                .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) 10485760 else -1)
+                .userMetadata(metadata)
+                .contentType(cacheObject.mimeType)
+                .build()
         )
     }
 
@@ -60,11 +64,15 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         )
     }
 
-    override fun putTempFile(cacheObject: CacheObject, inputStream: FileInputStream) {
+    override fun putTempFile(cacheObject: CacheObject, inputStream: InputStream) {
         createBucket("temp")
         eduMinioClient.putObject(
-            PutObjectArgs.builder().bucket("temp").`object`(this.getTempPath(cacheObject)).stream(
-                inputStream, cacheObject.size, -1).contentType(cacheObject.mimeType).build()
+            PutObjectArgs.builder()
+                .bucket("temp")
+                .`object`(this.getTempPath(cacheObject))
+                .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) 10485760 else -1)
+                .contentType(cacheObject.mimeType)
+                .build()
         )
     }
 

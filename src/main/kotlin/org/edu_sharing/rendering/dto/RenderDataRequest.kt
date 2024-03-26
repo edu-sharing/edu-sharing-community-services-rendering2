@@ -4,8 +4,6 @@ import org.jetbrains.annotations.NotNull
 
 data class RenderDataRequest(
     @NotNull
-    val token: String,
-    @NotNull
     val nodeId: String,
     @NotNull
     val size: Long,
@@ -16,5 +14,7 @@ data class RenderDataRequest(
     @NotNull
     val mimeType: String,
     @NotNull
-    val origin: String
+    val version: String,
+    @NotNull
+    val repoId: String
 )

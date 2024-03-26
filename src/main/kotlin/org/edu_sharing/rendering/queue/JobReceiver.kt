@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.service.ContentTransferService
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
@@ -21,6 +22,7 @@ import org.springframework.core.io.ResourceLoader
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
+
 @Component
 class JobReceiver(
     @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader,
@@ -28,7 +30,8 @@ class JobReceiver(
     private val subJobRepository: SubJobRepository,
     private val storageImplementation: StorageService,
     private val amqpTemplate: AmqpTemplate,
-    private val mapper: Mapper
+    private val mapper: Mapper,
+    private val contentTransferService: ContentTransferService
 ) {
     @Value("\${edu_sharing.queue.image.key}")
     lateinit var imageRoutingKey: String
@@ -52,12 +55,10 @@ class JobReceiver(
         val jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
         jobEntry.status = JobStatus.PROCESSING
         jobRepository.save(jobEntry)
-        //TODO This is just for testing
-        val file = resourceLoader.getResource("classpath:" + jobEntry.origin).file
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-        cacheObject.size = file.length()
+        cacheObject.size = -1
         try {
-            this.storageImplementation.putTempFile(cacheObject, file.inputStream())
+            this.storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
         } catch (exception: Exception) {
             jobEntry.status = JobStatus.FAILED
             jobRepository.save(jobEntry)

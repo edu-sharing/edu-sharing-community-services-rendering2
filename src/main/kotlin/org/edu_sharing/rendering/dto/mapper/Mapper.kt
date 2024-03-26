@@ -14,7 +14,8 @@ class Mapper {
             hash = request.hash,
             size = request.size,
             mimeType = request.mimeType,
-            origin = request.origin
+            version = request.version,
+            repoId = request.repoId
         )
     }
 
@@ -24,7 +25,8 @@ class Mapper {
             esObjectId = cacheObject.nodeId,
             esHash = cacheObject.hash,
             mimeType = cacheObject.mimeType,
-            origin = cacheObject.origin.toString()
+            repoId = cacheObject.repoId ?: "",
+            version = cacheObject.version ?: ""
         )
     }
 

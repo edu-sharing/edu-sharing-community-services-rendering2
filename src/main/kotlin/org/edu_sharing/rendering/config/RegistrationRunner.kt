@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.config
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.entity.AppConfig
 import org.edu_sharing.rendering.repository.mongo.AppConfigRepository
@@ -53,9 +51,9 @@ class RegistrationRunner(
         val generator = KeyPairGenerator.getInstance("RSA")
         generator.initialize(2048)
         val keyPair = generator.generateKeyPair()
-        appConfig.privateKey = String(Base64().encode(keyPair.private.encoded))
+        appConfig.privateKey = Base64.getEncoder().encode(keyPair.private.encoded).decodeToString()
         appConfig.publicKey =
-            "-----BEGIN PUBLIC KEY-----\n" + String(Base64().encode(keyPair.public.encoded)) + "-----END PUBLIC KEY-----"
+            "-----BEGIN PUBLIC KEY-----\n" + Base64.getEncoder().encode(keyPair.public.encoded).decodeToString() + "-----END PUBLIC KEY-----"
     }
 
     private fun register(appConfig: AppConfig) {
