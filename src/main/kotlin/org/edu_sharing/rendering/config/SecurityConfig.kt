@@ -1,7 +1,8 @@
 package org.edu_sharing.rendering.config
 
-import org.edu_sharing.rendering.security.jwt.AuthTokenFilter
-import org.edu_sharing.rendering.security.jwt.JwtPermissionEvaluator
+import org.edu_sharing.rendering.security.AuthTokenFilter
+import org.edu_sharing.rendering.security.LocalPermissionStorage
+import org.edu_sharing.rendering.security.LocalPermissionStorageEvaluator
 import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
@@ -13,7 +14,10 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.AuthenticationFilter
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository
+import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -33,24 +37,29 @@ class SecurityConfig {
     }
 
     @Bean
-    fun permissionEvaluator(): PermissionEvaluator {
-        return JwtPermissionEvaluator()
+    fun permissionEvaluator(localPermissionStorage: LocalPermissionStorage): PermissionEvaluator {
+        return LocalPermissionStorageEvaluator(localPermissionStorage)
     }
 
     @Bean
-    fun expressionHandler() : MethodSecurityExpressionHandler {
+    fun expressionHandler(permissionEvaluator: PermissionEvaluator) : MethodSecurityExpressionHandler {
         val defaultMethodSecurityExpressionHandler = DefaultMethodSecurityExpressionHandler()
-        defaultMethodSecurityExpressionHandler.setPermissionEvaluator(permissionEvaluator())
+        defaultMethodSecurityExpressionHandler.setPermissionEvaluator(permissionEvaluator)
         return defaultMethodSecurityExpressionHandler
     }
 
     @Bean
-    fun authenticationJwtTokenFilter(jwtUtils: JwtUtils): AuthTokenFilter {
-        return AuthTokenFilter(jwtUtils)
+    fun securityContextRepository(): SecurityContextRepository {
+        return HttpSessionSecurityContextRepository()
     }
 
     @Bean
-    fun filterChain(httpSecurity: HttpSecurity, jwtUtils: JwtUtils): SecurityFilterChain {
+    fun authenticationJwtTokenFilter(jwtUtils: JwtUtils, localPermissionStorage: LocalPermissionStorage, securityContextRepository:SecurityContextRepository): AuthTokenFilter {
+        return AuthTokenFilter(jwtUtils, localPermissionStorage, securityContextRepository)
+    }
+
+    @Bean
+    fun filterChain(httpSecurity: HttpSecurity, authenticationJwtTokenFilter: AuthTokenFilter): SecurityFilterChain {
         return httpSecurity.csrf {
             it.disable()
         }.cors {
@@ -64,7 +73,7 @@ class SecurityConfig {
                 "/renderdata"
             ).permitAll()
             it.anyRequest().authenticated()
-        }.addFilterBefore(authenticationJwtTokenFilter(jwtUtils), UsernamePasswordAuthenticationFilter::class.java)
+        }.addFilterBefore(authenticationJwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
 //            .securityContext{
 //                it.securityContextRepository()
 //            }
