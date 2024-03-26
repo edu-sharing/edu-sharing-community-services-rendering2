@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.controller.internal
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/renderdata")
 class RenderController (private val service: RenderDataService){
 
-    //@SecurityRequirement(name = "bearerAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getRenderData(@RequestBody @Valid body: RenderDataRequest): RenderDataResponse {
         return service.getRenderData(body)
