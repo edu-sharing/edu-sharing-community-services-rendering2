@@ -32,8 +32,7 @@ class RegistrationRunner(
 
     @Transactional
     override fun run(args: ApplicationArguments?) {
-        val allEntries = appConfigRepository.findAll()
-        val config = if (allEntries.size == 0) initValues() else allEntries[0]
+        val config = appConfigRepository.findById("0").orElse(AppConfig())
         if (config.privateKey == null) {
             generateKeys(config)
         }
@@ -41,10 +40,6 @@ class RegistrationRunner(
             register(config)
         }
         appConfigRepository.save(config)
-    }
-
-    private fun initValues(): AppConfig {
-        return AppConfig()
     }
 
     private fun generateKeys(appConfig: AppConfig) {
@@ -87,7 +82,7 @@ class RegistrationRunner(
                 log.warn("Registration uncompleted: repo response doesn't contains a public_key {}", result)
             }
         } catch (e: Exception) {
-            log.error(e.message)
+            log.error(e.message, e)
         }
     }
 }
