@@ -10,6 +10,7 @@ import io.jsonwebtoken.UnsupportedJwtException
 import org.edu_sharing.rendering.security.NodePermission
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.GrantedAuthority
+import java.time.LocalDateTime
 
 class JwtUtils(private var keyService: PrivatePublicKeyService) {
 
