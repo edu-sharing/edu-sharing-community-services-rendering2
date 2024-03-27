@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.config
 
 import org.edu_sharing.rendering.security.AuthTokenFilter
-import org.edu_sharing.rendering.security.LocalPermissionStorage
-import org.edu_sharing.rendering.security.LocalPermissionStorageEvaluator
+import org.edu_sharing.rendering.security.NodePermissionSessionContextEvaluator
+import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
@@ -14,7 +14,6 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.security.web.authentication.AuthenticationFilter
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
@@ -37,8 +36,8 @@ class SecurityConfig {
     }
 
     @Bean
-    fun permissionEvaluator(localPermissionStorage: LocalPermissionStorage): PermissionEvaluator {
-        return LocalPermissionStorageEvaluator(localPermissionStorage)
+    fun permissionEvaluator(nodePermissionSessionContextRepository: NodePermissionSessionContextRepository): PermissionEvaluator {
+        return NodePermissionSessionContextEvaluator(nodePermissionSessionContextRepository)
     }
 
     @Bean
@@ -54,8 +53,8 @@ class SecurityConfig {
     }
 
     @Bean
-    fun authenticationJwtTokenFilter(jwtUtils: JwtUtils, localPermissionStorage: LocalPermissionStorage, securityContextRepository:SecurityContextRepository): AuthTokenFilter {
-        return AuthTokenFilter(jwtUtils, localPermissionStorage, securityContextRepository)
+    fun authenticationJwtTokenFilter(jwtUtils: JwtUtils, nodePermissionSessionContextRepository: NodePermissionSessionContextRepository, securityContextRepository:SecurityContextRepository): AuthTokenFilter {
+        return AuthTokenFilter(jwtUtils, securityContextRepository, nodePermissionSessionContextRepository)
     }
 
     @Bean

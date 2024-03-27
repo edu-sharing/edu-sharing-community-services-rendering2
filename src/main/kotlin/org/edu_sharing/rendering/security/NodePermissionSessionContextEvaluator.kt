@@ -1,12 +1,11 @@
 package org.edu_sharing.rendering.security
 
-import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
 import org.springframework.security.access.PermissionEvaluator
 import org.springframework.security.core.Authentication
 import java.io.Serializable
 
 
-class LocalPermissionStorageEvaluator(private val localPermissionStorage: LocalPermissionStorage) : PermissionEvaluator {
+class NodePermissionSessionContextEvaluator(private val nodePermissionSessionContextRepository: NodePermissionSessionContextRepository) : PermissionEvaluator {
 
     override fun hasPermission(authentication: Authentication?, targetDomainObject: Any?, permission: Any?): Boolean {
         if(targetDomainObject !is String){
@@ -17,7 +16,7 @@ class LocalPermissionStorageEvaluator(private val localPermissionStorage: LocalP
             throw IllegalArgumentException("permission must be a String")
         }
 
-        return localPermissionStorage.hasPermission(targetDomainObject, permission)
+        return nodePermissionSessionContextRepository.hasPermission(targetDomainObject, permission)
     }
 
     override fun hasPermission(
@@ -34,7 +33,7 @@ class LocalPermissionStorageEvaluator(private val localPermissionStorage: LocalP
             throw IllegalArgumentException("permission must be a String")
         }
 
-        return localPermissionStorage.hasPermission(targetId, permission)
+        return nodePermissionSessionContextRepository.hasPermission(targetId, permission)
     }
 
 }
