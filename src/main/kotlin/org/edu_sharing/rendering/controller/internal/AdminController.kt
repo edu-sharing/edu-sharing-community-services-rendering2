@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.controller
+package org.edu_sharing.rendering.controller.internal
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.edu_sharing.rendering.dto.ErrorMessage

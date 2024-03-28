@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.controller.internal
+package org.edu_sharing.rendering.controller.external
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
