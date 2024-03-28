@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.security.jwt
 
-import io.jsonwebtoken.*
 import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.JwtParser
@@ -10,14 +9,16 @@ import io.jsonwebtoken.UnsupportedJwtException
 import org.edu_sharing.rendering.security.NodePermission
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.GrantedAuthority
+import java.security.InvalidKeyException
 import java.time.LocalDateTime
 
 class JwtUtils(private var keyService: PrivatePublicKeyService) {
 
     private val log = LoggerFactory.getLogger(javaClass)
-    private fun getJwtParser() : JwtParser {
+
+    private fun getJwtParser(): JwtParser {
         return Jwts.parser()
-            .verifyWith(keyService.getRepoPublicKey())
+            .verifyWith(keyService.getRepositoryKey())
             .build()
     }
 
@@ -33,13 +34,14 @@ class JwtUtils(private var keyService: PrivatePublicKeyService) {
             log.error("JWT token is unsupported: {}", e.message)
         } catch (e: IllegalArgumentException) {
             log.error("JWT claims string is empty: {}", e.message)
+        } catch (e: InvalidKeyException) {
+            log.error("JWT parser hasn't a valid public key: {}", e.message)
         }
         return false
     }
 
     fun getUserDetailsFromJwt(jwt: String): JWTBasedUserDetail {
         val jwtObj = getJwtParser().parseSignedClaims(jwt)
-
         val grantedAuthority = mutableListOf<GrantedAuthority>()
 
         return JWTBasedUserDetail(

@@ -8,11 +8,19 @@ import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
 import org.springframework.security.access.PermissionEvaluator
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler
+import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
+import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.core.userdetails.User
+import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.crypto.factory.PasswordEncoderFactories
+import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
@@ -24,10 +32,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableMethodSecurity
-class SecurityConfig {
-
-    @Value("\${app.security.allowedOrigins}")
-    lateinit var allowedOrigins: List<String>
+class SecurityConfig(
+    @Value("\${app.security.allowedOrigins}") var allowedOrigins: List<String>,
+    @Value("\${app.security.adminPassword}") var adminPassword: String
+) {
 
 
     @Bean
@@ -41,7 +49,7 @@ class SecurityConfig {
     }
 
     @Bean
-    fun expressionHandler(permissionEvaluator: PermissionEvaluator) : MethodSecurityExpressionHandler {
+    fun expressionHandler(permissionEvaluator: PermissionEvaluator): MethodSecurityExpressionHandler {
         val defaultMethodSecurityExpressionHandler = DefaultMethodSecurityExpressionHandler()
         defaultMethodSecurityExpressionHandler.setPermissionEvaluator(permissionEvaluator)
         return defaultMethodSecurityExpressionHandler
@@ -53,29 +61,71 @@ class SecurityConfig {
     }
 
     @Bean
-    fun authenticationJwtTokenFilter(jwtUtils: JwtUtils, nodePermissionSessionContextRepository: NodePermissionSessionContextRepository, securityContextRepository:SecurityContextRepository): AuthTokenFilter {
+    fun authenticationJwtTokenFilter(
+        jwtUtils: JwtUtils,
+        nodePermissionSessionContextRepository: NodePermissionSessionContextRepository,
+        securityContextRepository: SecurityContextRepository
+    ): AuthTokenFilter {
         return AuthTokenFilter(jwtUtils, securityContextRepository, nodePermissionSessionContextRepository)
     }
 
+
     @Bean
-    fun filterChain(httpSecurity: HttpSecurity, authenticationJwtTokenFilter: AuthTokenFilter): SecurityFilterChain {
-        return httpSecurity.csrf {
-            it.disable()
-        }.cors {
-            it.configurationSource(corsConfigurationSource())
-        }.authorizeHttpRequests {
-            it.requestMatchers(
-                "/swagger-ui/**",
-                "/swagger-ui.html",
-                "/v3/api-docs/**",
-                "/public/metadata"
-            ).permitAll()
-            it.anyRequest().authenticated()
-        }.addFilterBefore(authenticationJwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
-//            .securityContext{
-//                it.securityContextRepository()
-//            }
+    @Order(1)
+    fun publicAPIFilterChain(
+        httpSecurity: HttpSecurity,
+        authenticationJwtTokenFilter: AuthTokenFilter
+    ): SecurityFilterChain {
+        return httpSecurity
+            .securityMatcher("/public/**")
+            .csrf {
+                it.disable()
+            }.cors {
+                it.configurationSource(corsConfigurationSource())
+            }.authorizeHttpRequests {
+                it.requestMatchers(
+                    "/public/metadata"
+                ).permitAll()
+                it.anyRequest().authenticated()
+            }.addFilterBefore(authenticationJwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
+    }
+
+    @Bean
+    @Order(2)
+    fun privateAPIFilterChain(httpSecurity: HttpSecurity): SecurityFilterChain {
+        return httpSecurity
+            .csrf {
+                it.disable()
+            }.cors {
+                it.configurationSource(corsConfigurationSource())
+            }.authorizeHttpRequests {
+                it.requestMatchers(
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                ).permitAll()
+                it.anyRequest().authenticated()
+            }.httpBasic(Customizer.withDefaults())
+            .build()
+    }
+
+
+    @Bean
+    fun authenticationProvider(): AuthenticationProvider {
+        val authenticationProvider = DaoAuthenticationProvider()
+        authenticationProvider.setUserDetailsService(userDetailsService())
+        return authenticationProvider
+    }
+
+    @Bean
+    fun userDetailsService(): InMemoryUserDetailsManager {
+        val user: UserDetails = User.withUsername("admin")
+            .password(adminPassword)
+            .passwordEncoder(PasswordEncoderFactories.createDelegatingPasswordEncoder()::encode)
+            .roles("ADMIN")
+            .build()
+        return InMemoryUserDetailsManager(user)
     }
 
 

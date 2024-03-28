@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/renderdata")
+@RequestMapping("/public/renderdata")
 class RenderController (private val service: RenderDataService){
 
     @SecurityRequirement(name = "bearerAuth")

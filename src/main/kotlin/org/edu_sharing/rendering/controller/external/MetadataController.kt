@@ -30,17 +30,17 @@ class MetadataController (
         var responseBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         responseBody += "<!DOCTYPE properties SYSTEM \"http://java.sun.com/dtd/properties.dtd\">"
 
-        val metadata = metadataService.getMetadata()
+        val metadata = metadataService.getConfig()
         val outputStream = ByteArrayOutputStream()
         val props = Properties()
 
-        props.put("appid", appId)
-        props.put("appcaption", appCaption)
-        props.put("type", "SERVICE2")
-        props.put("host", publicUrl)
-        props.put("port", port.toString())
-        props.put("trustedclient", "true")
-        props.put("public_key", metadata.publicKey)
+        props["appid"] = appId
+        props["appcaption"] = appCaption
+        props["type"] = "SERVICE2"
+        props["host"] = publicUrl
+        props["port"] = port
+        props["trustedclient"] = "true"
+        props["public_key"] = metadata.publicKey
         props.storeToXML(outputStream, "rendering application file for application type lms", "UTF-8")
         return String(outputStream.toByteArray())
     }
