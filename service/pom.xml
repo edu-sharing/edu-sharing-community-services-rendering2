@@ -3,49 +3,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.3</version>
-    <relativePath/> <!-- lookup parent from repository -->
+    <groupId>org.edu_sharing</groupId>
+    <artifactId>edu_sharing-community-services-rendering2</artifactId>
+    <relativePath>../pom.xml</relativePath>
+    <version>git</version>
   </parent>
 
-  <groupId>org.edu_sharing</groupId>
-  <artifactId>edu_sharing-community-services-rendering2</artifactId>
-  <version>develop-SNAPSHOT</version>
+  <artifactId>edu_sharing-community-services-rendering2-service</artifactId>
+  <version>git</version>
 
   <name>services-rendering-service2</name>
-  <description>services-rendering-service2</description>
-
-  <properties>
-    <java.version>17</java.version>
-    <kotlin.version>1.9.21</kotlin.version>
-    <docker.image.name>enterprise/edu_sharing-community-services-rendering2</docker.image.name>
-    <docker.registry>docker.edu-sharing.com</docker.registry>
-  </properties>
-
-  <licenses>
-    <license>
-      <name>GNU General Public License v3.0</name>
-      <url>https://www.gnu.org/licenses/gpl-3.0</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <organization>
-    <name>metaVentis GmbH</name>
-    <url>https://www.metaventis.com/</url>
-  </organization>
-
-  <distributionManagement>
-    <repository>
-      <id>edusharing-releases</id>
-      <url>https://artifacts.edu-sharing.com/repository/maven-releases/</url>
-    </repository>
-    <snapshotRepository>
-      <id>edusharing-snapshots</id>
-      <url>https://artifacts.edu-sharing.com/repository/maven-snapshots/</url>
-    </snapshotRepository>
-  </distributionManagement>
 
   <profiles>
     <profile>
@@ -114,6 +81,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp-bom</artifactId>

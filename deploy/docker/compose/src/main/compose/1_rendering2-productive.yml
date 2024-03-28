@@ -1,0 +1,13 @@
+version: '3.7'
+
+services:
+  kafka:
+    restart: unless-stopped
+
+  notification-service:
+    restart: unless-stopped
+    volumes:
+      - ./templates/mail/:/application/templates/mail/
+
+  notification-service-db:
+    restart: unless-stopped

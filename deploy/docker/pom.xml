@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.edu_sharing</groupId>
+    <artifactId>edu_sharing-community-services-rendering2</artifactId>
+    <version>git</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>edu_sharing-community-services-rendering2-deploy-docker</artifactId>
+  <packaging>pom</packaging>
+
+  <name>edu_sharing-community-services-rendering2-deploy-docker</name>
+
+  <properties>
+
+    <docker.edu_sharing.community.common.redis.name>
+      edu_sharing-community-common-docker-redis
+    </docker.edu_sharing.community.common.redis.name>
+
+    <docker.edu_sharing.community.common.redis.tag>
+      6.2.7
+    </docker.edu_sharing.community.common.redis.tag>
+
+    <docker.edu_sharing.community.common.redis.exporter.name>
+      edu_sharing-community-common-docker-redis-export
+    </docker.edu_sharing.community.common.redis.exporter.name>
+
+    <docker.edu_sharing.community.common.redis.exporter.tag>
+      1.45.0
+    </docker.edu_sharing.community.common.redis.exporter.tag>
+
+    <docker.edu_sharing.community.common.redis-cluster.name>
+      edu_sharing-community-common-docker-redis-cluster
+    </docker.edu_sharing.community.common.redis-cluster.name>
+
+    <docker.edu_sharing.community.common.redis-cluster.tag>
+      6.2.7
+    </docker.edu_sharing.community.common.redis-cluster.tag>
+
+  </properties>
+
+  <modules>
+    <module>compose</module>
+    <module>build</module>
+    <module>helm</module>
+  </modules>
+
+</project>

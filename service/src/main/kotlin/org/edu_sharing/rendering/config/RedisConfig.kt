@@ -11,10 +11,10 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 @Configuration
 class RedisConfig {
 
-    @Value("\${edu_sharing.redis_url}")
+    @Value("\${app.redis.url}")
     lateinit var redisUrl: String
 
-    @Value("\${edu_sharing.redis_port}")
+    @Value("\${app.redis.port}")
     lateinit var redisPort: String
     @Bean
     fun jedisConnectionFactory(): JedisConnectionFactory {

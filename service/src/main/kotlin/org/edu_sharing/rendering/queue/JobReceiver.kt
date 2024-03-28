@@ -33,21 +33,21 @@ class JobReceiver(
     private val mapper: Mapper,
     private val contentTransferService: ContentTransferService
 ) {
-    @Value("\${edu_sharing.queue.image.key}")
+    @Value("\${app.queue.image.key}")
     lateinit var imageRoutingKey: String
 
-    @Value("\${edu_sharing.queue.av.key}")
+    @Value("\${app.queue.av.key}")
     lateinit var avRoutingKey: String
 
-    @Value("\${edu_sharing.queue.topicExchange}")
+    @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${edu_sharing.queue.job.name}", durable = "false"),
-                exchange = Exchange(name = "\${edu_sharing.queue.topicExchange}", type = "topic"),
-                key = ["\${edu_sharing.queue.job.key}"]
+                value = Queue(name = "\${app.queue.job.name}", durable = "false"),
+                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
+                key = ["\${app.queue.job.key}"]
             )
         ]
     )

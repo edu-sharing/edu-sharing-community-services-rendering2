@@ -25,10 +25,10 @@ class RenderDataService (
     private val contentTransferService: ContentTransferService
     ) {
 
-    @Value("\${edu_sharing.queue.topicExchange}")
+    @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${edu_sharing.queue.job.key}")
+    @Value("\${app.queue.job.key}")
     lateinit var jobRoutingKey: String
 
    @PreAuthorize("hasPermission(#request.nodeId, 'Read')")

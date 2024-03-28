@@ -23,13 +23,13 @@ class AudioVideoConversionService (
     private val storageImplementation: StorageService,
     private val subJobRepository: SubJobRepository
 ){
-    @Value("\${edu_sharing.video_format}")
+    @Value("\${app.converter.video.format}")
     lateinit var videoFormat: String
 
-    @Value("\${edu_sharing.video_resolutions}")
+    @Value("\${app.converter.video.resolutions}")
     lateinit var videoResolutions: List<Int>
 
-    @Value("\${edu_sharing.audio_bitrate}")
+    @Value("\${app.converter.audio.bitrate}")
     lateinit var audioBitrate: String
 
     fun convert(cacheObject: CacheObject, subJob: SubJob) {

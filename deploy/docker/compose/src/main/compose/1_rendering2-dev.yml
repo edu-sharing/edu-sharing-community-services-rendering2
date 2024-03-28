@@ -1,0 +1,14 @@
+
+version: '3.7'
+
+services:
+  notification-service:
+    entrypoint: "/bin/sh -c \"java --enable-preview -Dspring.profiles.active=docker $${JAVA_OPTS:-} -jar /application/app.jar\""
+    volumes:
+      - "${GIT_ROOT}/repository-kafka/notification-service/target/edu_sharing-community-repository-plugin-kafka-notification-service-${org.edu_sharing:edu_sharing-community-repository-plugin-kafka-notification-service:jar.version}.jar:/application/app.jar"
+
+  repository-service:
+    volumes:
+      - "${GIT_ROOT}/repository-kafka/Backend/alfresco/module/target/edu_sharing-community-repository-plugin-kafka-backend-alfresco-module-${org.edu_sharing:edu_sharing-community-repository-plugin-kafka-backend-alfresco-module:amp.version}.amp:/opt/alfresco/amps/alfresco/2/edu_sharing-community-repository-plugin-kafka-backend-alfresco-module-${org.edu_sharing:edu_sharing-community-repository-plugin-kafka-backend-alfresco-module:amp.version}.amp"
+      - "${GIT_ROOT}/repository-kafka/Backend/services/module/target/edu_sharing-community-repository-plugin-kafka-backend-services-module-${org.edu_sharing:edu_sharing-community-repository-plugin-kafka-backend-services-module:amp.version}.amp:/opt/alfresco/amps/edu-sharing/1/edu_sharing-community-repository-plugin-kafka-backend-services-module-${org.edu_sharing:edu_sharing-community-repository-plugin-kafka-backend-services-module:amp.version}.amp"
+      - "${GIT_ROOT}/repository-kafka/config/defaults/target/classes/plugin-kafka:/opt/alfresco/tomcat/shared/classes/config/plugins/plugin-kafka"

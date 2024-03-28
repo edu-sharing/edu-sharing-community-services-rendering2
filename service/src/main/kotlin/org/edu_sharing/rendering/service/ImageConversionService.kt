@@ -17,7 +17,7 @@ import javax.imageio.ImageIO
 class ImageConversionService (
     private val storageImplementation: StorageService,
 ){
-    @Value("\${edu_sharing.image_format}")
+    @Value("\${app.converter.image.format}")
     lateinit var imageFormat: String
 
     fun convert(cacheObject: CacheObject, size: Int, sourceImage: BufferedImage) {

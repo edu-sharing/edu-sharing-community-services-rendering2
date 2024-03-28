@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class MinioConfig {
 
-    @Value("\${edu_sharing.minio_user}")
+    @Value("\${app.minio.user}")
     var minioUser: String? = null
 
-    @Value("\${edu_sharing.minio_password}")
+    @Value("\${app.minio.password}")
     var minioPassword: String? = null
 
-    @Value("\${edu_sharing.minio_url}")
+    @Value("\${app.minio.url}")
     var minioUrl: String? = null
 
     @Bean

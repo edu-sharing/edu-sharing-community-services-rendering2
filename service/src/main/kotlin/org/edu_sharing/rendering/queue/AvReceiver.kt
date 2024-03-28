@@ -24,9 +24,9 @@ class AvReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${edu_sharing.queue.av.name}", durable = "false"),
-                exchange = Exchange(name = "\${edu_sharing.queue.topicExchange}", type = "topic"),
-                key = ["\${edu_sharing.queue.av.key}"]
+                value = Queue(name = "\${app.queue.av.name}", durable = "false"),
+                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
+                key = ["\${app.queue.av.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

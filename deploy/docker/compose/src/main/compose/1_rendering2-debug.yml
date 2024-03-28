@@ -1,0 +1,14 @@
+version: '3.7'
+
+services:
+  notification-service:
+    environment:
+      JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:8402:8000"
+
+  notification-service-db:
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${NOTIFICATION_SERVICES_DATABASE_PORT:-8501}:27017"
+
+

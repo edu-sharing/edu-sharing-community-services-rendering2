@@ -1,0 +1,83 @@
+version: '3.7'
+
+services:
+
+  rendering2-blob-storage:
+    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.minio.name}:${docker.edu_sharing.community.common.minio.tag}"
+    environment:
+      - MINIO_ROOT_USER="${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
+      - MINIO_ROOT_PASSWORD="${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
+      - MINIO_DEFAULT_BUCKETS=rendering2-bucket
+    volumes:
+      - "rendering2-blob-storage-volume-data/bitnami/minio/data"
+
+  rendering2-cache:
+    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.redis.name}:${docker.edu_sharing.community.common.redis.tag}"
+    container_name: "rendering2-cache_${COMPOSE_PROJECT_NAME}"
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
+    expose:
+      - 6379
+
+  rendering2-message-queue:
+    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.rabbitmq.name}:${docker.edu_sharing.community.common.rabbitmq..tag}"
+    expose:
+      - 5672
+      - 15672
+
+  rendering2-database:
+    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.mongodb.name}:${docker.edu_sharing.community.common.mongodb.tag}"
+    environment:
+      ALLOW_EMPTY_PASSWORD: "false"
+      MONGODB_ADVERTISED_HOSTNAME: "rendering2-mongo"
+      MONGODB_REPLICA_SET_MODE: "primary"
+      MONGODB_DATABASE: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering2}"
+      MONGODB_USERNAME: "${RENDERING2_SERVICE_DATABASE_USER:-rendering2}"
+      MONGODB_PASSWORD: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering2}"
+      MONGODB_ROOT_USER: "${RENDERING2_SERVICE_DATABASES_ROOT_USER:-root}"
+      MONGODB_ROOT_PASSWORD: "${RENDERING2_SERVICE_DATABASES_ROOT_PASS:-root}"
+      MONGODB_REPLICA_SET_KEY: "${RENDERING2_SERVICE_DATABASES_REPLICATION_SET_KEY:-rendering2}"
+    expose:
+      - "27017"
+    volumes:
+      - "rendering2-mongo-volume-data:/bitnami/mongodb"
+
+  rendering2-service:
+    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-notification-service:${docker.tag}"
+    command:
+      - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
+      - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
+      - -Dcom.sun.management.jmxremote
+      - -Dcom.sun.management.jmxremote.authenticate=false
+      - -Dcom.sun.management.jmxremote.port=7199
+      - -Dcom.sun.management.jmxremote.ssl=false
+    environment:
+      - app.appId=rendering2
+      - app.converter.image.format=jpeg
+      - app.converter.image.mimeTypes=image/webp,image/jpeg,image/jpg,image/png,image/bmp
+      - app.converter.image.sizes=400,800
+      - app.converter.video.format=mp4
+      - app.converter.video.mimeTypes=video/mp4,video/mpeg
+      - app.converter.video.resolutions=480,720,1080
+      - app.converter.audio.mimeTypes=audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis
+      - app.converter.audio.bitrate=160
+      - app.minio.url=http://127.0.0.1:9110
+      - app.minio.user=adminuser
+      - app.minio.password=adminpassword
+      - edu_sharing.basePath=http://repository.127.0.0.1.nip.io:8100/edu-sharing
+      - edu_sharing.username=admin
+      - edu_sharing.password=admin
+      - app.security.allowedOrigins=
+      - app.security.adminPassword=admin
+      - spring.data.mongodb.uri=mongodb://admin:admin@localhost:27017/?authMechanism=DEFAULT
+      - spring.data.mongodb.database=rendering
+    expose:
+      - "8080"
+    depends_on:
+      - rendering2-database
+      - rendering2-message-queue
+      - rendering2-cache
+
+volumes:
+  rendering2-blob-storage-volume-data:
+  rendering2-mongo-volume-data:
