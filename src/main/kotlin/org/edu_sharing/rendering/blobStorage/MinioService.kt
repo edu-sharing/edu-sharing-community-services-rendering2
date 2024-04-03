@@ -52,7 +52,7 @@ class MinioService(
             .host(publicUrl.substringAfter("://"))
             .port(port)
             .path("/public/asset")
-            .queryParam("asset", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
+            .queryParam("assetParams", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
             .build()
             .toUriString()
         val objectLink = ObjectLink(link = url)
