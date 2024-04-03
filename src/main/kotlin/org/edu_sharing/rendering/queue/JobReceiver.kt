@@ -16,16 +16,13 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.core.io.ResourceLoader
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 
 @Component
 class JobReceiver(
-    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader,
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val storageImplementation: StorageService,
@@ -56,7 +53,6 @@ class JobReceiver(
         jobEntry.status = JobStatus.PROCESSING
         jobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-        cacheObject.size = -1
         try {
             this.storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
         } catch (exception: Exception) {
@@ -64,9 +60,9 @@ class JobReceiver(
             jobRepository.save(jobEntry)
             return
         }
-        if (cacheObject.type == "image") {
+        if (cacheObject.type == "file-image") {
             this.createImageJob(jobEntry, message)
-        } else if (cacheObject.type == "video" || cacheObject.type == "audio") {
+        } else if (cacheObject.type == "file-video" || cacheObject.type == "file-audio") {
             createAvJobs(jobEntry, message)
         }
     }

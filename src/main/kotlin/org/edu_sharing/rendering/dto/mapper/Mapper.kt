@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.dto.mapper
 
+import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.entity.RenderingJob
@@ -26,7 +27,8 @@ class Mapper {
             esHash = cacheObject.hash,
             mimeType = cacheObject.mimeType,
             repoId = cacheObject.repoId ?: "",
-            version = cacheObject.version ?: ""
+            version = cacheObject.version ?: "",
+            size = cacheObject.size
         )
     }
 
@@ -36,20 +38,19 @@ class Mapper {
             type = renderingJob.esObjectType,
             hash = renderingJob.esHash,
             mimeType = renderingJob.mimeType,
+            size =  renderingJob.size ?: -1,
+            version = renderingJob.version,
+            repoId = renderingJob.repoId
         )
     }
 
-    fun fileRequestParamToCacheObject(requestParam: String): CacheObject {
-        // I expect: "type_objectid_hash_quality" or "type_objectid_hash"
-        val parts = requestParam.split("_")
-        if (parts.size < 3 || parts.size > 4 || parts[3].toIntOrNull() != null) {
-            throw IllegalArgumentException()
-        }
+    fun assetLinkParamsToCacheObject(params: AssetLinkParams): CacheObject {
         return CacheObject(
-            nodeId = parts[1],
-            type = parts[0],
-            hash = parts[2],
-            quality = if (parts.size == 4) parts[3].toIntOrNull() else null,
+            nodeId = params.nodeId,
+            type = params.type,
+            hash = params.hash,
+            quality = if (params.quality != 0) params.quality else null,
+            mimeType = params.mimeType
         )
     }
 }

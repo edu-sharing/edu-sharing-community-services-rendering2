@@ -1,9 +1,13 @@
 package org.edu_sharing.rendering.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.springframework.stereotype.Service
+import java.net.URLDecoder
 
 @Service
 class AssetService (
@@ -12,9 +16,11 @@ class AssetService (
 ) {
     private val defaultChunkSize = 2000000
     fun getAsset(requestParam: String, range: String): ReadableAsset {
-        val cacheObject = mapper.fileRequestParamToCacheObject(requestParam)
+        val decoded = Base64().decode(URLDecoder.decode(requestParam, Charsets.UTF_8)).decodeToString()
+        val assetParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
+        val cacheObject = mapper.assetLinkParamsToCacheObject(assetParams)
         val objectStats = storageImplementation.getFileProperties(cacheObject)
-        if (range !== "") {
+        if (range == "") {
             return ReadableAsset(
                 mimeType = objectStats.contentType(),
                 fileSize = objectStats.size(),

@@ -14,10 +14,10 @@ class AssetController (
 ) {
     @GetMapping()
     fun getAsset(
-        @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String,
-        @RequestParam file: String
+        @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
+        @RequestParam assetParams: String
     ): ResponseEntity<ByteArray> {
-        val asset = assetService.getAsset(file, range)
+        val asset = assetService.getAsset(assetParams, range)
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, asset.mimeType)
