@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.service
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -10,6 +11,7 @@ import java.security.InvalidKeyException
 import java.util.*
 
 @Service
+@ConditionalOnProperty(name = ["edu_sharing.registration.enabled"], havingValue = "true")
 class RepositoryRegistrationService(
     private val privatePublicKeyService: PrivatePublicKeyService,
     private val adminV1Api: AdminV1Api,
