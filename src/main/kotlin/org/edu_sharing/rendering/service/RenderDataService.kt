@@ -2,10 +2,7 @@ package org.edu_sharing.rendering.service
 
 import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderDataResponse
+import org.edu_sharing.rendering.dto.*
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
@@ -35,7 +32,10 @@ class RenderDataService (
    @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
         val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
-        return RenderDataResponse(objectLinkList, jobId)
+        val response = RenderDataResponse(objectLinkList, jobId)
+       val module = if (request.mimeType.substringBefore("/") == "video") RenderModules.VIDEO else RenderModules.IMAGE
+       response.module = module
+       return response
     }
 
     fun compileResponseLists(cacheObject: CacheObject): Pair<MutableList<ObjectLink>, String?> {

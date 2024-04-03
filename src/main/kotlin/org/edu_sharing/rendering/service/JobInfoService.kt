@@ -4,6 +4,7 @@ import org.bson.types.ObjectId
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.JobInfoReply
 import org.edu_sharing.rendering.dto.JobProgressInfo
+import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.RenderingJob
@@ -24,8 +25,9 @@ class JobInfoService (
     ){
     fun getJobInfo(jobId: String): JobInfoReply {
         val job = jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
+        val module = if (job.mimeType.substringBefore("/") == "video") RenderModules.VIDEO else RenderModules.IMAGE
         if (isMainJobQueuedOrCopying(job)) {
-            return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)), status = job.status)
+            return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)), status = job.status, module = module)
         }
         val infoList: MutableList<JobProgressInfo> = mutableListOf()
         job.subJobs.forEach {
@@ -48,7 +50,7 @@ class JobInfoService (
             }
             infoList.add(jobInfo)
         }
-        return JobInfoReply(infoList, status = job.status)
+        return JobInfoReply(infoList, status = job.status, module = module)
     }
 
     private fun isMainJobQueuedOrCopying(job: RenderingJob): Boolean {
