@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.service
 import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.dto.mapper.Mapper
@@ -37,8 +38,8 @@ class RenderDataService (
         return RenderDataResponse(objectLinkList, jobId)
     }
 
-    fun compileResponseLists(cacheObject: CacheObject): Pair<MutableList<String>, String?> {
-        val objectLinkList = mutableListOf<String>()
+    fun compileResponseLists(cacheObject: CacheObject): Pair<MutableList<ObjectLink>, String?> {
+        val objectLinkList = mutableListOf<ObjectLink>()
         var jobId: String? = null
         if (conversionRetrieval.checkIsConversionObject(cacheObject)) {
             val missingResolutions = mutableListOf<Int>()
@@ -60,17 +61,14 @@ class RenderDataService (
                 objectLinkList.add(link)
             } else {
                 this.cacheObjectData(cacheObject)
-                objectLinkList.add(retrieveObjectLink(cacheObject) ?: "")
+                objectLinkList.add(retrieveObjectLink(cacheObject) ?: ObjectLink(link = ""))
             }
         }
         return objectLinkList to jobId
     }
 
-    private fun retrieveObjectLink(cacheObject: CacheObject): String? {
+    private fun retrieveObjectLink(cacheObject: CacheObject): ObjectLink? {
         val lookUpObject = conversionRetrieval.getCacheObjectWithConvertedMimeType(cacheObject)
-        if (! storageImplementation.isObjectExisting(lookUpObject)) {
-            return null
-        }
         return try {
             storageImplementation.getObjectLink(lookUpObject)
         } catch (_: ErrorResponseException) {

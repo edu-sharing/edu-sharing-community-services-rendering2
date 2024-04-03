@@ -105,7 +105,9 @@ class AudioVideoConversionService (
         attrs.setAudioAttributes(audio)
         attrs.setVideoAttributes(video)
         return attrs to mapOf(
-            "isHighestResolution" to checkIsHighestResolution(targetResolution, originalHeight).toString()
+            "isHighestResolution" to checkIsHighestResolution(targetResolution, originalHeight).toString(),
+            "height" to targetResolution.toString(),
+            "width" to targetWidth.toString()
         )
     }
 

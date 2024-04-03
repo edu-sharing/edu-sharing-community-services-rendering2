@@ -6,6 +6,7 @@ import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.ObjectLink
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -36,7 +37,7 @@ class MinioService(
         )
     }
 
-    override fun getObjectLink(cacheObject: CacheObject): String {
+    override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
         val params = AssetLinkParams(
             nodeId = cacheObject.nodeId,
             hash = cacheObject.hash,
@@ -46,7 +47,7 @@ class MinioService(
         )
         val mapper = ObjectMapper()
         val base = Base64().encode(mapper.writeValueAsString(params).toByteArray())
-        return UriComponentsBuilder.newInstance()
+        val url = UriComponentsBuilder.newInstance()
             .scheme(publicUrl.substringBefore("://"))
             .host(publicUrl.substringAfter("://"))
             .port(port)
@@ -54,6 +55,15 @@ class MinioService(
             .queryParam("asset", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
             .build()
             .toUriString()
+        val objectLink = ObjectLink(link = url)
+        val metadata = getFileProperties(cacheObject).userMetadata()
+        if (metadata.containsKey("width")) {
+            objectLink.width = metadata["width"]?.toInt() ?: 0
+        }
+        if (metadata.containsKey("height")) {
+            objectLink.height = metadata["height"]?.toInt() ?: 0
+        }
+        return objectLink
     }
 
     override fun removeObject(cacheObject: CacheObject) {
