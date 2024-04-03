@@ -2,7 +2,9 @@ package org.edu_sharing.rendering.service
 
 import org.edu_sharing.rendering.dto.CacheObject
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.ResourceLoader
 import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.BodyExtractors
@@ -15,10 +17,13 @@ import java.net.URLEncoder
 import java.security.Signature
 import java.util.*
 
+private const val TEST_ID_PREFIX = "TEST_"
+
 @Service
 class ContentTransferService(
     private val privatePublicKeyService: PrivatePublicKeyService,
-    private val eduSharingWebClient: WebClient
+    private val eduSharingWebClient: WebClient,
+    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader
 ) {
     @Value("\${app.appId}")
     lateinit var appId: String
@@ -26,6 +31,10 @@ class ContentTransferService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun getAsInputStream(cacheObject: CacheObject): InputStream {
+        if(cacheObject.nodeId.startsWith(TEST_ID_PREFIX)) {
+            val resourceName = cacheObject.nodeId.substring(TEST_ID_PREFIX.length)
+            return resourceLoader.getResource("classpath:$resourceName").inputStream
+        }
         val outputStreamPipe = PipedOutputStream()
         val inputStreamPipe = PipedInputStream(outputStreamPipe)
         val timeStamp = System.currentTimeMillis()
