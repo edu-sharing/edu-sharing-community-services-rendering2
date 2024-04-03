@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -32,6 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableMethodSecurity
+@ConditionalOnProperty(name = ["app.security.enabled"], havingValue = "true")
 class SecurityConfig(
     @Value("\${app.security.allowedOrigins}") var allowedOrigins: List<String>,
     @Value("\${app.security.adminPassword}") var adminPassword: String
