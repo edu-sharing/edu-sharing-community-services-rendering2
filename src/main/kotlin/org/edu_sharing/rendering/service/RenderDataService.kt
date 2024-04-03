@@ -60,6 +60,7 @@ class RenderDataService (
                 objectLinkList.add(link)
             } else {
                 this.cacheObjectData(cacheObject)
+                objectLinkList.add(retrieveObjectLink(cacheObject) ?: "")
             }
         }
         return objectLinkList to jobId

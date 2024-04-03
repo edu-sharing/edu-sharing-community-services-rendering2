@@ -30,16 +30,11 @@ class ContentTransferService(
         val inputStreamPipe = PipedInputStream(outputStreamPipe)
         val timeStamp = System.currentTimeMillis()
         val sigData = cacheObject.nodeId + timeStamp
-        //val cipher = Cipher.getInstance("RSA")
         val privateKey = privatePublicKeyService.getPrivateKey()
-        //cipher.init(Cipher.ENCRYPT_MODE, privateKey)
-        //val encryptedSigData = Base64.getEncoder().encode(cipher.doFinal(sigData.toByteArray())).decodeToString()
-        //val encoder = URLEncoder()
         val dsa = Signature.getInstance("SHA1withRSA")
         dsa.initSign(privateKey)
         dsa.update(sigData.toByteArray())
         val signed = dsa.sign()
-        log.info(URLEncoder.encode(Base64.getEncoder().encodeToString(signed)))
         val body = eduSharingWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
@@ -48,15 +43,13 @@ class ContentTransferService(
                     .queryParam("appId", appId)
                     .queryParam("nodeId", cacheObject.nodeId)
                     .queryParam("timeStamp", timeStamp)
-                    .queryParam("authToken", URLEncoder.encode(Base64.getEncoder().encodeToString(signed)))
+                    .queryParam("authToken", URLEncoder.encode(Base64.getEncoder().encodeToString(signed), Charsets.UTF_8))
                     .queryParam("version", cacheObject.version ?: "")
                     .build(true)
                     .toUri()
-
-                log.info("Auth: {}",Base64.getEncoder().encodeToString(signed))
-                log.info("url: {}", uri)
                 uri
             }.exchangeToFlux { it.body(BodyExtractors.toDataBuffers()) }
+
         DataBufferUtils.write(body, outputStreamPipe)
             .doOnError { log.error("something went wrong: {}", it.message, it); throw it }
             .subscribe(DataBufferUtils.releaseConsumer())

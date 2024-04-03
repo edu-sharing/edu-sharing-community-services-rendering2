@@ -1,14 +1,28 @@
 package org.edu_sharing.rendering.blobStorage
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
-import io.minio.http.Method
+import org.apache.catalina.util.URLEncoder
+import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
-import java.util.concurrent.TimeUnit
 
 @Service
-class MinioService(private val eduMinioClient: MinioClient) : StorageService {
+class MinioService(
+    private val eduMinioClient: MinioClient
+) : StorageService {
+
+    @Value("\${app.public.url}")
+    lateinit var publicUrl: String
+    @Value("\${app.public.port}")
+    lateinit var port: String
+
+    private val logger = LoggerFactory.getLogger(javaClass)
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
         createBucket(cacheObject.type)
         eduMinioClient.putObject(
@@ -23,15 +37,23 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
     }
 
     override fun getObjectLink(cacheObject: CacheObject): String {
-        val url = eduMinioClient.getPresignedObjectUrl(
-            GetPresignedObjectUrlArgs.builder()
-                .method(Method.GET)
-                .bucket(cacheObject.type)
-                .`object`(getStoragePath(cacheObject))
-                .expiry(1, TimeUnit.HOURS)
-                .build()
+        val params = AssetLinkParams(
+            nodeId = cacheObject.nodeId,
+            hash = cacheObject.hash,
+            quality = cacheObject.quality ?: 0,
+            type = cacheObject.type,
+            mimeType = cacheObject.mimeType
         )
-        return url
+        val mapper = ObjectMapper()
+        val base = Base64().encode(mapper.writeValueAsString(params).toByteArray())
+        return UriComponentsBuilder.newInstance()
+            .scheme(publicUrl.substringBefore("://"))
+            .host(publicUrl.substringAfter("://"))
+            .port(port)
+            .path("/public/asset")
+            .queryParam("asset", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
+            .build()
+            .toUriString()
     }
 
     override fun removeObject(cacheObject: CacheObject) {

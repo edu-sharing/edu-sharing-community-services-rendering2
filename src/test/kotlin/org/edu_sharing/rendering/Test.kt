@@ -1,14 +1,19 @@
 package org.edu_sharing.rendering
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.junit.jupiter.api.Test
+import org.springframework.web.util.UriComponentsBuilder
 import java.net.URLDecoder
+import java.net.URLEncoder
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.Signature
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
+import java.util.Base64 as JavaBase64
 
 class Test {
     @Test
@@ -91,6 +96,12 @@ class Test {
         signDsa.update(data.toByteArray())
         val signedData = signDsa.sign()
 
+        // url encoding
+        val urlEncodedData = URLEncoder.encode(JavaBase64.getEncoder().encodeToString(signedData))
+
+        // url decoding
+        val urlDecodedData = URLDecoder.decode(urlEncodedData)
+
         // now get public key
         var pubkeyString = publicKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
         pubkeyString = pubkeyString.replace("-----END PUBLIC KEY-----", "")
@@ -103,6 +114,33 @@ class Test {
         val verifyDsa = Signature.getInstance(signingAlgorithm)
         verifyDsa.initVerify(publicKeyObj)
         verifyDsa.update(data.toByteArray())
-        val result = verifyDsa.verify(signedData)
+        val result = verifyDsa.verify(urlDecodedData.toByteArray())
+        val test = 0
+    }
+
+    @Test
+    fun testSerialization() {
+        val params = AssetLinkParams(
+            nodeId = "abc_121",
+            hash = "hash123",
+            quality = 720
+        )
+        val mapper = ObjectMapper()
+        val base = Base64().encode(mapper.writeValueAsString(params).toByteArray())
+
+        val uri = UriComponentsBuilder.newInstance()
+            .scheme("http")
+            .host("www.test.de")
+            .path("/public/asset")
+            .queryParam("asset", base.decodeToString())
+            .build()
+            .encode()
+        val test = uri.toUriString()
+        val sds = 0
+    }
+
+    fun testDeserialize() {
+        val test = "%5BB@3f61b4a7"
+
     }
 }
