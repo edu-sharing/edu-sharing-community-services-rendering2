@@ -25,7 +25,7 @@ class JobInfoService (
     fun getJobInfo(jobId: String): JobInfoReply {
         val job = jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
         if (isMainJobQueuedOrCopying(job)) {
-            return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)))
+            return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)), status = job.status)
         }
         val infoList: MutableList<JobProgressInfo> = mutableListOf()
         job.subJobs.forEach {
@@ -48,7 +48,7 @@ class JobInfoService (
             }
             infoList.add(jobInfo)
         }
-        return JobInfoReply(infoList)
+        return JobInfoReply(infoList, status = job.status)
     }
 
     private fun isMainJobQueuedOrCopying(job: RenderingJob): Boolean {

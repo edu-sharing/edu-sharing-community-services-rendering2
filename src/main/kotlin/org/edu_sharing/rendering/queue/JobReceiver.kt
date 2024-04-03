@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.edu_sharing.rendering.service.ContentTransferService
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
@@ -30,6 +31,8 @@ class JobReceiver(
     private val mapper: Mapper,
     private val contentTransferService: ContentTransferService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @Value("\${edu_sharing.queue.image.key}")
     lateinit var imageRoutingKey: String
 
@@ -64,6 +67,10 @@ class JobReceiver(
             this.createImageJob(jobEntry, message)
         } else if (cacheObject.type == "file-video" || cacheObject.type == "file-audio") {
             createAvJobs(jobEntry, message)
+        } else {
+            jobEntry.status = JobStatus.FAILED
+            jobRepository.save(jobEntry)
+            logger.warn("No implementation for type " + cacheObject.type)
         }
     }
 
