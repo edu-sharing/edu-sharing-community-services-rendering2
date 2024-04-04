@@ -42,12 +42,8 @@ class AssetService (
     }
 
     private fun parseRange(range: String): LongRange {
-        val pattern = "(^[a-zA-Z]\\w*)\\s+(\\d+)\\s?-\\s?(\\d+)?\\s?/?\\s?(\\d+|\\*)?"
-        if (! Regex(pattern).matches(range)) {
-            throw IllegalArgumentException()
-        }
-        val numericalRange = range.split(" ")[1]
-        val (start, end) = numericalRange.split("-")
+        val numericalRange = range.split(if (range.contains("=")) "=" else " ")[1]
+        val (start, end) = numericalRange.split("-", limit = 2)
         return LongRange(
             start.toLong(),
             if (end != "") end.toLong() else start.toLong() + defaultChunkSize
