@@ -66,8 +66,8 @@ class MinioService(
         return objectLink
     }
 
-    override fun removeObject(cacheObject: CacheObject) {
-        eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(cacheObject.type)
+    override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
+        eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(if (isTemp) "temp" else cacheObject.type)
             .`object`(getStoragePath(cacheObject)).build())
     }
 

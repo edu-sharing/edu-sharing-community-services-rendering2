@@ -4,7 +4,6 @@ import org.bson.types.ObjectId
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.JobInfoReply
 import org.edu_sharing.rendering.dto.JobProgressInfo
-import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.RenderingJob
@@ -22,10 +21,11 @@ class JobInfoService (
     private val mapper: Mapper,
     private val conversionRetrieval: ConversionRetrieval,
     private val storageImplementation: StorageService,
+    private val renderModuleMappingService: RenderModuleMappingService
     ){
     fun getJobInfo(jobId: String): JobInfoReply {
         val job = jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
-        val module = if (job.mimeType.substringBefore("/") == "video") RenderModules.VIDEO else RenderModules.IMAGE
+        val module = renderModuleMappingService.getModule(job.mimeType)
         if (isMainJobQueuedOrCopying(job)) {
             return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)), status = job.status, module = module)
         }

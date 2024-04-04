@@ -2,7 +2,10 @@ package org.edu_sharing.rendering.service
 
 import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.*
+import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.dto.RenderDataRequest
+import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
@@ -14,14 +17,15 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 
 @Service
-class RenderDataService (
+class RenderDataService(
     private val storageImplementation: StorageService,
     private val mongoRepo: RenderingJobRepository,
     private val amqpTemplate: AmqpTemplate,
     private val mapper: Mapper,
     private val conversionRetrieval: ConversionRetrieval,
-    private val contentTransferService: ContentTransferService
-    ) {
+    private val contentTransferService: ContentTransferService,
+    private val renderModuleMappingService: RenderModuleMappingService
+) {
 
     @Value("\${edu_sharing.queue.topicExchange}")
     lateinit var topicExchangeName: String
@@ -29,13 +33,13 @@ class RenderDataService (
     @Value("\${edu_sharing.queue.job.key}")
     lateinit var jobRoutingKey: String
 
-   @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
+    @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
         val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
         val response = RenderDataResponse(objectLinkList, jobId)
-       val module = if (request.mimeType.substringBefore("/") == "video") RenderModules.VIDEO else RenderModules.IMAGE
-       response.module = module
-       return response
+        val module = renderModuleMappingService.getModule(request.mimeType)
+        response.module = module
+        return response
     }
 
     fun compileResponseLists(cacheObject: CacheObject): Pair<MutableList<ObjectLink>, String?> {
@@ -86,7 +90,8 @@ class RenderDataService (
             } else {
                 throw Exception(unfinishedJob.id.toString() + ": Quality list changed amidst ongoing conversion")
             }
-        } catch (_: NoSuchElementException) {}
+        } catch (_: NoSuchElementException) {
+        }
         val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject)
         mongoRepo.save(renderingJob)
         val jobMessage = RenderingJobMessage(
