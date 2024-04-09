@@ -46,16 +46,19 @@ class RenderDataService(
         val objectLinkList = mutableListOf<ObjectLink>()
         var jobId: String? = null
         if (conversionRetrieval.checkIsConversionObject(cacheObject)) {
-            val missingResolutions = mutableListOf<Int>()
+            var missingResolutions = mutableListOf<Int>()
+            var highestResolution = Int.MAX_VALUE
             this.conversionRetrieval.getMimeTypeSpecificQualities(cacheObject.mimeType).forEach {
                 cacheObject.quality = it
                 val link = this.retrieveObjectLink(cacheObject)
                 if (link != null) {
                     objectLinkList.add(link)
+                    if (link.isHighestQuality) highestResolution = link.height
                 } else {
                     missingResolutions.add(it)
                 }
             }
+            missingResolutions = missingResolutions.filter { it < highestResolution }.toMutableList()
             if (missingResolutions.size > 0) {
                 jobId = this.createJob(cacheObject, missingResolutions)
             }

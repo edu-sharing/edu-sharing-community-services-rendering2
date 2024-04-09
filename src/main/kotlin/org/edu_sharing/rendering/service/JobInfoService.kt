@@ -34,7 +34,11 @@ class JobInfoService (
             val jobInfo = JobProgressInfo(quality = it.quality, status = it.status)
             when (it.status) {
                 JobStatus.QUEUED -> {
-                    val position = subJobRepository.countByIdBeforeAndStatusAndRoutingKey(it.id, it.status, it.routingKey)
+                    val position = subJobRepository.countByIdBeforeAndStatusAndRoutingKey(
+                        it.id,
+                        it.status,
+                        it.routingKey
+                    )
                     jobInfo.progress = position
                 }
                 JobStatus.PROCESSING -> { jobInfo.progress = it.progress.toLong() }

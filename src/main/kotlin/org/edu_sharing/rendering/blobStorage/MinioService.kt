@@ -63,6 +63,9 @@ class MinioService(
         if (metadata.containsKey("height")) {
             objectLink.height = metadata["height"]?.toInt() ?: 0
         }
+        if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
+            objectLink.isHighestQuality = true
+        }
         return objectLink
     }
 
