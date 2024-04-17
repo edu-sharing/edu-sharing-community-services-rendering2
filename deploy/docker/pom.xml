@@ -6,9 +6,9 @@
 
   <parent>
     <groupId>org.edu_sharing</groupId>
-    <artifactId>edu_sharing-community-services-rendering2</artifactId>
+    <artifactId>edu_sharing-community-services-rendering2-deploy</artifactId>
     <version>git</version>
-    <relativePath>../../pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>edu_sharing-community-services-rendering2-deploy-docker</artifactId>
@@ -17,6 +17,14 @@
   <name>edu_sharing-community-services-rendering2-deploy-docker</name>
 
   <properties>
+
+    <docker.from.openjdk.21>
+      dockerio.mirror.docker.edu-sharing.com/openjdk:21-jdk
+    </docker.from.openjdk.21>
+
+    <docker.from.eclipse-temurin.21>
+      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21
+    </docker.from.eclipse-temurin.21>
 
     <docker.edu_sharing.community.common.redis.name>
       edu_sharing-community-common-docker-redis
