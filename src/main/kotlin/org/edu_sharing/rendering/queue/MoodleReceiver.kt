@@ -1,0 +1,60 @@
+package org.edu_sharing.rendering.queue
+
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
+import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
+import org.edu_sharing.rendering.entity.JobStatus
+import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.service.MoodleService
+import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Queue
+import org.springframework.amqp.rabbit.annotation.QueueBinding
+import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Component
+
+@Component
+@ConditionalOnMoodle
+class MoodleReceiver (
+    private val moodleService: MoodleService,
+    private val renderingJobRepository: RenderingJobRepository,
+    private val subJobRepository: SubJobRepository,
+    private val mainJobLogic: MainJobLogic
+) {
+    @Value("\${edu_sharing.queue.moodle.key}")
+    lateinit var jobRoutingKey: String
+
+    @RabbitListener(
+        bindings = [
+            QueueBinding(
+                value = Queue(name = "\${edu_sharing.queue.moodle.name}", durable = "false"),
+                exchange = Exchange(name = "\${edu_sharing.queue.topicExchange}", type = "topic"),
+                key = ["\${edu_sharing.queue.moodle.key}"]
+            )
+        ], containerFactory = "singlePrefetchConnectionFactory"
+    )
+    fun receiveMessage(message: MoodleJobMessage) {
+        val jobEntry = renderingJobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
+        jobEntry.status = JobStatus.PROCESSING
+        val subJob = SubJob(
+            status = JobStatus.PROCESSING,
+            routingKey = jobRoutingKey,
+            parent = jobEntry
+        )
+        subJobRepository.save(subJob)
+        try {
+            val url = moodleService.getUrl(message, jobEntry.module ?: RenderModules.MOODLE)
+            subJob.status = JobStatus.FINISHED
+            subJob.message = url
+        } catch (exception: Exception) {
+            subJob.status = JobStatus.FAILED
+            subJob.message = exception.message
+        }
+        subJobRepository.save(subJob)
+        mainJobLogic.processMainJob(message.id)
+    }
+}

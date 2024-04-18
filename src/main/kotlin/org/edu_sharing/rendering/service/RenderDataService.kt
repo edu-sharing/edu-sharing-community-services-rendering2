@@ -2,10 +2,7 @@ package org.edu_sharing.rendering.service
 
 import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderDataResponse
+import org.edu_sharing.rendering.dto.*
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
@@ -13,6 +10,7 @@ import org.edu_sharing.rendering.logic.ConversionRetrieval
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.lang.Nullable
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 
@@ -24,7 +22,9 @@ class RenderDataService(
     private val mapper: Mapper,
     private val conversionRetrieval: ConversionRetrieval,
     private val contentTransferService: ContentTransferService,
-    private val renderModuleMappingService: RenderModuleMappingService
+    private val renderModuleMappingService: RenderModuleMappingService,
+    @Nullable
+    private val moodleService: MoodleService?
 ) {
 
     @Value("\${edu_sharing.queue.topicExchange}")
@@ -35,10 +35,18 @@ class RenderDataService(
 
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
+        val response = RenderDataResponse(module = renderModuleMappingService.getModule(request))
+        if ((response.module === RenderModules.MOODLE || response.module === RenderModules.SCORM) && moodleService !== null) {
+            response.objectLinks = mutableListOf()
+            response.jobId = moodleService.createJob(request)
+            if (response.jobId != null) {
+                return response
+            }
+        }
         val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
-        val response = RenderDataResponse(objectLinkList, jobId)
-        val module = renderModuleMappingService.getModule(request.mimeType)
-        response.module = module
+        response.objectLinks = objectLinkList
+        response.jobId = jobId
+
         return response
     }
 

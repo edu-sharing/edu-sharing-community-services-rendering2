@@ -63,14 +63,18 @@ class JobReceiver(
             jobRepository.save(jobEntry)
             return
         }
-        if (cacheObject.type == "file-image") {
-            this.createImageJob(jobEntry, message)
-        } else if (cacheObject.type == "file-video" || cacheObject.type == "file-audio") {
-            createAvJobs(jobEntry, message)
-        } else {
-            jobEntry.status = JobStatus.FAILED
-            jobRepository.save(jobEntry)
-            logger.warn("No implementation for type " + cacheObject.type)
+        when (cacheObject.type) {
+            "file-image" -> {
+                this.createImageJob(jobEntry, message)
+            }
+            "file-video", "file-audio" -> {
+                createAvJobs(jobEntry, message)
+            }
+            else -> {
+                jobEntry.status = JobStatus.FAILED
+                jobRepository.save(jobEntry)
+                logger.warn("No implementation for type " + cacheObject.type)
+            }
         }
     }
 
