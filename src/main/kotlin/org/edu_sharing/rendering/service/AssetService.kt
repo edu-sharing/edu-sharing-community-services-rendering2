@@ -3,12 +3,14 @@ package org.edu_sharing.rendering.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.springframework.stereotype.Service
 import java.net.URLDecoder
 
+@ConditionalOnController
 @Service
 class AssetService (
     private val storageImplementation: StorageService,

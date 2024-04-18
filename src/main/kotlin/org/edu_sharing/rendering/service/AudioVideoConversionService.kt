@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.service
 
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.logic.AVConversionListener
@@ -17,7 +18,7 @@ import java.io.File
 import java.nio.file.Files
 import java.util.*
 
-
+@ConditionalOnConverter
 @Service
 class AudioVideoConversionService (
     private val storageImplementation: StorageService,

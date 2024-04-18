@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.queue
 
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
@@ -13,6 +14,7 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
 
+@ConditionalOnConverter
 @Component
 class AvReceiver(
     private val mainJobLogic: MainJobLogic,

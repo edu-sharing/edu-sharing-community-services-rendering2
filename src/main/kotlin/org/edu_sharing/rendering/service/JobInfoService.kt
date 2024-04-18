@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.service
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.JobInfoReply
 import org.edu_sharing.rendering.dto.JobProgressInfo
 import org.edu_sharing.rendering.dto.ObjectLink
@@ -17,14 +18,14 @@ import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 
+@ConditionalOnController
 @Service
 class JobInfoService (
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val mapper: Mapper,
     private val conversionRetrieval: ConversionRetrieval,
-    private val storageImplementation: StorageService,
-    private val renderModuleMappingService: RenderModuleMappingService
+    private val storageImplementation: StorageService
     ){
     fun getJobInfo(jobId: String): JobInfoReply {
         val job = jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")

@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.queue
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnJobManager
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
@@ -22,6 +23,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 
+@ConditionalOnJobManager
 @Component
 class JobReceiver(
     private val jobRepository: RenderingJobRepository,
