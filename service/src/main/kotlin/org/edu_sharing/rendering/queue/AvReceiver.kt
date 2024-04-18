@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.queue
 
+import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
@@ -17,8 +18,9 @@ class AvReceiver(
     private val mainJobLogic: MainJobLogic,
     private val subJobRepository: SubJobRepository,
     private val conversionService: AudioVideoConversionService,
-    private val mapper: Mapper
-) {
+    private val mapper: Mapper,
+    private val storageImplementation: StorageService
+    ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
@@ -38,6 +40,7 @@ class AvReceiver(
         }
         val subJob = jobEntry.subJobs.first { it.quality == message.quality }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        val originalMimeType = cacheObject.mimeType
         subJob.status = JobStatus.PROCESSING
         subJobRepository.save(subJob)
         var success = true
@@ -51,6 +54,9 @@ class AvReceiver(
             subJob.status = if (success) JobStatus.FINISHED else JobStatus.FAILED
             subJobRepository.save(subJob)
         }
-        mainJobLogic.processMainJob(message.id)
+        if (mainJobLogic.processMainJob(message.id)) {
+            cacheObject.mimeType = originalMimeType
+            storageImplementation.removeObject(cacheObject, true)
+        }
     }
 }

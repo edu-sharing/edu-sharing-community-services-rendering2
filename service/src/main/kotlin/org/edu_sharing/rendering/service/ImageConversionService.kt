@@ -45,7 +45,11 @@ class ImageConversionService (
         cacheObject.quality = size
         cacheObject.size = byteArrayOutputStream.size().toLong()
         cacheObject.mimeType = "image/${imageFormat}"
-        this.storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()))
+        val metadata =  mapOf(
+            "height" to targetHeight.toString(),
+            "width" to targetWidth.toString()
+        )
+        this.storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()), metadata)
     }
 
     fun fetchSourceImage(cacheObject: CacheObject): BufferedImage {

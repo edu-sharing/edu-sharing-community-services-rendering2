@@ -1,14 +1,29 @@
 package org.edu_sharing.rendering.blobStorage
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
-import io.minio.http.Method
+import org.apache.catalina.util.URLEncoder
+import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.ObjectLink
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
-import java.util.concurrent.TimeUnit
 
 @Service
-class MinioService(private val eduMinioClient: MinioClient) : StorageService {
+class MinioService(
+    private val eduMinioClient: MinioClient
+) : StorageService {
+
+    @Value("\${app.public.url}")
+    lateinit var publicUrl: String
+    @Value("\${app.public.port}")
+    lateinit var port: String
+
+    private val logger = LoggerFactory.getLogger(javaClass)
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
         createBucket(cacheObject.type)
         eduMinioClient.putObject(
@@ -22,20 +37,40 @@ class MinioService(private val eduMinioClient: MinioClient) : StorageService {
         )
     }
 
-    override fun getObjectLink(cacheObject: CacheObject): String {
-        val url = eduMinioClient.getPresignedObjectUrl(
-            GetPresignedObjectUrlArgs.builder()
-                .method(Method.GET)
-                .bucket(cacheObject.type)
-                .`object`(getStoragePath(cacheObject))
-                .expiry(1, TimeUnit.HOURS)
-                .build()
+    override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
+        val params = AssetLinkParams(
+            nodeId = cacheObject.nodeId,
+            hash = cacheObject.hash,
+            quality = cacheObject.quality ?: 0,
+            type = cacheObject.type,
+            mimeType = cacheObject.mimeType
         )
-        return url
+        val mapper = ObjectMapper()
+        val base = Base64().encode(mapper.writeValueAsString(params).toByteArray())
+        val url = UriComponentsBuilder.newInstance()
+            .scheme(publicUrl.substringBefore("://"))
+            .host(publicUrl.substringAfter("://"))
+            .port(port)
+            .path("/public/asset")
+            .queryParam("assetParams", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
+            .build()
+            .toUriString()
+        val objectLink = ObjectLink(link = url)
+        val metadata = getFileProperties(cacheObject).userMetadata()
+        if (metadata.containsKey("width")) {
+            objectLink.width = metadata["width"]?.toInt() ?: 0
+        }
+        if (metadata.containsKey("height")) {
+            objectLink.height = metadata["height"]?.toInt() ?: 0
+        }
+        if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
+            objectLink.isHighestQuality = true
+        }
+        return objectLink
     }
 
-    override fun removeObject(cacheObject: CacheObject) {
-        eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(cacheObject.type)
+    override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
+        eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(if (isTemp) "temp" else cacheObject.type)
             .`object`(getStoragePath(cacheObject)).build())
     }
 

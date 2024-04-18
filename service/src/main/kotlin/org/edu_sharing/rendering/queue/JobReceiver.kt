@@ -11,21 +11,19 @@ import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.edu_sharing.rendering.service.ContentTransferService
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.core.io.ResourceLoader
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 
 @Component
 class JobReceiver(
-    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader,
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val storageImplementation: StorageService,
@@ -33,6 +31,8 @@ class JobReceiver(
     private val mapper: Mapper,
     private val contentTransferService: ContentTransferService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @Value("\${app.queue.image.key}")
     lateinit var imageRoutingKey: String
 
@@ -56,7 +56,6 @@ class JobReceiver(
         jobEntry.status = JobStatus.PROCESSING
         jobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-        cacheObject.size = -1
         try {
             this.storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
         } catch (exception: Exception) {
@@ -64,10 +63,18 @@ class JobReceiver(
             jobRepository.save(jobEntry)
             return
         }
-        if (cacheObject.type == "image") {
-            this.createImageJob(jobEntry, message)
-        } else if (cacheObject.type == "video" || cacheObject.type == "audio") {
-            createAvJobs(jobEntry, message)
+        when (cacheObject.type) {
+            "file-image" -> {
+                this.createImageJob(jobEntry, message)
+            }
+            "file-video", "file-audio" -> {
+                createAvJobs(jobEntry, message)
+            }
+            else -> {
+                jobEntry.status = JobStatus.FAILED
+                jobRepository.save(jobEntry)
+                logger.warn("No implementation for type " + cacheObject.type)
+            }
         }
     }
 

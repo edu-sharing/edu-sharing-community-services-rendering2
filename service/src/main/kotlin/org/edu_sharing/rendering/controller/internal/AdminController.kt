@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.controller.internal
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.edu_sharing.rendering.dto.ErrorMessage
 import org.edu_sharing.rendering.service.RepositoryRegistrationService
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -16,6 +17,7 @@ import java.security.InvalidKeyException
 @RestController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
+@ConditionalOnProperty(name = ["edu_sharing.registration.enabled"], havingValue = "true")
 class AdminController(
     private val repositoryRegistrationService: RepositoryRegistrationService
 ) {

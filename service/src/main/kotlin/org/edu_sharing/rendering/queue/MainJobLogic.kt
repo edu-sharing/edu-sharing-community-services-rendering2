@@ -19,19 +19,20 @@ class MainJobLogic (
         return jobRepository.findByIdOrNull(ObjectId(jobId))
     }
 
-    fun processMainJob(jobId: String) {
+    fun processMainJob(jobId: String): Boolean {
         val job = getMainJobEntry(jobId)
         if (job == null) {
             logger.warn("Expected main job not found: $jobId")
-            return
+            return false
         }
         job.finishedTimestamp = System.currentTimeMillis()
         val areSomeProcessingOrQueued = job.subJobs.firstOrNull { it.status < JobStatus.FINISHED } != null
         if (areSomeProcessingOrQueued) {
-            return
+            return false
         }
         val areAllFinished = job.subJobs.firstOrNull { it.status == JobStatus.FAILED } == null
         job.status = if (areAllFinished) JobStatus.FINISHED else JobStatus.FAILED
         jobRepository.save(job)
+        return true
     }
 }

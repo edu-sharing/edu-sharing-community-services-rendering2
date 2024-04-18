@@ -16,5 +16,7 @@ data class RenderDataRequest(
     @NotNull
     val version: String,
     @NotNull
-    val repoId: String
+    val repoId: String,
+    val title: String?,
+    val userData: RequestUserData?
 )

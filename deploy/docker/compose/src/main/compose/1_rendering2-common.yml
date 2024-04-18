@@ -71,6 +71,8 @@ services:
       - app.security.adminPassword=admin
       - spring.data.mongodb.uri=mongodb://admin:admin@localhost:27017/?authMechanism=DEFAULT
       - spring.data.mongodb.database=rendering
+      - app.moodle.host=
+      - app.moodle.token=
     expose:
       - "8080"
     depends_on:
