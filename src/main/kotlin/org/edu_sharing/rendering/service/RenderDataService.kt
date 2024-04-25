@@ -34,7 +34,7 @@ class RenderDataService(
     @Value("\${edu_sharing.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${edu_sharing.queue.edu_html.key}")
+    @Value("\${edu_sharing.queue.job.key}")
     lateinit var jobRoutingKey: String
 
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
