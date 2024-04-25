@@ -26,22 +26,32 @@ class RenderDataService(
     private val contentTransferService: ContentTransferService,
     private val renderModuleMappingService: RenderModuleMappingService,
     @Nullable
-    private val moodleService: MoodleService?
+    private val moodleService: MoodleService?,
+    @Nullable
+    private val eduHtmlService: EduHtmlService?
 ) {
 
     @Value("\${edu_sharing.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${edu_sharing.queue.job.key}")
+    @Value("\${edu_sharing.queue.edu_html.key}")
     lateinit var jobRoutingKey: String
 
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
-        val response = RenderDataResponse(module = renderModuleMappingService.getModule(request))
-        if ((response.module === RenderModules.MOODLE || response.module === RenderModules.SCORM) && moodleService !== null) {
+        val response = RenderDataResponse(module = renderModuleMappingService.getModule(request.type, request.mimeType))
+        if ((response.module == RenderModules.MOODLE || response.module == RenderModules.SCORM) && moodleService != null) {
             response.objectLinks = mutableListOf()
             response.jobId = moodleService.createJob(request)
             if (response.jobId != null) {
+                return response
+            }
+        }
+        if (response.module == RenderModules.EDUHTML && eduHtmlService != null) {
+            val staticLink = eduHtmlService.getObjectLink(request.nodeId)
+            response.objectLinks = if (staticLink != null) mutableListOf(staticLink) else mutableListOf()
+            response.jobId = if (staticLink != null) null else eduHtmlService.createJob(request)
+            if (response.jobId != null || response.objectLinks != null) {
                 return response
             }
         }

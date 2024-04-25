@@ -37,6 +37,24 @@ class MinioService(
         )
     }
 
+    override fun putObject(
+        cacheObject: CacheObject,
+        inputStream: InputStream,
+        targetPath: String,
+        metadata: Map<String, String>
+    ) {
+        createBucket(cacheObject.type)
+        val args = PutObjectArgs.builder()
+            .bucket(cacheObject.type)
+            .`object`(targetPath)
+            .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) 10485760 else -1)
+            .userMetadata(metadata)
+        if (cacheObject.mimeType.isNotBlank()) {
+            args.contentType(cacheObject.mimeType)
+        }
+        eduMinioClient.putObject(args.build())
+    }
+
     override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
         val params = AssetLinkParams(
             nodeId = cacheObject.nodeId,
@@ -69,6 +87,17 @@ class MinioService(
         return objectLink
     }
 
+    override fun getObjectLink(path: String): ObjectLink {
+        val url = UriComponentsBuilder.newInstance()
+            .scheme(publicUrl.substringBefore("://"))
+            .host(publicUrl.substringAfter("://"))
+            .port(port)
+            .path("/public/asset/static/${path.trimStart {it == '/'}}")
+            .build()
+            .toUriString()
+        return ObjectLink(link = url)
+    }
+
     override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
         eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(if (isTemp) "temp" else cacheObject.type)
             .`object`(getStoragePath(cacheObject)).build())
@@ -79,6 +108,15 @@ class MinioService(
             GetObjectArgs.Builder()
                 .bucket(if (isTemp) "temp" else cacheObject.type)
                 .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject))
+                .build()
+        )
+    }
+
+    override fun getObjectStream(bucket: String, path: String): GetObjectResponse {
+        return eduMinioClient.getObject(
+            GetObjectArgs.Builder()
+                .bucket(bucket)
+                .`object`(path)
                 .build()
         )
     }
@@ -99,6 +137,17 @@ class MinioService(
         )
     }
 
+    override fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): GetObjectResponse {
+        return eduMinioClient.getObject(
+            GetObjectArgs.Builder()
+                .bucket(bucket)
+                .`object`(path)
+                .offset(offset)
+                .length(length)
+                .build()
+        )
+    }
+
     override fun putTempFile(cacheObject: CacheObject, inputStream: InputStream) {
         createBucket("temp")
         eduMinioClient.putObject(
@@ -111,22 +160,15 @@ class MinioService(
         )
     }
 
-    override fun isObjectExisting(cacheObject: CacheObject): Boolean {
-        try {
-            eduMinioClient.statObject(
-                StatObjectArgs.builder()
-                    .bucket(cacheObject.type)
-                    .`object`(this.getStoragePath(cacheObject)).build()
-            )
-            return true
-        } catch (exception: Exception) {
-            return false
-        }
-    }
-
     override fun getFileProperties(cacheObject: CacheObject): StatObjectResponse {
         return eduMinioClient.statObject(
             StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
+        )
+    }
+
+    override fun getFileProperties(bucket: String, path: String): StatObjectResponse {
+        return eduMinioClient.statObject(
+            StatObjectArgs.builder().bucket(bucket).`object`(path).build()
         )
     }
 
