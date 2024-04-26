@@ -32,9 +32,13 @@ class EduHtmlService(
     @Value("\${edu_sharing.queue.edu_html.key}")
     lateinit var jobRoutingKey: String
 
-    fun unzipArchive(cacheObject: CacheObject) {
-        val inputStream = contentTransferService.getAsInputStream(cacheObject)
-        val zipInputStream = ZipInputStream(inputStream)
+    fun cacheData(cacheObject: CacheObject) {
+        contentTransferService.getAsInputStream(cacheObject).use {
+            unzipArchive(cacheObject, ZipInputStream(it))
+        }
+    }
+
+    fun unzipArchive(cacheObject: CacheObject, zipInputStream: ZipInputStream) {
         var zipEntry = zipInputStream.nextEntry
         val zipRootPath = zipEntry?.name ?: ""
         while (zipEntry != null) {

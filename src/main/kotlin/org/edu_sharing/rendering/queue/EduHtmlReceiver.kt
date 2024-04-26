@@ -51,7 +51,7 @@ class EduHtmlReceiver (
         subJobRepository.save(subJob)
         var success = true
         try {
-            eduHtmlService.unzipArchive(mapper.renderingJobToCacheObject(jobEntry))
+            eduHtmlService.cacheData(mapper.renderingJobToCacheObject(jobEntry))
             subJob.message = eduHtmlService.getObjectLink(jobEntry.esObjectId)?.link ?: ""
         } catch (exception: Exception) {
             log.warn(exception.message)
