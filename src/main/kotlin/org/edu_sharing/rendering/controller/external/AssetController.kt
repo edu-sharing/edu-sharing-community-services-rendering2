@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.AssetLinkParams
+import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.service.AssetService
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
@@ -31,16 +32,7 @@ class AssetController (
         val decoded = Base64().decode(URLDecoder.decode(assetParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
         val asset = assetService.getAsset(assetLinkParams, range)
-        val response = ResponseEntity
-            .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
-            .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
-            .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-            .header(HttpHeaders.CONTENT_LENGTH, asset.fileSize.toString())
-        if (asset.range != "") {
-            response.header(HttpHeaders.CONTENT_RANGE, asset.range)
-        }
-        val data = asset.stream.readAllBytes()
-        return response.body(ByteArrayResource(data))
+        return  prepareResponse(asset, doEncodeData)
     }
 
     @GetMapping("/static/{nodeId}/**")
@@ -50,9 +42,13 @@ class AssetController (
         request: HttpServletRequest
     ): ResponseEntity<Resource> {
         val asset = assetService.getStaticAsset(request, range, nodeId)
+        return prepareResponse(asset)
+    }
+
+    private fun prepareResponse(asset: ReadableAsset, doEncodeData: Boolean = false): ResponseEntity<Resource> {
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
-            .header(HttpHeaders.CONTENT_TYPE, asset.mimeType)
+            .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
             .header(HttpHeaders.ACCEPT_RANGES, "bytes")
             .header(HttpHeaders.CONTENT_LENGTH, asset.fileSize.toString())
         if (asset.range != "") {

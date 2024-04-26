@@ -25,16 +25,7 @@ class MinioService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
-        createBucket(cacheObject.type)
-        eduMinioClient.putObject(
-            PutObjectArgs.builder()
-                .bucket(cacheObject.type)
-                .`object`(getStoragePath(cacheObject))
-                .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) 10485760 else -1)
-                .userMetadata(metadata)
-                .contentType(cacheObject.mimeType)
-                .build()
-        )
+       putObject(cacheObject, inputStream, getStoragePath(cacheObject), metadata)
     }
 
     override fun putObject(
