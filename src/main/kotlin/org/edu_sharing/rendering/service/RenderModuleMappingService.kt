@@ -12,7 +12,6 @@ class RenderModuleMappingService {
         "eduhtml" -> RenderModules.EDUHTML
         else -> getByMimeType(mimeType)
     }
-    
 
     private fun getByMimeType(mimeType: String) = when (mimeType.substringBefore("/")) {
         "audio" -> RenderModules.AUDIO
@@ -26,5 +25,4 @@ class RenderModuleMappingService {
         MediaType.APPLICATION_PDF_VALUE -> RenderModules.PDF
         else -> RenderModules.DEFAULT
     }
-
 }

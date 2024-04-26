@@ -8,10 +8,10 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.logic.ConversionRetrieval
+import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.lang.Nullable
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 
@@ -25,10 +25,7 @@ class RenderDataService(
     private val conversionRetrieval: ConversionRetrieval,
     private val contentTransferService: ContentTransferService,
     private val renderModuleMappingService: RenderModuleMappingService,
-    @Nullable
-    private val moodleService: MoodleService?,
-    @Nullable
-    private val eduHtmlService: EduHtmlService?
+    private val moduleRegistry: ModuleRegistry,
 ) {
 
     @Value("\${edu_sharing.queue.topicExchange}")
@@ -39,26 +36,15 @@ class RenderDataService(
 
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
-        val response = RenderDataResponse(module = renderModuleMappingService.getModule(request.type, request.mimeType))
-        if ((response.module == RenderModules.MOODLE || response.module == RenderModules.SCORM) && moodleService != null) {
-            response.objectLinks = mutableListOf()
-            response.jobId = moodleService.createJob(request)
-            if (response.jobId != null) {
-                return response
-            }
-        }
-        if (response.module == RenderModules.EDUHTML && eduHtmlService != null) {
-            val staticLink = eduHtmlService.getObjectLink(request.nodeId)
-            response.objectLinks = if (staticLink != null) mutableListOf(staticLink) else mutableListOf()
-            response.jobId = if (staticLink != null) null else eduHtmlService.createJob(request)
-            if (response.jobId != null || response.objectLinks != null) {
-                return response
-            }
-        }
+        val module = renderModuleMappingService.getModule(request.type, request.mimeType)
+        val renderModule = moduleRegistry.getRenderModule(module)
+        val response = renderModule.handle(request);
+        return response
+
+        // TODO handle default
         val (objectLinkList, jobId) = this.compileResponseLists(mapper.renderDataRequestToCacheObject(request))
         response.objectLinks = objectLinkList
         response.jobId = jobId
-
         return response
     }
 
