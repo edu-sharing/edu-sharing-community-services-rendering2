@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.dto.mapper
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.RenderDataRequest
+import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.springframework.stereotype.Component
 
@@ -20,15 +21,16 @@ class Mapper {
         )
     }
 
-    fun cacheObjectToRenderingJob(cacheObject: CacheObject): RenderingJob {
+    fun cacheObjectToRenderingJob(cacheObject: CacheObject, module: RenderModules): RenderingJob {
         return RenderingJob(
             esObjectType = cacheObject.type,
             esObjectId = cacheObject.nodeId,
             esHash = cacheObject.hash,
             mimeType = cacheObject.mimeType,
             repoId = cacheObject.repoId ?: "",
-            version = cacheObject.version ?: "",
-            size = cacheObject.size
+            nodeVersion = cacheObject.version ?: "",
+            size = cacheObject.size,
+            module = module
         )
     }
 
@@ -39,7 +41,7 @@ class Mapper {
             hash = renderingJob.esHash,
             mimeType = renderingJob.mimeType,
             size =  renderingJob.size ?: -1,
-            version = renderingJob.version,
+            version = renderingJob.nodeVersion,
             repoId = renderingJob.repoId
         )
     }

@@ -1,8 +1,9 @@
-package org.edu_sharing.rendering.queue
+package org.edu_sharing.rendering.processing
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnJobManager
+import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
@@ -65,17 +66,17 @@ class JobReceiver(
             jobRepository.save(jobEntry)
             return
         }
-        when (cacheObject.type) {
-            "file-image" -> {
+        when (jobEntry.module) {
+            RenderModules.IMAGE -> {
                 this.createImageJob(jobEntry, message)
             }
-            "file-video", "file-audio" -> {
+            RenderModules.VIDEO, RenderModules.AUDIO -> {
                 createAvJobs(jobEntry, message)
             }
             else -> {
                 jobEntry.status = JobStatus.FAILED
                 jobRepository.save(jobEntry)
-                logger.warn("No implementation for type " + cacheObject.type)
+                logger.warn("No implementation for render module")
             }
         }
     }

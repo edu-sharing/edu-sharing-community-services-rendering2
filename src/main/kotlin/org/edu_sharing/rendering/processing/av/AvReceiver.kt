@@ -1,12 +1,12 @@
-package org.edu_sharing.rendering.queue
+package org.edu_sharing.rendering.processing.av
 
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
+import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
-import org.edu_sharing.rendering.service.AudioVideoConversionService
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue

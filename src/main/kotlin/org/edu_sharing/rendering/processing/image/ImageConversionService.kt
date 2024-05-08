@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.service
+package org.edu_sharing.rendering.processing.image
 
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter

@@ -1,0 +1,60 @@
+package org.edu_sharing.rendering.modules.image
+
+import io.minio.errors.ErrorResponseException
+import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.MainJobCreationService
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Service
+import kotlin.math.max
+
+@Service
+class ImageService(
+    private val defaultStrategy: DefaultStrategy,
+    private val storageImplementation: StorageService,
+    private val mainJobCreationService: MainJobCreationService
+) {
+    @Value("\${edu_sharing.converted_image_mime_types}")
+    lateinit var convertedImageMimeTypes: List<String>
+
+    @Value("\${edu_sharing.image_sizes}")
+    lateinit var targetImageSizes: List<Int>
+
+    @Value("\${edu_sharing.image_format}")
+    lateinit var targetImageFormat: String
+
+    fun isConversionObject(cacheObject: CacheObject): Boolean {
+        return convertedImageMimeTypes.contains(cacheObject.mimeType)
+    }
+
+    fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
+        if (!isConversionObject(cacheObject)) return defaultStrategy.getObjectLinkList(cacheObject)
+        val objectLinkList = mutableListOf<ObjectLink>()
+        val lookUpObject = cacheObject.copy()
+        lookUpObject.mimeType = "image/$targetImageFormat"
+        val requestedResolutions: List<Int> = if (resolution == null) targetImageSizes else listOf(resolution)
+        requestedResolutions.forEach {
+            lookUpObject.quality = it
+            try {
+                objectLinkList.add(storageImplementation.getObjectLink(lookUpObject))
+            } catch (_: ErrorResponseException) {
+            }
+        }
+        return objectLinkList.ifEmpty { null }
+    }
+
+    fun getMissingQualities(availableLinks: List<ObjectLink>?): List<Int> {
+        if (availableLinks === null) return targetImageSizes
+        val availableQualities = availableLinks.map { max(it.height, it.width) }
+        return targetImageSizes.filter { !availableQualities.contains(it) }
+    }
+
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules, missingQualities: List<Int>): String {
+        val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
+        if (existingJobId != null) return existingJobId
+        return mainJobCreationService.createMainJob(cacheObject, module, missingQualities)
+    }
+}

@@ -1,14 +1,13 @@
-package org.edu_sharing.rendering.queue
+package org.edu_sharing.rendering.processing.moodle
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
+import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
+import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
-import org.edu_sharing.rendering.service.EduHtmlService
-import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -18,29 +17,26 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class EduHtmlReceiver (
-    private val eduHtmlService: EduHtmlService,
+@ConditionalOnMoodle
+class MoodleReceiver (
+    private val moodleService: MoodleUploadService,
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
-    private val mainJobLogic: MainJobLogic,
-    private val mapper: Mapper
-    ) {
-
-    private val log = LoggerFactory.getLogger(javaClass)
-
-    @Value("\${edu_sharing.queue.edu_html.key}")
+    private val mainJobLogic: MainJobLogic
+) {
+    @Value("\${edu_sharing.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${edu_sharing.queue.edu_html.name}", durable = "false"),
+                value = Queue(name = "\${edu_sharing.queue.moodle.name}", durable = "false"),
                 exchange = Exchange(name = "\${edu_sharing.queue.topicExchange}", type = "topic"),
-                key = ["\${edu_sharing.queue.edu_html.key}"]
+                key = ["\${edu_sharing.queue.moodle.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
-    fun receiveMessage(message: RenderingJobMessage) {
+    fun receiveMessage(message: MoodleJobMessage) {
         val jobEntry = renderingJobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
         jobEntry.status = JobStatus.PROCESSING
         val subJob = SubJob(
@@ -49,18 +45,15 @@ class EduHtmlReceiver (
             parent = jobEntry
         )
         subJobRepository.save(subJob)
-        var success = true
         try {
-            eduHtmlService.cacheData(mapper.renderingJobToCacheObject(jobEntry))
-            subJob.message = eduHtmlService.getObjectLink(jobEntry.esObjectId)?.link ?: ""
+            val url = moodleService.getUrl(message, jobEntry.module)
+            subJob.status = JobStatus.FINISHED
+            subJob.message = url
         } catch (exception: Exception) {
-            log.warn(exception.message)
             subJob.status = JobStatus.FAILED
-            success = false
-        } finally {
-            subJob.status = if (success) JobStatus.FINISHED else JobStatus.FAILED
-            subJobRepository.save(subJob)
+            subJob.message = exception.message
         }
-        mainJobLogic.processMainJob(jobEntry.id.toString())
+        subJobRepository.save(subJob)
+        mainJobLogic.processMainJob(message.id)
     }
 }

@@ -24,7 +24,6 @@ class AssetService(
         val cacheObject = mapper.assetLinkParamsToCacheObject(assetParams)
         val objectStats = storageImplementation.getFileProperties(cacheObject)
 
-
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = objectStats.contentType(),
@@ -67,7 +66,6 @@ class AssetService(
 
         return createReadableAsset(objectStats, objectChunkStream, longRange)
     }
-
 
     private fun createReadableAsset(
         objectStats: StatObjectResponse,

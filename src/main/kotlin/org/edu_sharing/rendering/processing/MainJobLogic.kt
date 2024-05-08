@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.queue
+package org.edu_sharing.rendering.processing
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.entity.JobStatus

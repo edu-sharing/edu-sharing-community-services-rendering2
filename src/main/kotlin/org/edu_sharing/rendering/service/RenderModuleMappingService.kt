@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.service
 
 import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.exception.ObjectTypeNotSupportedException
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 
@@ -18,11 +19,11 @@ class RenderModuleMappingService {
         "video" -> RenderModules.VIDEO
         "image" -> RenderModules.IMAGE
         "application" -> mapApplication(mimeType)
-        else -> RenderModules.DEFAULT
+        else -> throw ObjectTypeNotSupportedException()
     }
 
     private fun mapApplication(mimeType: String) = when (mimeType) {
         MediaType.APPLICATION_PDF_VALUE -> RenderModules.PDF
-        else -> RenderModules.DEFAULT
+        else -> throw ObjectTypeNotSupportedException()
     }
 }

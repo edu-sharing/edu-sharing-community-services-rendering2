@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules
 
 import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.exception.ModuleNotRegisteredException
 import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 
