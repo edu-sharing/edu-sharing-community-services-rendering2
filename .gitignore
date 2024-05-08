@@ -33,3 +33,4 @@ build/
 .vscode/
 
 /.git-versioned-pom.xml
+.git-versioned-pom.xml
