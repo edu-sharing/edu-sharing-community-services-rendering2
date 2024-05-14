@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
 import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
@@ -22,7 +23,8 @@ class MoodleReceiver (
     private val moodleService: MoodleUploadService,
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
-    private val mainJobLogic: MainJobLogic
+    private val mainJobLogic: MainJobLogic,
+    private val moduleRegistry: ModuleRegistry
 ) {
     @Value("\${edu_sharing.queue.moodle.key}")
     lateinit var jobRoutingKey: String
@@ -46,7 +48,7 @@ class MoodleReceiver (
         )
         subJobRepository.save(subJob)
         try {
-            val url = moodleService.getUrl(message, jobEntry.module)
+            val url = moodleService.getUrl(message, moduleRegistry.getRenderModule(jobEntry.module))
             subJob.status = JobStatus.FINISHED
             subJob.message = url
         } catch (exception: Exception) {

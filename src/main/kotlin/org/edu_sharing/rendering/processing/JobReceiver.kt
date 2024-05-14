@@ -42,6 +42,9 @@ class JobReceiver(
     @Value("\${edu_sharing.queue.av.key}")
     lateinit var avRoutingKey: String
 
+    @Value("\${edu_sharing.queue.document.key}")
+    lateinit var documentRoutingKey: String
+
     @Value("\${edu_sharing.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
@@ -73,6 +76,9 @@ class JobReceiver(
             RenderModules.VIDEO, RenderModules.AUDIO -> {
                 createAvJobs(jobEntry, message)
             }
+            RenderModules.DOCUMENT, RenderModules.SPREADSHEET -> {
+                createDocJob(jobEntry, message)
+            }
             else -> {
                 jobEntry.status = JobStatus.FAILED
                 jobRepository.save(jobEntry)
@@ -95,5 +101,11 @@ class JobReceiver(
             subJobRepository.save(avJob)
             amqpTemplate.convertAndSend(topicExchangeName, avRoutingKey, SubJobMessage(jobEntry.id.toString(), it))
         }
+    }
+
+    private fun createDocJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
+        val documentJob = SubJob(routingKey = documentRoutingKey, parent = jobEntry)
+        subJobRepository.save(documentJob)
+        amqpTemplate.convertAndSend(topicExchangeName, documentRoutingKey, SubJobMessage(jobEntry.id.toString()))
     }
 }

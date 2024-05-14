@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.processing.moodle
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
-import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
+import org.edu_sharing.rendering.modules.moodle.MoodleRenderModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
@@ -14,7 +14,7 @@ import org.springframework.web.util.UriComponentsBuilder
 @ConditionalOnMoodle
 class MoodleUploadService (
     private val moodleWebClient: WebClient
-    ) {
+) {
 
     @Value("\${app.moodle.host}")
     lateinit var moodleBaseUrl: String
@@ -25,7 +25,7 @@ class MoodleUploadService (
     @Value("\${app.moodle.categoryid}")
     lateinit var categoryId: String
 
-    fun getUrl(moodleJobMessage: MoodleJobMessage, module: RenderModules): String {
+    fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule): String {
         val courseId = uploadCourse(moodleJobMessage, module)
         val token = getUserToken(moodleJobMessage, courseId)
         return buildForwardUrl(token)
@@ -41,12 +41,12 @@ class MoodleUploadService (
             .toUriString()
     }
 
-    private fun uploadCourse(moodleJobMessage: MoodleJobMessage, module: RenderModules): Int {
+    private fun uploadCourse(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule): Int {
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("nodeid", moodleJobMessage.nodeId)
         postParams.add("category", categoryId)
         postParams.add("title", moodleJobMessage.title)
-        val method = if (module == RenderModules.MOODLE) "restore" else "scorm"
+        val method = module.getRemoteServiceMethod()
         val courseIdRaw = moodleWebClient.post()
             .uri {
                 it.path("/webservice/rest/server.php")

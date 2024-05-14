@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.logic
+package org.edu_sharing.rendering.processing.av
 
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository

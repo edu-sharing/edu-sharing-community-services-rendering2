@@ -8,4 +8,5 @@ import org.springframework.stereotype.Component
 @Component
 class ScormRenderModule(moodleJobService: MoodleJobService) : MoodleRenderModule(moodleJobService) {
     override fun module() = RenderModules.SCORM
+    override fun getRemoteServiceMethod() = "scorm"
 }

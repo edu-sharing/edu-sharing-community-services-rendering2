@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component
 class ModuleRegistry(@Nullable private val modules: List<RenderModule>) {
     private final val registeredModules: Map<RenderModules, RenderModule> = modules.associateBy { it.module() }
 
-    fun getRenderModule(module: RenderModules) : RenderModule {
-        return this.registeredModules[module] ?: throw ModuleNotRegisteredException(module)
+    @Suppress("UNCHECKED_CAST")
+    fun <T: RenderModule> getRenderModule(module: RenderModules) : T {
+        val result = this.registeredModules[module] ?: throw ModuleNotRegisteredException(module)
+        return result as T
     }
 }

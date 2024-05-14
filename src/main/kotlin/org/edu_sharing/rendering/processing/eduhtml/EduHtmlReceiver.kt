@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.processing.eduhtml
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
+@ConditionalOnConverter
 @Component
 class EduHtmlReceiver (
     private val eduHtmlService: EduHtmlService,

@@ -24,4 +24,6 @@ class MoodleRenderModule(private val moodleJobService: MoodleJobService) : Rende
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
         return ObjectLink(link = subJob.message ?: "")
     }
+
+    fun getRemoteServiceMethod() = "restore"
 }

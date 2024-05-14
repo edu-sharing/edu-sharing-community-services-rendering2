@@ -4,7 +4,6 @@ import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.logic.AVConversionListener
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service

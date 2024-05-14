@@ -1,12 +1,14 @@
 package org.edu_sharing.rendering.processing.eduhtml
 
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.service.ContentTransferService
 import org.springframework.stereotype.Service
 import java.net.URLConnection
 import java.util.zip.ZipInputStream
 
+@ConditionalOnConverter
 @Service
 class EduHtmlConversionService(
     private val contentTransferService: ContentTransferService,
