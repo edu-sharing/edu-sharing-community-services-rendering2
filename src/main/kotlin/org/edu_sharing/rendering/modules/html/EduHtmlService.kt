@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.html
 
-import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
@@ -8,7 +7,9 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
+import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -19,7 +20,8 @@ class EduHtmlService(
     private val jobRepository: RenderingJobRepository,
     private val amqpTemplate: AmqpTemplate,
     private val renderingJobRepository: RenderingJobRepository,
-    private val storageImplementation: StorageService
+    private val storageImplementation: StorageService,
+    private val subJobRepository: SubJobRepository
 ) {
     @Value("\${edu_sharing.queue.topicExchange}")
     lateinit var topicExchangeName: String
@@ -36,19 +38,20 @@ class EduHtmlService(
         val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
         job.module = RenderModules.EDUHTML
         jobRepository.save(job)
+        val subJob = SubJob(
+            routingKey = jobRoutingKey,
+            parent = job
+        )
+        subJobRepository.save(subJob)
         val message = RenderingJobMessage(id = job.id.toString())
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
     }
 
-    fun getObjectLink(nodeId: String): ObjectLink? {
+    fun getObjectLink(nodeId: String): ObjectLink {
         val bucket = "eduhtml"
         val indexPath = "$nodeId/index.html"
-        try {
-            storageImplementation.getFileProperties(bucket, indexPath)
-        } catch (_: ErrorResponseException) {
-            return null
-        }
+        storageImplementation.getFileProperties(bucket, indexPath)
         return storageImplementation.getObjectLink(indexPath)
     }
 }

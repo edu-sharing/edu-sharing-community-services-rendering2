@@ -9,4 +9,17 @@ data class CacheObject(
     var mimeType: String = "",
     val repoId: String? = null,
     val version: String? = null
-)
+) {
+    fun deepCopy(): CacheObject {
+        return CacheObject(
+            nodeId = nodeId,
+            type = type,
+            size = size,
+            hash = hash,
+            quality = quality,
+            mimeType = mimeType,
+            repoId = repoId,
+            version = version
+        )
+    }
+}

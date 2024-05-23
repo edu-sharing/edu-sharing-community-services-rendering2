@@ -45,7 +45,7 @@ class ImageReceiver(
             try {
                 it.status = JobStatus.PROCESSING
                 subJobRepository.save(it)
-                this.conversionService.convert(cacheObject, it.quality, sourceImage)
+                conversionService.convert(cacheObject, it.quality, sourceImage)
                 it.status = JobStatus.FINISHED
             } catch (exception: Exception) {
                 logger.warn(exception.message)

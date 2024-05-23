@@ -23,7 +23,11 @@ class DocumentReceiver (
     private val subJobRepository: SubJobRepository,
     private val moduleRegistry: ModuleRegistry
 ){
-    private val logger = LoggerFactory.getLogger(javaClass)
+    companion object {
+        const val PUBLIC_FAILURE_MESSAGE = "Conversion failed"
+    }
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
         bindings = [
@@ -36,15 +40,12 @@ class DocumentReceiver (
     )
     fun receiveMessage(message: RenderingJobMessage) {
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
-        if (jobEntry == null) {
-            logger.warn("Expected main job not found: " + message.id)
+        if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
+            log.error(if (jobEntry == null) "No job entry with id {}"
+            else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-        if (jobEntry.subJobs.isEmpty()) {
-            logger.error("Document conversion failed for object ${jobEntry.esObjectId} due to missing sub job")
-            return
-        }
         val subJob = jobEntry.subJobs[0]
         subJob.status = JobStatus.PROCESSING
         subJobRepository.save(subJob)
@@ -55,9 +56,9 @@ class DocumentReceiver (
             )
             subJob.status = JobStatus.FINISHED
         } catch (exception: Exception) {
-            logger.error("Document conversion failed for object ${jobEntry.esObjectId}", exception)
+            log.error("Document conversion failed for object ${jobEntry.esObjectId}", exception)
             subJob.status = JobStatus.FAILED
-            subJob.message = "Conversion failed"
+            subJob.message = PUBLIC_FAILURE_MESSAGE
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(jobEntry.id.toString())

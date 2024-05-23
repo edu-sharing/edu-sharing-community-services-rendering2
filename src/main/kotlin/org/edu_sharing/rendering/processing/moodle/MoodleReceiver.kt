@@ -1,20 +1,17 @@
 package org.edu_sharing.rendering.processing.moodle
 
-import org.bson.types.ObjectId
 import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
 import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
@@ -26,8 +23,7 @@ class MoodleReceiver (
     private val mainJobLogic: MainJobLogic,
     private val moduleRegistry: ModuleRegistry
 ) {
-    @Value("\${edu_sharing.queue.moodle.key}")
-    lateinit var jobRoutingKey: String
+    private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
 
     @RabbitListener(
         bindings = [
@@ -39,13 +35,16 @@ class MoodleReceiver (
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: MoodleJobMessage) {
-        val jobEntry = renderingJobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
+        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
+        if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
+            log.error(if (jobEntry == null) "No job entry with id {}"
+            else "Job entry with id {} has no sub jobs" , message.id)
+            return
+        }
+        val subJob = jobEntry.subJobs.first()
+        subJob.status = JobStatus.PROCESSING
         jobEntry.status = JobStatus.PROCESSING
-        val subJob = SubJob(
-            status = JobStatus.PROCESSING,
-            routingKey = jobRoutingKey,
-            parent = jobEntry
-        )
+        renderingJobRepository.save(jobEntry)
         subJobRepository.save(subJob)
         try {
             val url = moodleService.getUrl(message, moduleRegistry.getRenderModule(jobEntry.module))

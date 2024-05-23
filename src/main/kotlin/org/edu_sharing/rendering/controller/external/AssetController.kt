@@ -32,7 +32,7 @@ class AssetController (
         val decoded = Base64().decode(URLDecoder.decode(assetParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
         val asset = assetService.getAsset(assetLinkParams, range)
-        return  prepareResponse(asset, doEncodeData)
+        return prepareResponse(asset, doEncodeData)
     }
 
     @GetMapping("/static/{nodeId}/**")

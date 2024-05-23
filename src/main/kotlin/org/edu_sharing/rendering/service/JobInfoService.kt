@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.exception.EntryNotFoundException
 import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -30,7 +31,7 @@ class JobInfoService (
 
     @PreAuthorize("hasPermission(#job.esObjectId, 'Read')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
-        val renderModule = moduleRegistry.getRenderModule(job.module)
+        val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
         if (isMainJobQueuedOrCopying(job)) {
             return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)), status = job.status, module = job.module)
         }

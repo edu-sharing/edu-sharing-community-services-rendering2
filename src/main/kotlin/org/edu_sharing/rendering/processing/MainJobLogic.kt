@@ -22,16 +22,22 @@ class MainJobLogic (
     fun processMainJob(jobId: String): Boolean {
         val job = getMainJobEntry(jobId)
         if (job == null) {
-            logger.warn("Expected main job not found: $jobId")
-            return false
+            logger.error("Expected main job not found, job id: $jobId")
+            return true
         }
-        job.finishedTimestamp = System.currentTimeMillis()
+        if (job.subJobs.isEmpty()) {
+            logger.error("No sub jobs found, job id: $jobId")
+            job.status = JobStatus.FAILED
+            jobRepository.save(job)
+            return true
+        }
         val areSomeProcessingOrQueued = job.subJobs.firstOrNull { it.status < JobStatus.FINISHED } != null
         if (areSomeProcessingOrQueued) {
             return false
         }
         val areAllFinished = job.subJobs.firstOrNull { it.status == JobStatus.FAILED } == null
         job.status = if (areAllFinished) JobStatus.FINISHED else JobStatus.FAILED
+        job.finishedTimestamp = System.currentTimeMillis()
         jobRepository.save(job)
         return true
     }

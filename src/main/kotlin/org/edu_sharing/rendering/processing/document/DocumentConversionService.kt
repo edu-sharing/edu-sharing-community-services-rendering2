@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.exception.UnknownSourceFormatException
 import org.edu_sharing.rendering.modules.document.DocumentRenderModule
 import org.edu_sharing.rendering.service.ContentTransferService
 import org.jodconverter.core.document.DefaultDocumentFormatRegistry
-import org.jodconverter.core.office.OfficeManager
 import org.jodconverter.local.LocalConverter
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
@@ -16,19 +15,18 @@ import java.io.ByteArrayOutputStream
 @ConditionalOnConverter
 @Service
 class DocumentConversionService(
-    private val officeManager: OfficeManager,
+    private val converter: LocalConverter,
     private val contentTransferService: ContentTransferService,
     private val storageImplementation: StorageService
 ) {
     fun convertAndMoveToCache(cacheObject: CacheObject, module: DocumentRenderModule) {
-        val inputStream = contentTransferService.getAsInputStream(cacheObject)
-        val converter = LocalConverter.builder().officeManager(officeManager).build()
         val targetFormat = DefaultDocumentFormatRegistry.getFormatByMediaType(
             module.getTargetMimetype()
         ) ?: throw UnknownSourceFormatException("Unknown target mime type for module: ${module.module()}")
         val sourceFormat = DefaultDocumentFormatRegistry.getFormatByMediaType(
             cacheObject.mimeType
         ) ?: throw UnknownSourceFormatException("Unknown source format for media type ${cacheObject.type}")
+        val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val outputStream = ByteArrayOutputStream()
         converter.convert(inputStream)
             .`as`(sourceFormat)

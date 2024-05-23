@@ -77,7 +77,7 @@ class JobReceiver(
                 createAvJobs(jobEntry, message)
             }
             RenderModules.DOCUMENT, RenderModules.SPREADSHEET -> {
-                createDocJob(jobEntry, message)
+                createDocJob(jobEntry)
             }
             else -> {
                 jobEntry.status = JobStatus.FAILED
@@ -90,6 +90,7 @@ class JobReceiver(
     private fun createImageJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
         message.missingQualities.forEach {
             val imageJob = SubJob(routingKey = imageRoutingKey, quality = it, parent = jobEntry)
+            jobEntry.subJobs.add(imageJob)
             subJobRepository.save(imageJob)
         }
         amqpTemplate.convertAndSend(topicExchangeName, imageRoutingKey, SubJobMessage(jobEntry.id.toString()))
@@ -98,14 +99,16 @@ class JobReceiver(
     private fun createAvJobs(jobEntry: RenderingJob, message: RenderingJobMessage) {
         message.missingQualities.forEach {
             val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = jobEntry)
+            jobEntry.subJobs.add(avJob)
             subJobRepository.save(avJob)
             amqpTemplate.convertAndSend(topicExchangeName, avRoutingKey, SubJobMessage(jobEntry.id.toString(), it))
         }
     }
 
-    private fun createDocJob(jobEntry: RenderingJob, message: RenderingJobMessage) {
+    private fun createDocJob(jobEntry: RenderingJob) {
         val documentJob = SubJob(routingKey = documentRoutingKey, parent = jobEntry)
         subJobRepository.save(documentJob)
+        jobEntry.subJobs.add(documentJob)
         amqpTemplate.convertAndSend(topicExchangeName, documentRoutingKey, SubJobMessage(jobEntry.id.toString()))
     }
 }

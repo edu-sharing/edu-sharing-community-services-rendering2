@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.html
 
+import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
@@ -14,7 +15,11 @@ class HtmlRenderModule(private val eduHtmlService: EduHtmlService) : RenderModul
     override fun module() = RenderModules.EDUHTML
 
     override fun handle(request: RenderDataRequest) : RenderDataResponse {
-        val staticLink = eduHtmlService.getObjectLink(request.nodeId)
+        val staticLink = try {
+            eduHtmlService.getObjectLink(request.nodeId)
+        } catch (_: ErrorResponseException) {
+            null
+        }
 
         return RenderDataResponse(
             module = module(),

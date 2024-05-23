@@ -26,15 +26,9 @@ class ImageConversionService (
         val originalHeight = sourceImage.height
         val originalWidth = sourceImage.width
         val ratio = originalWidth.toFloat()/originalHeight
-        val targetWidth: Int
-        val targetHeight: Int
-        if (ratio < 1) {
-            targetHeight = size
-            targetWidth = (size * ratio).toInt()
-        } else {
-            targetHeight = size
-            targetWidth = (size * ratio).toInt()
-        }
+        // Apply the target size to the longer side of the image
+        val targetWidth = if (ratio > 1) size else (size * ratio).toInt()
+        val targetHeight = if (ratio > 1) (size / ratio).toInt() else size
         val outputImage = sourceImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
         val bufferedOutputImage = BufferedImage(
             outputImage.getWidth(null),
@@ -43,21 +37,24 @@ class ImageConversionService (
         )
         bufferedOutputImage.graphics.drawImage(outputImage, 0, 0, null)
         val byteArrayOutputStream = ByteArrayOutputStream()
-        ImageIO.write(bufferedOutputImage, this.imageFormat, byteArrayOutputStream)
-        cacheObject.quality = size
-        cacheObject.size = byteArrayOutputStream.size().toLong()
-        cacheObject.mimeType = "image/${imageFormat}"
-        val metadata =  mapOf(
-            "height" to targetHeight.toString(),
-            "width" to targetWidth.toString()
-        )
-        this.storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()), metadata)
+        byteArrayOutputStream.use {
+            ImageIO.write(bufferedOutputImage, imageFormat, byteArrayOutputStream)
+            cacheObject.quality = size
+            cacheObject.size = byteArrayOutputStream.size().toLong()
+            cacheObject.mimeType = "image/${imageFormat}"
+            val metadata =  mapOf(
+                "height" to targetHeight.toString(),
+                "width" to targetWidth.toString()
+            )
+            storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()), metadata)
+        }
     }
 
     fun fetchSourceImage(cacheObject: CacheObject): BufferedImage {
         val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
-        val sourceImage = ImageIO.read(fileInputStream)
-        fileInputStream.close()
-        return sourceImage
+        fileInputStream.use {
+            val sourceImage = ImageIO.read(fileInputStream)
+            return sourceImage
+        }
     }
 }

@@ -12,7 +12,7 @@ interface StorageService {
     fun getObjectLink(cacheObject: CacheObject): ObjectLink
     fun getObjectLink(path: String): ObjectLink
     fun removeObject(cacheObject: CacheObject, isTemp: Boolean = false)
-    fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): GetObjectResponse
+    fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): InputStream
     fun getObjectStream(bucket: String, path: String): GetObjectResponse
     fun getObjectChunkStream(cacheObject: CacheObject, isTemp: Boolean = false, offset: Long, length: Long): GetObjectResponse
     fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): GetObjectResponse

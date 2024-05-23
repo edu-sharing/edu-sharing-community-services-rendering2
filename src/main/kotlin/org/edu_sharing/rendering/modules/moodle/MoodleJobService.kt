@@ -4,7 +4,10 @@ import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
+import org.edu_sharing.rendering.entity.JobStatus
+import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Service
 class MoodleJobService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
+    private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -44,6 +48,12 @@ class MoodleJobService(
         val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
         job.module = RenderModules.MOODLE
         jobRepository.save(job)
+        val subJob = SubJob(
+            status = JobStatus.QUEUED,
+            routingKey = jobRoutingKey,
+            parent = job
+        )
+        subJobRepository.save(subJob)
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
