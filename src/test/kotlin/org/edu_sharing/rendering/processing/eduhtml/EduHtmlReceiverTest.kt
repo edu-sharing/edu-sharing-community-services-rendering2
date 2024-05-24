@@ -9,7 +9,7 @@ import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.html.EduHtmlService
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.processing.JobDataProvider
 import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository

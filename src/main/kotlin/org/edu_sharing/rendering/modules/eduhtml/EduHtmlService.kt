@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.modules.html
+package org.edu_sharing.rendering.modules.eduhtml
 
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.ObjectLink

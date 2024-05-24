@@ -12,11 +12,11 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.stereotype.Component
 
 @Component
-class HtmlRenderModule(
+class PdfRenderModule(
     private val defaultStrategy: DefaultStrategy,
     private val mapper: Mapper
 ) : RenderModule {
-    override fun module() = RenderModules.HTML
+    override fun module() = RenderModules.PDF
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)

@@ -4,7 +4,7 @@ import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.modules.html.EduHtmlService
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.slf4j.LoggerFactory
