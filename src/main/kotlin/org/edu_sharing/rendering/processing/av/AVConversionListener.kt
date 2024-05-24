@@ -21,8 +21,7 @@ class AVConversionListener(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun sourceInfo(p0: MultimediaInfo?) {
-        // This is executed when the mm object was analyzed
-        return
+        logger.info(p0.toString())
     }
 
     override fun progress(p0: Int) {
@@ -33,6 +32,6 @@ class AVConversionListener(
     }
 
     override fun message(p0: String?) {
-        logger.warn(p0)
+        logger.info(p0)
     }
 }

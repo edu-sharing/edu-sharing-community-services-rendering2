@@ -19,18 +19,20 @@ class VideoConversionService (
     private val listenerFactory: ObjectFactory<AVConversionListener>,
     private val encoder: Encoder,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
-    @Value("\${edu_sharing.video_format}")
-    private val videoFormat: String,
-    @Value("\${edu_sharing.video_resolutions}")
-    private val videoResolutions: List<Int>
 ): AvConversionService {
 
+    @Value("\${edu_sharing.video_format}")
+    lateinit var videoFormat: String
+    @Value("\${edu_sharing.video_resolutions}")
+    lateinit var videoResolutions: List<Int>
+
     companion object {
+        const val AUDIO_BITRATE = 160000
         const val AUDIO_CODEC = "libmp3lame"
         const val VIDEO_CODEC = "libx264"
         const val VIDEO_CRF = 24
-        const val BITRATE_FOR_AUDIO_IN_VIDEO = 160000
     }
+
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
         val listener = listenerFactory.`object`
@@ -59,6 +61,7 @@ class VideoConversionService (
     /**
      * Returns Pair<targetWidth, targetHeight>
      */
+    @Throws(Exception::class)
     private fun calculateTargetDimensions(
         multiMediaObject: MultimediaObject,
         targetResolution: Int
@@ -77,7 +80,7 @@ class VideoConversionService (
     private fun initEncodingAttributes(targetWidth: Int, targetHeight: Int): EncodingAttributes {
         val audio = AudioAttributes()
         audio.setCodec(AUDIO_CODEC)
-        audio.setBitRate(BITRATE_FOR_AUDIO_IN_VIDEO)
+        audio.setBitRate(AUDIO_BITRATE)
         val video = VideoAttributes()
         video.setCodec(VIDEO_CODEC)
         video.setSize(VideoSize(targetWidth, targetHeight))
@@ -88,6 +91,13 @@ class VideoConversionService (
         return attrs
     }
 
+    /**
+     * We need to tag the rendered video with the highest resolution in order to
+     * prevent that a new job for a potentially impossible resolution is created all
+     * over again.
+     *
+     * This method checks if the currently rendered video has the highest possible resolution.
+     */
     private fun checkIsHighestResolution(targetHeight: Int, originalHeight: Int): Boolean {
         val maxResolution = videoResolutions.maxOrNull() ?: 0
         if (targetHeight == maxResolution && originalHeight >= maxResolution) {

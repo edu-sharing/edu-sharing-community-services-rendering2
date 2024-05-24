@@ -21,6 +21,7 @@ class AvFileHelper(
         outputFile = File("${UUID.randomUUID()}.$extension")
     }
 
+
     fun fetchOriginalTempFile(cacheObject: CacheObject) {
         val originalFileName = buildString {
             append(UUID.randomUUID().toString())
@@ -29,15 +30,16 @@ class AvFileHelper(
         }
         originalFile = File(originalFileName)
         val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
-        Files.copy(fileInputStream, originalFile.toPath())
-        fileInputStream.close()
+        fileInputStream.use {
+            Files.copy(fileInputStream, originalFile.toPath())
+        }
     }
 
     fun uploadToCache(cacheObject: CacheObject, metaData: Map<String, String> = emptyMap()) {
         if (!::outputFile.isInitialized) {
             throw Exception("Output file not initialized")
         }
-        storageImplementation.putObject(cacheObject, outputFile.inputStream(), metaData)
+        storageImplementation.putObject(cacheObject, outputFile.readBytes().inputStream(), metaData)
     }
 
     fun cleanup() {
