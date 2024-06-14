@@ -11,5 +11,6 @@ enum class RenderModules {
     DOCUMENT,
     SPREADSHEET,
     HTML,
-    UNKNOWN
+    UNKNOWN,
+    H5P
 }

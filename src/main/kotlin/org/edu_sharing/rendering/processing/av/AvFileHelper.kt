@@ -21,7 +21,6 @@ class AvFileHelper(
         outputFile = File("${UUID.randomUUID()}.$extension")
     }
 
-
     fun fetchOriginalTempFile(cacheObject: CacheObject) {
         val originalFileName = buildString {
             append(UUID.randomUUID().toString())

@@ -28,11 +28,13 @@ class DocumentConversionService(
         ) ?: throw UnknownSourceFormatException("Unknown source format for media type ${cacheObject.type}")
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val outputStream = ByteArrayOutputStream()
-        converter.convert(inputStream)
-            .`as`(sourceFormat)
-            .to(outputStream)
-            .`as`(targetFormat)
-            .execute()
+        inputStream.use {
+            converter.convert(inputStream)
+                .`as`(sourceFormat)
+                .to(outputStream)
+                .`as`(targetFormat)
+                .execute()
+        }
         cacheObject.size = outputStream.size().toLong()
         cacheObject.mimeType = module.getTargetMimetype()
         storageImplementation.putObject(cacheObject, ByteArrayInputStream(outputStream.toByteArray()))
