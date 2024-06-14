@@ -9,8 +9,6 @@ import java.io.File
 import java.nio.file.Files
 import java.util.*
 
-@Component
-@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 class AvFileHelper(
     private val storageImplementation: StorageService
 ) {

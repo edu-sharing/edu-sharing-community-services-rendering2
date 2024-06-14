@@ -32,7 +32,7 @@ class AssetService(
             )
         }
 
-        val longRange = parseRange(range)
+        val longRange = parseRange(range, objectStats.size())
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject,
             false,
@@ -56,7 +56,7 @@ class AssetService(
             )
         }
 
-        val longRange = parseRange(range)
+        val longRange = parseRange(range, objectStats.size())
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             "eduhtml",
             storagePath,
@@ -78,12 +78,15 @@ class AssetService(
         stream = inputStream
     )
 
-    private fun parseRange(range: String): LongRange {
+    private fun parseRange(range: String, fileSize: Long): LongRange {
         val numericalRange = range.split(if (range.contains("=")) "=" else " ")[1]
         val (start, end) = numericalRange.split("-", limit = 2)
+        val startLong = start.toLong()
+        val remainingBytes = fileSize-startLong
+        val chunkSize = if (defaultChunkSize > remainingBytes) remainingBytes-1 else defaultChunkSize.toLong()
         return LongRange(
-            start.toLong(),
-            if (end != "") end.toLong() else start.toLong() + defaultChunkSize
+            startLong,
+            if (end != "") end.toLong() else start.toLong() + chunkSize
         )
     }
 }
