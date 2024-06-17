@@ -28,6 +28,7 @@ class RenderModuleMappingService (
         "moodle" -> RenderModules.MOODLE
         "scorm" -> RenderModules.SCORM
         "eduhtml" -> RenderModules.EDUHTML
+        "h5p" -> RenderModules.H5P
         else -> getByMimeType(mimeType)
     }
 

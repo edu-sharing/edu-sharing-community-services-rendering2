@@ -46,7 +46,6 @@ class MoodleJobService(
             throw IllegalArgumentException()
         }
         val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
-        job.module = RenderModules.MOODLE
         jobRepository.save(job)
         val subJob = SubJob(
             status = JobStatus.QUEUED,

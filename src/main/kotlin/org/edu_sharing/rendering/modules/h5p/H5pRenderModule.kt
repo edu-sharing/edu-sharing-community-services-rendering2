@@ -13,12 +13,15 @@ import org.springframework.stereotype.Component
 class H5pRenderModule(private val h5pJobService: H5pJobService): RenderModule {
     override fun module() = RenderModules.H5P
 
-
     override fun handle(request: RenderDataRequest): RenderDataResponse {
-        TODO("Not yet implemented")
+        return RenderDataResponse(
+            module = module(),
+            objectLinks = mutableListOf(),
+            jobId = h5pJobService.createJob(request, module())
+        )
     }
 
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
-        TODO("Not yet implemented")
+        return ObjectLink(link = subJob.message ?: "")
     }
 }
