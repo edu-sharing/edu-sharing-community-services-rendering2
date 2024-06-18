@@ -55,25 +55,30 @@ class H5pUploadService(
 
     private fun uploadPackage(cacheObject: CacheObject): String {
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
-        val originalFile = File("tmp.h5p")
+        val originalFile = File("${cacheObject.nodeId}_${cacheObject.hash}.h5p")
         inputStream.use {
             Files.copy(inputStream, originalFile.toPath())
         }
         val builder = MultipartBodyBuilder()
         builder.part("file", FileSystemResource(originalFile))
         builder.part("nodeId", cacheObject.nodeId + "_" + cacheObject.hash)
-        val response = lumiWebClient
-            .post()
-            .uri {
-                val uri = UriComponentsBuilder.fromUri(it.build())
-                    .path("/edusharing")
-                    .build(true)
-                    .toUri()
-                uri
-            }.contentType(MediaType.MULTIPART_FORM_DATA)
-            .body(BodyInserters.fromMultipartData(builder.build()))
-            .retrieve().bodyToMono(String::class.java).block()
-        originalFile.delete()
-        return ObjectMapper().readValue(response, LumiResponse::class.java).contentId
+        try {
+            val response = lumiWebClient
+                .post()
+                .uri {
+                    val uri = UriComponentsBuilder.fromUri(it.build())
+                        .path("/edusharing")
+                        .build(true)
+                        .toUri()
+                    uri
+                }.contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
+                .retrieve().bodyToMono(String::class.java).block()
+            return ObjectMapper().readValue(response, LumiResponse::class.java).contentId
+        } catch (exception: Exception) {
+            throw exception
+        } finally {
+            originalFile.delete()
+        }
     }
 }

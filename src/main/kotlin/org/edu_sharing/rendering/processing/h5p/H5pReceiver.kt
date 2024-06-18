@@ -13,6 +13,7 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @ConditionalOnH5p
@@ -25,6 +26,9 @@ class H5pReceiver(
     private val mapper: Mapper
 ){
     private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
+
+    @Value("\${app.lumi.host}")
+    lateinit var lumiBaseUrl: String
 
     @RabbitListener(
         bindings = [
@@ -52,7 +56,7 @@ class H5pReceiver(
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
             subJob.status = JobStatus.FINISHED
-            subJob.message = contentId
+            subJob.message = "$lumiBaseUrl/$contentId"
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message)
             subJob.status = JobStatus.FAILED
