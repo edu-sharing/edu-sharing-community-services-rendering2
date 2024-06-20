@@ -26,6 +26,11 @@ class H5pJobService(
     lateinit var topicExchangeName: String
 
     fun createJob(request: RenderDataRequest, module: RenderModules): String {
+        val existingJob = jobRepository.findAllByEsObjectId(request.nodeId)
+            .firstOrNull { it.status <= JobStatus.PROCESSING }
+        if (existingJob != null) {
+            return existingJob.id.toString()
+        }
         val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
         jobRepository.save(job)
         val subJob = SubJob(
