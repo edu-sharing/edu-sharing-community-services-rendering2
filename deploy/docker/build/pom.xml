@@ -41,5 +41,6 @@
 
   <modules>
     <module>service</module>
+    <module>document-converter</module>
   </modules>
 </project>
