@@ -18,6 +18,13 @@ WORKDIR application
 #    && chown -RL worker:worker /tmp
 
 RUN set -eux \
+    && apt update -y \
+    && apt install -y --no-install-recommends  \
+      libreoffice \
+    && apt clean \
+    && rm -r /var/lib/apt/lists/*
+
+RUN set -eux \
     && adduser --uid=1000 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
     && chown -RL worker:worker . \
     && chown -RL worker:worker /tmp

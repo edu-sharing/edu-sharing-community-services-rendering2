@@ -43,7 +43,7 @@ services:
       - "rendering2-mongo-volume-data:/bitnami/mongodb"
 
   rendering2-service:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-notification-service:${docker.tag}"
+    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
     command:
       - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
       - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
@@ -79,6 +79,18 @@ services:
       - rendering2-database
       - rendering2-message-queue
       - rendering2-cache
+
+  rendering2-document-converter:
+    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
+    command:
+      - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
+      - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
+      - -Dcom.sun.management.jmxremote
+      - -Dcom.sun.management.jmxremote.authenticate=false
+      - -Dcom.sun.management.jmxremote.port=7199
+      - -Dcom.sun.management.jmxremote.ssl=false
+    expose:
+      - "8080"
 
 volumes:
   rendering2-blob-storage-volume-data:
