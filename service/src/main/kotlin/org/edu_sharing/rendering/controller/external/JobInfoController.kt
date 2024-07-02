@@ -1,18 +1,23 @@
 package org.edu_sharing.rendering.controller.external
 
+import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.JobInfoReply
 import org.edu_sharing.rendering.service.JobInfoService
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 
+@ConditionalOnController
 @RestController
 @RequestMapping("/public/job")
 
-class JobInfoController (private val service: JobInfoService) {
+class JobInfoController (
+    private val service: JobInfoService,
+) {
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     @ResponseStatus(HttpStatus.OK)
     fun getJobInfo(@RequestParam jobId: String): JobInfoReply {
-        return service.getJobInfo(jobId)
+        val job = service.getRenderingJob(jobId);
+        return service.getJobInfo(job)
     }
 }

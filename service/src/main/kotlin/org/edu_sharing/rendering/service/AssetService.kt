@@ -1,52 +1,92 @@
 package org.edu_sharing.rendering.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.commons.codec.binary.Base64
+import io.minio.StatObjectResponse
+import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
-import java.net.URLDecoder
+import java.io.InputStream
 
+@ConditionalOnController
 @Service
-class AssetService (
+class AssetService(
     private val storageImplementation: StorageService,
     private val mapper: Mapper
 ) {
     private val defaultChunkSize = 2000000
-    fun getAsset(requestParam: String, range: String): ReadableAsset {
-        val decoded = Base64().decode(URLDecoder.decode(requestParam, Charsets.UTF_8)).decodeToString()
-        val assetParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
+
+    @PreAuthorize("hasPermission(#assetParams.nodeId, 'Read')")
+    fun getAsset(assetParams: AssetLinkParams, range: String): ReadableAsset {
         val cacheObject = mapper.assetLinkParamsToCacheObject(assetParams)
         val objectStats = storageImplementation.getFileProperties(cacheObject)
-        if (range == "") {
+
+        if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = objectStats.contentType(),
                 fileSize = objectStats.size(),
                 stream = storageImplementation.getObjectStream(cacheObject)
             )
         }
-        val longRange = parseRange(range)
-        return ReadableAsset(
-            mimeType = objectStats.contentType(),
-            fileSize = objectStats.size(),
-            range = "bytes " + longRange.first + "-" + longRange.last + "/" + objectStats.size(),
-            stream = storageImplementation.getObjectChunkStream(
-                cacheObject,
-                false,
-                longRange.first,
-                longRange.last
-            )
+
+        val longRange = parseRange(range, objectStats.size())
+        val objectChunkStream = storageImplementation.getObjectChunkStream(
+            cacheObject,
+            false,
+            longRange.first,
+            longRange.last
         )
+        return createReadableAsset(objectStats, objectChunkStream, longRange)
     }
 
-    private fun parseRange(range: String): LongRange {
+
+    @PreAuthorize("hasPermission(#nodeId, 'Read')")
+    fun getStaticAsset(request: HttpServletRequest, range: String, nodeId: String): ReadableAsset {
+        val storagePath = request.requestURI.toString().substringAfter("/static/")
+        val objectStats = storageImplementation.getFileProperties("eduhtml", storagePath)
+
+        if (range.isBlank()) {
+            return ReadableAsset(
+                mimeType = objectStats.contentType(),
+                fileSize = objectStats.size(),
+                stream = storageImplementation.getObjectStream("eduhtml", storagePath)
+            )
+        }
+
+        val longRange = parseRange(range, objectStats.size())
+        val objectChunkStream = storageImplementation.getObjectChunkStream(
+            "eduhtml",
+            storagePath,
+            longRange.first,
+            longRange.last
+        )
+
+        return createReadableAsset(objectStats, objectChunkStream, longRange)
+    }
+
+    private fun createReadableAsset(
+        objectStats: StatObjectResponse,
+        inputStream: InputStream,
+        longRange: LongRange? = null
+    ) = ReadableAsset(
+        mimeType = objectStats.contentType(),
+        fileSize = objectStats.size(),
+        range = if (longRange != null) "bytes ${longRange.first}-${longRange.last}/${objectStats.size()}" else "",
+        stream = inputStream
+    )
+
+    private fun parseRange(range: String, fileSize: Long): LongRange {
         val numericalRange = range.split(if (range.contains("=")) "=" else " ")[1]
         val (start, end) = numericalRange.split("-", limit = 2)
+        val startLong = start.toLong()
+        val remainingBytes = fileSize-startLong
+        val chunkSize = if (defaultChunkSize > remainingBytes) remainingBytes-1 else defaultChunkSize.toLong()
         return LongRange(
-            start.toLong(),
-            if (end != "") end.toLong() else start.toLong() + defaultChunkSize
+            startLong,
+            if (end != "") end.toLong() else start.toLong() + chunkSize
         )
     }
 }

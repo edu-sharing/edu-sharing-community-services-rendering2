@@ -30,7 +30,7 @@ class RegistrationRunner(
                 repositoryRegistrationService.registerWithRepository()
                 log.info("Registration completed")
             } catch (e: InvalidKeyException) {
-                log.warn("Registration uncompleted: {}", e.message, e)
+                log.warn("Registration incomplete: {}", e.message, e)
             } catch (e: Exception) {
                 log.error(e.message, e)
             }

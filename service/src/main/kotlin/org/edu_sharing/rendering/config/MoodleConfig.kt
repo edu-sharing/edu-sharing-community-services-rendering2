@@ -14,6 +14,6 @@ class MoodleConfig() {
 
     @Bean
     fun moodleWebClient(): WebClient {
-        return WebClient.builder().baseUrl(moodleBaseUrl).build()
+        return WebClient.create(moodleBaseUrl)
     }
 }

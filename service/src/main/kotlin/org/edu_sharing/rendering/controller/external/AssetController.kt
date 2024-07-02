@@ -1,5 +1,11 @@
 package org.edu_sharing.rendering.controller.external
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.HttpServletRequest
+import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.config.annotation.ConditionalOnController
+import org.edu_sharing.rendering.dto.AssetLinkParams
+import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.service.AssetService
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
@@ -8,7 +14,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.net.URLDecoder
 
+@ConditionalOnController
 @RestController
 @RequestMapping("/public/asset")
 
@@ -20,8 +28,24 @@ class AssetController (
         @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
         @RequestParam assetParams: String
     ): ResponseEntity<Resource> {
-        val doEncodeData = true
-        val asset = assetService.getAsset(assetParams, range)
+        val doEncodeData = false
+        val decoded = Base64().decode(URLDecoder.decode(assetParams, Charsets.UTF_8)).decodeToString()
+        val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
+        val asset = assetService.getAsset(assetLinkParams, range)
+        return prepareResponse(asset, doEncodeData)
+    }
+
+    @GetMapping("/static/{nodeId}/**")
+    fun getStaticAsset(
+        @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
+        @PathVariable nodeId: String,
+        request: HttpServletRequest
+    ): ResponseEntity<Resource> {
+        val asset = assetService.getStaticAsset(request, range, nodeId)
+        return prepareResponse(asset)
+    }
+
+    private fun prepareResponse(asset: ReadableAsset, doEncodeData: Boolean = false): ResponseEntity<Resource> {
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)

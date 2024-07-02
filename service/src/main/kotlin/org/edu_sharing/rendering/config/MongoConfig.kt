@@ -4,10 +4,14 @@ import com.mongodb.WriteConcern
 import org.edu_sharing.rendering.entity.AppConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.data.auditing.DateTimeProvider
+import org.springframework.data.mongodb.config.EnableMongoAuditing
 import org.springframework.data.mongodb.core.MongoAction
 import org.springframework.data.mongodb.core.WriteConcernResolver
+import java.time.OffsetDateTime
+import java.util.*
 
-
+@EnableMongoAuditing
 @Configuration
 class MongoConfig {
 
@@ -20,5 +24,10 @@ class MongoConfig {
                 else -> WriteConcern.UNACKNOWLEDGED
             }
         }
+    }
+
+    @Bean
+    fun auditingDateTimeProvider(): DateTimeProvider {
+        return DateTimeProvider { Optional.of(OffsetDateTime.now()) }
     }
 }

@@ -1,5 +1,8 @@
 package org.edu_sharing.rendering.dto.queue
 
+import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
+
+@ConditionalOnMoodle
 data class MoodleJobMessage(
     val id: String,
     val nodeId: String,
