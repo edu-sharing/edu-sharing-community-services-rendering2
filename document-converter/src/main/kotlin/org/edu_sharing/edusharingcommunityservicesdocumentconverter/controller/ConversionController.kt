@@ -1,5 +1,6 @@
 package org.edu_sharing.edusharingcommunityservicesdocumentconverter.controller
 
+import org.edu_sharing.edusharingcommunityservicesdocumentconverter.service.ConversionService
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -8,13 +9,12 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
-import org.edu_sharing.edusharingcommunityservicesdocumentconverter.service.ConversionService
 
 @RestController
 @RequestMapping("/conversion")
 class ConversionController (
     private val service: ConversionService
-){
+) {
     @PostMapping
     fun convert(
         @RequestParam(name = "format", defaultValue = "pdf") targetExtension: String,
