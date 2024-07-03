@@ -11,7 +11,6 @@ class RenderModuleMappingService (
     @Value("\${app.converter.spreadsheetToHtml.enabled}")
     private val enableHtmlSpreadsheet: Boolean
 ){
-
     companion object {
         const val DOC = "application/msword"
         const val DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

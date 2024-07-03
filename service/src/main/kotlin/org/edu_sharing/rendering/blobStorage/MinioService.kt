@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
+import org.apache.tika.mime.MimeTypes
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
@@ -175,12 +176,16 @@ class MinioService(
         if (cacheObject.quality != null) {
             name = name.plus("_").plus(cacheObject.quality)
         }
-        name = name.plus(".").plus(cacheObject.mimeType.substringAfter("/"))
+        name = name.plus(".").plus(getExtensionFromMimeType(cacheObject.mimeType))
         return name
     }
 
     private fun getTempPath(cacheObject: CacheObject): String {
-        return cacheObject.type + "/" + cacheObject.nodeId + "/" + cacheObject.hash + "." + cacheObject
-            .mimeType.substringAfter("/")
+        return cacheObject.type + "/" + cacheObject.nodeId + "/" + cacheObject.hash + "." +
+                getExtensionFromMimeType(cacheObject.mimeType)
+    }
+
+    private fun getExtensionFromMimeType(mimeType: String): String {
+        return MimeTypes.getDefaultMimeTypes().forName(mimeType).extension
     }
 }
