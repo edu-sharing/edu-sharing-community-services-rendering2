@@ -26,7 +26,6 @@ class ImageConversionService (
         val originalHeight = sourceImage.height
         val originalWidth = sourceImage.width
         val ratio = originalWidth.toFloat()/originalHeight
-        // Apply the target size to the longer side of the image
         val targetWidth = if (ratio > 1) size else (size * ratio).toInt()
         val targetHeight = if (ratio > 1) (size / ratio).toInt() else size
         val outputImage = sourceImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)

@@ -176,13 +176,12 @@ class MinioService(
         if (cacheObject.quality != null) {
             name = name.plus("_").plus(cacheObject.quality)
         }
-        name = name.plus(".").plus(getExtensionFromMimeType(cacheObject.mimeType))
+        name = name.plus(getExtensionFromMimeType(cacheObject.mimeType))
         return name
     }
 
     private fun getTempPath(cacheObject: CacheObject): String {
-        return cacheObject.type + "/" + cacheObject.nodeId + "/" + cacheObject.hash + "." +
-                getExtensionFromMimeType(cacheObject.mimeType)
+        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}/${getExtensionFromMimeType(cacheObject.mimeType)}"
     }
 
     private fun getExtensionFromMimeType(mimeType: String): String {

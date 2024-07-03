@@ -35,7 +35,9 @@ class MainJobCreationService(
 
     fun getExistingJobId(cacheObject: CacheObject): String? {
         val existingJobs = renderingJobRepository.findAllByEsObjectId(cacheObject.nodeId)
-        val unfinishedJob = existingJobs.firstOrNull {it.status != JobStatus.FINISHED && it.status != JobStatus.FAILED}
+        val unfinishedJob = existingJobs.firstOrNull {
+            it.status != JobStatus.FINISHED && it.status != JobStatus.FAILED && it.esHash == cacheObject.hash
+        }
         return if (unfinishedJob !== null) unfinishedJob.id.toString() else null
     }
 }
