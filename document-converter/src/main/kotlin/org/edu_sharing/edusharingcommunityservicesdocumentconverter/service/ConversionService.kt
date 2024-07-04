@@ -1,7 +1,8 @@
 package org.edu_sharing.edusharingcommunityservicesdocumentconverter.service
 
-import org.edu_sharing.edusharingcommunityservicesdocumentconverter.exception.FormatException
+import org.apache.commons.io.FilenameUtils
 import org.apache.coyote.BadRequestException
+import org.edu_sharing.edusharingcommunityservicesdocumentconverter.exception.FormatException
 import org.jodconverter.core.document.DefaultDocumentFormatRegistry
 import org.jodconverter.core.document.DocumentFormat
 import org.jodconverter.local.LocalConverter
@@ -41,7 +42,7 @@ class ConversionService (
     }
 
     fun getSourceFormat(inputFileName: String): DocumentFormat {
-        val sourceExtension = inputFileName.substringAfter(".")
+        val sourceExtension = FilenameUtils.getExtension(inputFileName)
         if (! supportedExtensions.contains(sourceExtension)) {
             throw FormatException("Source extension $sourceExtension is not supported.")
         }
