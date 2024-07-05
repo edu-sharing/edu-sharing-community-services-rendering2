@@ -1,14 +1,40 @@
 version: '3.7'
 
 services:
-  notification-service:
+
+  rendering2-blob-storage:
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT:-9101}:9000"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT:-9102}:9001"
+
+  rendering2-cache:
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_CACHE_PORT:-9103}:6379"
+
+  rendering2-message-queue:
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT:-9104}:5672"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT:-9105}:15672"
+
+  rendering2-database:
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_DATABASE_PORT:-9106}:27017"
+
+  rendering2-service:
     environment:
       JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:8402:8000"
 
-  notification-service-db:
+  rendering2-document-converter:
+    environment:
+      JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
     ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${NOTIFICATION_SERVICES_DATABASE_PORT:-8501}:27017"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_CONVERTER_DEBUG_PORT:-9107}:8000"
 
+  rendering2-lumi:
+    environment:
+      NODE_OPTS: "--inspect"
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_LUMI_PORT:-9108}:9229"
 

@@ -10,9 +10,9 @@ services:
     environment:
       - MINIO_ROOT_USER=adminuser
       - MINIO_ROOT_PASSWORD=adminpassword
-      - MINIO_DEFAULT_BUCKETS=edu-test-bucket
-    #volumes:
-    #  - "minio-data-volume:/bitnami/minio/data"
+      - MINIO_DEFAULT_BUCKETS=contentbucket,tempbucket,libbucket
+    volumes:
+      - "minio-data-volume:/bitnami/minio/data"
 
   repository-cache:
     image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:6.2.7
