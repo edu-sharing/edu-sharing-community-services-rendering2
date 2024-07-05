@@ -1,13 +1,20 @@
 version: '3.7'
 
 services:
-  kafka:
+  rendering2-blob-storage:
     restart: unless-stopped
 
-  notification-service:
+  rendering2-cache:
     restart: unless-stopped
-    volumes:
-      - ./templates/mail/:/application/templates/mail/
 
-  notification-service-db:
+  rendering2-message-queue:
+    restart: unless-stopped
+
+  rendering2-database:
+    restart: unless-stopped
+
+  rendering2-service:
+    restart: unless-stopped
+
+  rendering2-lumi:
     restart: unless-stopped

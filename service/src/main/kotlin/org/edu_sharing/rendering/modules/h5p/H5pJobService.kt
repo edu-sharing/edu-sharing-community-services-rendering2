@@ -19,7 +19,7 @@ class H5pJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    @Value("\${app.queue.eduHtml.key}")
+    @Value("\${app.queue.h5p.key}")
     lateinit var jobRoutingKey: String
 
     @Value("\${app.queue.topicExchange}")

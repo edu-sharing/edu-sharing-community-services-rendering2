@@ -10,9 +10,9 @@ services:
     environment:
       - MINIO_ROOT_USER=adminuser
       - MINIO_ROOT_PASSWORD=adminpassword
-      - MINIO_DEFAULT_BUCKETS=edu-test-bucket
-    #volumes:
-    #  - "minio-data-volume:/bitnami/minio/data"
+      - MINIO_DEFAULT_BUCKETS=contentbucket,tempbucket,libbucket
+    volumes:
+      - "minio-data-volume:/bitnami/minio/data"
 
   repository-cache:
     image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:6.2.7
@@ -36,7 +36,7 @@ services:
       - "27017:27017"
 
   rendering2-document-converter:
-    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:maven-feature-renderer-2.0-SNAPSHOT"
+    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:develop-SNAPSHOT"
     command:
       - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
       - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
@@ -46,6 +46,29 @@ services:
       - -Dcom.sun.management.jmxremote.ssl=false
     ports:
       - "8081:8080"
+
+  rendering2-lumi:
+    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:develop-SNAPSHOT"
+    environment:
+      AWS_ACCESS_KEY_ID: adminuser
+      AWS_SECRET_ACCESS_KEY: adminpassword
+      AWS_S3_ENDPOINT: http://minio:9000
+      AWS_S3_MAX_FILE_LENGTH: 1000
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: lumi
+      MONGODB_USER: admin
+      MONGODB_PASSWORD: admin
+      CONTENT_AWS_S3_BUCKET: contentbucket
+      CONTENT_MONGO_COLLECTION: h5p
+      TEMPORARY_AWS_S3_BUCKET: tempbucket
+      LIBRARY_MONGO_COLLECTION: h5plibraries
+      LIBRARY_AWS_S3_BUCKET: libbucket
+      USERDATA_MONGO_COLLECTION: userdata
+      FINISHED_MONGO_COLLECTION: finisheddata
+      EDUSHARING_MONGO_COLLECTION: edusharing
+      CACHE: in-memory
+    ports:
+      - "3000:3000"
 
 volumes:
   minio-data-volume:
