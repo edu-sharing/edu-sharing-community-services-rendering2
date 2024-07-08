@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.config.annotation.ConditionalOnH5p
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.processing.moodle.MoodleReceiver
 import org.edu_sharing.rendering.service.ContentTransferService
+import org.edu_sharing.rendering.service.LumiNodeInfoService
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.HttpStatus
@@ -23,10 +24,22 @@ import java.nio.file.Files
 class H5pUploadService(
     private val contentTransferService: ContentTransferService,
     private val lumiWebClient: WebClient,
+    private val lumiNodeInfoService: LumiNodeInfoService
 ) {
     private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
 
     fun getContentId(cacheObject: CacheObject): String {
+        val lumiId = getLumiId(cacheObject)
+        val cacheEntry = LumiNodeInfo(
+            lumiId = lumiId,
+            nodeId = cacheObject.nodeId,
+            hash = cacheObject.hash
+        )
+        lumiNodeInfoService.setCache(cacheEntry)
+        return lumiId
+    }
+
+    private fun getLumiId(cacheObject: CacheObject): String {
         try {
             return getCachedContentId(cacheObject.nodeId, cacheObject.hash)
         } catch (exception: WebClientResponseException) {
@@ -43,14 +56,14 @@ class H5pUploadService(
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
-                    .path("/edusharing/${nodeId}_$hash")
+                    .path("/edusharing/nodeid/${nodeId}_$hash")
                     .build(true)
                     .toUri()
                 uri
             }.retrieve()
             .bodyToMono(String::class.java)
             .block()
-        return ObjectMapper().readValue(response, LumiResponse::class.java).contentId
+        return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
     }
 
     private fun uploadPackage(cacheObject: CacheObject): String {
@@ -74,7 +87,7 @@ class H5pUploadService(
                 }.contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve().bodyToMono(String::class.java).block()
-            return ObjectMapper().readValue(response, LumiResponse::class.java).contentId
+            return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
         } catch (exception: Exception) {
             throw exception
         } finally {

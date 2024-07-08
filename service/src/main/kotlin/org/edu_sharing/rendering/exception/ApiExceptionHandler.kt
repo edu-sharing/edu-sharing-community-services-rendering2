@@ -48,4 +48,14 @@ class ApiExceptionHandler {
         )
         return ResponseEntity(errorMessage, HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    fun handleResourceNotFoundException(exception: ResourceNotFoundException): ResponseEntity<ErrorMessage> {
+        val errorMessage = ErrorMessage(
+            HttpStatus.NOT_FOUND.value(),
+            exception.message
+        )
+        return ResponseEntity(errorMessage, HttpStatus.NOT_FOUND)
+    }
 }

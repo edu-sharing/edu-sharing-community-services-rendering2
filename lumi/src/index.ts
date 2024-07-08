@@ -52,6 +52,11 @@ const start = async () => {
         )
     ).load();
 
+    config.baseUrl = process.env.BASE_URL || config.baseUrl
+
+    console.log("Started with config:")
+    console.log(config)
+
     // Init mongoDB
     const mongoDb = await dbImplementations.initMongo()
 

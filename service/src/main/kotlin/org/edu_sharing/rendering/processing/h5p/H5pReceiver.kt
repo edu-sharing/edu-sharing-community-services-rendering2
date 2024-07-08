@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.processing.h5p
 
+import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.config.annotation.ConditionalOnH5p
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
@@ -27,8 +28,8 @@ class H5pReceiver(
 ){
     private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
 
-    @Value("\${app.lumi.host}")
-    lateinit var lumiBaseUrl: String
+    @Value("\${app.public.url}:\${app.public.port}")
+    lateinit var baseUrl: String
 
     @RabbitListener(
         bindings = [
@@ -56,7 +57,7 @@ class H5pReceiver(
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
             subJob.status = JobStatus.FINISHED
-            subJob.message = "$lumiBaseUrl/$contentId"
+            subJob.message = "$baseUrl$H5P_BASE_PATH/$contentId"
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message)
             subJob.status = JobStatus.FAILED

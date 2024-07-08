@@ -1,4 +1,4 @@
-import express, {request} from 'express'
+import express from 'express'
 import * as H5P from '@lumieducation/h5p-server';
 import {IRequestWithUser } from "@lumieducation/h5p-express";
 import multer from "multer";
@@ -14,12 +14,22 @@ const router = (
     const router = express.Router()
     const upload = multer()
 
-    router.get('/edusharing/:nodeId', async (request, response) => {
+    router.get('/edusharing/nodeid/:nodeId', async (request, response) => {
         const result = await eduCollection.findOne({nodeId: request.params.nodeId})
         if (!result || !result.contentId) {
             response.status(404).end();
         } else {
             response.send(JSON.stringify({ contentId: result.contentId }))
+            response.status(200).end()
+        }
+    })
+
+    router.get('/edusharing/contentid/:contentId', async (request, response) => {
+        const result = await eduCollection.findOne({contentId: request.params.contentId})
+        if (!result || !result.nodeId) {
+            response.status(404).end();
+        } else {
+            response.send(JSON.stringify({ nodeId: result.nodeId }))
             response.status(200).end()
         }
     })
