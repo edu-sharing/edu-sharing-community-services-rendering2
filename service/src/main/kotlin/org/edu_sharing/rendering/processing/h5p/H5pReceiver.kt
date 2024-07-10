@@ -6,7 +6,6 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.processing.MainJobLogic
-import org.edu_sharing.rendering.processing.moodle.MoodleReceiver
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -26,7 +25,7 @@ class H5pReceiver(
     private val h5pUploadService: H5pUploadService,
     private val mapper: Mapper
 ){
-    private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
+    private val log = LoggerFactory.getLogger(H5pReceiver::class.java)
 
     @Value("\${app.public.url}:\${app.public.port}")
     lateinit var baseUrl: String

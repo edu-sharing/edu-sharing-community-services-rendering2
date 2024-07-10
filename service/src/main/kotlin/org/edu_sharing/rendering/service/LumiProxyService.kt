@@ -23,7 +23,7 @@ class LumiProxyService(
     private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
 
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'Read')")
-    fun  <T>  processProxyRequest(
+    fun <T> processProxyRequest(
         pathPrefix: String,
         nodeInfo: LumiNodeInfo,
         body: String?,
@@ -37,18 +37,20 @@ class LumiProxyService(
     }
 
 
-   fun  <T> processProxyRequest(
-       pathPrefix: String,
-       body: String?,
-       method: HttpMethod,
-       request: HttpServletRequest,
-       response: HttpServletResponse,
-       traceId: String,
-       responseType: Class<T>
+    fun <T> processProxyRequest(
+        pathPrefix: String,
+        body: String?,
+        method: HttpMethod,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        traceId: String,
+        responseType: Class<T>
     ): ResponseEntity<T> {
         ThreadContext.put("traceId", traceId)
 
-        val requestURIPathSegments = request.requestURI.removePrefix(pathPrefix).split("/").stream().filter{ StringUtils.isNotBlank(it)}.toList()
+        val requestURIPathSegments =
+            request.requestURI.removePrefix(pathPrefix).split("/").stream().filter { StringUtils.isNotBlank(it) }
+                .toList()
 
         val requestURIPath = requestURIPathSegments.joinToString(separator = "/", prefix = "/")
 
@@ -63,20 +65,22 @@ class LumiProxyService(
         headers.remove(HttpHeaders.ACCEPT_ENCODING)
 
         val lumiRequest = lumiWebClient.method(method)
-            .uri { UriComponentsBuilder.fromUri(it.build())
-                .path(requestURIPath)
-                .query(request.queryString)
-                .build(true)
-                .toUri()
+            .uri {
+                UriComponentsBuilder.fromUri(it.build())
+                    .path(requestURIPath)
+                    .query(request.queryString)
+                    .build(true)
+                    .toUri()
             }
             .headers { headers }
 
-        if(body != null){
+        if (body != null) {
             lumiRequest.body(body, String::class.java)
         }
 
         return lumiRequest.retrieve()
             .toEntity(responseType)
-            .block() ?: throw ResourceNotFoundException("Called lumi with ${method.name()} $requestURIPath ${request.queryString} $body")
+            .block()
+            ?: throw ResourceNotFoundException("Called lumi with ${method.name()} $requestURIPath ${request.queryString} $body")
     }
 }

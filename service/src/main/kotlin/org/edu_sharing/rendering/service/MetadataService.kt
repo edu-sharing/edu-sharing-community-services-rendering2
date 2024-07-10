@@ -25,7 +25,7 @@ class MetadataService(
         repository.save(appConfig)
     }
 
-    override fun hasKeyPaare() : Boolean {
+    override fun hasKeyPair() : Boolean {
         return !getConfig().privateKey.isNullOrBlank() && !getConfig().publicKey.isNullOrBlank()
     }
 

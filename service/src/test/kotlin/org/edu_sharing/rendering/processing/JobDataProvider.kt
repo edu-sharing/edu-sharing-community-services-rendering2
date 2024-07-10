@@ -10,6 +10,7 @@ class JobDataProvider {
     companion object {
         const val DUMMY_JOB_ID = "507f191e810c19729de860eb"
         const val DUMMY_CREATION_TS: Long = 1716276009324
+        const val HASH = "hash"
         const val ES_OBJECT_ID = "esobjectid"
         const val SUB_ID_1 = "507f191e810c19729de860ec"
         const val SUB_ID_2 = "507f191e810c19729de860ed"

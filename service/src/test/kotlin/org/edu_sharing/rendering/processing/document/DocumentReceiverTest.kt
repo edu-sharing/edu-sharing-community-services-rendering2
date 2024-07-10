@@ -71,7 +71,7 @@ class DocumentReceiverTest {
         every { mainJobLogic.getMainJobEntry(id) } returns job
         every { subJobRepository.save(any()) } returns failedSubJob
         every { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.DOCUMENT) } returns module
-        every { documentConversionService.convertAndMoveToCache(cacheObject, module) } throws Exception()
+        every { documentConversionService.convertAndMoveToCache(cacheObject, module) } throws Exception("")
         every { mainJobLogic.processMainJob(id) } returns true
 
         // Act
