@@ -1,23 +1,20 @@
 package org.edu_sharing.rendering.modules.document
 
+import io.mockk.*
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.ArgumentMatchers
-import org.mockito.Mock
-import org.mockito.Mockito
-import org.mockito.junit.jupiter.MockitoExtension
 
-@ExtendWith(MockitoExtension::class)
-class DocumentServiceTest (
-    @Mock
-    private val storageService: StorageService,
-    @Mock
-    private val mainJobCreationService: MainJobCreationService
-) {
+class DocumentServiceTest {
+
+    private val storageService = mockk<StorageService>()
+    private val mainJobCreationService = mockk<MainJobCreationService>()
+    private val module = mockk<DocumentRenderModule>()
     private lateinit var service: DocumentService
 
     @BeforeEach
@@ -26,11 +23,85 @@ class DocumentServiceTest (
     }
 
     @Test
-    fun getObjectLinks() {
+    fun testGetObjectLinksReturnsLinkIfAlreadyCached() {
+        // Arrange
+        val cacheObject = CacheObject(nodeId = "123", type = "document", hash = "abc123")
+        val objectLink = ObjectLink(link = "mylink")
+        val lookupObject = cacheObject.copy()
+        lookupObject.mimeType = "image/jpeg"
+
+        every { module.getTargetMimetype() } returns "image/jpeg"
+        every { storageService.getObjectLink(lookupObject) } returns objectLink
+
+        // Act
+        val result = service.getObjectLinks(cacheObject, module)
+
+        // Assert
+        assert(result == mutableListOf(objectLink))
+
+        verifySequence {
+            module.getTargetMimetype()
+            storageService.getObjectLink(lookupObject)
+        }
+
+        confirmVerified(module, storageService)
     }
 
     @Test
-    fun retrieveOrCreateJob() {
-        Mockito.`when`(storageService.getObjectLink(ArgumentMatchers.anyString())).thenReturn(ObjectLink(link = "test"))
+    fun testGetObjectLinksReturnsEmptyListIfNotCached() {
+        val cacheObject = CacheObject(nodeId = "123", type = "document", hash = "abc123")
+        val lookupObject = cacheObject.copy()
+        lookupObject.mimeType = "image/jpeg"
+
+        every { module.getTargetMimetype() } returns "image/jpeg"
+        every { storageService.getObjectLink(lookupObject) } throws ResourceNotFoundException("test")
+
+        val result = service.getObjectLinks(cacheObject, module)
+        assert(result == null)
+
+        verifySequence {
+            module.getTargetMimetype()
+            storageService.getObjectLink(lookupObject)
+        }
+
+        confirmVerified(module, storageService)
+    }
+
+    @Test
+    fun testRetrieveOrCreateJobReturnsExistingJobIdIfFound() {
+
+        // Arrange
+        val cacheObject = CacheObject(nodeId = "123", type = "document", hash = "abc123")
+        every { mainJobCreationService.getExistingJobId(cacheObject) } returns "job123"
+
+        // Act
+        val result = service.retrieveOrCreateJob(cacheObject, module)
+
+        // Assert
+        assert(result == "job123")
+
+        verify (exactly = 1) { mainJobCreationService.getExistingJobId(cacheObject) }
+        confirmVerified(mainJobCreationService)
+    }
+
+    @Test
+    fun testRetrieveOrCreateJobCreatesNewJobIfNoExistingFound() {
+        // Arrange
+        val cacheObject = CacheObject(nodeId = "123", type = "document", hash = "abc123")
+        every { mainJobCreationService.getExistingJobId(cacheObject) } returns null
+        every {module.module()} returns RenderModules.DOCUMENT
+        every {mainJobCreationService.createMainJob(cacheObject, RenderModules.DOCUMENT)} returns "job123"
+
+        // Act
+        val result = service.retrieveOrCreateJob(cacheObject, module)
+
+        // Assert
+        assert(result == "job123")
+
+        verifySequence {
+            mainJobCreationService.getExistingJobId(cacheObject)
+            module.module()
+            mainJobCreationService.createMainJob(cacheObject, RenderModules.DOCUMENT)
+        }
     }
 }

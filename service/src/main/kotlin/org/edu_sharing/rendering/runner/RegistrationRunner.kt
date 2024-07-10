@@ -21,7 +21,7 @@ class RegistrationRunner(
 
     @Transactional
     override fun run(args: ApplicationArguments?) {
-        if (!privatePublicKeyService.hasKeyPaare()) {
+        if (!privatePublicKeyService.hasKeyPair()) {
             privatePublicKeyService.generateApplicationKeyPair()
         }
 

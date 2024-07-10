@@ -8,6 +8,6 @@ interface PrivatePublicKeyService {
     fun getPrivateKey(): PrivateKey
     fun generateApplicationKeyPair()
     fun storeRepositoryKey(publicKey: String)
-    fun hasKeyPaare() : Boolean
+    fun hasKeyPair() : Boolean
     fun hasRepositoryKey(): Boolean
 }

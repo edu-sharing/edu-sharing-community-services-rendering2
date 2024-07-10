@@ -14,7 +14,7 @@ class ApiExceptionHandler {
     fun handleNotFoundException(exception: EntryNotFoundException): ResponseEntity<ErrorMessage> {
         val errorMessage = ErrorMessage(
             HttpStatus.NOT_FOUND.value(),
-            "Resource not found"
+            exception.message,
         )
         return ResponseEntity(errorMessage, HttpStatus.NOT_FOUND)
     }
@@ -24,7 +24,7 @@ class ApiExceptionHandler {
     fun handleIllegalArgumentException(exception: IllegalArgumentException): ResponseEntity<ErrorMessage> {
         val errorMessage = ErrorMessage(
             HttpStatus.BAD_REQUEST.value(),
-            "Bad request"
+            exception.message
         )
         return ResponseEntity(errorMessage, HttpStatus.BAD_REQUEST)
     }
@@ -57,5 +57,14 @@ class ApiExceptionHandler {
             exception.message
         )
         return ResponseEntity(errorMessage, HttpStatus.NOT_FOUND)
+    }
+
+    @ExceptionHandler
+    fun handleGenericException(exception: Exception): ResponseEntity<ErrorMessage> {
+        val errorMessage = ErrorMessage(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            "Internal server error",
+        )
+        return ResponseEntity(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR)
     }
 }

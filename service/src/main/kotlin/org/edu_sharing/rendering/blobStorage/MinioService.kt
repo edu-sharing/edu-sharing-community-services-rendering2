@@ -2,12 +2,14 @@ package org.edu_sharing.rendering.blobStorage
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
+import io.minio.errors.ErrorResponseException
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.apache.tika.mime.MimeTypes
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -66,16 +68,21 @@ class MinioService(
             .build()
             .toUriString()
         val objectLink = ObjectLink(link = url)
-        val metadata = getFileProperties(cacheObject).userMetadata()
-        if (metadata.containsKey("width")) {
-            objectLink.width = metadata["width"]?.toInt() ?: 0
+        try {
+            val metadata = getFileProperties(cacheObject).userMetadata()
+            if (metadata.containsKey("width")) {
+                objectLink.width = metadata["width"]?.toInt() ?: 0
+            }
+            if (metadata.containsKey("height")) {
+                objectLink.height = metadata["height"]?.toInt() ?: 0
+            }
+            if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
+                objectLink.isHighestQuality = true
+            }
+        } catch (errorException: ErrorResponseException) {
+            throw ResourceNotFoundException("Resource invalid or not yet cached.")
         }
-        if (metadata.containsKey("height")) {
-            objectLink.height = metadata["height"]?.toInt() ?: 0
-        }
-        if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
-            objectLink.isHighestQuality = true
-        }
+
         return objectLink
     }
 

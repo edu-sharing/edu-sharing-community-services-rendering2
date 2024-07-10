@@ -56,7 +56,7 @@ class DocumentReceiver (
             )
             subJob.status = JobStatus.FINISHED
         } catch (exception: Exception) {
-            log.error("Document conversion failed for object ${jobEntry.esObjectId}", exception)
+            log.error("Document conversion failed for object ${jobEntry.esObjectId}")
             subJob.status = JobStatus.FAILED
             subJob.message = PUBLIC_FAILURE_MESSAGE
         }

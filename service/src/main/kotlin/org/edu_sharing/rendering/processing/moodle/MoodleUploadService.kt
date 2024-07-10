@@ -25,6 +25,17 @@ class MoodleUploadService (
     @Value("\${app.moodle.categoryid}")
     lateinit var categoryId: String
 
+    /**
+     * Constructs the URL to the moodle course following these steps:
+     *
+     * 1) Call upload course to obtain the course id from moodle
+     * 2) Get the user token for access to the course from moodle
+     * 3) Build the url to the course using the obtained token
+     *
+     * @param moodleJobMessage the Moodle job message
+     * @param module the Moodle render module
+     * @return the constructed URL
+     */
     fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule): String {
         val courseId = uploadCourse(moodleJobMessage, module)
         val token = getUserToken(moodleJobMessage, courseId)

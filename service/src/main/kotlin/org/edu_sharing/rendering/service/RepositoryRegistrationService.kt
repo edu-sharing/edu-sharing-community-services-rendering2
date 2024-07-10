@@ -38,7 +38,7 @@ class RepositoryRegistrationService(
                 props["public_key"].toString()
             }
             .block()
-        if(publicKey.isNullOrBlank()) {
+        if (publicKey.isNullOrBlank() || publicKey == "null") {
             throw InvalidKeyException("Received key is empty")
         }
         privatePublicKeyService.storeRepositoryKey(publicKey)
