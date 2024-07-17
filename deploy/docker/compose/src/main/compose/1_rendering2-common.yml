@@ -56,6 +56,18 @@ services:
       - -Dcom.sun.management.jmxremote.ssl=false
     environment:
       - app.appId=rendering2
+      - app.session.nodePermissionExpirationTime = 60
+      - app.session.image.nodePermissionExpirationTime=
+      - app.session.audio.nodePermissionExpirationTime=
+      - app.session.video.nodePermissionExpirationTime=
+      - app.session.pdf.nodePermissionExpirationTime=
+      - app.session.moodle.nodePermissionExpirationTime=
+      - app.session.scorm.nodePermissionExpirationTime=
+      - app.session.eduHtml.nodePermissionExpirationTime=
+      - app.session.document.nodePermissionExpirationTime=
+      - app.session.spreadsheet.nodePermissionExpirationTime=
+      - app.session.html.nodePermissionExpirationTime=
+      - app.session.h5p.nodePermissionExpirationTime=
       - app.converter.image.format=jpeg
       - app.converter.image.mimeTypes=image/webp,image/jpeg,image/jpg,image/png,image/bmp
       - app.converter.image.sizes=400,800
