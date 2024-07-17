@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 @Component
 class ImageRenderModule(
     @Value("\${app.session.image.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val imageService: ImageService,
     private val defaultStrategy: DefaultStrategy
@@ -46,7 +46,5 @@ class ImageRenderModule(
         return links?.get(0)
     }
 
-    override fun getNodePermissionExpirationTime(): Long? {
-        return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

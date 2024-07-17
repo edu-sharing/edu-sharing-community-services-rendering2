@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 @Component
 class AudioRenderModule(
     @Value("\${app.session.audio.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val audioService: AudioService
 ) : RenderModule {
@@ -33,7 +33,5 @@ class AudioRenderModule(
         return links?.get(0)
     }
 
-    override fun getNodePermissionExpirationTime(): Long? {
-        return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 @Component
 class EduHtmlRenderModule(
     @Value("\${app.session.eduHtml.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val eduHtmlService: EduHtmlService
 ) : RenderModule {
     override fun module() = RenderModules.EDUHTML
@@ -37,7 +37,5 @@ class EduHtmlRenderModule(
         return ObjectLink(link = subJob.message ?: "")
     }
 
-    override fun getNodePermissionExpirationTime(): Long? {
-        return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

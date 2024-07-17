@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 @Component
 class SpreadsheetRenderModule(
     @Value("\${app.session.spreadsheet.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     mapper: Mapper,
     documentService: DocumentService
 ): DocumentRenderModule(nodePermissionExpirationTime, mapper = mapper, documentService = documentService) {

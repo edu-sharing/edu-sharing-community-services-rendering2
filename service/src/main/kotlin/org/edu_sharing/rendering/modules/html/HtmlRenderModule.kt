@@ -37,7 +37,5 @@ class HtmlRenderModule(
         return null
     }
 
-    override fun getNodePermissionExpirationTime(): Long? {
-        return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 @Component
 class VideoRenderModule (
     @Value("\${app.session.video.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val defaultStrategy: DefaultStrategy,
     private val mapper: Mapper,
     private val videoService: VideoService
@@ -45,7 +45,5 @@ class VideoRenderModule (
         return links?.get(0)
     }
 
-    override fun getNodePermissionExpirationTime(): Long? {
-       return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

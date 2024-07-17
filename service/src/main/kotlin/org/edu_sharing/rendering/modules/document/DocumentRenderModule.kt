@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 @Component
 class DocumentRenderModule(
     @Value("\${app.session.document.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val documentService: DocumentService
 ): RenderModule {
@@ -36,7 +36,5 @@ class DocumentRenderModule(
 
     fun getTargetMimetype() = MediaType.APPLICATION_PDF_VALUE
 
-    override fun getNodePermissionExpirationTime(): Long? {
-        return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

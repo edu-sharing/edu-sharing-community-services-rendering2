@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 @Component
 class MoodleRenderModule(
     @Value("\${app.session.moodle.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val moodleJobService: MoodleJobService
 ) : RenderModule {
     override fun module() = RenderModules.MOODLE
@@ -32,7 +32,5 @@ class MoodleRenderModule(
 
     fun getRemoteServiceMethod() = "restore"
 
-    override fun getNodePermissionExpirationTime(): Long? {
-        return nodePermissionExpirationTime
-    }
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }
