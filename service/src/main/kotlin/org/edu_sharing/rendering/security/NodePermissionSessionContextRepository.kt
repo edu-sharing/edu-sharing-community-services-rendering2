@@ -13,7 +13,7 @@ private const val PERMISSIONS = "permissions"
 @Component
 class NodePermissionSessionContextRepository(
     @Value("\${app.session.nodePermissionExpirationTime}")
-    private var nodePermissionExprationTime: Long
+    private var nodePermissionExpirationTime: Long
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -47,7 +47,7 @@ class NodePermissionSessionContextRepository(
         val session = getSession(false) ?: return
         val nodePermissions = readNodePermissionsFromSession(session) ?: return
         val now = LocalDateTime.now()
-        nodePermissions.removeAll { now.isAfter(it.lastAccessDate.plusSeconds(nodePermissionExprationTime)) }
+        nodePermissions.removeAll { now.isAfter(it.lastAccessDate.plusSeconds(nodePermissionExpirationTime)) }
         if (nodePermissions.isEmpty()) {
             session.removeAttribute(PERMISSIONS)
         } else {

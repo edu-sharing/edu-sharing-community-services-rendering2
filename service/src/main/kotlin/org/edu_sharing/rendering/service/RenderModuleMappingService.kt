@@ -23,6 +23,11 @@ class RenderModuleMappingService (
         const val ODS = "application/vnd.oasis.opendocument.spreadsheet"
     }
 
+    /**
+     * Function getModule
+     *
+     * the provided type is a node property (example: "mediatype": "file-h5p")
+     */
     fun getModule(type: String = "", mimeType: String = "") = when (type) {
         "moodle" -> RenderModules.MOODLE
         "scorm" -> RenderModules.SCORM

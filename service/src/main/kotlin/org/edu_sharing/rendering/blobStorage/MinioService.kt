@@ -160,9 +160,15 @@ class MinioService(
     }
 
     override fun getFileProperties(cacheObject: CacheObject): StatObjectResponse {
-        return eduMinioClient.statObject(
-            StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
-        )
+        try {
+            return eduMinioClient.statObject(
+                StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
+            )
+        } catch (exception: Exception) {
+            logger.error(exception.toString())
+            throw ResourceNotFoundException("File properties for cached object not found.")
+        }
+
     }
 
     override fun getFileProperties(bucket: String, path: String): StatObjectResponse {

@@ -31,7 +31,7 @@ class H5pJobService(
         if (existingJob != null) {
             return existingJob.id.toString()
         }
-        val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
+        val job = mapper.renderDataRequestToRenderingJob(request, module)
         jobRepository.save(job)
         val subJob = SubJob(
             status = JobStatus.QUEUED,

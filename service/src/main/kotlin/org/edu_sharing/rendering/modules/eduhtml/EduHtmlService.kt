@@ -19,7 +19,6 @@ class EduHtmlService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
     private val amqpTemplate: AmqpTemplate,
-    private val renderingJobRepository: RenderingJobRepository,
     private val storageImplementation: StorageService,
     private val subJobRepository: SubJobRepository
 ) {
@@ -29,14 +28,13 @@ class EduHtmlService(
     @Value("\${app.queue.eduHtml.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(request: RenderDataRequest, module: RenderModules): String? {
-        val existingJobs = renderingJobRepository.findAllByEsObjectId(request.nodeId)
+    fun createJob(request: RenderDataRequest, module: RenderModules): String {
+        val existingJobs = jobRepository.findAllByEsObjectId(request.nodeId)
             .filter { it.status == JobStatus.QUEUED || it.status == JobStatus.PROCESSING }
         if (existingJobs.isNotEmpty()) {
             return existingJobs[0].id.toString()
         }
-        val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
-        job.module = RenderModules.EDUHTML
+        val job = mapper.renderDataRequestToRenderingJob(request, module)
         jobRepository.save(job)
         val subJob = SubJob(
             routingKey = jobRoutingKey,

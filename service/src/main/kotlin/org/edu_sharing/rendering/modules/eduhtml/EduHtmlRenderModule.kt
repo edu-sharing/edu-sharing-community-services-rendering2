@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.stereotype.Component
 
@@ -17,7 +18,7 @@ class EduHtmlRenderModule(private val eduHtmlService: EduHtmlService) : RenderMo
     override fun handle(request: RenderDataRequest) : RenderDataResponse {
         val staticLink = try {
             eduHtmlService.getObjectLink(request.nodeId)
-        } catch (_: ErrorResponseException) {
+        } catch (_: ResourceNotFoundException) {
             null
         }
 

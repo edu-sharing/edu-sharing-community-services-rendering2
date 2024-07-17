@@ -34,6 +34,19 @@ class Mapper {
         )
     }
 
+    fun renderDataRequestToRenderingJob(request: RenderDataRequest, module: RenderModules): RenderingJob {
+        return RenderingJob(
+            esObjectId = request.nodeId,
+            esObjectType = request.type,
+            esHash = request.hash,
+            mimeType = request.mimeType,
+            repoId = request.repoId ?: "",
+            nodeVersion = request.version,
+            size = request.size,
+            module = module
+        )
+    }
+
     fun renderingJobToCacheObject(renderingJob: RenderingJob): CacheObject {
         return CacheObject(
             nodeId = renderingJob.esObjectId,
