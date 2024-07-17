@@ -8,10 +8,13 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class AudioRenderModule(
+    @Value("\${app.session.audio.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
     private val mapper: Mapper,
     private val audioService: AudioService
 ) : RenderModule {
@@ -28,5 +31,9 @@ class AudioRenderModule(
         val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
         val links = audioService.getObjectLinks(cacheObject)
         return links?.get(0)
+    }
+
+    override fun getNodePermissionExpirationTime(): Long? {
+        return nodePermissionExpirationTime
     }
 }

@@ -9,10 +9,13 @@ import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.DefaultStrategy
 import org.edu_sharing.rendering.modules.RenderModule
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class VideoRenderModule (
+    @Value("\${app.session.video.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
     private val defaultStrategy: DefaultStrategy,
     private val mapper: Mapper,
     private val videoService: VideoService
@@ -40,5 +43,9 @@ class VideoRenderModule (
         val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
         val links = videoService.getObjectLinks(cacheObject, subJob.quality)
         return links?.get(0)
+    }
+
+    override fun getNodePermissionExpirationTime(): Long? {
+       return nodePermissionExpirationTime
     }
 }

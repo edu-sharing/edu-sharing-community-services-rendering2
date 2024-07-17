@@ -11,4 +11,5 @@ interface RenderModule {
     fun module(): RenderModules
     fun handle(request: RenderDataRequest): RenderDataResponse
     fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink?
+    fun getNodePermissionExpirationTime(): Long?
 }

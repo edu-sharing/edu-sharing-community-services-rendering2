@@ -7,10 +7,15 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
-class MoodleRenderModule(private val moodleJobService: MoodleJobService) : RenderModule {
+class MoodleRenderModule(
+    @Value("\${app.session.moodle.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
+    private val moodleJobService: MoodleJobService
+) : RenderModule {
     override fun module() = RenderModules.MOODLE
 
     override fun handle(request: RenderDataRequest) : RenderDataResponse {
@@ -26,4 +31,8 @@ class MoodleRenderModule(private val moodleJobService: MoodleJobService) : Rende
     }
 
     fun getRemoteServiceMethod() = "restore"
+
+    override fun getNodePermissionExpirationTime(): Long? {
+        return nodePermissionExpirationTime
+    }
 }

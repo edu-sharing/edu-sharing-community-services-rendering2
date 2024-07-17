@@ -9,10 +9,13 @@ import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.DefaultStrategy
 import org.edu_sharing.rendering.modules.RenderModule
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class PdfRenderModule(
+    @Value("\${app.session.pdf.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
     private val defaultStrategy: DefaultStrategy,
     private val mapper: Mapper
 ) : RenderModule {
@@ -32,5 +35,9 @@ class PdfRenderModule(
      */
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
         return null
+    }
+
+    override fun getNodePermissionExpirationTime(): Long? {
+        return nodePermissionExpirationTime
     }
 }

@@ -9,10 +9,13 @@ import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.DefaultStrategy
 import org.edu_sharing.rendering.modules.RenderModule
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class ImageRenderModule(
+    @Value("\${app.session.image.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
     private val mapper: Mapper,
     private val imageService: ImageService,
     private val defaultStrategy: DefaultStrategy
@@ -41,5 +44,9 @@ class ImageRenderModule(
         val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
         val links = imageService.getObjectLinks(cacheObject, subJob.quality)
         return links?.get(0)
+    }
+
+    override fun getNodePermissionExpirationTime(): Long? {
+        return nodePermissionExpirationTime
     }
 }

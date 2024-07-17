@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component
 
 @Component
 class H5pRenderModule(
+    @Value("\${app.session.h5p.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
     private val h5pJobService: H5pJobService,
     private val lumiNodeInfoService: LumiNodeInfoService
 ): RenderModule {
@@ -40,5 +42,9 @@ class H5pRenderModule(
 
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
         return ObjectLink(link = subJob.message ?: "")
+    }
+
+    override fun getNodePermissionExpirationTime(): Long? {
+        return nodePermissionExpirationTime
     }
 }

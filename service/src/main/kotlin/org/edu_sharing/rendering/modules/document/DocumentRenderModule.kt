@@ -8,11 +8,14 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 
 @Component
 class DocumentRenderModule(
+    @Value("\${app.session.document.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long,
     private val mapper: Mapper,
     private val documentService: DocumentService
 ): RenderModule {
@@ -32,4 +35,8 @@ class DocumentRenderModule(
     }
 
     fun getTargetMimetype() = MediaType.APPLICATION_PDF_VALUE
+
+    override fun getNodePermissionExpirationTime(): Long? {
+        return nodePermissionExpirationTime
+    }
 }

@@ -58,6 +58,8 @@ class JwtUtils(private var keyService: PrivatePublicKeyService) {
         return NodePermission(
             jwtObj.payload.get("node", String::class.java),
             (jwtObj.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
+            jwtObj.payload.get("mimeType", String::class.java),
+            jwtObj.payload.get("mediaType", String::class.java),
             LocalDateTime.now()
         )
     }
