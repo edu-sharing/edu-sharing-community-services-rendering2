@@ -30,13 +30,5 @@ class PdfRenderModule(
         )
     }
 
-    /**
-     * This is not needed at the moment. No jobs for PDFs are created
-     */
-    override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
-        return null
-    }
-
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
 }

@@ -10,6 +10,6 @@ import org.edu_sharing.rendering.entity.SubJob
 interface RenderModule {
     fun module(): RenderModules
     fun handle(request: RenderDataRequest): RenderDataResponse
-    fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink?
+    fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? = null
     fun getNodePermissionExpirationTime(): Long?
 }

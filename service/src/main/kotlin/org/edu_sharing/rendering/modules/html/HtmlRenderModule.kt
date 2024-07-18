@@ -30,12 +30,5 @@ class HtmlRenderModule(
         )
     }
 
-    /**
-     * This is not needed at the moment. No jobs for HTML files are created
-     */
-    override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
-        return null
-    }
-
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }
