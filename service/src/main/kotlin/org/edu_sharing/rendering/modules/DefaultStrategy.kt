@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.modules
 
-import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.service.ContentTransferService
 import org.springframework.stereotype.Component
 
@@ -28,7 +28,7 @@ class DefaultStrategy (
     private fun getObjectLink(cacheObject: CacheObject): ObjectLink? {
         return try {
             storageImplementation.getObjectLink(cacheObject)
-        } catch (_: ErrorResponseException) {
+        } catch (_: ResourceNotFoundException) {
             null
         }
     }

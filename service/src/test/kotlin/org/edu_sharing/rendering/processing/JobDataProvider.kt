@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.entity.SubJob
 class JobDataProvider {
     companion object {
         const val DUMMY_JOB_ID = "507f191e810c19729de860eb"
+        const val DUMMY_JOB_ID_2 = "507f191e810c19729de860ec"
         const val DUMMY_CREATION_TS: Long = 1716276009324
         const val HASH = "hash"
         const val ES_OBJECT_ID = "esobjectid"
@@ -16,9 +17,12 @@ class JobDataProvider {
         const val SUB_ID_2 = "507f191e810c19729de860ed"
     }
 
-    fun getJobWithoutSubJobs(module: RenderModules = RenderModules.EDUHTML): RenderingJob {
+    fun getJobWithoutSubJobs(
+        module: RenderModules = RenderModules.EDUHTML,
+        id: ObjectId = ObjectId(DUMMY_JOB_ID)
+    ): RenderingJob {
         return RenderingJob(
-            id = ObjectId(DUMMY_JOB_ID),
+            id = id,
             esHash = "hash",
             esObjectId = ES_OBJECT_ID,
             esObjectType = "esobjecttype",

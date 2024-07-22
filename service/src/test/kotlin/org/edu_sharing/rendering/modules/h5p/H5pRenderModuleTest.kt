@@ -8,6 +8,8 @@ import io.mockk.verifySequence
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.entity.RenderingJob
+import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.service.LumiNodeInfoService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -22,7 +24,7 @@ class H5pRenderModuleTest {
 
     @BeforeEach
     fun setUp() {
-        underTest = H5pRenderModule(h5pJobServiceMock, lumiNodeInfoServiceMock)
+        underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiNodeInfoServiceMock)
         underTest.baseUrl = "http://test.com:8000"
         clearAllMocks()
     }
@@ -78,5 +80,40 @@ class H5pRenderModuleTest {
     @Test
     fun testModuleReturnsH5pModule() {
         assert(underTest.module() == RenderModules.H5P)
+    }
+
+    @Test
+    fun testGetNodePermissionExpirationTimeReturnsProperTime() {
+        assert(underTest.getNodePermissionExpirationTime() == 33L)
+    }
+
+    @Test
+    fun testGetObjectLinksFromJobDataReturnsSubJobMessage() {
+        // Arrange
+        val subJob = mockk<SubJob>()
+        val job = mockk<RenderingJob>()
+
+        every { subJob.message } returns "mylink"
+
+        // Act
+        val result = underTest.getObjectLinkFromJobData(subJob, job)
+
+        // Assert
+        assert(result?.link == "mylink")
+    }
+
+    @Test
+    fun testGetObjectLinksFromJobDataReturnsEmptyStringIfSubjobMessageIsNull() {
+        // Arrange
+        val subJob = mockk<SubJob>()
+        val job = mockk<RenderingJob>()
+
+        every { subJob.message } returns null
+
+        // Act
+        val result = underTest.getObjectLinkFromJobData(subJob, job)
+
+        // Assert
+        assert(result?.link == "")
     }
 }

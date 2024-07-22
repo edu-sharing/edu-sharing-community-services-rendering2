@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.modules.html
+package org.edu_sharing.rendering.modules.pdf
 
 import io.mockk.clearAllMocks
 import io.mockk.every
@@ -13,21 +13,20 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.modules.DefaultStrategy
-import org.edu_sharing.rendering.modules.pdf.HtmlRenderModule
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
-class HtmlRenderModuleTest {
+class PdfRenderModuleTest {
     private val defaultStrategyMock = mockk<DefaultStrategy>()
     private val mapperMock = mockk<Mapper>()
 
-    private lateinit var underTest: HtmlRenderModule
+    private lateinit var underTest: PdfRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = HtmlRenderModule(55L, defaultStrategyMock, mapperMock)
+        underTest = PdfRenderModule(55L, defaultStrategyMock, mapperMock)
         clearAllMocks()
     }
 
@@ -46,7 +45,7 @@ class HtmlRenderModuleTest {
 
         // Assert
         assert(result.objectLinks?.get(0)?.link == "mylink")
-        assert(result.module == RenderModules.HTML)
+        assert(result.module == RenderModules.PDF)
         assert(result.jobId == null)
 
         verifySequence {
@@ -57,7 +56,7 @@ class HtmlRenderModuleTest {
 
     @Test
     fun testModuleReturnsHtmlRenderModule() {
-        assert(underTest.module() == RenderModules.HTML)
+        assert(underTest.module() == RenderModules.PDF)
     }
 
     @Test

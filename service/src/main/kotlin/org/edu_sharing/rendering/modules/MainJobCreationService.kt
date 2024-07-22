@@ -29,7 +29,7 @@ class MainJobCreationService(
             id = renderingJob.id.toString(),
             missingQualities = missingQualities
         )
-        amqpTemplate.convertAndSend(this.topicExchangeName, this.jobRoutingKey, jobMessage)
+        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, jobMessage)
         return renderingJob.id.toString()
     }
 

@@ -35,17 +35,12 @@ class MoodleJobService(
     lateinit var jobRoutingKey: String
 
     fun createJob(request: RenderDataRequest, module: RenderModules): String? {
-        try {
-            checkPrerequisites()
-        } catch (exception: IllegalStateException) {
-            log.warn("Could not create Moodle course creation job: " + exception.message)
-            return null
-        }
+        checkPrerequisites()
         if (request.userData == null) {
             log.error("Missing user data in Moodle request. Node: " + request.nodeId)
             throw IllegalArgumentException()
         }
-        val job = mapper.cacheObjectToRenderingJob(mapper.renderDataRequestToCacheObject(request), module)
+        val job = mapper.renderDataRequestToRenderingJob(request, module)
         jobRepository.save(job)
         val subJob = SubJob(
             status = JobStatus.QUEUED,
@@ -71,5 +66,4 @@ class MoodleJobService(
             throw IllegalStateException("Moodle config invalid and/or incomplete")
         }
     }
-
 }

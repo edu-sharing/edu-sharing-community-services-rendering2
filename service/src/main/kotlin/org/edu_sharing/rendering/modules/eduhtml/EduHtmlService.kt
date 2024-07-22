@@ -30,7 +30,7 @@ class EduHtmlService(
 
     fun createJob(request: RenderDataRequest, module: RenderModules): String {
         val existingJobs = jobRepository.findAllByEsObjectId(request.nodeId)
-            .filter { it.status == JobStatus.QUEUED || it.status == JobStatus.PROCESSING }
+            .filter { it.status <= JobStatus.PROCESSING }
         if (existingJobs.isNotEmpty()) {
             return existingJobs[0].id.toString()
         }

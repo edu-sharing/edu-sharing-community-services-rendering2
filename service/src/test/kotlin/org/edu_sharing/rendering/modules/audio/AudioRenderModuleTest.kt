@@ -16,7 +16,7 @@ class AudioRenderModuleTest {
     private val mockAudioService = mockk<AudioService>()
     private val mockMapper = mockk<Mapper>()
 
-    private val underTest = AudioRenderModule(mockMapper, mockAudioService)
+    private val underTest = AudioRenderModule(45L, mockMapper, mockAudioService)
 
     private val cacheObject = CacheObject(
         nodeId = "nodeid",
@@ -112,5 +112,10 @@ class AudioRenderModuleTest {
             mockMapper.renderingJobToCacheObject(mockRenderingJob)
             mockAudioService.getObjectLinks(cacheObject)
         }
+    }
+
+    @Test
+    fun testGetNodePermissionExpirationTimeReturnsProperTime() {
+        assert(underTest.getNodePermissionExpirationTime() == 45L)
     }
 }

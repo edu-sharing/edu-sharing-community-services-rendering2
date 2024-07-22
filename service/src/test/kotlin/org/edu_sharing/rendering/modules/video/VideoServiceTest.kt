@@ -1,10 +1,7 @@
-package org.edu_sharing.rendering.modules.image
+package org.edu_sharing.rendering.modules.video
 
-import io.mockk.confirmVerified
-import io.mockk.every
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import io.mockk.verify
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
@@ -17,67 +14,66 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
-class ImageServiceTest {
+class VideoServiceTest {
     private val defaultStrategy = mockk<DefaultStrategy>()
     private val storageService = mockk<StorageService>()
-    private val mainJobService = mockk<MainJobCreationService>()
-
-    private lateinit var underTest: ImageService
+    private val mainJobCreationService = mockk<MainJobCreationService>()
 
     private val cacheObject = CacheObject(
-        nodeId = "nodeid",
-        type = "image",
+        nodeId = "nodeid12",
+        type = "video",
         hash = "hash",
-        mimeType = "image/png"
+        mimeType = "video/mp4"
     )
+
+    lateinit var underTest: VideoService
 
     @BeforeEach
     fun setup() {
-        underTest = ImageService(defaultStrategy, storageService, mainJobService)
-        underTest.convertedImageMimeTypes = listOf("image/jpeg", "image/png")
-        underTest.targetImageSizes = listOf(100,200)
-        underTest.targetImageFormat = "jpeg"
+        underTest = VideoService(
+            defaultStrategy,
+            storageService,
+            mainJobCreationService
+        )
+        underTest.targetVideoResolutions = listOf(100, 200)
+        underTest.targetVideoFormat = "mp4"
+        underTest.convertedVideoMimeTypes = listOf("video/mp4", "video/mpeg")
+        clearAllMocks()
     }
 
     @Test
     fun testIsConversionObjectReturnsTrueIfInList() {
-        // Arrange
         val cacheObject = mockk<CacheObject>()
-        every { cacheObject.mimeType } returns "image/jpeg"
-
-        // Act and assert
+        every { cacheObject.mimeType } returns "video/mp4"
         assert(underTest.isConversionObject(cacheObject))
-
-        verify (exactly = 1) { cacheObject.mimeType }
     }
 
     @Test
     fun testIsConversionObjectReturnsFalseIfNotInList() {
-        // Arrange
         val cacheObject = mockk<CacheObject>()
-        every { cacheObject.mimeType } returns "image/ogg"
-
-        // Act and assert
+        every { cacheObject.mimeType } returns "video/wmv"
         assert(!underTest.isConversionObject(cacheObject))
-
-        verify (exactly = 1) { cacheObject.mimeType }
     }
 
     @Test
-    fun testGetObjectLinksUsesDefaultStrategyIfNotConversionObject() {
+    fun testGetObjectLinksInvokesDefaultStrategyIfNotConversionType() {
         // Arrange
-        val cacheObjectWithNonConversion = cacheObject.copy()
-        cacheObjectWithNonConversion.mimeType = "image/ogg"
-        every {defaultStrategy.getObjectLinkList(cacheObjectWithNonConversion)} returns listOf(ObjectLink(link = "mylink"))
+        val cacheObject = mockk<CacheObject>()
+        val expectedLinks = listOf(ObjectLink(link = "link1"))
+
+        every { cacheObject.mimeType } returns "video/wmv"
+        every { defaultStrategy.getObjectLinkList(cacheObject) } returns expectedLinks
 
         // Act
-        val result = underTest.getObjectLinks(cacheObjectWithNonConversion)
+        val result = underTest.getObjectLinks(cacheObject)
 
         // Assert
-        assert(result?.get(0)?.link == "mylink")
+        assert(result == expectedLinks)
 
-        verify (exactly = 1) { defaultStrategy.getObjectLinkList(cacheObjectWithNonConversion) }
-        confirmVerified(defaultStrategy)
+        verifySequence {
+            cacheObject.mimeType
+            defaultStrategy.getObjectLinkList(cacheObject)
+        }
     }
 
     @Test
@@ -87,10 +83,10 @@ class ImageServiceTest {
         val lookupObject1 = cacheObject.copy()
         val lookupObject2 = cacheObject.copy()
 
-        lookupObject1.mimeType = "image/jpeg"
+        lookupObject1.mimeType = "video/mp4"
         lookupObject1.quality = 100
 
-        lookupObject2.mimeType = "image/jpeg"
+        lookupObject2.mimeType = "video/mp4"
         lookupObject2.quality = 200
 
         val objectLink1 = ObjectLink(link = "link1")
@@ -116,7 +112,7 @@ class ImageServiceTest {
         // Arrange
         val lookupObject1 = cacheObject.copy()
 
-        lookupObject1.mimeType = "image/jpeg"
+        lookupObject1.mimeType = "video/mp4"
         lookupObject1.quality = 233
 
         val objectLink1 = ObjectLink(link = "link1")
@@ -141,7 +137,7 @@ class ImageServiceTest {
         // Arrange
         val lookupObject1 = cacheObject.copy()
 
-        lookupObject1.mimeType = "image/jpeg"
+        lookupObject1.mimeType = "video/mp4"
         lookupObject1.quality = 233
 
 
@@ -170,8 +166,8 @@ class ImageServiceTest {
         val availableLinks = listOf(
             ObjectLink(
                 link = "link1",
-                height = 50,
-                width = 100,
+                height = 100,
+                width = 160,
             ),
         )
 
@@ -183,12 +179,30 @@ class ImageServiceTest {
     }
 
     @Test
+    fun testGetMissingQualitiesConsidersHighestResolutionIfSetInLinks() {
+        // Arrange
+        val availableLinks = listOf(
+            ObjectLink(
+                link = "link1",
+                height = 100,
+                width = 160,
+                isHighestQuality = true
+            ),
+        )
+        // Act
+        val result = underTest.getMissingQualities(availableLinks)
+
+        // Assert
+        assert(result.isEmpty())
+    }
+
+    @Test
     fun testRetrieveOrCreateJobReturnsExistingJobIdIfFound() {
         // Arrange
-        every { mainJobService.getExistingJobId(cacheObject) } returns "existing-job-id"
+        every { mainJobCreationService.getExistingJobId(cacheObject) } returns "existing-job-id"
 
         // Act
-        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.IMAGE, listOf(1))
+        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.VIDEO, listOf(1))
 
         // Assert
         assert(result == "existing-job-id")
@@ -199,12 +213,12 @@ class ImageServiceTest {
         // Arrange
         val missingQualities = listOf(100, 150)
 
-        every { mainJobService.getExistingJobId(cacheObject) } returns null
-        every { mainJobService.createMainJob(cacheObject, RenderModules.IMAGE, missingQualities) } returns
+        every { mainJobCreationService.getExistingJobId(cacheObject) } returns null
+        every { mainJobCreationService.createMainJob(cacheObject, RenderModules.VIDEO, missingQualities) } returns
                 "new-job-id"
 
         // Act
-        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.IMAGE, missingQualities)
+        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.VIDEO, missingQualities)
 
         // Assert
         assert(result == "new-job-id")

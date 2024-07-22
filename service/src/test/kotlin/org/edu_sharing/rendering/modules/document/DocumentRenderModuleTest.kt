@@ -18,7 +18,7 @@ class DocumentRenderModuleTest {
     private val mockDocumentService = mockk<DocumentService>()
     private val mockMapper = mockk<Mapper>()
 
-    private val underTest = DocumentRenderModule(mockMapper, mockDocumentService)
+    private val underTest = DocumentRenderModule(45L, mockMapper, mockDocumentService)
 
     private val cacheObject = CacheObject(
         nodeId = "nodeid",
@@ -120,5 +120,10 @@ class DocumentRenderModuleTest {
     fun testGetTargetMimeTypeReturnsPdf() {
         // Act and assert
         assert(underTest.getTargetMimetype() == MediaType.APPLICATION_PDF_VALUE)
+    }
+
+    @Test
+    fun testGetNodePermissionExpirationTimeReturnsProperTime() {
+        assert(underTest.getNodePermissionExpirationTime() == 45L)
     }
 }

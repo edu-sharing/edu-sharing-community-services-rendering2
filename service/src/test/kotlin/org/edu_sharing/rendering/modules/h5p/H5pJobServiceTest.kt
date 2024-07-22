@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
+import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.processing.JobDataProvider
@@ -78,6 +79,42 @@ class H5pJobServiceTest {
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
         justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
+
+        // Act
+        val result = underTest.createJob(request, RenderModules.H5P)
+
+        // Assert
+        assert(subJobSlot.captured.routingKey == "routingkey")
+        assert(subJobSlot.captured.parent.id.toString() == dummyJob.id.toString())
+
+        assert(result == dummyJob.id.toString())
+
+        verifySequence {
+            jobRepoMock.findAllByEsObjectId("dummyNodeId")
+            mapperMock.renderDataRequestToRenderingJob(request, RenderModules.H5P)
+            jobRepoMock.save(dummyJob)
+            subJobRepoMock.save(any())
+            amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
+        }
+    }
+
+    @Test
+    fun testCreateJobCreatesJobAndReturnsJobIdIfNonRunningJobFound() {
+        // Arrange
+        val finishedJob = mockk<RenderingJob>()
+        val dummyJob = jobDataProvider.getJobWithoutSubJobs()
+        every { finishedJob.status } returns JobStatus.FINISHED
+        every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
+        every { mapperMock.renderDataRequestToRenderingJob(request, RenderModules.H5P) } returns dummyJob
+        every { jobRepoMock.save(dummyJob) } returns mockk<RenderingJob>()
+        val subJobSlot = slot<SubJob>()
+        every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
+        val message = RenderingJobMessage(id = dummyJob.id.toString())
+        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
+
+        excludeRecords {
+            finishedJob.status
+        }
 
         // Act
         val result = underTest.createJob(request, RenderModules.H5P)

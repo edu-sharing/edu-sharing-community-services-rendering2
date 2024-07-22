@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.image
 
-import io.minio.errors.ErrorResponseException
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
@@ -27,9 +26,7 @@ class ImageService(
     @Value("\${app.converter.image.format}")
     lateinit var targetImageFormat: String
 
-    fun isConversionObject(cacheObject: CacheObject): Boolean {
-        return convertedImageMimeTypes.contains(cacheObject.mimeType)
-    }
+    fun isConversionObject(cacheObject: CacheObject) = convertedImageMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
         if (!isConversionObject(cacheObject)) return defaultStrategy.getObjectLinkList(cacheObject)

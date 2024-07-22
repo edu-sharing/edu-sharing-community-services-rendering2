@@ -23,7 +23,7 @@ class EduHtmlRenderModuleTest {
 
     @BeforeEach
     fun setup() {
-        underTest = EduHtmlRenderModule(eduHtmlServiceMock)
+        underTest = EduHtmlRenderModule(67L, eduHtmlServiceMock)
         clearAllMocks()
     }
 
@@ -94,5 +94,40 @@ class EduHtmlRenderModuleTest {
     @Test
     fun testModuleReturnsEduHtmlModule() {
         assert(underTest.module() == RenderModules.EDUHTML)
+    }
+
+    @Test
+    fun testGetNodePermissionExpirationTimeReturnsSetTime() {
+        assert(underTest.getNodePermissionExpirationTime() == 67L)
+    }
+
+    @Test
+    fun testGetObjectLinksFromJobDataReturnsSubJobMessage() {
+        // Arrange
+        val subJob = mockk<SubJob>()
+        val job = mockk<RenderingJob>()
+
+        every { subJob.message } returns "mylink"
+
+        // Act
+        val result = underTest.getObjectLinkFromJobData(subJob, job)
+
+        // Assert
+        assert(result?.link == "mylink")
+    }
+
+    @Test
+    fun testGetObjectLinksFromJobDataReturnsEmptyStringIfSubJobMessageEmpty() {
+        // Arrange
+        val subJob = mockk<SubJob>()
+        val job = mockk<RenderingJob>()
+
+        every { subJob.message } returns null
+
+        // Act
+        val result = underTest.getObjectLinkFromJobData(subJob, job)
+
+        // Assert
+        assert(result?.link == "")
     }
 }
