@@ -21,7 +21,7 @@ class LumiNodeInfoService(
         return lumiCacheRepository.findByNodeIdAndHash(nodeId, hash)?.lumiId
     }
 
-    fun retrieveNodeInfo(contentId: String) : LumiNodeInfo {
+    private fun retrieveNodeInfo(contentId: String) : LumiNodeInfo {
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())

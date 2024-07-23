@@ -29,10 +29,10 @@ class RenderModuleMappingService (
      * the provided type is a node property (example: "mediatype": "file-h5p")
      */
     fun getModule(type: String = "", mimeType: String = "") = when (type) {
-        "moodle" -> RenderModules.MOODLE
-        "scorm" -> RenderModules.SCORM
-        "eduhtml" -> RenderModules.EDUHTML
-        "h5p" -> RenderModules.H5P
+        "file-moodle" -> RenderModules.MOODLE
+        "file-scorm" -> RenderModules.SCORM
+        "file-eduhtml" -> RenderModules.EDUHTML
+        "file-h5p" -> RenderModules.H5P
         else -> getByMimeType(mimeType)
     }
 

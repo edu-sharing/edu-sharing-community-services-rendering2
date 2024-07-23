@@ -31,10 +31,14 @@ class JobInfoService (
 
     @PreAuthorize("hasPermission(#job.esObjectId, 'Read')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
-        val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
         if (isMainJobQueuedOrCopying(job)) {
-            return JobInfoReply(mutableListOf(JobProgressInfo(status = job.status)), status = job.status, module = job.module)
+            return JobInfoReply(
+                jobs = mutableListOf(JobProgressInfo(status = job.status)),
+                status = job.status,
+                module = job.module
+            )
         }
+        val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
         val infoList: MutableList<JobProgressInfo> = mutableListOf()
         job.subJobs.forEach {
             val jobInfo = JobProgressInfo(quality = it.quality, status = it.status)
