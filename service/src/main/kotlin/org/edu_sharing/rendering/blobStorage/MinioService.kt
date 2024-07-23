@@ -8,12 +8,14 @@ import org.apache.commons.codec.binary.Base64
 import org.apache.tika.mime.MimeTypes
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
+import java.io.FilterInputStream
 import java.io.InputStream
 
 @Service
@@ -69,7 +71,7 @@ class MinioService(
             .toUriString()
         val objectLink = ObjectLink(link = url)
         try {
-            val metadata = getFileProperties(cacheObject).userMetadata()
+            val metadata = getStatObject(cacheObject).userMetadata()
             if (metadata.containsKey("width")) {
                 objectLink.width = metadata["width"]?.toInt() ?: 0
             }
@@ -111,7 +113,7 @@ class MinioService(
         )
     }
 
-    override fun getObjectStream(bucket: String, path: String): GetObjectResponse {
+    override fun getObjectStream(bucket: String, path: String): InputStream {
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
@@ -125,7 +127,7 @@ class MinioService(
         isTemp: Boolean,
         offset: Long,
         length: Long
-    ): GetObjectResponse {
+    ): InputStream {
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(if (isTemp) "temp" else cacheObject.type)
@@ -136,7 +138,7 @@ class MinioService(
         )
     }
 
-    override fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): GetObjectResponse {
+    override fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): InputStream {
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
@@ -159,10 +161,12 @@ class MinioService(
         )
     }
 
-    override fun getFileProperties(cacheObject: CacheObject): StatObjectResponse {
+    override fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails {
         try {
-            return eduMinioClient.statObject(
-                StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
+            val statObject = getStatObject(cacheObject)
+            return CachedObjectDetails(
+                size = statObject.size(),
+                mimeType = statObject.contentType()
             )
         } catch (exception: Exception) {
             logger.error(exception.toString())
@@ -171,9 +175,24 @@ class MinioService(
 
     }
 
-    override fun getFileProperties(bucket: String, path: String): StatObjectResponse {
+    override fun getFileProperties(bucket: String, path: String): CachedObjectDetails {
+        try {
+            val statObject =  eduMinioClient.statObject(
+                StatObjectArgs.builder().bucket(bucket).`object`(path).build()
+            )
+            return CachedObjectDetails(
+                size = statObject.size(),
+                mimeType = statObject.contentType()
+            )
+        } catch (exception: Exception) {
+            logger.error(exception.toString())
+            throw ResourceNotFoundException("File properties for cached object not found.")
+        }
+    }
+
+    private fun getStatObject(cacheObject: CacheObject): StatObjectResponse {
         return eduMinioClient.statObject(
-            StatObjectArgs.builder().bucket(bucket).`object`(path).build()
+            StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
         )
     }
 

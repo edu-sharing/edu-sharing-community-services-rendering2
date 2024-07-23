@@ -1,10 +1,10 @@
 package org.edu_sharing.rendering.service
 
-import io.minio.StatObjectResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.AssetLinkParams
+import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.springframework.security.access.prepost.PreAuthorize
@@ -22,41 +22,41 @@ class AssetService(
     @PreAuthorize("hasPermission(#assetParams.nodeId, 'Read')")
     fun getAsset(assetParams: AssetLinkParams, range: String): ReadableAsset {
         val cacheObject = mapper.assetLinkParamsToCacheObject(assetParams)
-        val objectStats = storageImplementation.getFileProperties(cacheObject)
+        val fileDetails = storageImplementation.getFileProperties(cacheObject)
 
         if (range.isBlank()) {
             return ReadableAsset(
-                mimeType = objectStats.contentType(),
-                fileSize = objectStats.size(),
+                mimeType = fileDetails.mimeType,
+                fileSize = fileDetails.size,
                 stream = storageImplementation.getObjectStream(cacheObject)
             )
         }
 
-        val longRange = parseRange(range, objectStats.size())
+        val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject,
             false,
             longRange.first,
             longRange.last
         )
-        return createReadableAsset(objectStats, objectChunkStream, longRange)
+        return createReadableAsset(fileDetails, objectChunkStream, longRange)
     }
 
 
     @PreAuthorize("hasPermission(#nodeId, 'Read')")
     fun getStaticAsset(request: HttpServletRequest, range: String, nodeId: String): ReadableAsset {
         val storagePath = request.requestURI.toString().substringAfter("/static/")
-        val objectStats = storageImplementation.getFileProperties("eduhtml", storagePath)
+        val fileDetails = storageImplementation.getFileProperties("eduhtml", storagePath)
 
         if (range.isBlank()) {
             return ReadableAsset(
-                mimeType = objectStats.contentType(),
-                fileSize = objectStats.size(),
+                mimeType = fileDetails.mimeType,
+                fileSize = fileDetails.size,
                 stream = storageImplementation.getObjectStream("eduhtml", storagePath)
             )
         }
 
-        val longRange = parseRange(range, objectStats.size())
+        val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             "eduhtml",
             storagePath,
@@ -64,17 +64,17 @@ class AssetService(
             longRange.last
         )
 
-        return createReadableAsset(objectStats, objectChunkStream, longRange)
+        return createReadableAsset(fileDetails, objectChunkStream, longRange)
     }
 
     private fun createReadableAsset(
-        objectStats: StatObjectResponse,
+        fileDetails: CachedObjectDetails,
         inputStream: InputStream,
         longRange: LongRange? = null
     ) = ReadableAsset(
-        mimeType = objectStats.contentType(),
-        fileSize = objectStats.size(),
-        range = if (longRange != null) "bytes ${longRange.first}-${longRange.last}/${objectStats.size()}" else "",
+        mimeType = fileDetails.mimeType,
+        fileSize = fileDetails.size,
+        range = if (longRange != null) "bytes ${longRange.first}-${longRange.last}/${fileDetails.size}" else "",
         stream = inputStream
     )
 
