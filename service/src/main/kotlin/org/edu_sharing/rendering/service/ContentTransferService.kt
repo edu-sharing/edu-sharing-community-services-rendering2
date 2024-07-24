@@ -1,18 +1,13 @@
 package org.edu_sharing.rendering.service
 
 import org.edu_sharing.rendering.dto.CacheObject
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
-import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.stereotype.Service
-import org.springframework.web.reactive.function.BodyExtractors
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
-import java.io.PipedInputStream
-import java.io.PipedOutputStream
 import java.net.URLEncoder
 import java.security.Signature
 import java.util.*
@@ -28,15 +23,11 @@ class ContentTransferService(
     @Value("\${app.appId}")
     lateinit var appId: String
 
-    private val log = LoggerFactory.getLogger(javaClass)
-
     fun getAsInputStream(cacheObject: CacheObject): InputStream {
         if(cacheObject.nodeId.startsWith(TEST_ID_PREFIX)) {
             val resourceName = cacheObject.nodeId.substring(TEST_ID_PREFIX.length)
             return resourceLoader.getResource("classpath:$resourceName").inputStream
         }
-        val outputStreamPipe = PipedOutputStream()
-        val inputStreamPipe = PipedInputStream(outputStreamPipe)
         val timeStamp = System.currentTimeMillis()
         val sigData = cacheObject.nodeId + timeStamp
         val privateKey = privatePublicKeyService.getPrivateKey()
@@ -44,7 +35,7 @@ class ContentTransferService(
         dsa.initSign(privateKey)
         dsa.update(sigData.toByteArray())
         val signed = dsa.sign()
-        val body = eduSharingWebClient.get()
+        val returnedData = eduSharingWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
                     .path("/content")
@@ -57,12 +48,13 @@ class ContentTransferService(
                     .build(true)
                     .toUri()
                 uri
-            }.exchangeToFlux { it.body(BodyExtractors.toDataBuffers()) }
+            }.retrieve()
+            .bodyToMono(ByteArray::class.java)
+            .block()
+        if (returnedData == null) {
+            throw Exception("Empty data returned")
+        }
 
-        DataBufferUtils.write(body, outputStreamPipe)
-            .doOnError { log.error("something went wrong: {}", it.message, it); throw it }
-            .subscribe(DataBufferUtils.releaseConsumer())
-
-        return inputStreamPipe
+        return returnedData.inputStream()
     }
 }

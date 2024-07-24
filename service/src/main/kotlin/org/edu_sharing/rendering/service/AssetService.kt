@@ -17,7 +17,7 @@ class AssetService(
     private val storageImplementation: StorageService,
     private val mapper: Mapper
 ) {
-    private val defaultChunkSize = 2000000
+    private val defaultChunkSize = 2000000L
 
     @PreAuthorize("hasPermission(#assetParams.nodeId, 'Read')")
     fun getAsset(assetParams: AssetLinkParams, range: String): ReadableAsset {
@@ -45,20 +45,20 @@ class AssetService(
 
     @PreAuthorize("hasPermission(#nodeId, 'Read')")
     fun getStaticAsset(request: HttpServletRequest, range: String, nodeId: String): ReadableAsset {
-        val storagePath = request.requestURI.toString().substringAfter("/static/")
-        val fileDetails = storageImplementation.getFileProperties("eduhtml", storagePath)
+        val storagePath = request.requestURI.substringAfter("/static/")
+        val fileDetails = storageImplementation.getFileProperties("file-eduhtml", storagePath)
 
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
-                stream = storageImplementation.getObjectStream("eduhtml", storagePath)
+                stream = storageImplementation.getObjectStream("file-eduhtml", storagePath)
             )
         }
 
         val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
-            "eduhtml",
+            "file-eduhtml",
             storagePath,
             longRange.first,
             longRange.last
@@ -70,23 +70,35 @@ class AssetService(
     private fun createReadableAsset(
         fileDetails: CachedObjectDetails,
         inputStream: InputStream,
-        longRange: LongRange? = null
+        longRange: LongRange
     ) = ReadableAsset(
         mimeType = fileDetails.mimeType,
         fileSize = fileDetails.size,
-        range = if (longRange != null) "bytes ${longRange.first}-${longRange.last}/${fileDetails.size}" else "",
+        range = "bytes ${longRange.first}-${longRange.last}/${fileDetails.size}",
         stream = inputStream
     )
 
+    @Throws(NumberFormatException::class, IndexOutOfBoundsException::class)
     private fun parseRange(range: String, fileSize: Long): LongRange {
         val numericalRange = range.split(if (range.contains("=")) "=" else " ")[1]
         val (start, end) = numericalRange.split("-", limit = 2)
         val startLong = start.toLong()
         val remainingBytes = fileSize-startLong
-        val chunkSize = if (defaultChunkSize > remainingBytes) remainingBytes-1 else defaultChunkSize.toLong()
+        val desiredSize = if (end != ""  && startLong >= end.toLong()) {
+            defaultChunkSize
+        } else if (end == "") {
+            defaultChunkSize
+        } else {
+            end.toLong() - startLong
+        }
+        val chunkSize = if (desiredSize >= remainingBytes) {
+            remainingBytes-1
+        } else {
+            desiredSize
+        }
         return LongRange(
             startLong,
-            if (end != "") end.toLong() else start.toLong() + chunkSize
+            start.toLong() + chunkSize
         )
     }
 }

@@ -1,18 +1,16 @@
 package org.edu_sharing.rendering.service
 
 import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
 import org.apache.commons.lang3.StringUtils
 import org.apache.logging.log4j.ThreadContext
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.processing.h5p.LumiNodeInfo
-import org.edu_sharing.rendering.processing.moodle.MoodleReceiver
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
+import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
 
@@ -20,8 +18,6 @@ import org.springframework.web.util.UriComponentsBuilder
 class LumiProxyService(
     private val lumiWebClient: WebClient
 ) {
-    private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
-
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'Read')")
     fun <T> processProxyRequest(
         pathPrefix: String,
@@ -29,11 +25,10 @@ class LumiProxyService(
         body: String?,
         method: HttpMethod,
         request: HttpServletRequest,
-        response: HttpServletResponse,
         traceId: String,
         responseType: Class<T>
     ): ResponseEntity<T> {
-        return processProxyRequest(pathPrefix, body, method, request, response, traceId, responseType)
+        return processProxyRequest(pathPrefix, body, method, request, traceId, responseType)
     }
 
 
@@ -42,7 +37,6 @@ class LumiProxyService(
         body: String?,
         method: HttpMethod,
         request: HttpServletRequest,
-        response: HttpServletResponse,
         traceId: String,
         responseType: Class<T>
     ): ResponseEntity<T> {
@@ -75,7 +69,7 @@ class LumiProxyService(
             .headers { headers }
 
         if (body != null) {
-            lumiRequest.body(body, String::class.java)
+            lumiRequest.body(BodyInserters.fromValue(body))
         }
 
         return lumiRequest.retrieve()

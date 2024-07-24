@@ -30,7 +30,6 @@ class LumiProxyController(
             body,
             method,
             request,
-            response,
             UUID.randomUUID().toString(),
             String::class.java
         )
@@ -50,7 +49,6 @@ class LumiProxyController(
             body,
             method,
             request,
-            response,
             UUID.randomUUID().toString(),
             ByteArray::class.java
         )
@@ -68,7 +66,6 @@ class LumiProxyController(
             body,
             method,
             request,
-            response,
             UUID.randomUUID().toString(),
             ByteArray::class.java
         )

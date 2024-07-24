@@ -1,12 +1,12 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.minio.StatObjectResponse
 import io.mockk.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderModules
@@ -114,7 +114,7 @@ class EduHtmlServiceTest {
 
         every {
             storageMock.getFileProperties("eduhtml", "node123/index.html")
-        } returns mockk<StatObjectResponse>()
+        } returns mockk<CachedObjectDetails>()
 
         every { storageMock.getObjectLink("node123/index.html") } returns objectLink
 
