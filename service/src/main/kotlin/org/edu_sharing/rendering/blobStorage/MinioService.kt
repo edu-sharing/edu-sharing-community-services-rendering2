@@ -15,13 +15,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
-import java.io.FilterInputStream
 import java.io.InputStream
 
 @Service
 class MinioService(
     private val eduMinioClient: MinioClient
 ) : StorageService {
+
+    val defaultChunkSize = 10485760L
 
     @Value("\${app.public.url}")
     lateinit var publicUrl: String
@@ -43,7 +44,7 @@ class MinioService(
         val args = PutObjectArgs.builder()
             .bucket(cacheObject.type)
             .`object`(targetPath)
-            .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) 10485760 else -1)
+            .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) defaultChunkSize else -1)
             .userMetadata(metadata)
         if (cacheObject.mimeType.isNotBlank()) {
             args.contentType(cacheObject.mimeType)
@@ -73,10 +74,10 @@ class MinioService(
         try {
             val metadata = getStatObject(cacheObject).userMetadata()
             if (metadata.containsKey("width")) {
-                objectLink.width = metadata["width"]?.toInt() ?: 0
+                objectLink.width = metadata["width"]?.toIntOrNull() ?: 0
             }
             if (metadata.containsKey("height")) {
-                objectLink.height = metadata["height"]?.toInt() ?: 0
+                objectLink.height = metadata["height"]?.toIntOrNull() ?: 0
             }
             if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
                 objectLink.isHighestQuality = true
@@ -101,10 +102,10 @@ class MinioService(
 
     override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
         eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(if (isTemp) "temp" else cacheObject.type)
-            .`object`(getStoragePath(cacheObject)).build())
+            .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject)).build())
     }
 
-    override fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean): GetObjectResponse {
+    override fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean): InputStream {
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(if (isTemp) "temp" else cacheObject.type)
@@ -155,7 +156,7 @@ class MinioService(
             PutObjectArgs.builder()
                 .bucket("temp")
                 .`object`(this.getTempPath(cacheObject))
-                .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) 10485760 else -1)
+                .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) defaultChunkSize else -1)
                 .contentType(cacheObject.mimeType)
                 .build()
         )
@@ -213,10 +214,10 @@ class MinioService(
     }
 
     private fun getTempPath(cacheObject: CacheObject): String {
-        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}/${getExtensionFromMimeType(cacheObject.mimeType)}"
+        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${getExtensionFromMimeType(cacheObject.mimeType)}"
     }
 
     private fun getExtensionFromMimeType(mimeType: String): String {
-        return MimeTypes.getDefaultMimeTypes().forName(mimeType).extension
+        return if (mimeType.isNotBlank())MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
     }
 }
