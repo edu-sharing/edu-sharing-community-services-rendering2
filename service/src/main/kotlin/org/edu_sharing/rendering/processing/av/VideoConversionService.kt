@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.processing.av
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.exception.ConversionException
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -68,7 +69,7 @@ class VideoConversionService (
     ): Pair<Int, Int> {
         val originalHeight = multiMediaObject.info.video.size.height
         if (originalHeight < targetResolution) {
-            throw Exception("No Upscaling from $originalHeight to $targetResolution")
+            throw ConversionException("No Upscaling from $originalHeight to $targetResolution")
         }
         val originalWidth = multiMediaObject.info.video.size.width
         val ratio = originalWidth.toFloat() / originalHeight
@@ -99,12 +100,15 @@ class VideoConversionService (
      * This method checks if the currently rendered video has the highest possible resolution.
      */
     private fun checkIsHighestResolution(targetHeight: Int, originalHeight: Int): Boolean {
-        val maxResolution = videoResolutions.maxOrNull() ?: 0
-        if (targetHeight == maxResolution && originalHeight >= maxResolution) {
+        if (videoResolutions.isEmpty()) {
+            throw ConversionException("Video target resolutions are not set")
+        }
+        val maxResolution = videoResolutions.max()
+        if (targetHeight == maxResolution) {
             return true
         }
         if (originalHeight < maxResolution) {
-            return targetHeight == videoResolutions.sorted().last { it < originalHeight }
+            return targetHeight == videoResolutions.sorted().last { it <= originalHeight }
         }
         return false
     }
