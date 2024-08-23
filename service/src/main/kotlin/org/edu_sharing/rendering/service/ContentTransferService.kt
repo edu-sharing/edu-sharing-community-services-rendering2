@@ -28,6 +28,7 @@ class ContentTransferService(
             val resourceName = cacheObject.nodeId.substring(TEST_ID_PREFIX.length)
             return resourceLoader.getResource("classpath:$resourceName").inputStream
         }
+
         val timeStamp = System.currentTimeMillis()
         val sigData = cacheObject.nodeId + timeStamp
         val privateKey = privatePublicKeyService.getPrivateKey()

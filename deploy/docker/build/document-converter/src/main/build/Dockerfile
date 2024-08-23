@@ -30,7 +30,6 @@ RUN set -eux \
     && chown -RL worker:worker /tmp
 
 USER worker
-
 COPY --from=builder application/dependencies/ ./
 COPY --from=builder application/spring-boot-loader/ ./
 COPY --from=builder application/snapshot-dependencies/ ./
