@@ -2,13 +2,13 @@ package org.edu_sharing.rendering.blobStorage
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
-import io.minio.admin.MinioAdminClient
 import io.minio.errors.ErrorResponseException
 import io.minio.messages.ErrorResponse
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import okhttp3.Response
 import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
@@ -26,7 +26,7 @@ import java.net.URLDecoder
 class MinioServiceTest {
     private val client = mockk<MinioClient>()
     private val repository = mockk<TrackingEntryRepository>()
-    private val adminClient = mockk<MinioAdminClient>()
+    private val adminClient = mockk<MinioAdminClientProvider>()
     private val bucketStrategy = mockk<BucketStrategy>()
 
     lateinit var underTest: MinioService

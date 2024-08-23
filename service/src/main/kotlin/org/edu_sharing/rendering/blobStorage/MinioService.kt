@@ -2,11 +2,11 @@ package org.edu_sharing.rendering.blobStorage
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
-import io.minio.admin.MinioAdminClient
 import io.minio.errors.ErrorResponseException
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.apache.tika.mime.MimeTypes
+import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
@@ -27,7 +27,7 @@ import java.io.InputStream
 class MinioService(
     private val eduMinioClient: MinioClient,
     private val trackingEntryRepository: TrackingEntryRepository,
-    private val eduMinioAdminClient: MinioAdminClient,
+    private val eduMinioAdminClient: MinioAdminClientProvider,
     @Suppress("SpringJavaInjectionPointsAutowiringInspection")
     private val bucketStrategy: BucketStrategy
 ) : StorageService {

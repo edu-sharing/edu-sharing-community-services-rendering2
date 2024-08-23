@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.controller.external
 
-import io.minio.admin.MinioAdminClient
+import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.web.bind.annotation.GetMapping
@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.RestController
 class TestController(
     private val repository: TrackingEntryRepository,
     private val mongoTemplate: MongoTemplate,
-    private val minioAdminClient: MinioAdminClient
+    private val minioAdminClient: MinioAdminClientProvider
 ) {
     @GetMapping
     fun test() {
 
-        val test = minioAdminClient.getBucketQuota("image")
-        val test2 = minioAdminClient.dataUsageInfo
+        val test = minioAdminClient.adminClient.getBucketQuota("image")
+        val test2 = minioAdminClient.adminClient.dataUsageInfo
 
 
         /**
