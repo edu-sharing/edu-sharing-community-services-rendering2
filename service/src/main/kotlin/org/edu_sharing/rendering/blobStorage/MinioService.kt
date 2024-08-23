@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.blobStorage
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
 import io.minio.errors.ErrorResponseException
+import io.minio.messages.DeleteObject
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.apache.tika.mime.MimeTypes
@@ -36,12 +37,14 @@ class MinioService(
 
     @Value("\${app.public.url}")
     lateinit var publicUrl: String
+
     @Value("\${app.public.port}")
     lateinit var port: String
 
     private val logger = LoggerFactory.getLogger(javaClass)
+
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
-       putObject(cacheObject, inputStream, getStoragePath(cacheObject), metadata)
+        putObjectInternal(cacheObject, inputStream, bucketStrategy.getStoragePath(cacheObject), metadata)
     }
 
     override fun putObject(
@@ -50,11 +53,21 @@ class MinioService(
         targetPath: String,
         metadata: Map<String, String>
     ) {
-        createBucket(cacheObject.type)
+        putObjectInternal(cacheObject, inputStream, bucketStrategy.prefixStaticPath(cacheObject, targetPath), metadata)
+    }
+
+    private fun putObjectInternal(
+        cacheObject: CacheObject,
+        inputStream: InputStream,
+        targetPath: String,
+        metadata: Map<String, String> = emptyMap()
+    ) {
+        val bucket = bucketStrategy.getBucket(cacheObject)
+        createBucket(bucket)
         val args = PutObjectArgs.builder()
-            .bucket(cacheObject.type)
+            .bucket(bucket)
             .`object`(targetPath)
-            .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) defaultChunkSize else -1)
+            .stream(inputStream, cacheObject.size, if (cacheObject.size < 0) defaultChunkSize else -1)
             .userMetadata(metadata)
         if (cacheObject.mimeType.isNotBlank()) {
             args.contentType(cacheObject.mimeType)
@@ -69,10 +82,12 @@ class MinioService(
             }
         }
 
-        trackingEntryRepository.save(TrackingEntry(
-            size = cacheObject.size,
-            bucket = cacheObject.type,
-            storagePath = targetPath)
+        trackingEntryRepository.save(
+            TrackingEntry(
+                size = cacheObject.size,
+                bucket = bucket,
+                storagePath = targetPath
+            )
         )
     }
 
@@ -117,28 +132,55 @@ class MinioService(
             .scheme(publicUrl.substringBefore("://"))
             .host(publicUrl.substringAfter("://"))
             .port(port)
-            .path("/public/asset/static/${path.trimStart {it == '/'}}")
+            .path("/public/asset/static/${path.trimStart { it == '/' }}")
             .build()
             .toUriString()
         return ObjectLink(link = url)
     }
 
     override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
-        eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(if (isTemp) "temp" else cacheObject.type)
-            .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject)).build())
-        trackingEntryRepository.deleteByStoragePath(getStoragePath(cacheObject))
+        if (isTemp) {
+            eduMinioClient.removeObject(
+                RemoveObjectArgs.builder()
+                    .bucket("temp")
+                    .`object`(getTempPath(cacheObject))
+                    .build()
+            )
+        } else {
+            val bucket = bucketStrategy.getBucket(cacheObject)
+            val storagePath = bucketStrategy.getStoragePath(cacheObject)
+
+            eduMinioClient.removeObject(
+                RemoveObjectArgs.builder()
+                    .bucket(bucket)
+                    .`object`(storagePath)
+                    .build()
+            )
+
+            trackingEntryRepository.deleteByBucketAndStoragePath(bucket, storagePath)
+        }
     }
 
     override fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean): InputStream {
-        if (!isTemp)  {
-            trackCacheObject(cacheObject.type, getStoragePath(cacheObject))
+        if (isTemp) {
+            return eduMinioClient.getObject(
+                GetObjectArgs.Builder()
+                    .bucket("temp")
+                    .`object`(getTempPath(cacheObject))
+                    .build()
+            )
+        } else {
+            val bucket = bucketStrategy.getBucket(cacheObject)
+            val path = bucketStrategy.getStoragePath(cacheObject)
+
+            trackCacheObject(bucket, path)
+            return eduMinioClient.getObject(
+                GetObjectArgs.Builder()
+                    .bucket(bucket)
+                    .`object`(path)
+                    .build()
+            )
         }
-        return eduMinioClient.getObject(
-            GetObjectArgs.Builder()
-                .bucket(if (isTemp) "temp" else cacheObject.type)
-                .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject))
-                .build()
-        )
     }
 
     override fun getObjectStream(bucket: String, path: String): InputStream {
@@ -157,17 +199,29 @@ class MinioService(
         offset: Long,
         length: Long
     ): InputStream {
-        if (!isTemp) {
-            trackCacheObject(cacheObject.type, getStoragePath(cacheObject))
+        if (isTemp) {
+            return eduMinioClient.getObject(
+                GetObjectArgs.Builder()
+                    .bucket("temp")
+                    .`object`(getTempPath(cacheObject))
+                    .offset(offset)
+                    .length(length)
+                    .build()
+            )
+        } else {
+            val bucket = bucketStrategy.getBucket(cacheObject)
+            val path = bucketStrategy.getStoragePath(cacheObject)
+
+            trackCacheObject(bucket, path)
+            return eduMinioClient.getObject(
+                GetObjectArgs.Builder()
+                    .bucket(bucket)
+                    .`object`(path)
+                    .offset(offset)
+                    .length(length)
+                    .build()
+            )
         }
-        return eduMinioClient.getObject(
-            GetObjectArgs.Builder()
-                .bucket(if (isTemp) "temp" else cacheObject.type)
-                .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject))
-                .offset(offset)
-                .length(length)
-                .build()
-        )
     }
 
     override fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): InputStream {
@@ -188,7 +242,7 @@ class MinioService(
             PutObjectArgs.builder()
                 .bucket("temp")
                 .`object`(this.getTempPath(cacheObject))
-                .stream(inputStream, cacheObject.size, if(cacheObject.size < 0) defaultChunkSize else -1)
+                .stream(inputStream, cacheObject.size, if (cacheObject.size < 0) defaultChunkSize else -1)
                 .contentType(cacheObject.mimeType)
                 .build()
         )
@@ -223,12 +277,75 @@ class MinioService(
         }
     }
 
+    override fun getStorageInfo(): List<StorageInfo> {
+        val usageInfo = eduMinioAdminClient.adminClient.dataUsageInfo
+        val infoList = mutableListOf<StorageInfo>()
+        usageInfo.bucketsUsageInfo().forEach { entry ->
+            val quota = eduMinioAdminClient.adminClient.getBucketQuota(entry.key)
+            val storageInfo = StorageInfo(
+                location = entry.key,
+                size = entry.value.size(),
+                maxSize = quota
+            )
+            infoList.add(storageInfo)
+        }
+        return infoList
+    }
+
+    override fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float) {
+        val maxSize = (lowerThreshold * storageInfo.maxSize).toLong()
+
+        val page = 0
+        var totalSize = 0L
+        var result: Page<TrackingEntry>?
+        val minioObjectsToDelete = mutableListOf<DeleteObject>()
+        val trackingEntriesToDelete = mutableListOf<TrackingEntry>()
+        do {
+            result = trackingEntryRepository.findAllByBucket(
+                storageInfo.location,
+                PageRequest.of(page, 100, Sort.Direction.ASC, "lastAccessed")
+            )
+
+            // TODO fully delete eduhtml folders
+            // TODO handle h5p caches in lumi
+            for (entry in result) {
+                if (totalSize > maxSize) {
+                    break
+                }
+                try {
+                    // TODO maybe move logic for tracking and deleting Objects to respective modules because of h5p and html...
+                    eduMinioClient.removeObject(
+                        RemoveObjectArgs.builder()
+                            .bucket(entry.bucket)
+                            .`object`(entry.storagePath)
+                            .build())
+
+                    totalSize += entry.size
+                }catch (_:Exception){
+                    // maybe object doesn't exists anymore...
+                } finally {
+                    trackingEntryRepository.delete(entry)
+                }
+            }
+        } while (result?.hasNext() == true && totalSize < maxSize)
+
+        eduMinioClient.removeObjects(
+            RemoveObjectsArgs.builder()
+                .bucket(storageInfo.location)
+                .objects(minioObjectsToDelete)
+                .build()
+        )
+        trackingEntryRepository.deleteAll(trackingEntriesToDelete)
+    }
+
+
     private fun getStatObject(cacheObject: CacheObject): StatObjectResponse {
         return eduMinioClient.statObject(
-            StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
+            StatObjectArgs.builder()
+                .bucket(bucketStrategy.getBucket(cacheObject))
+                .`object`(bucketStrategy.getStoragePath(cacheObject))
+                .build()
         )
-
-        //TODO
     }
 
     private fun createBucket(name: String) {
@@ -238,49 +355,12 @@ class MinioService(
         eduMinioClient.makeBucket(MakeBucketArgs.builder().bucket(name).build())
     }
 
-    private fun getStoragePath(cacheObject: CacheObject): String {
-        var name = cacheObject.nodeId.plus("/").plus(cacheObject.hash)
-        if (cacheObject.quality != null) {
-            name = name.plus("_").plus(cacheObject.quality)
-        }
-        name = name.plus(getExtensionFromMimeType(cacheObject.mimeType))
-        return name
-    }
-
     private fun getTempPath(cacheObject: CacheObject): String {
         return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${getExtensionFromMimeType(cacheObject.mimeType)}"
     }
 
     private fun getExtensionFromMimeType(mimeType: String): String {
-        return if (mimeType.isNotBlank())MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
-    }
-
-    private fun checkQuotaUsage(bucket: String) {
-
-    }
-
-    private fun freeCache(bucket: String){
-        val maxSize = 5 // TODO to be configure
-
-
-        var totalSize = 0L
-        val page = 0
-        var result: Page<TrackingEntry>?
-        do {
-            result = trackingEntryRepository.findAll(PageRequest.of(page, 100, Sort.Direction.ASC, "lastAccessed"))
-            for (entry in result) {
-                totalSize += entry.size
-                if(totalSize > maxSize){
-                    break
-                }
-                eduMinioClient.deleteObjectTags(DeleteObjectTagsArgs.builder()
-                    .bucket(bucket)
-                    .`object`(entry.storagePath)
-                    .build())
-                trackingEntryRepository.delete(entry)
-            }
-
-        }while (result?.hasNext() == true && totalSize < maxSize)
+        return if (mimeType.isNotBlank()) MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
     }
 
     private fun trackCacheObject(bucket: String, path: String) {

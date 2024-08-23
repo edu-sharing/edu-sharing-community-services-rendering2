@@ -18,4 +18,6 @@ interface StorageService {
     fun putTempFile(cacheObject: CacheObject, inputStream: InputStream)
     fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails
     fun getFileProperties(bucket: String, path: String): CachedObjectDetails
+    fun getStorageInfo(): List<StorageInfo>
+    fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float)
 }
