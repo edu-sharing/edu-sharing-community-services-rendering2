@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.blobStorage
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
+import io.minio.admin.MinioAdminClient
 import io.minio.errors.ErrorResponseException
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
@@ -10,16 +11,25 @@ import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.entity.TrackingEntry
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
 
 @Service
 class MinioService(
-    private val eduMinioClient: MinioClient
+    private val eduMinioClient: MinioClient,
+    private val trackingEntryRepository: TrackingEntryRepository,
+    private val eduMinioAdminClient: MinioAdminClient,
+    @Suppress("SpringJavaInjectionPointsAutowiringInspection")
+    private val bucketStrategy: BucketStrategy
 ) : StorageService {
 
     val defaultChunkSize = 10485760L
@@ -49,7 +59,21 @@ class MinioService(
         if (cacheObject.mimeType.isNotBlank()) {
             args.contentType(cacheObject.mimeType)
         }
-        eduMinioClient.putObject(args.build())
+        try {
+            eduMinioClient.putObject(args.build())
+        } catch (errorException: ErrorResponseException) {
+            if (errorException.errorResponse().message() == "EntityTooLarge") {
+                // Clear cache!
+            } else {
+                throw errorException
+            }
+        }
+
+        trackingEntryRepository.save(TrackingEntry(
+            size = cacheObject.size,
+            bucket = cacheObject.type,
+            storagePath = targetPath)
+        )
     }
 
     override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
@@ -85,7 +109,6 @@ class MinioService(
         } catch (errorException: ErrorResponseException) {
             throw ResourceNotFoundException("Resource invalid or not yet cached.")
         }
-
         return objectLink
     }
 
@@ -103,9 +126,13 @@ class MinioService(
     override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
         eduMinioClient.removeObject(RemoveObjectArgs.builder().bucket(if (isTemp) "temp" else cacheObject.type)
             .`object`(if (isTemp) getTempPath(cacheObject) else getStoragePath(cacheObject)).build())
+        trackingEntryRepository.deleteByStoragePath(getStoragePath(cacheObject))
     }
 
     override fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean): InputStream {
+        if (!isTemp)  {
+            trackCacheObject(cacheObject.type, getStoragePath(cacheObject))
+        }
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(if (isTemp) "temp" else cacheObject.type)
@@ -115,6 +142,7 @@ class MinioService(
     }
 
     override fun getObjectStream(bucket: String, path: String): InputStream {
+        trackCacheObject(bucket, path)
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
@@ -129,6 +157,9 @@ class MinioService(
         offset: Long,
         length: Long
     ): InputStream {
+        if (!isTemp) {
+            trackCacheObject(cacheObject.type, getStoragePath(cacheObject))
+        }
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(if (isTemp) "temp" else cacheObject.type)
@@ -140,6 +171,7 @@ class MinioService(
     }
 
     override fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): InputStream {
+        trackCacheObject(bucket, path)
         return eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
@@ -178,7 +210,7 @@ class MinioService(
 
     override fun getFileProperties(bucket: String, path: String): CachedObjectDetails {
         try {
-            val statObject =  eduMinioClient.statObject(
+            val statObject = eduMinioClient.statObject(
                 StatObjectArgs.builder().bucket(bucket).`object`(path).build()
             )
             return CachedObjectDetails(
@@ -195,6 +227,8 @@ class MinioService(
         return eduMinioClient.statObject(
             StatObjectArgs.builder().bucket(cacheObject.type).`object`(getStoragePath(cacheObject)).build()
         )
+
+        //TODO
     }
 
     private fun createBucket(name: String) {
@@ -219,5 +253,39 @@ class MinioService(
 
     private fun getExtensionFromMimeType(mimeType: String): String {
         return if (mimeType.isNotBlank())MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
+    }
+
+    private fun checkQuotaUsage(bucket: String) {
+
+    }
+
+    private fun freeCache(bucket: String){
+        val maxSize = 5 // TODO to be configure
+
+
+        var totalSize = 0L
+        val page = 0
+        var result: Page<TrackingEntry>?
+        do {
+            result = trackingEntryRepository.findAll(PageRequest.of(page, 100, Sort.Direction.ASC, "lastAccessed"))
+            for (entry in result) {
+                totalSize += entry.size
+                if(totalSize > maxSize){
+                    break
+                }
+                eduMinioClient.deleteObjectTags(DeleteObjectTagsArgs.builder()
+                    .bucket(bucket)
+                    .`object`(entry.storagePath)
+                    .build())
+                trackingEntryRepository.delete(entry)
+            }
+
+        }while (result?.hasNext() == true && totalSize < maxSize)
+    }
+
+    private fun trackCacheObject(bucket: String, path: String) {
+        val trackingEntry = trackingEntryRepository.findByBucketAndStoragePath(bucket, path)
+            .orElseThrow { ResourceNotFoundException("Resource invalid or not yet cached.") }
+        trackingEntryRepository.save(TrackingEntry.of(trackingEntry))
     }
 }

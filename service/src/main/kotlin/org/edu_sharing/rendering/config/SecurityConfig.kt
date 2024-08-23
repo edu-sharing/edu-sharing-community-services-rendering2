@@ -1,5 +1,7 @@
 package org.edu_sharing.rendering.config
 
+import io.jsonwebtoken.JwtParser
+import io.jsonwebtoken.Jwts
 import org.edu_sharing.rendering.security.AuthTokenFilter
 import org.edu_sharing.rendering.security.NodePermissionSessionContextEvaluator
 import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
@@ -39,10 +41,16 @@ class SecurityConfig(
     @Value("\${app.security.adminPassword}") var adminPassword: String
 ) {
 
+    @Bean
+    fun jwtParser(keyService: PrivatePublicKeyService): JwtParser {
+        return Jwts.parser()
+            .verifyWith(keyService.getRepositoryKey())
+            .build()
+    }
 
     @Bean
-    fun jwtUtils(keyService: PrivatePublicKeyService): JwtUtils {
-        return JwtUtils(keyService)
+    fun jwtUtils(jwtParser: JwtParser): JwtUtils {
+        return JwtUtils(jwtParser)
     }
 
     @Bean

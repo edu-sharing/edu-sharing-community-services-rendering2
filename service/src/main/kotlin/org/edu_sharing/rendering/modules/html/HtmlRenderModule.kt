@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 @Component
 class HtmlRenderModule(
     @Value("\${app.session.html.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long,
+    private val nodePermissionExpirationTime: Long?,
     private val defaultStrategy: DefaultStrategy,
     private val mapper: Mapper
 ) : RenderModule {

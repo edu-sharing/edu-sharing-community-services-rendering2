@@ -1,16 +1,8 @@
 package org.edu_sharing.rendering.blobStorage
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.minio.BucketExistsArgs
-import io.minio.GetObjectArgs
-import io.minio.GetObjectResponse
-import io.minio.MakeBucketArgs
-import io.minio.MinioClient
-import io.minio.ObjectWriteResponse
-import io.minio.PutObjectArgs
-import io.minio.RemoveObjectArgs
-import io.minio.StatObjectArgs
-import io.minio.StatObjectResponse
+import io.minio.*
+import io.minio.admin.MinioAdminClient
 import io.minio.errors.ErrorResponseException
 import io.minio.messages.ErrorResponse
 import io.mockk.*
@@ -20,6 +12,7 @@ import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -32,12 +25,15 @@ import java.net.URLDecoder
 @ExtendWith(MockKExtension::class)
 class MinioServiceTest {
     private val client = mockk<MinioClient>()
+    private val repository = mockk<TrackingEntryRepository>()
+    private val adminClient = mockk<MinioAdminClient>()
+    private val bucketStrategy = mockk<BucketStrategy>()
 
     lateinit var underTest: MinioService
 
     @BeforeEach
     fun setup() {
-        underTest = MinioService(client)
+        underTest = MinioService(client, repository, adminClient, bucketStrategy)
         underTest.publicUrl = "http://public"
         underTest.port = "8909"
     }

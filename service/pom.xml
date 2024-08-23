@@ -159,7 +159,13 @@
     <dependency>
       <groupId>io.minio</groupId>
       <artifactId>minio</artifactId>
-      <version>8.5.9</version>
+      <version>8.5.12</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.minio</groupId>
+      <artifactId>minio-admin</artifactId>
+      <version>8.5.12</version>
     </dependency>
 
     <dependency>
@@ -716,6 +722,11 @@
         <enabled>true</enabled>
         <updatePolicy>never</updatePolicy>
       </snapshots>
+    </repository>
+    <repository>
+      <id>maven_central</id>
+      <name>Maven Central</name>
+      <url>https://repo.maven.apache.org/maven2/</url>
     </repository>
 
 

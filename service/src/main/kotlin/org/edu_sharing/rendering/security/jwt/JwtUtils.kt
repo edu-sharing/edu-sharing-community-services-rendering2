@@ -1,9 +1,7 @@
 package org.edu_sharing.rendering.security.jwt
 
-import org.edu_sharing.rendering.service.PrivatePublicKeyService
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.JwtParser
-import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException
 import org.edu_sharing.rendering.security.NodePermission
@@ -12,19 +10,13 @@ import org.springframework.security.core.GrantedAuthority
 import java.security.InvalidKeyException
 import java.time.LocalDateTime
 
-class JwtUtils(private var keyService: PrivatePublicKeyService) {
+class JwtUtils(private val jwtParser: JwtParser) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    private fun getJwtParser(): JwtParser {
-        return Jwts.parser()
-            .verifyWith(keyService.getRepositoryKey())
-            .build()
-    }
-
     fun validateJwtToken(jwt: String): Boolean {
         try {
-            getJwtParser().parse(jwt)
+            jwtParser.parse(jwt)
             return true
         } catch (e: MalformedJwtException) {
             log.error("Invalid JWT token: {}", e.message)
@@ -35,13 +27,13 @@ class JwtUtils(private var keyService: PrivatePublicKeyService) {
         } catch (e: IllegalArgumentException) {
             log.error("JWT claims string is empty: {}", e.message)
         } catch (e: InvalidKeyException) {
-            log.error("JWT parser hasn't a valid public key: {}", e.message)
+            log.error("JWT parser has no valid public key: {}", e.message)
         }
         return false
     }
 
     fun getUserDetailsFromJwt(jwt: String): JWTBasedUserDetail {
-        val jwtObj = getJwtParser().parseSignedClaims(jwt)
+        val jwtObj = jwtParser.parseSignedClaims(jwt)
         val grantedAuthority = mutableListOf<GrantedAuthority>()
 
         return JWTBasedUserDetail(
@@ -54,7 +46,7 @@ class JwtUtils(private var keyService: PrivatePublicKeyService) {
 
     @Suppress("UNCHECKED_CAST")
     fun getNodePermissions(jwt: String): NodePermission {
-        val jwtObj = getJwtParser().parseSignedClaims(jwt)
+        val jwtObj = jwtParser.parseSignedClaims(jwt)
         return NodePermission(
             jwtObj.payload.get("node", String::class.java),
             (jwtObj.payload.get("permissions", List::class.java) as Collection<String>).toSet(),

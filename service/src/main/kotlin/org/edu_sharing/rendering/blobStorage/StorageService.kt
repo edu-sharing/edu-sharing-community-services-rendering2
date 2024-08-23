@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.blobStorage
 
-import io.minio.GetObjectResponse
-import io.minio.StatObjectResponse
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink
