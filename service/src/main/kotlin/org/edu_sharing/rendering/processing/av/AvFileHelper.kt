@@ -5,13 +5,14 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
+import java.io.Closeable
 import java.io.File
 import java.nio.file.Files
 import java.util.*
 
 class AvFileHelper(
     private val storageImplementation: StorageService
-) {
+): Closeable {
     lateinit var outputFile: File
     lateinit var originalFile: File
 
@@ -42,5 +43,9 @@ class AvFileHelper(
     fun cleanup() {
         if(::outputFile.isInitialized) {outputFile.delete()}
         if(::originalFile.isInitialized) {originalFile.delete()}
+    }
+
+    override fun close() {
+        cleanup()
     }
 }

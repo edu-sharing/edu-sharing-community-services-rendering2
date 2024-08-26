@@ -17,7 +17,7 @@ class AudioConversionService(
     private val listenerFactory: ObjectFactory<AVConversionListener>,
     private val encoder: Encoder,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>
-): AvConversionService {
+) : AvConversionService {
     companion object {
         const val OUTPUT_FORMAT = "mp3"
         const val CODEC = "libmp3lame"
@@ -29,12 +29,13 @@ class AudioConversionService(
     lateinit var bitrate: String
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
-        val fileHelper = avFileHelperFactory.`object`
         val listener = listenerFactory.`object`
         listener.subJob = subJob
-        fileHelper.initOutputTempFile(OUTPUT_FORMAT)
         val attributes = initAttributes()
-        try {
+
+        val fileHelper = avFileHelperFactory.`object`
+        fileHelper.use {
+            fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
             val multiMediaObject = MultimediaObject(fileHelper.originalFile)
             encoder.encode(multiMediaObject, fileHelper.outputFile, attributes, listener)
@@ -43,10 +44,6 @@ class AudioConversionService(
             outputCacheObject.size = fileHelper.outputFile.length()
             outputCacheObject.mimeType = MIME_TYPE
             fileHelper.uploadToCache(outputCacheObject)
-        } catch (exception: Exception) {
-            throw exception
-        } finally {
-            fileHelper.cleanup()
         }
     }
 

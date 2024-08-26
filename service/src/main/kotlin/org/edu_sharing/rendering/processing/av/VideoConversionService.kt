@@ -16,14 +16,15 @@ import ws.schild.jave.info.VideoSize
 
 @ConditionalOnConverter
 @Service
-class VideoConversionService (
+class VideoConversionService(
     private val listenerFactory: ObjectFactory<AVConversionListener>,
     private val encoder: Encoder,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
-): AvConversionService {
+) : AvConversionService {
 
     @Value("\${app.converter.video.format}")
     lateinit var videoFormat: String
+
     @Value("\${app.converter.video.resolutions}")
     lateinit var videoResolutions: List<Int>
 
@@ -37,10 +38,11 @@ class VideoConversionService (
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
         val listener = listenerFactory.`object`
-        val fileHelper = avFileHelperFactory.`object`
         listener.subJob = subJob
-        fileHelper.initOutputTempFile(videoFormat)
-        try {
+
+        val fileHelper = avFileHelperFactory.`object`
+        fileHelper.use {
+            fileHelper.initOutputTempFile(videoFormat)
             fileHelper.fetchOriginalTempFile(cacheObject)
             val multiMediaObject = MultimediaObject(fileHelper.originalFile)
             val (targetWidth, targetHeight) = calculateTargetDimensions(multiMediaObject, subJob.quality)
@@ -52,10 +54,6 @@ class VideoConversionService (
             outputCacheObject.size = fileHelper.outputFile.length()
             outputCacheObject.mimeType = "video/$videoFormat"
             fileHelper.uploadToCache(outputCacheObject, metadata)
-        } catch (exception: Exception) {
-            throw exception
-        } finally {
-            fileHelper.cleanup()
         }
     }
 
