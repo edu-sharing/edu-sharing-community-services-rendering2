@@ -28,14 +28,14 @@ class AudioService(
             return directStorageHandler.getObjectLinkList(cacheObject)
         }
 
-        val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "audio/mpeg"
-        try {
-            objectLinkList.add(storageImplementation.getObjectLink(lookUpObject))
+
+        return try {
+            listOf(storageImplementation.getObjectLink(lookUpObject))
         } catch (_: ResourceNotFoundException) {
+            null
         }
-        return objectLinkList.ifEmpty { null }
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules): String {

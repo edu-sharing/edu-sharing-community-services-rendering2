@@ -13,14 +13,14 @@ class DocumentService(
     private val mainJobCreationService: MainJobCreationService
 ) {
     fun getObjectLinks(cacheObject: CacheObject, module: DocumentRenderModule): List<ObjectLink>? {
-        val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = module.getTargetMimetype()
-        try {
-            objectLinkList.add(storageImplementation.getObjectLink(lookUpObject))
+
+        return try {
+            listOf(storageImplementation.getObjectLink(lookUpObject))
         } catch (_: ResourceNotFoundException) {
+            null
         }
-        return objectLinkList.ifEmpty { null }
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: DocumentRenderModule): String {

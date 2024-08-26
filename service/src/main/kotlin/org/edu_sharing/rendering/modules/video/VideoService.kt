@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
-class VideoService (
+class VideoService(
     private val directStorageHandler: DirectStorageHandler,
     private val storageImplementation: StorageService,
     private val mainJobCreationService: MainJobCreationService
@@ -34,18 +34,18 @@ class VideoService (
             return directStorageHandler.getObjectLinkList(cacheObject)
         }
 
-        val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "video/$targetVideoFormat"
 
-        val requestedResolutions= if (resolution == null) targetVideoResolutions else listOf(resolution)
-        requestedResolutions.forEach {
+        val requestedResolutions = if (resolution == null) targetVideoResolutions else listOf(resolution)
+        return requestedResolutions.mapNotNull {
             lookUpObject.quality = it
             try {
-                objectLinkList.add(storageImplementation.getObjectLink(lookUpObject))
-            } catch (_: ResourceNotFoundException) {}
-        }
-        return objectLinkList.ifEmpty { null }
+                storageImplementation.getObjectLink(lookUpObject)
+            } catch (_: ResourceNotFoundException) {
+                null
+            }
+        }.toList().ifEmpty { null }
     }
 
     fun getMissingQualities(availableLinks: List<ObjectLink>?): List<Int> {
@@ -53,7 +53,7 @@ class VideoService (
         var highestDeterminedQuality = availableLinks.firstOrNull { it.isHighestQuality }?.height
         if (highestDeterminedQuality == null) highestDeterminedQuality = Int.MAX_VALUE
         return targetVideoResolutions.filter {
-            it < highestDeterminedQuality && ! availableLinks.map { link -> link.height }.contains(it)
+            it < highestDeterminedQuality && !availableLinks.map { link -> link.height }.contains(it)
         }
     }
 
