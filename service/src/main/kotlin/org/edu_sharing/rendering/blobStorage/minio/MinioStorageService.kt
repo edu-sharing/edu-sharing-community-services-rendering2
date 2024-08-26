@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.blobStorage
+package org.edu_sharing.rendering.blobStorage.minio
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
@@ -7,6 +7,9 @@ import io.minio.messages.DeleteObject
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.apache.tika.mime.MimeTypes
+import org.edu_sharing.rendering.blobStorage.StorageInfo
+import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
 import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
@@ -25,7 +28,7 @@ import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
 
 @Service
-class MinioService(
+class MinioStorageService(
     private val eduMinioClient: MinioClient,
     private val trackingEntryRepository: TrackingEntryRepository,
     private val eduMinioAdminClient: MinioAdminClientProvider,

@@ -8,6 +8,8 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import okhttp3.Response
 import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
+import org.edu_sharing.rendering.blobStorage.minio.MinioStorageService
 import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
@@ -23,17 +25,17 @@ import java.net.URLDecoder
 
 
 @ExtendWith(MockKExtension::class)
-class MinioServiceTest {
+class MinioStorageServiceTest {
     private val client = mockk<MinioClient>()
     private val repository = mockk<TrackingEntryRepository>()
     private val adminClient = mockk<MinioAdminClientProvider>()
     private val bucketStrategy = mockk<BucketStrategy>()
 
-    lateinit var underTest: MinioService
+    lateinit var underTest: MinioStorageService
 
     @BeforeEach
     fun setup() {
-        underTest = MinioService(client, repository, adminClient, bucketStrategy)
+        underTest = MinioStorageService(client, repository, adminClient, bucketStrategy)
         underTest.publicUrl = "http://public"
         underTest.port = "8909"
     }

@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.blobStorage
+package org.edu_sharing.rendering.blobStorage.minio.bucket
 
 import org.apache.tika.mime.MimeTypes
 import org.edu_sharing.rendering.config.annotation.ConditionalOnStorageByCustomer

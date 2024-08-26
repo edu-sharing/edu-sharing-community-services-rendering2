@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.blobStorage
+package org.edu_sharing.rendering.blobStorage.minio.bucket
 
 import org.edu_sharing.rendering.dto.CacheObject
 
