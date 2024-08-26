@@ -54,7 +54,9 @@ class EduHtmlService(
     fun getObjectLink(nodeId: String): ObjectLink {
         val bucket = "eduhtml"
         val indexPath = "$nodeId/index.html"
-        
+
+        // TODO bucket -> see bucket strategy
+        // TODO Why calling getFileProperties first?
         storageImplementation.getFileProperties(bucket, indexPath)
         return storageImplementation.getObjectLink(indexPath)
     }

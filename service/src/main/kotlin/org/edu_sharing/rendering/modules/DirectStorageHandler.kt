@@ -20,6 +20,8 @@ class DirectStorageHandler(
     fun getObjectLinkList(cacheObject: CacheObject): List<ObjectLink> {
         var existingObjectLink = getObjectLink(cacheObject)
 
+
+        // TODO we should do this async, controller should be as fast as possible and non blocking on other services
         if (existingObjectLink == null) {
             val objectInputStream = contentTransferService.getAsInputStream(cacheObject)
             this.storageImplementation.putObject(cacheObject, objectInputStream)

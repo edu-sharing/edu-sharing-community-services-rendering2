@@ -46,17 +46,20 @@ class AssetService(
     @PreAuthorize("hasPermission(#nodeId, 'Read')")
     fun getStaticAsset(request: HttpServletRequest, range: String, nodeId: String): ReadableAsset {
         val storagePath = request.requestURI.substringAfter("/static/")
+        // TODO bucket strategy
         val fileDetails = storageImplementation.getFileProperties("file-eduhtml", storagePath)
 
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
+                // TODO bucket strategy
                 stream = storageImplementation.getObjectStream("file-eduhtml", storagePath)
             )
         }
 
         val longRange = parseRange(range, fileDetails.size)
+        // TODO bucket strategy
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             "file-eduhtml",
             storagePath,
