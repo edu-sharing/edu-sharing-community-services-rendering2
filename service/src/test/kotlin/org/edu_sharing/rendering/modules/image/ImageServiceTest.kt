@@ -10,7 +10,7 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
 class ImageServiceTest {
-    private val defaultStrategy = mockk<DefaultStrategy>()
+    private val directStorageHandler = mockk<DirectStorageHandler>()
     private val storageService = mockk<StorageService>()
     private val mainJobService = mockk<MainJobCreationService>()
 
@@ -33,7 +33,7 @@ class ImageServiceTest {
 
     @BeforeEach
     fun setup() {
-        underTest = ImageService(defaultStrategy, storageService, mainJobService)
+        underTest = ImageService(directStorageHandler, storageService, mainJobService)
         underTest.convertedImageMimeTypes = listOf("image/jpeg", "image/png")
         underTest.targetImageSizes = listOf(100,200)
         underTest.targetImageFormat = "jpeg"
@@ -68,7 +68,7 @@ class ImageServiceTest {
         // Arrange
         val cacheObjectWithNonConversion = cacheObject.copy()
         cacheObjectWithNonConversion.mimeType = "image/ogg"
-        every {defaultStrategy.getObjectLinkList(cacheObjectWithNonConversion)} returns listOf(ObjectLink(link = "mylink"))
+        every {directStorageHandler.getObjectLinkList(cacheObjectWithNonConversion)} returns listOf(ObjectLink(link = "mylink"))
 
         // Act
         val result = underTest.getObjectLinks(cacheObjectWithNonConversion)
@@ -76,8 +76,8 @@ class ImageServiceTest {
         // Assert
         assert(result?.get(0)?.link == "mylink")
 
-        verify (exactly = 1) { defaultStrategy.getObjectLinkList(cacheObjectWithNonConversion) }
-        confirmVerified(defaultStrategy)
+        verify (exactly = 1) { directStorageHandler.getObjectLinkList(cacheObjectWithNonConversion) }
+        confirmVerified(directStorageHandler)
     }
 
     @Test

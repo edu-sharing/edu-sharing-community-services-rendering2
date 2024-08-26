@@ -4,7 +4,7 @@ import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 class HtmlRenderModule(
     @Value("\${app.session.html.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
-    private val defaultStrategy: DefaultStrategy,
+    private val directStorageHandler: DirectStorageHandler,
     private val mapper: Mapper
 ) : RenderModule {
 
@@ -21,7 +21,7 @@ class HtmlRenderModule(
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
-        val links = defaultStrategy.getObjectLinkList(cacheObject)
+        val links = directStorageHandler.getObjectLinkList(cacheObject)
 
         return RenderDataResponse(
             objectLinks = links,

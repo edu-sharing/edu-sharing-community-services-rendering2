@@ -12,21 +12,21 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
 class PdfRenderModuleTest {
-    private val defaultStrategyMock = mockk<DefaultStrategy>()
+    private val directStorageHandlerMock = mockk<DirectStorageHandler>()
     private val mapperMock = mockk<Mapper>()
 
     private lateinit var underTest: PdfRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = PdfRenderModule(55L, defaultStrategyMock, mapperMock)
+        underTest = PdfRenderModule(55L, directStorageHandlerMock, mapperMock)
         clearAllMocks()
     }
 
@@ -38,7 +38,7 @@ class PdfRenderModuleTest {
         val linkList = listOf(ObjectLink(link = "mylink"))
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
-        every { defaultStrategyMock.getObjectLinkList(cacheObject) } returns linkList
+        every { directStorageHandlerMock.getObjectLinkList(cacheObject) } returns linkList
 
         // Act
         val result = underTest.handle(request)
@@ -50,7 +50,7 @@ class PdfRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
-            defaultStrategyMock.getObjectLinkList(cacheObject)
+            directStorageHandlerMock.getObjectLinkList(cacheObject)
         }
     }
 

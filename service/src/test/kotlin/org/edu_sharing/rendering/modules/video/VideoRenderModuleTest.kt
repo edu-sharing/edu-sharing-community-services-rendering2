@@ -11,7 +11,7 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -19,7 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(MockKExtension::class)
 class VideoRenderModuleTest {
     private val nodeExpiration = 23L
-    private val defaultStrategy = mockk<DefaultStrategy>()
+    private val directStorageHandler = mockk<DirectStorageHandler>()
     private val mapper = mockk<Mapper>()
     private val videoService = mockk<VideoService>()
 
@@ -29,7 +29,7 @@ class VideoRenderModuleTest {
     fun setup() {
         underTest = VideoRenderModule(
             nodeExpiration,
-            defaultStrategy,
+            directStorageHandler,
             mapper,
             videoService,
         )
@@ -52,7 +52,7 @@ class VideoRenderModuleTest {
 
         every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
         every { videoService.isConversionObject(cacheObject) } returns false
-        every { defaultStrategy.getObjectLinkList(cacheObject) } returns linkList
+        every { directStorageHandler.getObjectLinkList(cacheObject) } returns linkList
 
         // Act
         val result = underTest.handle(request)
@@ -65,7 +65,7 @@ class VideoRenderModuleTest {
         verifySequence {
             mapper.renderDataRequestToCacheObject(request)
             videoService.isConversionObject(cacheObject)
-            defaultStrategy.getObjectLinkList(cacheObject)
+            directStorageHandler.getObjectLinkList(cacheObject)
         }
     }
 

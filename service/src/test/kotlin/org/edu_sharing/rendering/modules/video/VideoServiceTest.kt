@@ -7,7 +7,7 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
 class VideoServiceTest {
-    private val defaultStrategy = mockk<DefaultStrategy>()
+    private val directStorageHandler = mockk<DirectStorageHandler>()
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
 
@@ -31,7 +31,7 @@ class VideoServiceTest {
     @BeforeEach
     fun setup() {
         underTest = VideoService(
-            defaultStrategy,
+            directStorageHandler,
             storageService,
             mainJobCreationService
         )
@@ -62,7 +62,7 @@ class VideoServiceTest {
         val expectedLinks = listOf(ObjectLink(link = "link1"))
 
         every { cacheObject.mimeType } returns "video/wmv"
-        every { defaultStrategy.getObjectLinkList(cacheObject) } returns expectedLinks
+        every { directStorageHandler.getObjectLinkList(cacheObject) } returns expectedLinks
 
         // Act
         val result = underTest.getObjectLinks(cacheObject)
@@ -72,7 +72,7 @@ class VideoServiceTest {
 
         verifySequence {
             cacheObject.mimeType
-            defaultStrategy.getObjectLinkList(cacheObject)
+            directStorageHandler.getObjectLinkList(cacheObject)
         }
     }
 

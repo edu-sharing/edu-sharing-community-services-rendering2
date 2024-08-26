@@ -6,21 +6,21 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class AudioServiceTest {
     private val storageService = mockk<StorageService>()
-    private val defaultStrategy = mockk<DefaultStrategy>()
+    private val directStorageHandler = mockk<DirectStorageHandler>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
     private lateinit var service: AudioService
 
     @BeforeEach
     fun setUp() {
         service = AudioService(
-            defaultStrategy = defaultStrategy,
+            directStorageHandler = directStorageHandler,
             storageImplementation = storageService,
             mainJobCreationService = mainJobCreationService
         )
@@ -58,9 +58,9 @@ class AudioServiceTest {
         assert(result == mutableListOf(objectLink))
 
         verify (exactly = 1) { storageService.getObjectLink(lookupObject) }
-        verify (exactly = 0) { defaultStrategy.getObjectLinkList(any()) }
+        verify (exactly = 0) { directStorageHandler.getObjectLinkList(any()) }
 
-        confirmVerified(defaultStrategy, storageService)
+        confirmVerified(directStorageHandler, storageService)
     }
 
     @Test
@@ -70,7 +70,7 @@ class AudioServiceTest {
         val objectLink = ObjectLink(link = "mylink")
         val objectLinkList = listOf(objectLink)
 
-        every { defaultStrategy.getObjectLinkList(cacheObject) } returns objectLinkList
+        every { directStorageHandler.getObjectLinkList(cacheObject) } returns objectLinkList
 
         // Act
         val result = service.getObjectLinks(cacheObject)
@@ -78,9 +78,9 @@ class AudioServiceTest {
         // Assert
         assert(result == objectLinkList)
 
-        verify (exactly = 1) { defaultStrategy.getObjectLinkList(cacheObject) }
+        verify (exactly = 1) { directStorageHandler.getObjectLinkList(cacheObject) }
 
-        confirmVerified(defaultStrategy, storageService)
+        confirmVerified(directStorageHandler, storageService)
     }
 
     @Test
@@ -99,7 +99,7 @@ class AudioServiceTest {
         assert(result == null)
 
         verify(exactly = 1) { storageService.getObjectLink(lookupObject) }
-        confirmVerified(defaultStrategy, storageService)
+        confirmVerified(directStorageHandler, storageService)
     }
 
     @Test

@@ -13,15 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith
 import java.io.InputStream
 
 @ExtendWith(MockKExtension::class)
-class DefaultStrategyTest {
+class DirectStorageHandlerTest {
     private val contentTransferService = mockk<ContentTransferService>()
     private val storageService = mockk<StorageService>()
 
-    lateinit var underTest: DefaultStrategy
+    lateinit var underTest: DirectStorageHandler
 
     @BeforeEach
     fun setup() {
-        underTest = DefaultStrategy(contentTransferService, storageService)
+        underTest = DirectStorageHandler(contentTransferService, storageService)
     }
 
     @Test

@@ -12,7 +12,7 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.pdf.HtmlRenderModule
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -20,14 +20,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
 class HtmlRenderModuleTest {
-    private val defaultStrategyMock = mockk<DefaultStrategy>()
+    private val directStorageHandlerMock = mockk<DirectStorageHandler>()
     private val mapperMock = mockk<Mapper>()
 
     private lateinit var underTest: HtmlRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = HtmlRenderModule(55L, defaultStrategyMock, mapperMock)
+        underTest = HtmlRenderModule(55L, directStorageHandlerMock, mapperMock)
         clearAllMocks()
     }
 
@@ -39,7 +39,7 @@ class HtmlRenderModuleTest {
         val linkList = listOf(ObjectLink(link = "mylink"))
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
-        every { defaultStrategyMock.getObjectLinkList(cacheObject) } returns linkList
+        every { directStorageHandlerMock.getObjectLinkList(cacheObject) } returns linkList
 
         // Act
         val result = underTest.handle(request)
@@ -51,7 +51,7 @@ class HtmlRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
-            defaultStrategyMock.getObjectLinkList(cacheObject)
+            directStorageHandlerMock.getObjectLinkList(cacheObject)
         }
     }
 

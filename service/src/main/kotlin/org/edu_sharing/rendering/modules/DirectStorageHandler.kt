@@ -7,22 +7,25 @@ import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.service.ContentTransferService
 import org.springframework.stereotype.Component
 
+/**
+ * Handles storage requests directly without creating asynchronous jobs for adding and converting data.
+ * This class stores content as is
+ */
 @Component
-class DefaultStrategy (
+class DirectStorageHandler(
     private val contentTransferService: ContentTransferService,
     private val storageImplementation: StorageService
 ) {
+
     fun getObjectLinkList(cacheObject: CacheObject): List<ObjectLink> {
-        val objectLinkList = mutableListOf<ObjectLink>()
-        val existingObjectLink = getObjectLink(cacheObject)
-        if (existingObjectLink != null) {
-            objectLinkList.add(existingObjectLink)
-        } else {
+        var existingObjectLink = getObjectLink(cacheObject)
+
+        if (existingObjectLink == null) {
             val objectInputStream = contentTransferService.getAsInputStream(cacheObject)
             this.storageImplementation.putObject(cacheObject, objectInputStream)
-            objectLinkList.add(getObjectLink(cacheObject) ?: ObjectLink(link = ""))
+            existingObjectLink = getObjectLink(cacheObject)
         }
-        return objectLinkList
+        return listOf(existingObjectLink ?: ObjectLink(link = ""))
     }
 
     private fun getObjectLink(cacheObject: CacheObject): ObjectLink? {

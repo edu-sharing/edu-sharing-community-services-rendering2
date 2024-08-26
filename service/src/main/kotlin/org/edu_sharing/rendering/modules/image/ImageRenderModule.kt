@@ -7,7 +7,7 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -18,7 +18,7 @@ class ImageRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val imageService: ImageService,
-    private val defaultStrategy: DefaultStrategy
+    private val directStorageHandler: DirectStorageHandler
 ) : RenderModule {
     override fun module() = RenderModules.IMAGE
 
@@ -27,7 +27,7 @@ class ImageRenderModule(
         val isConversionObject = imageService.isConversionObject(cacheObject)
         if (!isConversionObject) {
             return RenderDataResponse(
-                objectLinks = defaultStrategy.getObjectLinkList(cacheObject),
+                objectLinks = directStorageHandler.getObjectLinkList(cacheObject),
                 module = module()
             )
         }

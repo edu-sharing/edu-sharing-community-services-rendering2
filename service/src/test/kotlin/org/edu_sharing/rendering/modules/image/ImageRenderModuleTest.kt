@@ -12,7 +12,7 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DefaultStrategy
+import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -22,7 +22,7 @@ class ImageRenderModuleTest {
     private val nodePermissionTime = 67L
     private val mapperMock = mockk<Mapper>()
     private val imageServiceMock = mockk<ImageService>()
-    private val defaultStrategyMock = mockk<DefaultStrategy>()
+    private val directStorageHandlerMock = mockk<DirectStorageHandler>()
 
     lateinit var underTest: ImageRenderModule
 
@@ -32,7 +32,7 @@ class ImageRenderModuleTest {
             nodePermissionExpirationTime = nodePermissionTime,
             mapper = mapperMock,
             imageService = imageServiceMock,
-            defaultStrategy = defaultStrategyMock
+            directStorageHandler = directStorageHandlerMock
         )
         clearAllMocks()
     }
@@ -47,7 +47,7 @@ class ImageRenderModuleTest {
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
         every { imageServiceMock.isConversionObject(cacheObject) } returns false
-        every { defaultStrategyMock.getObjectLinkList(cacheObject) } returns linkList
+        every { directStorageHandlerMock.getObjectLinkList(cacheObject) } returns linkList
 
         // Act
         val result = underTest.handle(request)
@@ -62,7 +62,7 @@ class ImageRenderModuleTest {
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
             imageServiceMock.isConversionObject(cacheObject)
-            defaultStrategyMock.getObjectLinkList(cacheObject)
+            directStorageHandlerMock.getObjectLinkList(cacheObject)
         }
     }
 
