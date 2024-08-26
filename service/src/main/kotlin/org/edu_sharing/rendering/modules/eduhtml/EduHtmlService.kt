@@ -31,24 +31,30 @@ class EduHtmlService(
     fun createJob(request: RenderDataRequest, module: RenderModules): String {
         val existingJobs = jobRepository.findAllByEsObjectId(request.nodeId)
             .filter { it.status <= JobStatus.PROCESSING }
+
         if (existingJobs.isNotEmpty()) {
             return existingJobs[0].id.toString()
         }
+
         val job = mapper.renderDataRequestToRenderingJob(request, module)
         jobRepository.save(job)
+
         val subJob = SubJob(
             routingKey = jobRoutingKey,
             parent = job
         )
         subJobRepository.save(subJob)
+
         val message = RenderingJobMessage(id = job.id.toString())
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
+
         return job.id.toString()
     }
 
     fun getObjectLink(nodeId: String): ObjectLink {
         val bucket = "eduhtml"
         val indexPath = "$nodeId/index.html"
+        
         storageImplementation.getFileProperties(bucket, indexPath)
         return storageImplementation.getObjectLink(indexPath)
     }

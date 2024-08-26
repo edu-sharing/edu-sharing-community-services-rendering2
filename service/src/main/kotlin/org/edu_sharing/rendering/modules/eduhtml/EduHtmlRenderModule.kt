@@ -19,17 +19,25 @@ class EduHtmlRenderModule(
 ) : RenderModule {
     override fun module() = RenderModules.EDUHTML
 
-    override fun handle(request: RenderDataRequest) : RenderDataResponse {
+    override fun handle(request: RenderDataRequest): RenderDataResponse {
         val staticLink = try {
             eduHtmlService.getObjectLink(request.nodeId)
         } catch (_: ResourceNotFoundException) {
             null
         }
 
+        if (staticLink == null) {
+            return RenderDataResponse(
+                module = module(),
+                objectLinks = mutableListOf(),
+                jobId = eduHtmlService.createJob(request, module())
+            )
+        }
+
         return RenderDataResponse(
             module = module(),
-            objectLinks = if (staticLink != null) mutableListOf(staticLink) else mutableListOf(),
-            jobId = if (staticLink != null) null else eduHtmlService.createJob(request, module())
+            objectLinks = mutableListOf(staticLink),
+            jobId = null
         )
     }
 

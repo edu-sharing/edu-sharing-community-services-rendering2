@@ -24,7 +24,10 @@ class AudioService(
     }
 
     fun getObjectLinks(cacheObject: CacheObject): List<ObjectLink>? {
-        if (!isConversionObject(cacheObject)) return defaultStrategy.getObjectLinkList(cacheObject)
+        if (!isConversionObject(cacheObject)) {
+            return defaultStrategy.getObjectLinkList(cacheObject)
+        }
+
         val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "audio/mpeg"
@@ -37,7 +40,10 @@ class AudioService(
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules): String {
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
-        if (existingJobId != null) return existingJobId
+        if (existingJobId != null) {
+            return existingJobId
+        }
+
         return mainJobCreationService.createMainJob(cacheObject, module)
     }
 }

@@ -30,11 +30,13 @@ class VideoRenderModule (
                 module = module()
             )
         }
+
         val objectLinks = videoService.getObjectLinks(cacheObject)
         val missingQualities = videoService.getMissingQualities(objectLinks)
         if (missingQualities.isEmpty()) {
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
+
         val jobId = videoService.retrieveOrCreateJob(cacheObject, module(), missingQualities)
         return RenderDataResponse(objectLinks = objectLinks, jobId = jobId, module = module())
     }

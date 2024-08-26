@@ -28,20 +28,22 @@ class H5pJobService(
     fun createJob(request: RenderDataRequest, module: RenderModules): String {
         val existingJob = jobRepository.findAllByEsObjectId(request.nodeId)
             .firstOrNull { it.status <= JobStatus.PROCESSING }
+
         if (existingJob != null) {
             return existingJob.id.toString()
         }
+
         val job = mapper.renderDataRequestToRenderingJob(request, module)
         jobRepository.save(job)
+
         val subJob = SubJob(
             status = JobStatus.QUEUED,
             routingKey = jobRoutingKey,
             parent = job
         )
         subJobRepository.save(subJob)
-        val message = RenderingJobMessage(
-            job.id.toString()
-        )
+
+        val message = RenderingJobMessage(job.id.toString())
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
     }

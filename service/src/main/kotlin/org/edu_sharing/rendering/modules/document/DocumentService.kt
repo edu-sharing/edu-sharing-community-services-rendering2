@@ -25,7 +25,10 @@ class DocumentService(
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: DocumentRenderModule): String {
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
-        if (existingJobId != null) return existingJobId
+        if (existingJobId != null) {
+            return existingJobId
+        }
+
         return mainJobCreationService.createMainJob(cacheObject, module.module())
     }
 }

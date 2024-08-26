@@ -33,6 +33,7 @@ class H5pRenderModule(
                 jobId = null
             )
         }
+        
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),

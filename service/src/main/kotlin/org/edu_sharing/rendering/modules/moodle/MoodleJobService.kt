@@ -40,14 +40,17 @@ class MoodleJobService(
             log.error("Missing user data in Moodle request. Node: " + request.nodeId)
             throw IllegalArgumentException()
         }
+
         val job = mapper.renderDataRequestToRenderingJob(request, module)
         jobRepository.save(job)
+
         val subJob = SubJob(
             status = JobStatus.QUEUED,
             routingKey = jobRoutingKey,
             parent = job
         )
         subJobRepository.save(subJob)
+
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,

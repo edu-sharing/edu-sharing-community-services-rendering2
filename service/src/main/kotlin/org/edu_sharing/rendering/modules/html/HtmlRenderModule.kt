@@ -22,6 +22,7 @@ class HtmlRenderModule(
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
         val links = defaultStrategy.getObjectLinkList(cacheObject)
+
         return RenderDataResponse(
             objectLinks = links,
             module = module()

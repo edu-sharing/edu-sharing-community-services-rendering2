@@ -31,11 +31,13 @@ class ImageRenderModule(
                 module = module()
             )
         }
+
         val objectLinks = imageService.getObjectLinks(cacheObject)
         val missingQualities = imageService.getMissingQualities(objectLinks)
         if (missingQualities.isEmpty()) {
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
+
         val jobId = imageService.retrieveOrCreateJob(cacheObject, module(), missingQualities)
         return RenderDataResponse(objectLinks = objectLinks, jobId = jobId, module = module())
     }

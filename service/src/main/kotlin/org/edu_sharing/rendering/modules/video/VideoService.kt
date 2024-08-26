@@ -30,10 +30,14 @@ class VideoService (
     }
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
-        if (!isConversionObject(cacheObject)) return defaultStrategy.getObjectLinkList(cacheObject)
+        if (!isConversionObject(cacheObject)) {
+            return defaultStrategy.getObjectLinkList(cacheObject)
+        }
+
         val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "video/$targetVideoFormat"
+
         val requestedResolutions= if (resolution == null) targetVideoResolutions else listOf(resolution)
         requestedResolutions.forEach {
             lookUpObject.quality = it

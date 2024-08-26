@@ -29,10 +29,14 @@ class ImageService(
     fun isConversionObject(cacheObject: CacheObject) = convertedImageMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
-        if (!isConversionObject(cacheObject)) return defaultStrategy.getObjectLinkList(cacheObject)
+        if (!isConversionObject(cacheObject)){
+            return defaultStrategy.getObjectLinkList(cacheObject)
+        }
+
         val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "image/$targetImageFormat"
+
         val requestedResolutions: List<Int> = if (resolution == null) targetImageSizes else listOf(resolution)
         requestedResolutions.forEach {
             lookUpObject.quality = it
@@ -45,14 +49,20 @@ class ImageService(
     }
 
     fun getMissingQualities(availableLinks: List<ObjectLink>?): List<Int> {
-        if (availableLinks === null) return targetImageSizes
+        if (availableLinks === null) {
+            return targetImageSizes
+        }
+
         val availableQualities = availableLinks.map { max(it.height, it.width) }
         return targetImageSizes.filter { !availableQualities.contains(it) }
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules, missingQualities: List<Int>): String {
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
-        if (existingJobId != null) return existingJobId
+        if (existingJobId != null) {
+            return existingJobId
+        }
+
         return mainJobCreationService.createMainJob(cacheObject, module, missingQualities)
     }
 }

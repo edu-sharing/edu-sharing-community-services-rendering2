@@ -18,7 +18,7 @@ class MoodleRenderModule(
 ) : RenderModule {
     override fun module() = RenderModules.MOODLE
 
-    override fun handle(request: RenderDataRequest) : RenderDataResponse {
+    override fun handle(request: RenderDataRequest): RenderDataResponse {
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),

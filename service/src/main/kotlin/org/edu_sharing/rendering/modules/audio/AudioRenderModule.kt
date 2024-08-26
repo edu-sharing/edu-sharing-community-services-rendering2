@@ -23,7 +23,11 @@ class AudioRenderModule(
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
         val objectLinks = audioService.getObjectLinks(cacheObject)
-        if (objectLinks !== null) return RenderDataResponse(objectLinks = objectLinks, module = module())
+
+        if (objectLinks !== null) {
+            return RenderDataResponse(objectLinks = objectLinks, module = module())
+        }
+
         return RenderDataResponse(jobId = audioService.retrieveOrCreateJob(cacheObject, module()), module = module())
     }
 
