@@ -7,25 +7,19 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnStorageByCustomer
-class BucketPerCustomerStrategy : BucketStrategy {
-    override fun getStoragePath(cacheObject: CacheObject): String {
-        var name = cacheObject.type.plus("/").plus(cacheObject.nodeId).plus("/").plus(cacheObject.hash)
-        if (cacheObject.quality != null) {
-            name = name.plus("_").plus(cacheObject.quality)
-        }
-        name = name.plus(getExtensionFromMimeType(cacheObject.mimeType))
-        return name
-    }
+class BucketPerCustomerStrategy : BaseBucketStrategy() {
 
-    override fun getBucket(cacheObject: CacheObject): String {
-        return cacheObject.repoId?.replace("/","_") ?: ""
+    override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
+        return "${cacheObject.type}${cacheObject.nodeId}/${cacheObject.hash}"
     }
 
     override fun prefixStaticPath(cacheObject: CacheObject, path: String): String {
         return "${cacheObject.type}/$path"
     }
 
-    private fun getExtensionFromMimeType(mimeType: String): String {
-        return if (mimeType.isNotBlank()) MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
+    override fun getBucket(cacheObject: CacheObject): String {
+        return cacheObject.repoId?.replace("/","_") ?: ""
     }
+
+
 }
