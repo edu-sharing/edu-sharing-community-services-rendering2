@@ -14,8 +14,4 @@ class BucketPerMediaTypeStrategy : BaseBucketStrategy() {
     override fun getBucket(cacheObject: CacheObject): String {
         return cacheObject.type
     }
-
-    override fun prefixStaticPath(cacheObject: CacheObject, path: String): String {
-        return path
-    }
 }

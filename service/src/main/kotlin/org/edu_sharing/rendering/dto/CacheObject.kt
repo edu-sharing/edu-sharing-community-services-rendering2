@@ -7,9 +7,16 @@ data class CacheObject(
     val hash: String,
     var quality: Int? = null,
     var mimeType: String = "",
-    val repoId: String? = null,
+    val repoId: String,
     val version: String? = null
 ) {
+
+    companion object{
+        fun of(repoId: String, nodeId: String, hash: String, type: String): CacheObject{
+            CacheObject(nodeId = nodeId, type = type, hash = hash, repoId = repoId)
+        }
+    }
+
     fun deepCopy(): CacheObject {
         return CacheObject(
             nodeId = nodeId,

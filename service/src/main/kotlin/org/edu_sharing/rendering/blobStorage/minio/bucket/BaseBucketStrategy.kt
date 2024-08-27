@@ -14,7 +14,11 @@ abstract class BaseBucketStrategy : BucketStrategy {
         return sb.toString()
     }
 
-    private fun getExtensionFromMimeType(mimeType: String): String {
+    override fun prefixStaticPath(cacheObject: CacheObject, path: String): String {
+        return "${getCacheObjectRootPath(cacheObject)}/$path"
+    }
+
+    override fun getExtensionFromMimeType(mimeType: String): String {
         return if (mimeType.isNotBlank()) MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
     }
 }

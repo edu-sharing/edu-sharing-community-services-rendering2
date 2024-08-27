@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderModules
@@ -51,13 +52,9 @@ class EduHtmlService(
         return job.id.toString()
     }
 
-    fun getObjectLink(nodeId: String): ObjectLink {
-        val bucket = "eduhtml"
-        val indexPath = "$nodeId/index.html"
-
-        // TODO bucket -> see bucket strategy
-        // TODO Why calling getFileProperties first?
-        storageImplementation.getFileProperties(bucket, indexPath)
-        return storageImplementation.getObjectLink(indexPath)
+    fun getObjectLink(cacheObject: CacheObject): ObjectLink {
+        //TODO check if file exists in storage
+//        storageImplementation.getFileProperties(bucket, indexPath)
+        return storageImplementation.getObjectLink(cacheObject, "index.html")
     }
 }

@@ -7,4 +7,5 @@ interface BucketStrategy {
     fun getCacheObjectRootPath(cacheObject: CacheObject): String
     fun getBucket(cacheObject: CacheObject): String
     fun prefixStaticPath(cacheObject: CacheObject, path: String): String
+    fun getExtensionFromMimeType(mimeType: String): String
 }

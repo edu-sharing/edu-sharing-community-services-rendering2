@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
@@ -15,13 +16,15 @@ import org.springframework.stereotype.Component
 class EduHtmlRenderModule(
     @Value("\${app.session.eduHtml.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
-    private val eduHtmlService: EduHtmlService
+    private val eduHtmlService: EduHtmlService,
+    private val mapper: Mapper
 ) : RenderModule {
     override fun module() = RenderModules.EDUHTML
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val staticLink = try {
-            eduHtmlService.getObjectLink(request.nodeId)
+            val cacheObject = mapper.renderDataRequestToCacheObject(request)
+            eduHtmlService.getObjectLink(cacheObject)
         } catch (_: ResourceNotFoundException) {
             null
         }

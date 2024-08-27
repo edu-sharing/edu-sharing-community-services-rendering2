@@ -21,8 +21,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
-@WebMvcTest(AssetController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
-class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
+@WebMvcTest(PerMediaTypeAssetController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
+class PerMediaTypeAssetControllerTest (@Autowired val mockMvc: MockMvc) {
 
     private val assetLinkParams = AssetLinkParams(
         nodeId = "nodeid",

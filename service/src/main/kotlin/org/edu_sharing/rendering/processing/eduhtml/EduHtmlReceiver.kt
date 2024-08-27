@@ -48,8 +48,9 @@ class EduHtmlReceiver (
         val subJob = jobEntry.subJobs[0]
         var success = true
         try {
-            eduHtmlConversionService.cacheData(mapper.renderingJobToCacheObject(jobEntry))
-            subJob.message = eduHtmlService.getObjectLink(jobEntry.esObjectId).link
+            val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+            eduHtmlConversionService.cacheData(cacheObject)
+            subJob.message = eduHtmlService.getObjectLink(cacheObject).link
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}")
             success = false

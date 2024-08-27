@@ -1,9 +1,11 @@
 package org.edu_sharing.rendering.service
 
 import jakarta.servlet.http.HttpServletRequest
+import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.AssetLinkParams
+import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ReadableAsset
 import org.edu_sharing.rendering.dto.mapper.Mapper
@@ -14,7 +16,7 @@ import java.io.InputStream
 @ConditionalOnController
 @Service
 class AssetService(
-    private val storageImplementation: StorageService,
+    private val storageImplementation: StaticStorageService,
     private val mapper: Mapper
 ) {
     private val defaultChunkSize = 2000000L
@@ -35,33 +37,37 @@ class AssetService(
         val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject,
-            false,
+            longRange.last,
             longRange.first,
-            longRange.last
+            false
         )
         return createReadableAsset(fileDetails, objectChunkStream, longRange)
     }
 
 
     @PreAuthorize("hasPermission(#nodeId, 'Read')")
-    fun getStaticAsset(request: HttpServletRequest, range: String, nodeId: String): ReadableAsset {
-        val storagePath = request.requestURI.substringAfter("/static/")
-        // TODO bucket strategy
-        val fileDetails = storageImplementation.getFileProperties("file-eduhtml", storagePath)
+    fun getStaticAsset(request: HttpServletRequest, range: String, repoId: String, nodeId: String, hash: String, type: String): ReadableAsset {
+        // build cache object
+        // /public/assets/static/<cacheObjectStuff>/index.html
+        // /public/assets/static/<cacheObjectStuff>/123/whatever.html
+        val cacheObject = CacheObject.of(repoId, nodeId, hash, type)
+        val storagePath = request.requestURI.substringAfter("/static/${repoId}/${nodeId}/${hash}/${type}/")
 
+        // TODO go on from here
+        val fileDetails = storageImplementation.getFileProperties(cacheObject)
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
                 // TODO bucket strategy
-                stream = storageImplementation.getObjectStream("file-eduhtml", storagePath)
+                stream = storageImplementation.getObjectStream(cacheObject, storagePath)
             )
         }
 
         val longRange = parseRange(range, fileDetails.size)
         // TODO bucket strategy
         val objectChunkStream = storageImplementation.getObjectChunkStream(
-            "file-eduhtml",
+            cacheObject,
             storagePath,
             longRange.first,
             longRange.last

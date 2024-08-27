@@ -1,16 +1,20 @@
 package org.edu_sharing.rendering.blobStorage.minio
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.mongodb.MongoException
 import io.minio.*
 import io.minio.errors.ErrorResponseException
 import io.minio.messages.DeleteObject
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
-import org.apache.tika.mime.MimeTypes
+import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageInfo
 import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.blobStorage.TrackingService
 import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
 import org.edu_sharing.rendering.config.MinioAdminClientProvider
+import org.edu_sharing.rendering.controller.external.AssetController.Companion.ROOT_REQUEST_PATH
+import org.edu_sharing.rendering.controller.external.AssetController.Companion.STATIC_ASSET_PATH
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
@@ -20,6 +24,7 @@ import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -30,11 +35,11 @@ import java.io.InputStream
 @Service
 class MinioStorageService(
     private val eduMinioClient: MinioClient,
-    private val trackingEntryRepository: TrackingEntryRepository,
     private val eduMinioAdminClient: MinioAdminClientProvider,
     @Suppress("SpringJavaInjectionPointsAutowiringInspection")
-    private val bucketStrategy: BucketStrategy
-) : StorageService {
+    private val bucketStrategy: BucketStrategy,
+    private val trackingService: TrackingService
+) : StorageService, StaticStorageService {
 
     val defaultChunkSize = 10485760L
 
@@ -44,7 +49,7 @@ class MinioStorageService(
     @Value("\${app.public.port}")
     lateinit var port: String
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
         putObjectInternal(cacheObject, inputStream, bucketStrategy.getStoragePath(cacheObject), metadata)
@@ -63,7 +68,7 @@ class MinioStorageService(
         cacheObject: CacheObject,
         inputStream: InputStream,
         targetPath: String,
-        metadata: Map<String, String> = emptyMap()
+        metadata: Map<String, String> = emptyMap(),
     ) {
         val bucket = bucketStrategy.getBucket(cacheObject)
         createBucket(bucket)
@@ -75,23 +80,8 @@ class MinioStorageService(
         if (cacheObject.mimeType.isNotBlank()) {
             args.contentType(cacheObject.mimeType)
         }
-        try {
-            eduMinioClient.putObject(args.build())
-        } catch (errorException: ErrorResponseException) {
-            if (errorException.errorResponse().message() == "EntityTooLarge") {
-                // Clear cache!
-            } else {
-                throw errorException
-            }
-        }
-
-        trackingEntryRepository.save(
-            TrackingEntry(
-                size = cacheObject.size,
-                bucket = bucket,
-                storagePath = targetPath
-            )
-        )
+        eduMinioClient.putObject(args.build())
+        trackingService.trackCacheObject(cacheObject, bucket)
     }
 
     override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
@@ -130,12 +120,13 @@ class MinioStorageService(
         return objectLink
     }
 
-    override fun getObjectLink(path: String): ObjectLink {
+    override fun getObjectLink(cacheObject: CacheObject, path: String): ObjectLink {
+
         val url = UriComponentsBuilder.newInstance()
             .scheme(publicUrl.substringBefore("://"))
             .host(publicUrl.substringAfter("://"))
             .port(port)
-            .path("/public/asset/static/${path.trimStart { it == '/' }}")
+            .path("${ROOT_REQUEST_PATH}${STATIC_ASSET_PATH}${bucketStrategy.prefixStaticPath(cacheObject, path)}")
             .build()
             .toUriString()
         return ObjectLink(link = url)
@@ -160,7 +151,7 @@ class MinioStorageService(
                     .build()
             )
 
-            trackingEntryRepository.deleteByBucketAndStoragePath(bucket, storagePath)
+            trackingService.deleteTrackedObject(cacheObject, bucket)
         }
     }
 
@@ -176,31 +167,37 @@ class MinioStorageService(
             val bucket = bucketStrategy.getBucket(cacheObject)
             val path = bucketStrategy.getStoragePath(cacheObject)
 
-            trackCacheObject(bucket, path)
-            return eduMinioClient.getObject(
+            val response = eduMinioClient.getObject(
                 GetObjectArgs.Builder()
                     .bucket(bucket)
                     .`object`(path)
                     .build()
             )
+            trackingService.trackCacheObject(cacheObject, bucket)
+            return response
         }
     }
 
-    override fun getObjectStream(bucket: String, path: String): InputStream {
-        trackCacheObject(bucket, path)
-        return eduMinioClient.getObject(
+    /**
+     * Method for static interface
+     */
+    override fun getObjectStream(cacheObject: CacheObject, path: String): InputStream {
+        val bucket = bucketStrategy.getBucket(cacheObject)
+        val response = eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
-                .`object`(path)
+                .`object`(bucketStrategy.getStoragePath(cacheObject))
                 .build()
         )
+        trackingService.trackCacheObject(cacheObject, bucket)
+        return response
     }
 
     override fun getObjectChunkStream(
         cacheObject: CacheObject,
-        isTemp: Boolean,
+        length: Long,
         offset: Long,
-        length: Long
+        isTemp: Boolean
     ): InputStream {
         if (isTemp) {
             return eduMinioClient.getObject(
@@ -215,8 +212,7 @@ class MinioStorageService(
             val bucket = bucketStrategy.getBucket(cacheObject)
             val path = bucketStrategy.getStoragePath(cacheObject)
 
-            trackCacheObject(bucket, path)
-            return eduMinioClient.getObject(
+            val response = eduMinioClient.getObject(
                 GetObjectArgs.Builder()
                     .bucket(bucket)
                     .`object`(path)
@@ -224,19 +220,28 @@ class MinioStorageService(
                     .length(length)
                     .build()
             )
+            trackingService.trackCacheObject(cacheObject, bucket)
+            return response
         }
     }
 
-    override fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): InputStream {
-        trackCacheObject(bucket, path)
-        return eduMinioClient.getObject(
+    /**
+     * Method for static interface
+     */
+    override fun getObjectChunkStream(cacheObject: CacheObject, path: String, offset: Long, length: Long): InputStream {
+        val storagePath = bucketStrategy.getStoragePath(cacheObject)
+        val bucket = bucketStrategy.getBucket(cacheObject)
+
+        val response = eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
-                .`object`(path)
+                .`object`(storagePath)
                 .offset(offset)
                 .length(length)
                 .build()
         )
+        trackingService.trackCacheObject(cacheObject, bucket)
+        return response
     }
 
     override fun putTempFile(cacheObject: CacheObject, inputStream: InputStream) {
@@ -259,23 +264,20 @@ class MinioStorageService(
                 mimeType = statObject.contentType()
             )
         } catch (exception: Exception) {
-            logger.error(exception.toString())
+            log.error(exception.toString())
             throw ResourceNotFoundException("File properties for cached object not found.")
         }
-
     }
 
-    override fun getFileProperties(bucket: String, path: String): CachedObjectDetails {
+    override fun getFileProperties(cacheObject: CacheObject, path: String): CachedObjectDetails {
         try {
-            val statObject = eduMinioClient.statObject(
-                StatObjectArgs.builder().bucket(bucket).`object`(path).build()
-            )
+            val statObject = getStatObject(cacheObject, path)
             return CachedObjectDetails(
                 size = statObject.size(),
                 mimeType = statObject.contentType()
             )
         } catch (exception: Exception) {
-            logger.error(exception.toString())
+            log.error(exception.toString())
             throw ResourceNotFoundException("File properties for cached object not found.")
         }
     }
@@ -304,49 +306,68 @@ class MinioStorageService(
         val minioObjectsToDelete = mutableListOf<DeleteObject>()
         val trackingEntriesToDelete = mutableListOf<TrackingEntry>()
         do {
-            result = trackingEntryRepository.findAllByBucket(
-                storageInfo.location,
-                PageRequest.of(page, 100, Sort.Direction.ASC, "lastAccessed")
-            )
+            result = trackingService.getOldestTrackedObjects(storageInfo.location)
 
-            // TODO fully delete eduhtml folders
             // TODO handle h5p caches in lumi
             for (entry in result) {
-                if (totalSize > maxSize) {
+                if (totalSize >= maxSize) {
                     break
                 }
-                try {
-                    // TODO maybe move logic for tracking and deleting Objects to respective modules because of h5p and html...
-                    eduMinioClient.removeObject(
-                        RemoveObjectArgs.builder()
-                            .bucket(entry.bucket)
-                            .`object`(entry.storagePath)
-                            .build())
 
-                    totalSize += entry.size
-                }catch (_:Exception){
-                    // maybe object doesn't exists anymore...
-                } finally {
-                    trackingEntryRepository.delete(entry)
-                }
+                val storedObjectResults = eduMinioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(storageInfo.location)
+                    .prefix(bucketStrategy.getCacheObjectRootPath(CacheObject.of(entry.repoId, entry.nodeId, entry.hash, entry.type)))
+                    .build())
+
+                totalSize += storedObjectResults.mapNotNull {  try { it.get() } catch (_:Exception) {null} }.sumOf { it.size() }
+                minioObjectsToDelete.addAll(storedObjectResults.mapNotNull { try { it.get() } catch (_:Exception) {null} }.map { DeleteObject(it.objectName()) }.toList())
+                trackingEntriesToDelete.add(entry)
             }
         } while (result?.hasNext() == true && totalSize < maxSize)
 
-        eduMinioClient.removeObjects(
+
+        val removeObjectResults = eduMinioClient.removeObjects(
             RemoveObjectsArgs.builder()
                 .bucket(storageInfo.location)
                 .objects(minioObjectsToDelete)
                 .build()
         )
-        trackingEntryRepository.deleteAll(trackingEntriesToDelete)
+
+        for (removeObjectResult in removeObjectResults){
+            val error = removeObjectResult.get()
+            log.warn("Error deleting object " + error.objectName() + "; " + error.message())
+        }
+        trackingService.deleteAllTrackedObjects(trackingEntriesToDelete)
+    }
+
+    override fun objectExists(cacheObject: CacheObject): Boolean {
+        try {
+            getStatObject(cacheObject)
+        } catch (_: Exception) {
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Method for static interface
+     */
+    override fun objectExists(cacheObject: CacheObject, path: String): Boolean {
+        try {
+            getStatObject(cacheObject, path)
+        } catch (_: Exception) {
+            return false
+        }
+        return true
     }
 
 
-    private fun getStatObject(cacheObject: CacheObject): StatObjectResponse {
+    private fun getStatObject(cacheObject: CacheObject, path: String?=null): StatObjectResponse {
+        val storagePath = if(path == null) bucketStrategy.getStoragePath(cacheObject) else bucketStrategy.prefixStaticPath(cacheObject, path)
         return eduMinioClient.statObject(
             StatObjectArgs.builder()
                 .bucket(bucketStrategy.getBucket(cacheObject))
-                .`object`(bucketStrategy.getStoragePath(cacheObject))
+                .`object`(storagePath)
                 .build()
         )
     }
@@ -359,16 +380,7 @@ class MinioStorageService(
     }
 
     private fun getTempPath(cacheObject: CacheObject): String {
-        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${getExtensionFromMimeType(cacheObject.mimeType)}"
+        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${bucketStrategy.getExtensionFromMimeType(cacheObject.mimeType)}"
     }
 
-    private fun getExtensionFromMimeType(mimeType: String): String {
-        return if (mimeType.isNotBlank()) MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
-    }
-
-    private fun trackCacheObject(bucket: String, path: String) {
-        val trackingEntry = trackingEntryRepository.findByBucketAndStoragePath(bucket, path)
-            .orElseThrow { ResourceNotFoundException("Resource invalid or not yet cached.") }
-        trackingEntryRepository.save(TrackingEntry.of(trackingEntry))
-    }
 }

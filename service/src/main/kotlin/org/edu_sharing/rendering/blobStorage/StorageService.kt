@@ -8,17 +8,13 @@ import java.io.InputStream
 interface StorageService {
     // TODO remove all access to internal buckets from the api  -> bucket strategy
     fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String> = emptyMap())
-    fun putObject(cacheObject: CacheObject, inputStream: InputStream, targetPath: String, metadata: Map<String, String> = emptyMap())
     fun getObjectLink(cacheObject: CacheObject): ObjectLink
-    fun getObjectLink(path: String): ObjectLink
     fun removeObject(cacheObject: CacheObject, isTemp: Boolean = false)
     fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): InputStream
-    fun getObjectStream(bucket: String, path: String): InputStream
-    fun getObjectChunkStream(cacheObject: CacheObject, isTemp: Boolean = false, offset: Long, length: Long): InputStream
-    fun getObjectChunkStream(bucket: String, path: String, offset: Long, length: Long): InputStream
+    fun getObjectChunkStream(cacheObject: CacheObject, length: Long, offset: Long, isTemp: Boolean = false): InputStream
     fun putTempFile(cacheObject: CacheObject, inputStream: InputStream)
     fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails
-    fun getFileProperties(bucket: String, path: String): CachedObjectDetails
     fun getStorageInfo(): List<StorageInfo>
     fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float)
+    fun objectExists(cacheObject: CacheObject): Boolean
 }

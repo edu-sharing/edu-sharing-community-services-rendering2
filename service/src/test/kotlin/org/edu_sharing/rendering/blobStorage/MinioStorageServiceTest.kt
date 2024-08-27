@@ -522,7 +522,7 @@ class MinioStorageServiceTest {
         every { client.getObject(capture(argumentSlot)) } returns stream
 
         // Act
-        val result = underTest.getObjectChunkStream(cacheObject, false, 1, 2)
+        val result = underTest.getObjectChunkStream(cacheObject, 2, 1, false)
 
         // Assert
         assert(result == stream)
@@ -554,7 +554,7 @@ class MinioStorageServiceTest {
         every { client.getObject(capture(argumentSlot)) } returns stream
 
         // Act
-        val result = underTest.getObjectChunkStream(cacheObject, true, 1, 2)
+        val result = underTest.getObjectChunkStream(cacheObject, 2, 1, true)
 
         // Assert
         assert(result == stream)

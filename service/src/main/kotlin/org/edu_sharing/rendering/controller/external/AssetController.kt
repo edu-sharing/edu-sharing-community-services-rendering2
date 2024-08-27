@@ -16,13 +16,18 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URLDecoder
 
-@ConditionalOnController
 @RestController
-@RequestMapping("/public/asset")
-
-class AssetController (
+@ConditionalOnController
+@RequestMapping(AssetController.ROOT_REQUEST_PATH)
+class AssetController(
     private val assetService: AssetService
 ) {
+
+    companion object{
+        const val ROOT_REQUEST_PATH = "/public/asset"
+        const val STATIC_ASSET_PATH = "/static"
+    }
+
     @GetMapping(produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
     fun getAsset(
         @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
@@ -35,17 +40,20 @@ class AssetController (
         return prepareResponse(asset, doEncodeData)
     }
 
-    @GetMapping("/static/{nodeId}/**")
+    @GetMapping("$STATIC_ASSET_PATH/{repoId}/{nodeId}/{hash}/{type}/**")
     fun getStaticAsset(
         @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
+        @PathVariable repoId: String,
         @PathVariable nodeId: String,
+        @PathVariable hash: String,
+        @PathVariable type: String,
         request: HttpServletRequest
     ): ResponseEntity<Resource> {
-        val asset = assetService.getStaticAsset(request, range, nodeId)
+        val asset = assetService.getStaticAsset(request, range, repoId, nodeId, hash, type)
         return prepareResponse(asset)
     }
 
-    private fun prepareResponse(asset: ReadableAsset, doEncodeData: Boolean = false): ResponseEntity<Resource> {
+    protected fun prepareResponse(asset: ReadableAsset, doEncodeData: Boolean = false): ResponseEntity<Resource> {
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)

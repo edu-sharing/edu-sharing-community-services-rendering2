@@ -10,7 +10,9 @@ import java.util.*
 
 @Repository
 interface TrackingEntryRepository: MongoRepository<TrackingEntry, ObjectId> {
-    fun findByBucketAndStoragePath(bucket: String, storagePath: String): Optional<TrackingEntry>
+    fun findByRepoIdAndNodeIdAndHashAndBucket(repoId: String, nodeId: String, hash: String, bucket: String): Optional<TrackingEntry>
+    fun deleteByRepoIdAndNodeIdAndHashAndBucket(repoId: String, nodeId: String, hash: String, bucket: String)
     fun findAllByBucket(bucket: String, pageRequest: PageRequest): Page<TrackingEntry>
-    fun deleteByBucketAndStoragePath(bucket: String, storagePath: String)
+//    fun findByBucketAndStoragePath(bucket: String, storagePath: String): Optional<TrackingEntry>
+//    fun deleteByBucketAndStoragePath(bucket: String, storagePath: String)
 }

@@ -33,8 +33,7 @@ class EduHtmlConversionService(
                 val extractedCacheObject = cacheObject
                     .copy(mimeType = URLConnection.guessContentTypeFromName(currentEntry.name))
 
-                val objectName = "${cacheObject.nodeId}/${currentEntry.name.substringAfter(zipRootPath)}"
-                storageImplementation.putObject(extractedCacheObject, zipInputStream, objectName)
+                storageImplementation.putObject(extractedCacheObject, zipInputStream, currentEntry.name.substringAfter(zipRootPath))
             }
             currentEntry = zipInputStream.nextEntry
         }

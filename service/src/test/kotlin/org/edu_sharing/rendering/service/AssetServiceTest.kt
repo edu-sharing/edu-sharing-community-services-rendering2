@@ -72,9 +72,10 @@ class AssetServiceTest {
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
         every { storageService.getObjectChunkStream(
             cacheObject,
-            false,
+            400000,
             100000,
-            400000)
+            false
+        )
         } returns stream
 
         // Act
@@ -91,9 +92,10 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                false,
+                400000,
                 100000,
-                400000)
+                false
+            )
         }
     }
 
@@ -113,9 +115,10 @@ class AssetServiceTest {
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
         every { storageService.getObjectChunkStream(
             cacheObject,
-            false,
+            400000,
             100000,
-            400000)
+            false
+        )
         } returns stream
 
         // Act
@@ -132,9 +135,10 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                false,
+                400000,
                 100000,
-                400000)
+                false
+            )
         }
     }
 
@@ -154,9 +158,10 @@ class AssetServiceTest {
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
         every { storageService.getObjectChunkStream(
             cacheObject,
-            false,
+            2100000,
             100000,
-            2100000)
+            false
+        )
         } returns stream
 
         // Act
@@ -173,9 +178,10 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                false,
+                2100000,
                 100000,
-                2100000)
+                false
+            )
         }
     }
 
@@ -195,9 +201,10 @@ class AssetServiceTest {
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
         every { storageService.getObjectChunkStream(
             cacheObject,
-            false,
+            399999,
             100000,
-            399999)
+            false
+        )
         } returns stream
 
         // Act
@@ -214,9 +221,10 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                false,
+                399999,
                 100000,
-                399999)
+                false
+            )
         }
     }
 
@@ -236,9 +244,10 @@ class AssetServiceTest {
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
         every { storageService.getObjectChunkStream(
             cacheObject,
-            false,
+            2100000,
             100000,
-            2100000)
+            false
+        )
         } returns stream
 
         // Act
@@ -255,9 +264,10 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                false,
+                2100000,
                 100000,
-                2100000)
+                false
+            )
         }
     }
 
