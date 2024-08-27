@@ -61,6 +61,7 @@ class Mapper {
 
     fun assetLinkParamsToCacheObject(params: AssetLinkParams): CacheObject {
         return CacheObject(
+            repoId = params.repoId,
             nodeId = params.nodeId,
             type = params.type,
             hash = params.hash,

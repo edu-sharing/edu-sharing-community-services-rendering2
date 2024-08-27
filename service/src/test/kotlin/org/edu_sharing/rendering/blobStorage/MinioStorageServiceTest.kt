@@ -27,7 +27,7 @@ import java.net.URLDecoder
 @ExtendWith(MockKExtension::class)
 class MinioStorageServiceTest {
     private val client = mockk<MinioClient>()
-    private val repository = mockk<TrackingEntryRepository>()
+    private val trackingService = mockk<TrackingService>()
     private val adminClient = mockk<MinioAdminClientProvider>()
     private val bucketStrategy = mockk<BucketStrategy>()
 
@@ -35,7 +35,7 @@ class MinioStorageServiceTest {
 
     @BeforeEach
     fun setup() {
-        underTest = MinioStorageService(client, repository, adminClient, bucketStrategy)
+        underTest = MinioStorageService(client, adminClient, bucketStrategy, trackingService)
         underTest.publicUrl = "http://public"
         underTest.port = "8909"
     }

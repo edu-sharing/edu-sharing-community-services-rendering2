@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class AssetLinkParams(
     @JsonProperty("nodeId")
+    val repoId: String,
+    @JsonProperty("nodeId")
     val nodeId: String,
     @JsonProperty("hash")
     val hash: String,

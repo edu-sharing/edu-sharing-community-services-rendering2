@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
+import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
@@ -20,7 +21,7 @@ class EduHtmlService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
     private val amqpTemplate: AmqpTemplate,
-    private val storageImplementation: StorageService,
+    private val storageImplementation: StaticStorageService,
     private val subJobRepository: SubJobRepository
 ) {
     @Value("\${app.queue.topicExchange}")

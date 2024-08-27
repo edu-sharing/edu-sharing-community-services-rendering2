@@ -5,6 +5,7 @@ import com.google.gson.FieldAttributes
 import com.google.gson.GsonBuilder
 import okhttp3.*
 import okhttp3.Headers.Companion.headersOf
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.edu_sharing.generated.repository.backend.services.rest.client.*
 import org.edu_sharing.generated.repository.backend.services.rest.client.auth.ApiKeyAuth
 import org.edu_sharing.generated.repository.backend.services.rest.client.auth.Authentication
@@ -119,11 +120,11 @@ class ApiClientFixes() : ApiClient() {
                         "Content-Disposition",
                         "form-data; name=\"" + key as String + "\"; filename=\"" + key+ "\""
                 )
-                mpBuilder.addPart(partHeaders, RequestBody.create(null, value))
+                mpBuilder.addPart(partHeaders, value.toRequestBody(null, 0, value.size))
             } else {
                 val partHeaders: Headers =
                         headersOf("Content-Disposition", "form-data; name=\"" + key as String + "\"")
-                mpBuilder.addPart(partHeaders, RequestBody.create(null, parameterToString(value)))
+                mpBuilder.addPart(partHeaders, parameterToString(value).toRequestBody(null))
             }
         }
         return mpBuilder.build()
@@ -145,7 +146,7 @@ class ApiClientFixes() : ApiClient() {
     ): okhttp3.Call? {
         var authNames: Array<String>? = authNames
         headerParams.putIfAbsent("Content-Type", "application/json")
-        if (authNames == null || authNames.size == 0) {
+        if (authNames.isNullOrEmpty()) {
             authNames = arrayOf("basicAuth")
         }
         return super.buildCall(

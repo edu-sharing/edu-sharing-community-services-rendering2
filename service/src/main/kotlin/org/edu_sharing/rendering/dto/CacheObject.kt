@@ -13,7 +13,7 @@ data class CacheObject(
 
     companion object{
         fun of(repoId: String, nodeId: String, hash: String, type: String): CacheObject{
-            CacheObject(nodeId = nodeId, type = type, hash = hash, repoId = repoId)
+            return CacheObject(nodeId = nodeId, type = type, hash = hash, repoId = repoId)
         }
     }
 

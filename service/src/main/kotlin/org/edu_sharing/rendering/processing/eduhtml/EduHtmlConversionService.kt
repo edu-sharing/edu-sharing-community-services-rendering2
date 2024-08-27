@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.processing.eduhtml
 
+import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
@@ -14,7 +15,7 @@ import java.util.zip.ZipInputStream
 @Service
 class EduHtmlConversionService(
     private val contentTransferService: ContentTransferService,
-    private val storageImplementation: StorageService
+    private val storageImplementation: StaticStorageService
 ) {
     fun cacheData(cacheObject: CacheObject) {
         contentTransferService.getAsInputStream(cacheObject).use {

@@ -80,6 +80,7 @@ class MinioStorageService(
 
     override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
         val params = AssetLinkParams(
+            repoId = cacheObject.repoId,
             nodeId = cacheObject.nodeId,
             hash = cacheObject.hash,
             quality = cacheObject.quality ?: 0,
