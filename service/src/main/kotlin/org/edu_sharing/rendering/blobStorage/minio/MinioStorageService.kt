@@ -9,7 +9,7 @@ import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageInfo
 import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.blobStorage.TrackingService
+import org.edu_sharing.rendering.service.TrackingService
 import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
 import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.controller.external.AssetController.Companion.ROOT_REQUEST_PATH

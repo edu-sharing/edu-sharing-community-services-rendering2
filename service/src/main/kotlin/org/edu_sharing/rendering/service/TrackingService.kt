@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.blobStorage
+package org.edu_sharing.rendering.service
 
 import com.mongodb.MongoException
 import org.edu_sharing.rendering.dto.CacheObject

@@ -14,7 +14,7 @@ import org.edu_sharing.rendering.config.MinioAdminClientProvider
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
+import org.edu_sharing.rendering.service.TrackingService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
