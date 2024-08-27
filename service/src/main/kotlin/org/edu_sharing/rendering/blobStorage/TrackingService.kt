@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 
 @Service
 class TrackingService(
@@ -19,36 +20,44 @@ class TrackingService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     inner class TrackingIterator(val bucket: String) {
-        private var page = PageRequest.of(0, 100, Sort.Direction.ASC, "lastAccessed")
+        private var page: Pageable = PageRequest.of(0, 100, Sort.Direction.ASC, "lastAccessed")
         private var result: Page<TrackingEntry>? = null
-        fun getNext() : List<TrackingEntry> {
-            result = trackingEntryRepository.findAllByBucket(
-                bucket,
-                page
-            )
-            page = result.nextPageable()
-            return result!.content
+
+
+        fun getNext(): List<TrackingEntry> {
+            result = trackingEntryRepository.findAllByBucket(bucket, page)
+            page = result!!.nextPageable()
+            return result!!.content
         }
 
-        fun hasNext() : Boolean{
-            return result.hasNext()
+        fun hasNext(): Boolean {
+            return result?.hasNext() ?: true
         }
     }
 
-    fun getOldestTrackedObjects(bucket: String) : TrackingIterator {
+    /**
+     * returns tracked objects sorted by lastAccessed date in accenting order
+     */
+    fun getTrackedObjectsByBucket(bucket: String): TrackingIterator {
         return TrackingIterator(bucket)
     }
 
     fun trackCacheObject(cacheObject: CacheObject, bucket: String) {
-        val trackingEntry = trackingEntryRepository.findByRepoIdAndNodeIdAndHashAndBucket(cacheObject.repoId, cacheObject.nodeId, cacheObject.hash,  bucket)
+        val trackingEntry = trackingEntryRepository.findByRepoIdAndNodeIdAndHashAndBucket(
+            cacheObject.repoId,
+            cacheObject.nodeId,
+            cacheObject.hash,
+            bucket
+        )
             .orElse(
                 TrackingEntry.of(
-                repoId = cacheObject.repoId,
-                nodeId = cacheObject.nodeId,
-                hash = cacheObject.hash,
-                type = cacheObject.type,
-                bucket = bucket
-            ))
+                    repoId = cacheObject.repoId,
+                    nodeId = cacheObject.nodeId,
+                    hash = cacheObject.hash,
+                    type = cacheObject.type,
+                    bucket = bucket
+                )
+            )
         try {
             trackingEntryRepository.save(trackingEntry)
         } catch (exception: DuplicateKeyException) {
@@ -58,11 +67,16 @@ class TrackingService(
         }
     }
 
-    fun deleteTrackedObject(cacheObject: CacheObject, bucket: String){
-        trackingEntryRepository.deleteByRepoIdAndNodeIdAndHashAndBucket(cacheObject.repoId, cacheObject.nodeId, cacheObject.hash, bucket)
+    fun deleteTrackedObject(cacheObject: CacheObject, bucket: String) {
+        trackingEntryRepository.deleteByRepoIdAndNodeIdAndHashAndBucket(
+            cacheObject.repoId,
+            cacheObject.nodeId,
+            cacheObject.hash,
+            bucket
+        )
     }
 
-    fun deleteAllTrackedObjects(trackedObjects : Iterable<TrackingEntry>) {
+    fun deleteAllTrackedObjects(trackedObjects: Iterable<TrackingEntry>) {
         trackingEntryRepository.deleteAll(trackedObjects)
     }
 }

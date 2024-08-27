@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.blobStorage.minio
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.mongodb.MongoException
 import io.minio.*
 import io.minio.errors.ErrorResponseException
 import io.minio.messages.DeleteObject
@@ -21,13 +20,8 @@ import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.entity.TrackingEntry
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.dao.DuplicateKeyException
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
@@ -300,16 +294,14 @@ class MinioStorageService(
     override fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float) {
         val maxSize = (lowerThreshold * storageInfo.maxSize).toLong()
 
-        val page = 0
         var totalSize = 0L
-        var result: Page<TrackingEntry>?
+        val trackingIterator = trackingService.getTrackedObjectsByBucket(storageInfo.location)
         val minioObjectsToDelete = mutableListOf<DeleteObject>()
         val trackingEntriesToDelete = mutableListOf<TrackingEntry>()
-        do {
-            result = trackingService.getOldestTrackedObjects(storageInfo.location)
 
+        do {
             // TODO handle h5p caches in lumi
-            for (entry in result) {
+            for (entry in trackingIterator.getNext()) {
                 if (totalSize >= maxSize) {
                     break
                 }
@@ -323,7 +315,7 @@ class MinioStorageService(
                 minioObjectsToDelete.addAll(storedObjectResults.mapNotNull { try { it.get() } catch (_:Exception) {null} }.map { DeleteObject(it.objectName()) }.toList())
                 trackingEntriesToDelete.add(entry)
             }
-        } while (result?.hasNext() == true && totalSize < maxSize)
+        } while (trackingIterator.hasNext() && totalSize < maxSize)
 
 
         val removeObjectResults = eduMinioClient.removeObjects(
