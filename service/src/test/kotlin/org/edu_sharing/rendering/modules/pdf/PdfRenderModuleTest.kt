@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
@@ -31,7 +32,7 @@ class PdfRenderModuleTest {
         underTest = PdfRenderModule(
             nodePermissionExpirationTime = 55L,
             mapper =  mapperMock,
-            storageImplementation = storageServiceMock,
+            storageService = storageServiceMock,
             mainJobCreationService = mainJobCreationServiceMock)
         clearAllMocks()
     }

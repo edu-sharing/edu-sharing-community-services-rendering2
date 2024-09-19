@@ -1,29 +1,26 @@
-package org.edu_sharing.rendering.modules.pdf
+package org.edu_sharing.rendering.modules.noConversion
 
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.modules.RenderModule
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
+import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.storage.StorageService
 
-@Component
-class PdfRenderModule(
-    @Value("\${app.session.pdf.nodePermissionExpirationTime}")
+abstract class BaseNoConversionModule(
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
-    private val storageImplementation: StorageService,
+    private val storageService: StorageService,
     private val mainJobCreationService: MainJobCreationService
-    ) : RenderModule {
-    override fun module() = RenderModules.PDF
-
+) : RenderModule {
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
-        val link = try { storageImplementation.getObjectLink(cacheObject) } catch (_: ResourceNotFoundException) { null }
+        val link = try {
+            storageService.getObjectLink(cacheObject)
+        } catch (_: ResourceNotFoundException) {
+            null
+        }
         var jobId: String? = null
         if (link == null) {
             jobId = mainJobCreationService.getExistingJobId(cacheObject)
