@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.entity
+package org.edu_sharing.rendering.renderingJobs.entity
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.modules.RenderModules

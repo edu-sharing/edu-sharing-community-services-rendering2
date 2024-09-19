@@ -4,7 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
+import org.edu_sharing.rendering.modules.moodle.MoodleJobMessage
 import org.edu_sharing.rendering.modules.moodle.MoodleRenderModule
 import org.junit.jupiter.api.*
 import org.springframework.web.reactive.function.client.WebClient

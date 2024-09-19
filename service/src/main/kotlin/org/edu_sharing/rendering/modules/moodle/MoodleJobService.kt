@@ -1,13 +1,12 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.modules.RenderModules
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value

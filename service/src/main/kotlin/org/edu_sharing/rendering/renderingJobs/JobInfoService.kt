@@ -1,17 +1,17 @@
-package org.edu_sharing.rendering.service
+package org.edu_sharing.rendering.renderingJobs
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
-import org.edu_sharing.rendering.dto.JobInfoReply
-import org.edu_sharing.rendering.dto.JobProgressInfo
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
 import org.edu_sharing.rendering.exception.EntryNotFoundException
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.dto.JobInfoReply
+import org.edu_sharing.rendering.renderingJobs.dto.JobProgressInfo
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service

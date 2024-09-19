@@ -4,7 +4,7 @@ import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
 import org.springframework.stereotype.Component
 
 @Component

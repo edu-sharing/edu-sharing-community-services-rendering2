@@ -1,8 +1,8 @@
-package org.edu_sharing.rendering.dto
+package org.edu_sharing.rendering.renderingJobs.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.modules.RenderModules
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
 
 data class JobInfoReply(
     @JsonProperty("jobs")

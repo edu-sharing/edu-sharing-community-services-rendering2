@@ -6,7 +6,7 @@ import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.MainJobCreationService
+import org.edu_sharing.rendering.renderingJobs.MainJobCreationService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component

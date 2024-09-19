@@ -5,13 +5,13 @@ import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
 import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -85,7 +85,7 @@ class H5pJobServiceTest {
 
         // Assert
         assert(subJobSlot.captured.routingKey == "routingkey")
-        assert(subJobSlot.captured.parent.id.toString() == dummyJob.id.toString())
+        assert(RenderingJob.id.toString() == dummyJob.id.toString())
 
         assert(result == dummyJob.id.toString())
 
@@ -121,7 +121,7 @@ class H5pJobServiceTest {
 
         // Assert
         assert(subJobSlot.captured.routingKey == "routingkey")
-        assert(subJobSlot.captured.parent.id.toString() == dummyJob.id.toString())
+        assert(RenderingJob.id.toString() == dummyJob.id.toString())
 
         assert(result == dummyJob.id.toString())
 

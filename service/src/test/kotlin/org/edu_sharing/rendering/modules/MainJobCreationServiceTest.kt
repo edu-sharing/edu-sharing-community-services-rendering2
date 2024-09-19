@@ -5,11 +5,12 @@ import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.MainJobCreationService
 import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith

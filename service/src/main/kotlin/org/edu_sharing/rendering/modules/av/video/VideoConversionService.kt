@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.modules.av.video
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
 import org.edu_sharing.rendering.exception.ConversionException
 import org.edu_sharing.rendering.modules.av.AVConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService

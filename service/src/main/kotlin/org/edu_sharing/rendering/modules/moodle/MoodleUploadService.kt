@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
-import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap

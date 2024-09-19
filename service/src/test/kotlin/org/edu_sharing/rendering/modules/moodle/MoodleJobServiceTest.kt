@@ -6,12 +6,11 @@ import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.RequestUserData
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
 import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

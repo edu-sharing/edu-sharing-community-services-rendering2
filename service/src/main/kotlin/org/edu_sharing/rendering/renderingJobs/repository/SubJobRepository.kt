@@ -1,8 +1,8 @@
-package org.edu_sharing.rendering.repository.mongo
+package org.edu_sharing.rendering.renderingJobs.repository
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 

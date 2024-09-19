@@ -8,10 +8,10 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
 import org.junit.Test
 import org.springframework.data.repository.findByIdOrNull
 

@@ -6,13 +6,13 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifySequence
-import org.edu_sharing.rendering.dto.JobInfoReply
-import org.edu_sharing.rendering.dto.JobProgressInfo
+import org.edu_sharing.rendering.renderingJobs.dto.JobInfoReply
+import org.edu_sharing.rendering.renderingJobs.dto.JobProgressInfo
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.service.JobInfoService
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.JobInfoService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
@@ -55,13 +55,13 @@ class JobInfoControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(response.status == JobStatus.QUEUED)
         assert(response.module == RenderModules.IMAGE)
         assert(response.jobs.size == 1)
-        assert(response.jobs[0].status == JobStatus.QUEUED)
-        assert(response.jobs[0].objectLink?.link == "mylink.de")
-        assert(response.jobs[0].progress.toInt() == 0)
-        assert(response.jobs[0].quality == 0)
-        assert(response.jobs[0].objectLink?.isHighestQuality == false)
-        assert(response.jobs[0].objectLink?.width == 0)
-        assert(response.jobs[0].objectLink?.height == 0)
+        assert(JobProgressInfo.status == JobStatus.QUEUED)
+        assert(JobProgressInfo.objectLink?.link == "mylink.de")
+        assert(JobProgressInfo.progress.toInt() == 0)
+        assert(JobProgressInfo.quality == 0)
+        assert(JobProgressInfo.objectLink?.isHighestQuality == false)
+        assert(JobProgressInfo.objectLink?.width == 0)
+        assert(JobProgressInfo.objectLink?.height == 0)
 
         verifySequence {
             jobInfoService.getRenderingJob(jobId)

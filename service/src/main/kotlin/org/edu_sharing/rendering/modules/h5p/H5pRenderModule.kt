@@ -5,8 +5,8 @@ import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJobs.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.service.LumiNodeInfoService
 import org.springframework.beans.factory.annotation.Value

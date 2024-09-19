@@ -5,13 +5,14 @@ import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
 import org.edu_sharing.rendering.exception.EntryNotFoundException
+import org.edu_sharing.rendering.renderingJobs.JobInfoService
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

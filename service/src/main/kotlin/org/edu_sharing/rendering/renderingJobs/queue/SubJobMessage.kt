@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.dto.queue
+package org.edu_sharing.rendering.renderingJobs.queue
 
 /**
  * Data Class SubJobMessage

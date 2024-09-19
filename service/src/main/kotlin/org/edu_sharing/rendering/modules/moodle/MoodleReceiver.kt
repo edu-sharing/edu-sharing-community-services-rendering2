@@ -1,12 +1,11 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
-import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.processing.MainJobLogic
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
+import org.edu_sharing.rendering.renderingJobs.MainJobLogic
+import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
