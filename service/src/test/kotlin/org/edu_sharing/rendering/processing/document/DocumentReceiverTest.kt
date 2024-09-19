@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.processing.document
 
 import io.mockk.*
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus

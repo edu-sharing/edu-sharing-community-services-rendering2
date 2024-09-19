@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.processing.moodle
 
 import io.mockk.*
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.queue.MoodleJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.RenderingJob

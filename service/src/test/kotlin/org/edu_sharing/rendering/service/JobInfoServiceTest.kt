@@ -4,7 +4,7 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.exception.EntryNotFoundException
 import org.edu_sharing.rendering.modules.ModuleRegistry

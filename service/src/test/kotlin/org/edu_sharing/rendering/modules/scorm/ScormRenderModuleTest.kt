@@ -2,8 +2,9 @@ package org.edu_sharing.rendering.modules.scorm
 
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.moodle.MoodleJobService
+import org.edu_sharing.rendering.modules.moodle.ScormRenderModule
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith

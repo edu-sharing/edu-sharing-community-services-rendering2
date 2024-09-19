@@ -4,7 +4,7 @@ import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus

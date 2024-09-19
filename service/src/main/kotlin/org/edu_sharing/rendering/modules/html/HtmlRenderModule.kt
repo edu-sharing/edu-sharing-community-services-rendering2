@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.modules.html
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.MainJobCreationService

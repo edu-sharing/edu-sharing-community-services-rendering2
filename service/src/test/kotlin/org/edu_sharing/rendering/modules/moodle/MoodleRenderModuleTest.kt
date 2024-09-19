@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.modules.moodle
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
 import org.junit.jupiter.api.BeforeEach

@@ -1,5 +1,5 @@
 package org.edu_sharing.rendering.exception
 
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 
 class ModuleNotRegisteredException(module: RenderModules) : Exception(module.name)

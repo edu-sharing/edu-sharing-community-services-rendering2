@@ -1,9 +1,10 @@
 package org.edu_sharing.rendering.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.edu_sharing.rendering.processing.h5p.LumiCacheRepository
-import org.edu_sharing.rendering.processing.h5p.LumiNodeHashResponse
-import org.edu_sharing.rendering.processing.h5p.LumiNodeInfo
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiCacheRepository
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeHashResponse
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfo
+
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder

@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.modules.spreadsheet
 
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.document.DocumentService
 import org.junit.jupiter.api.BeforeEach

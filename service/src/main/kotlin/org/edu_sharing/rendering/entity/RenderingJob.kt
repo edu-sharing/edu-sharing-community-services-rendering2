@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.entity
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.annotation.ReadOnlyProperty

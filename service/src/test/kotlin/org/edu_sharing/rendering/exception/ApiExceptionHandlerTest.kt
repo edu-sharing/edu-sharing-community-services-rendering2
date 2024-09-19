@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.exception
 
 import org.edu_sharing.rendering.dto.ErrorMessage
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus

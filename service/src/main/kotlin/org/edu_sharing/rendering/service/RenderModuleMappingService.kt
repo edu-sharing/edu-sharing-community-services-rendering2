@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.service
 
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.exception.ObjectTypeNotSupportedException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType

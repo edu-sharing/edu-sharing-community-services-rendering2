@@ -7,6 +7,7 @@ import io.mockk.every
 import io.mockk.slot
 import io.mockk.verify
 import org.edu_sharing.rendering.dto.*
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.service.RenderDataService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

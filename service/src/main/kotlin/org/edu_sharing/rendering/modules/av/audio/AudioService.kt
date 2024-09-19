@@ -1,0 +1,42 @@
+package org.edu_sharing.rendering.modules.av.audio
+
+import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.modules.RenderModules
+import org.edu_sharing.rendering.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.modules.MainJobCreationService
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Service
+
+@Service
+class AudioService(
+    private val storageImplementation: StorageService,
+    private val mainJobCreationService: MainJobCreationService
+) {
+    @Value("\${app.converter.audio.mimeTypes}")
+    lateinit var convertedAudioMimeTypes: List<String>
+
+    private fun isConversionObject(cacheObject: CacheObject) = convertedAudioMimeTypes.contains(cacheObject.mimeType)
+
+    fun getObjectLinks(cacheObject: CacheObject): List<ObjectLink>? {
+        val lookUpObject = cacheObject.copy()
+        lookUpObject.mimeType = "audio/mpeg"
+
+        return try {
+            listOf(storageImplementation.getObjectLink(
+                if (isConversionObject(cacheObject)) lookUpObject else cacheObject)
+            )
+        } catch (_: ResourceNotFoundException) {
+            null
+        }
+    }
+
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules): String {
+        return  mainJobCreationService.getExistingJobId(cacheObject)
+            ?: mainJobCreationService.createMainJob(
+                cacheObject = cacheObject,
+                module = module,
+                isConversionType = isConversionObject(cacheObject))
+    }
+}

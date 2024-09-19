@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.processing.h5p
 import io.mockk.*
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus

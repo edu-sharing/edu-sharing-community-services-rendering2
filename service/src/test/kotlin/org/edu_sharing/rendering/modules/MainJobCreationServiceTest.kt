@@ -4,7 +4,6 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus

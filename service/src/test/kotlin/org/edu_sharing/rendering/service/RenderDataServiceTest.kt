@@ -5,7 +5,7 @@ import io.mockk.mockk
 import io.mockk.verifySequence
 import org.edu_sharing.rendering.dto.RenderDataRequest
 import org.edu_sharing.rendering.dto.RenderDataResponse
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -2,11 +2,13 @@ package org.edu_sharing.rendering.processing.av
 
 import io.mockk.*
 import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.RenderModules
+import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.SubJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
+import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.edu_sharing.rendering.processing.JobDataProvider
 import org.edu_sharing.rendering.processing.MainJobLogic
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
