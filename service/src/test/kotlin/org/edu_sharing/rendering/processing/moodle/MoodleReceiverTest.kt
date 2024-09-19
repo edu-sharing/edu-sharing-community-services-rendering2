@@ -107,7 +107,7 @@ class MoodleReceiverTest {
 
             subJob
         }
-        every { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.MOODLE) } returns module
+        every { moduleRegistry.getRenderModule<RenderModule>(moduleName = RenderModules.MOODLE) } returns module
         every { moodleUploadService.getUrl(message, module) } throws Exception()
         every { mainJobLogic.processMainJob(message.id) } returns true
 
@@ -121,7 +121,7 @@ class MoodleReceiverTest {
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         verify(exactly = 1) { renderingJobRepository.save(any()) }
         verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.MOODLE) }
+        verify(exactly = 1) { moduleRegistry.getRenderModule<RenderModule>(moduleName = RenderModules.MOODLE) }
         verify(exactly = 1) { moodleUploadService.getUrl(message, module) }
         verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, moduleRegistry, moodleUploadService)
@@ -164,7 +164,7 @@ class MoodleReceiverTest {
 
             subJob
         }
-        every { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.MOODLE) } returns module
+        every { moduleRegistry.getRenderModule<RenderModule>(moduleName = RenderModules.MOODLE) } returns module
         every { moodleUploadService.getUrl(message, module) } returns "myUrl"
         every { mainJobLogic.processMainJob(message.id) } returns true
 
@@ -179,7 +179,7 @@ class MoodleReceiverTest {
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         verify(exactly = 1) { renderingJobRepository.save(any()) }
         verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.MOODLE) }
+        verify(exactly = 1) { moduleRegistry.getRenderModule<RenderModule>(moduleName = RenderModules.MOODLE) }
         verify(exactly = 1) { moodleUploadService.getUrl(message, module) }
         verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, moduleRegistry, moodleUploadService)

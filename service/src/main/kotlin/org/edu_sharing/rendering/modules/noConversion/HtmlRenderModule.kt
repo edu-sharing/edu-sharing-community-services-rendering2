@@ -19,6 +19,5 @@ class HtmlRenderModule(
     storageService: StorageService,
     mainJobCreationService: MainJobCreationService
 ) : BaseNoConversionModule(nodePermissionExpirationTime, mapper, storageService, mainJobCreationService) {
-
-    override fun module() = RenderModules.HTML
+    override val name = "HTML"
 }

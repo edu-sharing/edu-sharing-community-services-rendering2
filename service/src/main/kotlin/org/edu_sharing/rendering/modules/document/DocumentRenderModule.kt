@@ -38,7 +38,5 @@ class DocumentRenderModule(
         return links?.get(0)
     }
 
-    fun getTargetMimetype() = MediaType.APPLICATION_PDF_VALUE
-
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 }

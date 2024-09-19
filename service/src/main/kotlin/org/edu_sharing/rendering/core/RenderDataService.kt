@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service
 @ConditionalOnController
 @Service
 class RenderDataService(
-    private val renderModuleMappingService: RenderModuleMappingService,
     private val moduleRegistry: ModuleRegistry,
 ) {
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
