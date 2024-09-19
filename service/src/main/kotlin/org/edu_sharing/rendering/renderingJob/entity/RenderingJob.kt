@@ -17,7 +17,7 @@ data class RenderingJob(
     val id: ObjectId = ObjectId(),
     @Indexed
     var status: JobStatus = JobStatus.QUEUED,
-    var module: RenderModules,
+    var module: String,
     val esObjectType: String,
     val esObjectId: String,
     val repoId: String,

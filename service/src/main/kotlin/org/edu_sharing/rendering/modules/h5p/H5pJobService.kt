@@ -25,7 +25,7 @@ class H5pJobService(
     @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    fun createJob(request: RenderDataRequest, module: RenderModules): String {
+    fun createJob(request: RenderDataRequest, module: String): String {
         val existingJob = jobRepository.findAllByEsObjectId(request.nodeId)
             .firstOrNull { it.status <= JobStatus.PROCESSING }
 

@@ -30,7 +30,7 @@ class EduHtmlService(
     @Value("\${app.queue.eduHtml.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(request: RenderDataRequest, module: RenderModules): String {
+    fun createJob(request: RenderDataRequest, module: String): String {
         val existingJobs = jobRepository.findAllByEsObjectId(request.nodeId)
             .filter { it.status <= JobStatus.PROCESSING }
 

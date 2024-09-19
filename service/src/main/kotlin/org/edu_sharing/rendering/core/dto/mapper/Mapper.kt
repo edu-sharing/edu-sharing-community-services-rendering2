@@ -21,7 +21,7 @@ class Mapper {
         )
     }
 
-    fun cacheObjectToRenderingJob(cacheObject: CacheObject, module: RenderModules, isConversionType: Boolean = false): RenderingJob {
+    fun cacheObjectToRenderingJob(cacheObject: CacheObject, module: String, isConversionType: Boolean = false): RenderingJob {
         return RenderingJob(
             esObjectType = cacheObject.type,
             esObjectId = cacheObject.nodeId,
@@ -35,7 +35,7 @@ class Mapper {
         )
     }
 
-    fun renderDataRequestToRenderingJob(request: RenderDataRequest, module: RenderModules): RenderingJob {
+    fun renderDataRequestToRenderingJob(request: RenderDataRequest, module: String): RenderingJob {
         return RenderingJob(
             esObjectId = request.nodeId,
             esObjectType = request.type,

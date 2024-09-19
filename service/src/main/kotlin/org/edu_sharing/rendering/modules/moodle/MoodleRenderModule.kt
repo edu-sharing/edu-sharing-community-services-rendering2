@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.moodle
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
@@ -16,7 +15,7 @@ class MoodleRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val moodleJobService: MoodleJobService
 ) : RenderModule {
-    override fun module() = RenderModules.MOODLE
+    override fun module() = "MOODLE"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         return RenderDataResponse(

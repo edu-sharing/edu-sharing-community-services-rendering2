@@ -32,7 +32,7 @@ class AudioService(
         }
     }
 
-    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules): String {
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: String): String {
         return  mainJobCreationService.getExistingJobId(cacheObject)
             ?: mainJobCreationService.createMainJob(
                 cacheObject = cacheObject,

@@ -58,7 +58,7 @@ class ImageService(
         return targetImageSizes.filter { !availableQualities.contains(it) }
     }
 
-    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules, missingQualities: List<Int>): String {
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: List<Int>): String {
         return mainJobCreationService.getExistingJobId(cacheObject)
             ?: mainJobCreationService.createMainJob(
                 cacheObject = cacheObject,

@@ -70,7 +70,7 @@ class DocumentReceiverTest {
         failedSubJob.message = DocumentReceiver.PUBLIC_FAILURE_MESSAGE
         every { mainJobLogic.getMainJobEntry(id) } returns job
         every { subJobRepository.save(any()) } returns failedSubJob
-        every { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.DOCUMENT) } returns module
+        every { moduleRegistry.getRenderModule<RenderModule>(moduleName = RenderModules.DOCUMENT) } returns module
         every { documentConversionService.convertAndMoveToCache(cacheObject, module) } throws Exception("")
         every { mainJobLogic.processMainJob(id) } returns true
 
@@ -98,7 +98,7 @@ class DocumentReceiverTest {
         val successfulSubJob = getDummySubJob(subId, JobStatus.FINISHED)
         every { mainJobLogic.getMainJobEntry(id) } returns job
         every { subJobRepository.save(any()) } returns successfulSubJob
-        every { moduleRegistry.getRenderModule<RenderModule>(module = RenderModules.DOCUMENT) } returns module
+        every { moduleRegistry.getRenderModule<RenderModule>(moduleName = RenderModules.DOCUMENT) } returns module
         justRun { documentConversionService.convertAndMoveToCache(cacheObject, module) }
         every { mainJobLogic.processMainJob(id) } returns true
 

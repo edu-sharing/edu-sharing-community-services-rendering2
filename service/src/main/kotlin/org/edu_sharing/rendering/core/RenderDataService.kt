@@ -11,13 +11,11 @@ import org.springframework.stereotype.Service
 @ConditionalOnController
 @Service
 class RenderDataService(
-    private val renderModuleMappingService: RenderModuleMappingService,
     private val moduleRegistry: ModuleRegistry,
 ) {
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
-        val module = renderModuleMappingService.getModule(request.type, request.mimeType)
-        val renderModule: RenderModule = moduleRegistry.getRenderModule(module)
+        val renderModule: RenderModule = moduleRegistry.getRenderModule(request.type, request.mimeType)
         val response = renderModule.handle(request)
         return response
     }

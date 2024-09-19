@@ -33,7 +33,7 @@ class MoodleJobService(
     @Value("\${app.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(request: RenderDataRequest, module: RenderModules): String? {
+    fun createJob(request: RenderDataRequest, module: String): String? {
         checkPrerequisites()
         if (request.userData == null) {
             log.error("Missing user data in Moodle request. Node: " + request.nodeId)
