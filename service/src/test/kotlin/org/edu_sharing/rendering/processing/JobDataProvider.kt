@@ -2,9 +2,9 @@ package org.edu_sharing.rendering.processing
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 
 class JobDataProvider {
     companion object {

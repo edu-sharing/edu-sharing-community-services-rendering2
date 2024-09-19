@@ -1,12 +1,11 @@
-package org.edu_sharing.rendering.controller.external
+package org.edu_sharing.rendering.asset
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.asset.dto.AssetLinkParams
+import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
-import org.edu_sharing.rendering.dto.AssetLinkParams
-import org.edu_sharing.rendering.dto.ReadableAsset
-import org.edu_sharing.rendering.service.AssetService
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders

@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.dto
+package org.edu_sharing.rendering.asset.dto
 
 import java.io.InputStream
 

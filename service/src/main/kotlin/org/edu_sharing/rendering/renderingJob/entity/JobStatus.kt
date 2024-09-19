@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.renderingJobs.entity
+package org.edu_sharing.rendering.renderingJob.entity
 
 /**
  * enum class JobStatus

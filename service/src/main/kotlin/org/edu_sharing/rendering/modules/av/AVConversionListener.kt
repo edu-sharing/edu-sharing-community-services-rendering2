@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.modules.av
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.renderingJobs.entity.SubJob
-import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
 import org.springframework.context.annotation.Scope

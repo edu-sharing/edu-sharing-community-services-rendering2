@@ -11,7 +11,7 @@ import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
 import org.edu_sharing.rendering.blobStorage.minio.MinioStorageService
 import org.edu_sharing.rendering.config.MinioAdminClientProvider
-import org.edu_sharing.rendering.dto.AssetLinkParams
+import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.service.TrackingService

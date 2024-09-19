@@ -6,14 +6,14 @@ import io.minio.errors.ErrorResponseException
 import io.minio.messages.DeleteObject
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
+import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PATH
+import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageInfo
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
 import org.edu_sharing.rendering.config.MinioAdminClientProvider
-import org.edu_sharing.rendering.controller.external.AssetController.Companion.ROOT_REQUEST_PATH
-import org.edu_sharing.rendering.controller.external.AssetController.Companion.STATIC_ASSET_PATH
-import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink

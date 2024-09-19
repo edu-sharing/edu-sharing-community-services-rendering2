@@ -1,8 +1,8 @@
-package org.edu_sharing.rendering.renderingJobs.dto
+package org.edu_sharing.rendering.renderingJob.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 
 data class JobProgressInfo(
     @JsonProperty("quality")

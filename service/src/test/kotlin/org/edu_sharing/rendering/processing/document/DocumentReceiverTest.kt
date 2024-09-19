@@ -4,16 +4,16 @@ import io.mockk.*
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJobs.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.document.DocumentRenderModule
 import org.edu_sharing.rendering.processing.JobDataProvider
 import org.edu_sharing.rendering.processing.MainJobLogic
-import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.Test
 
 class DocumentReceiverTest {

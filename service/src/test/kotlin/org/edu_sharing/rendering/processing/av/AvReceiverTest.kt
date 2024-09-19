@@ -4,14 +4,14 @@ import io.mockk.*
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJobs.SubJobMessage
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.SubJobMessage
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.edu_sharing.rendering.processing.JobDataProvider
 import org.edu_sharing.rendering.processing.MainJobLogic
-import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.Test
 
 class AvReceiverTest {

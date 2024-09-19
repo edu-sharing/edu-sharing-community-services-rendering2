@@ -1,7 +1,7 @@
-package org.edu_sharing.rendering.renderingJobs
+package org.edu_sharing.rendering.renderingJob
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
-import org.edu_sharing.rendering.renderingJobs.dto.JobInfoReply
+import org.edu_sharing.rendering.renderingJob.dto.JobInfoReply
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*

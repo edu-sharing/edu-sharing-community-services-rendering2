@@ -7,10 +7,10 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
-import org.edu_sharing.rendering.renderingJobs.MainJobLogic
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.queue.SubJobMessage
-import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue

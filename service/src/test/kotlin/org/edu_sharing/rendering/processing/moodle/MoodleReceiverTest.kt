@@ -3,16 +3,16 @@ package org.edu_sharing.rendering.processing.moodle
 import io.mockk.*
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.moodle.MoodleJobMessage
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJobs.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.moodle.MoodleRenderModule
 import org.edu_sharing.rendering.processing.JobDataProvider
 import org.edu_sharing.rendering.processing.MainJobLogic
-import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
-import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.Test
 
 class MoodleReceiverTest {

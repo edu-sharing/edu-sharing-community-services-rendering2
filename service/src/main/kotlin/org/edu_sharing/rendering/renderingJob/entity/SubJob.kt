@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.renderingJobs.entity
+package org.edu_sharing.rendering.renderingJob.entity
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id

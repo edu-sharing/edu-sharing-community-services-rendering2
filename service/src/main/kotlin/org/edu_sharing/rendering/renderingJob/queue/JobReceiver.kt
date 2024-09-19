@@ -1,15 +1,15 @@
-package org.edu_sharing.rendering.renderingJobs.queue
+package org.edu_sharing.rendering.renderingJob.queue
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnJobManager
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJobs.entity.SubJob
-import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
-import org.edu_sharing.rendering.renderingJobs.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.service.ContentTransferService
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate

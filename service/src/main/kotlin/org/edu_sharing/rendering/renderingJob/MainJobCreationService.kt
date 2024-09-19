@@ -1,11 +1,11 @@
-package org.edu_sharing.rendering.renderingJobs
+package org.edu_sharing.rendering.renderingJob
 
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.renderingJobs.entity.JobStatus
-import org.edu_sharing.rendering.renderingJobs.queue.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJobs.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
