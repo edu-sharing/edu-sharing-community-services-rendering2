@@ -18,7 +18,7 @@ class ImageRenderModule(
     private val mapper: Mapper,
     private val imageService: ImageService,
 ) : RenderModule {
-    override fun module() = RenderModules.IMAGE
+    override fun module() = "IMAGE"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)

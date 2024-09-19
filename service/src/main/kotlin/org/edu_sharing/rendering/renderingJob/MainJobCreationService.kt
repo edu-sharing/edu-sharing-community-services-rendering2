@@ -24,7 +24,7 @@ class MainJobCreationService(
 
     fun createMainJob(
         cacheObject: CacheObject,
-        module: RenderModules,
+        module: String,
         missingQualities: List<Int> = emptyList(),
         isConversionType: Boolean = false
     ): String {

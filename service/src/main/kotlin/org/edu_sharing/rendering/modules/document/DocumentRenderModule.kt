@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.document
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -18,8 +17,11 @@ class DocumentRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val documentService: DocumentService
-): RenderModule {
-    override fun module() = RenderModules.DOCUMENT
+) : RenderModule {
+
+
+    override fun module() = "DOCUMENT"
+    fun getTargetMimetype() = MediaType.APPLICATION_PDF_VALUE
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)

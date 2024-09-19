@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
@@ -18,7 +19,7 @@ class VideoRenderModule (
     private val mapper: Mapper,
     private val videoService: VideoService
 ): RenderModule {
-    override fun module() = RenderModules.VIDEO
+    override fun module() = "VIDEO"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
@@ -52,4 +53,5 @@ class VideoRenderModule (
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
+
 }

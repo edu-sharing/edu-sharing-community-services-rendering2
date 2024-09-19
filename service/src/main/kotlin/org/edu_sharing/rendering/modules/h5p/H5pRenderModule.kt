@@ -22,7 +22,7 @@ class H5pRenderModule(
     @Value("\${app.public.url}:\${app.public.port}")
     lateinit var baseUrl: String
 
-    override fun module() = RenderModules.H5P
+    override fun module() = "H5P"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cachedLumiContentId = lumiNodeInfoService.getContentId(request.nodeId, request.hash)

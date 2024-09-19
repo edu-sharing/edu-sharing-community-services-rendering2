@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.RenderModules
 import org.springframework.beans.factory.annotation.Value
@@ -19,7 +20,7 @@ class EduHtmlRenderModule(
     private val eduHtmlService: EduHtmlService,
     private val mapper: Mapper
 ) : RenderModule {
-    override fun module() = RenderModules.EDUHTML
+    override fun module() = "EDUHTML"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val staticLink = try {
@@ -49,4 +50,8 @@ class EduHtmlRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
+
+    override fun onModuleRegistration(registry: ModuleRegistry) {
+        registry.registerByType("file-eduhtml", this)
+    }
 }
