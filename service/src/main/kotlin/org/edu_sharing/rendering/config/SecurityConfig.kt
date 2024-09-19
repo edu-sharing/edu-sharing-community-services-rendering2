@@ -6,7 +6,7 @@ import org.edu_sharing.rendering.security.AuthTokenFilter
 import org.edu_sharing.rendering.security.NodePermissionSessionContextEvaluator
 import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.security.jwt.JwtUtils
-import org.edu_sharing.rendering.service.PrivatePublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean

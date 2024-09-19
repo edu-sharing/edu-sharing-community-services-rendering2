@@ -5,7 +5,7 @@ import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.service.ContentTransferService
+import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType
 import org.springframework.http.client.MultipartBodyBuilder

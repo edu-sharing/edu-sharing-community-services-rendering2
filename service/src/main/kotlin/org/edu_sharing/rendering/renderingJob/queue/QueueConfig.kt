@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.config
+package org.edu_sharing.rendering.renderingJob.queue
 
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory

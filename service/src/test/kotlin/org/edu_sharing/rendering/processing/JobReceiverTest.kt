@@ -13,7 +13,7 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.service.ContentTransferService
+import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
 import org.junit.Test
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.data.repository.findByIdOrNull

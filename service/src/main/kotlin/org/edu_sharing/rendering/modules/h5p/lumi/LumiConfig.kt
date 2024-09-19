@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.config.annotation.ConditionalOnH5p
+import org.edu_sharing.rendering.modules.h5p.ConditionalOnH5p
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

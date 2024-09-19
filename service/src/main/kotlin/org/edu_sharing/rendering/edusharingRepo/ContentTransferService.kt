@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.service
+package org.edu_sharing.rendering.edusharingRepo
 
 import org.edu_sharing.rendering.dto.CacheObject
 import org.springframework.beans.factory.annotation.Qualifier

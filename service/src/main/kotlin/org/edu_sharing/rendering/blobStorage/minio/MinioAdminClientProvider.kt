@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.config
+package org.edu_sharing.rendering.blobStorage.minio
 
 import io.minio.admin.MinioAdminClient
 

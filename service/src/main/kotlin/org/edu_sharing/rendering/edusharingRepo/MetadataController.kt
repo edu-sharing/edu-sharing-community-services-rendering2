@@ -1,7 +1,6 @@
-package org.edu_sharing.rendering.controller.external
+package org.edu_sharing.rendering.edusharingRepo
 
 import org.apache.commons.io.output.ByteArrayOutputStream
-import org.edu_sharing.rendering.service.MetadataService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping

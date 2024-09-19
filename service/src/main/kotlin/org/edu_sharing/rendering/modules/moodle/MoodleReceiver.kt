@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus

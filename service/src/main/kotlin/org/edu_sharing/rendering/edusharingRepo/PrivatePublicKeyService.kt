@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.service
+package org.edu_sharing.rendering.edusharingRepo
 
 import java.security.PrivateKey
 import java.security.PublicKey

@@ -1,7 +1,6 @@
-package org.edu_sharing.rendering.repository.mongo
+package org.edu_sharing.rendering.cacheCleaner
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.entity.TrackingEntry
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.mongodb.repository.MongoRepository

@@ -4,7 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifySequence
-import org.edu_sharing.rendering.entity.AppConfig
+import org.edu_sharing.rendering.edusharingRepo.AppConfig
 import org.edu_sharing.rendering.service.MetadataService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

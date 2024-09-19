@@ -1,7 +1,5 @@
-package org.edu_sharing.rendering.service
+package org.edu_sharing.rendering.edusharingRepo
 
-import org.edu_sharing.rendering.entity.AppConfig
-import org.edu_sharing.rendering.repository.mongo.AppConfigRepository
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service

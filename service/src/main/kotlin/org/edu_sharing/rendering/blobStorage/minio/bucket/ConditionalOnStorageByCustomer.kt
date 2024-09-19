@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.config.annotation
+package org.edu_sharing.rendering.blobStorage.minio.bucket
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 

@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.entity
+package org.edu_sharing.rendering.edusharingRepo
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version

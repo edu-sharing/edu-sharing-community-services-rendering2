@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.controller.external
 
-import org.edu_sharing.rendering.config.MinioAdminClientProvider
-import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
+import org.edu_sharing.rendering.blobStorage.minio.MinioAdminClientProvider
+import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping

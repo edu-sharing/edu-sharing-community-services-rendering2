@@ -1,11 +1,10 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.edu_sharing.rendering.config.annotation.ConditionalOnH5p
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfo
-import org.edu_sharing.rendering.service.ContentTransferService
+import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource

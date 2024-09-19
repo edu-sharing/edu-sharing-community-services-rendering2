@@ -13,13 +13,12 @@ import org.edu_sharing.rendering.blobStorage.StaticStorageService
 import org.edu_sharing.rendering.blobStorage.StorageInfo
 import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
-import org.edu_sharing.rendering.config.MinioAdminClientProvider
+import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.CachedObjectDetails
 import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.entity.TrackingEntry
+import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.service.TrackingService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service

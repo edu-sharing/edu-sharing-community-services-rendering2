@@ -10,11 +10,11 @@ import okhttp3.Response
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.blobStorage.minio.bucket.BucketStrategy
 import org.edu_sharing.rendering.blobStorage.minio.MinioStorageService
-import org.edu_sharing.rendering.config.MinioAdminClientProvider
+import org.edu_sharing.rendering.blobStorage.minio.MinioAdminClientProvider
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.service.TrackingService
+import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

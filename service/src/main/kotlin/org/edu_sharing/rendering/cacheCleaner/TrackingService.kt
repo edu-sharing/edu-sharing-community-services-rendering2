@@ -1,9 +1,7 @@
-package org.edu_sharing.rendering.service
+package org.edu_sharing.rendering.cacheCleaner
 
 import com.mongodb.MongoException
 import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.entity.TrackingEntry
-import org.edu_sharing.rendering.repository.mongo.TrackingEntryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.domain.Page

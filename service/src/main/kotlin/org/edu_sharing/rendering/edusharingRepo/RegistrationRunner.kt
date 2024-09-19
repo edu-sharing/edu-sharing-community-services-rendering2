@@ -1,7 +1,5 @@
-package org.edu_sharing.rendering.runner
+package org.edu_sharing.rendering.edusharingRepo
 
-import org.edu_sharing.rendering.service.PrivatePublicKeyService
-import org.edu_sharing.rendering.service.RepositoryRegistrationService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner

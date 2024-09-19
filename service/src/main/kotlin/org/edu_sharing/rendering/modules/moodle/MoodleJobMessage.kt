@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
-
 @ConditionalOnMoodle
 data class MoodleJobMessage(
     val id: String,

@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.entity
+package org.edu_sharing.rendering.cacheCleaner
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id

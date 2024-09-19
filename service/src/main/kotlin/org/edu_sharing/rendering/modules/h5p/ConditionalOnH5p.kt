@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.config.annotation
+package org.edu_sharing.rendering.modules.h5p
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 

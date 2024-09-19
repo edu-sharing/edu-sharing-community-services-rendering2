@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.config
+package org.edu_sharing.rendering.modules.document
 
 import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
 import org.springframework.beans.factory.annotation.Value

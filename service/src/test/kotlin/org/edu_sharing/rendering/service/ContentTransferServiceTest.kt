@@ -5,6 +5,8 @@ import io.mockk.junit5.MockKExtension
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
+import org.edu_sharing.rendering.edusharingRepo.PrivatePublicKeyService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

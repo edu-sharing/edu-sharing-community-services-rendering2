@@ -1,6 +1,5 @@
-package org.edu_sharing.rendering.config
+package org.edu_sharing.rendering.modules.moodle
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnMoodle
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

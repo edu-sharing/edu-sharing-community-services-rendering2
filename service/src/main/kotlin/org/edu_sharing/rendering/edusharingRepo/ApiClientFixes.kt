@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.repository.rest
+package org.edu_sharing.rendering.edusharingRepo
 
 import com.google.gson.ExclusionStrategy
 import com.google.gson.FieldAttributes
@@ -143,7 +143,7 @@ class ApiClientFixes() : ApiClient() {
             formParams: Map<String, Any>,
             authNames: Array<String>,
             callback: ApiCallback<*>?
-    ): okhttp3.Call? {
+    ): Call? {
         var authNames: Array<String>? = authNames
         headerParams.putIfAbsent("Content-Type", "application/json")
         if (authNames.isNullOrEmpty()) {

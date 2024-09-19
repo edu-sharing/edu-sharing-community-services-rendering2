@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.blobStorage.minio.bucket
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnStorageByMediaType
 import org.edu_sharing.rendering.dto.CacheObject
 import org.springframework.stereotype.Component
 

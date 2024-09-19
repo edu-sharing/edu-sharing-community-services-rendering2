@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.config
 
 import com.mongodb.WriteConcern
-import org.edu_sharing.rendering.entity.AppConfig
+import org.edu_sharing.rendering.edusharingRepo.AppConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.auditing.DateTimeProvider
