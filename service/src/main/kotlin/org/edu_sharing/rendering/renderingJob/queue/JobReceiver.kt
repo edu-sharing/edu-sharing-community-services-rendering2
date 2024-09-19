@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.renderingJob.queue
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
+import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.ConditionalOnJobManager
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus

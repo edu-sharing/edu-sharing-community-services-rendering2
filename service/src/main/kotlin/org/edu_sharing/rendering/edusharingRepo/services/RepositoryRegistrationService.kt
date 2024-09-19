@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.edusharingRepo
+package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.springframework.beans.factory.annotation.Value

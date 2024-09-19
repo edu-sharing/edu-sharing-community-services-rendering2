@@ -4,7 +4,7 @@ import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ConversionException
-import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
+import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.springframework.stereotype.Service
 import java.net.URLConnection
 import java.util.zip.ZipEntry

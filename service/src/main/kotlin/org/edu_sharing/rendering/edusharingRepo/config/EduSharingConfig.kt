@@ -1,9 +1,10 @@
-package org.edu_sharing.rendering.edusharingRepo
+package org.edu_sharing.rendering.edusharingRepo.config
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.BulkV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.NodeV1Api
+import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

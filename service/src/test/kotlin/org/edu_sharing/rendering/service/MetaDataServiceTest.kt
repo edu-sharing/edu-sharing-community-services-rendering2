@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.service
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.edusharingRepo.AppConfig
-import org.edu_sharing.rendering.edusharingRepo.AppConfigRepository
+import org.edu_sharing.rendering.edusharingRepo.repository.AppConfigRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow

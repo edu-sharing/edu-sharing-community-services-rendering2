@@ -4,7 +4,7 @@ import io.mockk.*
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
-import org.edu_sharing.rendering.edusharingRepo.PrivatePublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.springframework.web.reactive.function.client.WebClient

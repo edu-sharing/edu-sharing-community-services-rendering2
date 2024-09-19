@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.edusharingRepo
+package org.edu_sharing.rendering.edusharingRepo.api
 
 import com.google.gson.ExclusionStrategy
 import com.google.gson.FieldAttributes

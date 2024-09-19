@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.runner
 
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.edusharingRepo.PrivatePublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
 import org.edu_sharing.rendering.service.RepositoryRegistrationService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

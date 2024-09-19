@@ -1,5 +1,7 @@
-package org.edu_sharing.rendering.edusharingRepo
+package org.edu_sharing.rendering.edusharingRepo.services
 
+import org.edu_sharing.rendering.edusharingRepo.config.AppConfig
+import org.edu_sharing.rendering.edusharingRepo.repository.AppConfigRepository
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service

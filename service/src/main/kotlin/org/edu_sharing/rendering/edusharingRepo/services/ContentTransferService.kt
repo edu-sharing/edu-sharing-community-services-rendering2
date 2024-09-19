@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.edusharingRepo
+package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.springframework.beans.factory.annotation.Qualifier
@@ -12,7 +12,7 @@ import java.net.URLEncoder
 import java.security.Signature
 import java.util.*
 
-private const val TEST_ID_PREFIX = "TEST_"
+
 
 @Service
 class ContentTransferService(
@@ -22,6 +22,10 @@ class ContentTransferService(
 ) {
     @Value("\${app.appId}")
     lateinit var appId: String
+
+    companion object {
+        private const val TEST_ID_PREFIX = "TEST_"
+    }
 
     fun getAsInputStream(cacheObject: CacheObject): InputStream {
         if(cacheObject.nodeId.startsWith(TEST_ID_PREFIX)) {
@@ -44,7 +48,9 @@ class ContentTransferService(
                     .queryParam("appId", appId)
                     .queryParam("nodeId", cacheObject.nodeId)
                     .queryParam("timeStamp", timeStamp)
-                    .queryParam("authToken", URLEncoder.encode(Base64.getEncoder().encodeToString(signed), Charsets.UTF_8))
+                    .queryParam("authToken",
+                        URLEncoder.encode(Base64.getEncoder().encodeToString(signed), Charsets.UTF_8)
+                    )
                     .queryParam("version", cacheObject.version ?: "")
                     .build(true)
                     .toUri()

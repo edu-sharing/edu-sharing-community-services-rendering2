@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
