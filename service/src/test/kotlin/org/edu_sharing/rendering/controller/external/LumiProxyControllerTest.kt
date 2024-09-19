@@ -5,8 +5,8 @@ import io.mockk.*
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.processing.h5p.LumiNodeInfo
-import org.edu_sharing.rendering.service.LumiNodeInfoService
-import org.edu_sharing.rendering.service.LumiProxyService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration

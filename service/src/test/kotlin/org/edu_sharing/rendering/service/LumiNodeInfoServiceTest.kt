@@ -4,6 +4,7 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.edu_sharing.rendering.processing.h5p.LumiCacheRepository
 import org.edu_sharing.rendering.processing.h5p.LumiNodeInfo
 import org.junit.jupiter.api.AfterEach

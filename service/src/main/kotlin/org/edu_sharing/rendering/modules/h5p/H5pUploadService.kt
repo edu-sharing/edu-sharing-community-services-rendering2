@@ -6,7 +6,7 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfo
 import org.edu_sharing.rendering.service.ContentTransferService
-import org.edu_sharing.rendering.service.LumiNodeInfoService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.HttpStatus

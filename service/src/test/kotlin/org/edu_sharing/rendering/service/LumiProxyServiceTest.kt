@@ -7,6 +7,7 @@ import io.mockk.mockk
 import jakarta.servlet.http.HttpServletRequest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyService
 import org.edu_sharing.rendering.processing.h5p.LumiNodeInfo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach

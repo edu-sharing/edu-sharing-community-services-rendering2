@@ -1,10 +1,8 @@
-package org.edu_sharing.rendering.controller.external
+package org.edu_sharing.rendering.modules.h5p.lumi
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.service.LumiNodeInfoService
-import org.edu_sharing.rendering.service.LumiProxyService
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

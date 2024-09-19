@@ -8,7 +8,7 @@ import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJobs.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJobs.entity.SubJob
 import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.service.LumiNodeInfoService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
