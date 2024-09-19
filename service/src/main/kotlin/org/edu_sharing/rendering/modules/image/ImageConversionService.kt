@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.modules.image
 
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.awt.Image

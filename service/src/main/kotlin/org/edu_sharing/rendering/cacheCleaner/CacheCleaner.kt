@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.cacheCleaner
 
-import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled

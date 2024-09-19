@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderDataResponse
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob

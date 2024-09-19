@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.modules.av
 
 import org.apache.commons.lang3.NotImplementedException
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService

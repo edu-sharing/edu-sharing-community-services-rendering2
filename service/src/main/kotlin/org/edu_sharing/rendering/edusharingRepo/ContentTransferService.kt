@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader

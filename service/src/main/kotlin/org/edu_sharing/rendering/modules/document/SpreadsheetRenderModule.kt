@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.document
 
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.MediaType

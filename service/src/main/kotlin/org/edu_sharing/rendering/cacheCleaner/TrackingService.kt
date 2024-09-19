@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.cacheCleaner
 
 import com.mongodb.MongoException
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.domain.Page

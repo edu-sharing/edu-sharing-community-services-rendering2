@@ -1,6 +1,11 @@
 package org.edu_sharing.rendering.exception
 
-import org.edu_sharing.rendering.dto.ErrorMessage
+import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
+import org.edu_sharing.rendering.core.exception.EntryNotFoundException
+import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.modules.exceptions.ModuleNotRegisteredException
 import org.edu_sharing.rendering.modules.RenderModules
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

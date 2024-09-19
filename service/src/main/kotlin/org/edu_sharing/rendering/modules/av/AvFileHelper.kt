@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.av
 
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.core.dto.CacheObject
 import java.io.Closeable
 import java.io.File
 import java.nio.file.Files

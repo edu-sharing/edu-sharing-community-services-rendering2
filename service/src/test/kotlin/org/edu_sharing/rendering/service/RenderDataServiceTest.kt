@@ -3,8 +3,10 @@ package org.edu_sharing.rendering.service
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifySequence
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderDataResponse
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.core.RenderDataService
+import org.edu_sharing.rendering.core.RenderModuleMappingService
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule

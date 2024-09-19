@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.modules.av.video
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.exception.ConversionException
+import org.edu_sharing.rendering.modules.exceptions.ConversionException
 import org.edu_sharing.rendering.modules.av.AVConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService
 import org.edu_sharing.rendering.modules.av.AvFileHelper

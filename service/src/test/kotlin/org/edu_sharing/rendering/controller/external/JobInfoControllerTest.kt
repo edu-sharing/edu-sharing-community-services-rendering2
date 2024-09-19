@@ -8,7 +8,7 @@ import io.mockk.mockk
 import io.mockk.verifySequence
 import org.edu_sharing.rendering.renderingJob.dto.JobInfoReply
 import org.edu_sharing.rendering.renderingJob.dto.JobProgressInfo
-import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob

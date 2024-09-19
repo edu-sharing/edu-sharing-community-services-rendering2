@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.modules.document
 
 import org.apache.tika.mime.MimeTypes
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
 import org.springframework.core.io.FileSystemResource

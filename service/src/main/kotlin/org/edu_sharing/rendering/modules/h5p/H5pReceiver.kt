@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage

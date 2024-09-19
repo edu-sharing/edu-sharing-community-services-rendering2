@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.av
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory

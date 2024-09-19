@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfo
 import org.edu_sharing.rendering.edusharingRepo.ContentTransferService

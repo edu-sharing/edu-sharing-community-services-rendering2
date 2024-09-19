@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
-import org.edu_sharing.rendering.blobStorage.StaticStorageService
-import org.edu_sharing.rendering.config.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.exception.ConversionException
+import org.edu_sharing.rendering.storage.StaticStorageService
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.modules.exceptions.ConversionException
 import org.edu_sharing.rendering.edusharingRepo.ContentTransferService
 import org.springframework.stereotype.Service
 import java.net.URLConnection

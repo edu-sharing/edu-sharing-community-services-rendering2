@@ -3,8 +3,8 @@ package org.edu_sharing.rendering.modules
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import org.edu_sharing.rendering.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
+import org.edu_sharing.rendering.modules.exceptions.ModuleNotRegisteredException
 import org.edu_sharing.rendering.modules.video.VideoRenderModule
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

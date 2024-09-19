@@ -3,9 +3,9 @@ package org.edu_sharing.rendering.processing
 import io.mockk.*
 import org.assertj.core.api.Assertions.assertThat
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.blobStorage.StorageService
+import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus

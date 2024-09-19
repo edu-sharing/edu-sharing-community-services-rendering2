@@ -3,11 +3,11 @@ package org.edu_sharing.rendering.asset
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.asset.dto.ReadableAsset
-import org.edu_sharing.rendering.blobStorage.StaticStorageService
-import org.edu_sharing.rendering.config.annotation.ConditionalOnController
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.CachedObjectDetails
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.edu_sharing.rendering.storage.StaticStorageService
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.CachedObjectDetails
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 import java.io.InputStream

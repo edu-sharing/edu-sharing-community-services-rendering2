@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus

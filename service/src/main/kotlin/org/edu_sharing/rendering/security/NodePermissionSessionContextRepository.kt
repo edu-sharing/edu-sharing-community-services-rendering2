@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.security
 import jakarta.servlet.http.HttpSession
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.service.RenderModuleMappingService
+import org.edu_sharing.rendering.core.RenderModuleMappingService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component

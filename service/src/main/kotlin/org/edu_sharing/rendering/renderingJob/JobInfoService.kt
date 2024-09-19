@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.renderingJob
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.config.annotation.ConditionalOnController
-import org.edu_sharing.rendering.exception.EntryNotFoundException
+import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.edu_sharing.rendering.core.exception.EntryNotFoundException
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.dto.JobInfoReply

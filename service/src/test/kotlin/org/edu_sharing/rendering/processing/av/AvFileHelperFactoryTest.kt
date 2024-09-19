@@ -4,8 +4,8 @@ import io.mockk.junit5.MockKExtension
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.slot
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.io.File

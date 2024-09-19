@@ -3,8 +3,8 @@ package org.edu_sharing.rendering.modules
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob

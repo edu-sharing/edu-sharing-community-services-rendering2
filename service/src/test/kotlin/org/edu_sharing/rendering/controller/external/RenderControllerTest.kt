@@ -8,7 +8,10 @@ import io.mockk.slot
 import io.mockk.verify
 import org.edu_sharing.rendering.dto.*
 import org.edu_sharing.rendering.modules.RenderModules
-import org.edu_sharing.rendering.service.RenderDataService
+import org.edu_sharing.rendering.core.RenderDataService
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration

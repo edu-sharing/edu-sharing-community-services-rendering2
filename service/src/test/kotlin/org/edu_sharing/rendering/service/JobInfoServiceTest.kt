@@ -3,10 +3,10 @@ package org.edu_sharing.rendering.service
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.exception.EntryNotFoundException
+import org.edu_sharing.rendering.core.exception.EntryNotFoundException
 import org.edu_sharing.rendering.renderingJob.JobInfoService
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule

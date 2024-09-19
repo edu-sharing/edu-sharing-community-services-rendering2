@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.renderingJob
 
-import org.edu_sharing.rendering.config.annotation.ConditionalOnController
+import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.renderingJob.dto.JobInfoReply
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
