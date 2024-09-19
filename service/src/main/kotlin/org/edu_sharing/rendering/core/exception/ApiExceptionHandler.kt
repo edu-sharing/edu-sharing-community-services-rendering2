@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.core.exception
 
 import org.edu_sharing.rendering.core.dto.ErrorMessage
-import org.edu_sharing.rendering.modules.exceptions.ModuleNotRegisteredException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice

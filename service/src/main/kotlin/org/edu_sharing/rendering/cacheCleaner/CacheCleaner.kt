@@ -21,7 +21,6 @@ class CacheCleaner (
         storageService.getStorageInfo().forEach loop@{
             if (it.maxSize == 0L) {
                 log.info("No quota set for bucket ${it.location}. Nothing to clean.")
-                // This is "break" in kotlin
                 return@loop
             }
             val usedSpace = it.size.toDouble() / it.maxSize.toDouble()

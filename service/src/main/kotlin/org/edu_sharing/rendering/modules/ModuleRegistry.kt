@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules
 
-import org.edu_sharing.rendering.modules.exceptions.ModuleNotRegisteredException
+import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 

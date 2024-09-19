@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.modules.exceptions
+package org.edu_sharing.rendering.core.exception
 
 import org.edu_sharing.rendering.modules.RenderModules
 
