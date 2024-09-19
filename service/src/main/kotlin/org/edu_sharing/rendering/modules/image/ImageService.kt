@@ -5,7 +5,6 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -13,7 +12,6 @@ import kotlin.math.max
 
 @Service
 class ImageService(
-    private val directStorageHandler: DirectStorageHandler,
     private val storageImplementation: StorageService,
     private val mainJobCreationService: MainJobCreationService
 ) {
@@ -29,23 +27,26 @@ class ImageService(
     fun isConversionObject(cacheObject: CacheObject) = convertedImageMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
-        if (!isConversionObject(cacheObject)){
-            return directStorageHandler.getObjectLinkList(cacheObject)
+        if (!isConversionObject(cacheObject)) {
+            return try {
+                listOf(storageImplementation.getObjectLink(cacheObject))
+            } catch (_: ResourceNotFoundException) {
+                null
+            }
         }
 
-        val objectLinkList = mutableListOf<ObjectLink>()
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "image/$targetImageFormat"
 
-        val requestedResolutions: List<Int> = if (resolution == null) targetImageSizes else listOf(resolution)
-        requestedResolutions.forEach {
+        val requestedResolutions = if (resolution == null) targetImageSizes else listOf(resolution)
+        return requestedResolutions.mapNotNull {
             lookUpObject.quality = it
             try {
-                objectLinkList.add(storageImplementation.getObjectLink(lookUpObject))
+                storageImplementation.getObjectLink(lookUpObject)
             } catch (_: ResourceNotFoundException) {
+                null
             }
-        }
-        return objectLinkList.ifEmpty { null }
+        }.toList().ifEmpty { null }
     }
 
     fun getMissingQualities(availableLinks: List<ObjectLink>?): List<Int> {
@@ -58,11 +59,12 @@ class ImageService(
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModules, missingQualities: List<Int>): String {
-        val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
-        if (existingJobId != null) {
-            return existingJobId
-        }
-
-        return mainJobCreationService.createMainJob(cacheObject, module, missingQualities)
+        return mainJobCreationService.getExistingJobId(cacheObject)
+            ?: mainJobCreationService.createMainJob(
+                cacheObject = cacheObject,
+                module = module,
+                missingQualities = missingQualities,
+                isConversionType = isConversionObject(cacheObject)
+            )
     }
 }

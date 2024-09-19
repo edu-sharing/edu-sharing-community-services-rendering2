@@ -5,14 +5,12 @@ import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class VideoService(
-    private val directStorageHandler: DirectStorageHandler,
     private val storageImplementation: StorageService,
     private val mainJobCreationService: MainJobCreationService
 ) {
@@ -25,13 +23,15 @@ class VideoService(
     @Value("\${app.converter.video.mimeTypes}")
     lateinit var convertedVideoMimeTypes: List<String>
 
-    fun isConversionObject(cacheObject: CacheObject): Boolean {
-        return convertedVideoMimeTypes.contains(cacheObject.mimeType)
-    }
+    fun isConversionObject(cacheObject: CacheObject) = convertedVideoMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
         if (!isConversionObject(cacheObject)) {
-            return directStorageHandler.getObjectLinkList(cacheObject)
+            return try {
+                listOf(storageImplementation.getObjectLink(cacheObject))
+            } catch (_: ResourceNotFoundException) {
+                null
+            }
         }
 
         val lookUpObject = cacheObject.copy()

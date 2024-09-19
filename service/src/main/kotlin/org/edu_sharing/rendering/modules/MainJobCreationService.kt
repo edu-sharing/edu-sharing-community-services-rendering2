@@ -22,8 +22,13 @@ class MainJobCreationService(
     @Value("\${app.queue.job.key}")
     lateinit var jobRoutingKey: String
 
-    fun createMainJob(cacheObject: CacheObject, module: RenderModules, missingQualities: List<Int> = emptyList()): String {
-        val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject, module)
+    fun createMainJob(
+        cacheObject: CacheObject,
+        module: RenderModules,
+        missingQualities: List<Int> = emptyList(),
+        isConversionType: Boolean = false
+    ): String {
+        val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject, module, isConversionType)
         renderingJobRepository.save(renderingJob)
         val jobMessage = RenderingJobMessage(
             id = renderingJob.id.toString(),

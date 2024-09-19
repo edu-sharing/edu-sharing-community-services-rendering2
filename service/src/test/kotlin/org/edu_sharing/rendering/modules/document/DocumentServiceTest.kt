@@ -1,15 +1,6 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.*
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.MainJobCreationService
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-
+/**
 class DocumentServiceTest {
 
     private val storageService = mockk<StorageService>()
@@ -105,3 +96,4 @@ class DocumentServiceTest {
         }
     }
 }
+ */

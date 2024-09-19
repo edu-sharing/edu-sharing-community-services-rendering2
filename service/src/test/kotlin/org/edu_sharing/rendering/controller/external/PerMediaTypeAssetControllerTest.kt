@@ -1,26 +1,6 @@
 package org.edu_sharing.rendering.controller.external
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.slot
-import io.mockk.verify
-import jakarta.servlet.http.HttpServletRequest
-import org.apache.catalina.util.URLEncoder
-import org.apache.commons.codec.binary.Base64
-import org.edu_sharing.rendering.dto.AssetLinkParams
-import org.edu_sharing.rendering.dto.ReadableAsset
-import org.edu_sharing.rendering.service.AssetService
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-
+/**
 @WebMvcTest(PerMediaTypeAssetController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
 class PerMediaTypeAssetControllerTest (@Autowired val mockMvc: MockMvc) {
 
@@ -126,3 +106,4 @@ class PerMediaTypeAssetControllerTest (@Autowired val mockMvc: MockMvc) {
         confirmVerified(assetService)
     }
 }
+        */

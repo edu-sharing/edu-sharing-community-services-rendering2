@@ -40,7 +40,7 @@ class ContentTransferService(
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
                     .path("/content")
-                    .queryParam("repId", cacheObject.repoId ?: "")
+                    .queryParam("repId", cacheObject.repoId)
                     .queryParam("appId", appId)
                     .queryParam("nodeId", cacheObject.nodeId)
                     .queryParam("timeStamp", timeStamp)

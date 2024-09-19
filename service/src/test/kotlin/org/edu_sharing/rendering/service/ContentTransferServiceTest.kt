@@ -148,7 +148,7 @@ class ContentTransferServiceTest {
         val keyPair = generator.generateKeyPair()
 
         every { cacheObject.nodeId } returns "node1"
-        every { cacheObject.repoId } returns null
+        every { cacheObject.repoId } returns "repo123"
         every { cacheObject.version } returns null
         every { privatePublicKeyService.getPrivateKey() } returns keyPair.private
 

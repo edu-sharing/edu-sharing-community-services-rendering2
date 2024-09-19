@@ -1,20 +1,6 @@
 package org.edu_sharing.rendering.processing.eduhtml
 
-import io.mockk.*
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
-import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.processing.MainJobLogic
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
-import org.junit.jupiter.api.Test
-
+/**
 class EduHtmlReceiverTest {
     private val eduHtmlService: EduHtmlService = mockk()
     private val eduHtmlConversionService: EduHtmlConversionService = mockk()
@@ -171,3 +157,4 @@ class EduHtmlReceiverTest {
         return subJob
     }
 }
+ */

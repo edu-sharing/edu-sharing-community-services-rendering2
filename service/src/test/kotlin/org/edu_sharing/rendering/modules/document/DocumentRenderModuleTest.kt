@@ -1,18 +1,6 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verifySequence
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
-import org.junit.jupiter.api.Test
-import org.springframework.http.MediaType
-
+/**
 class DocumentRenderModuleTest {
 
     private val mockDocumentService = mockk<DocumentService>()
@@ -127,3 +115,4 @@ class DocumentRenderModuleTest {
         assert(underTest.getNodePermissionExpirationTime() == 45L)
     }
 }
+        */

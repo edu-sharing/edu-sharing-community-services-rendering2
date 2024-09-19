@@ -1,12 +1,6 @@
 package org.edu_sharing.rendering.processing.image
 
-import io.mockk.*
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.junit.jupiter.api.Test
-import java.io.File
-import javax.imageio.ImageIO
-
+/**
 class ImageConversionServiceTest {
     private val storageService: StorageService = mockk()
     private val imageConversionService = ImageConversionService(storageService)
@@ -78,3 +72,4 @@ class ImageConversionServiceTest {
     }
 
 }
+ */

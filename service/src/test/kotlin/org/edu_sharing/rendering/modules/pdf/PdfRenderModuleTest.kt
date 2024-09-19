@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.verifySequence
+import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
@@ -12,21 +13,26 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DirectStorageHandler
+import org.edu_sharing.rendering.modules.MainJobCreationService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
 class PdfRenderModuleTest {
-    private val directStorageHandlerMock = mockk<DirectStorageHandler>()
     private val mapperMock = mockk<Mapper>()
+    private val storageServiceMock = mockk<StorageService>()
+    private val mainJobCreationServiceMock = mockk<MainJobCreationService>()
 
     private lateinit var underTest: PdfRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = PdfRenderModule(55L, directStorageHandlerMock, mapperMock)
+        underTest = PdfRenderModule(
+            nodePermissionExpirationTime = 55L,
+            mapper =  mapperMock,
+            storageImplementation = storageServiceMock,
+            mainJobCreationService = mainJobCreationServiceMock)
         clearAllMocks()
     }
 
@@ -38,7 +44,6 @@ class PdfRenderModuleTest {
         val linkList = listOf(ObjectLink(link = "mylink"))
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
-        every { directStorageHandlerMock.getObjectLinkList(cacheObject) } returns linkList
 
         // Act
         val result = underTest.handle(request)
@@ -50,7 +55,6 @@ class PdfRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
-            directStorageHandlerMock.getObjectLinkList(cacheObject)
         }
     }
 

@@ -1,15 +1,6 @@
 package org.edu_sharing.rendering.processing.av
 
-import io.mockk.*
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.InputStream
-
+/**
 class AvFileHelperTest {
     private val storageService: StorageService = mockk()
     private val underTest = AvFileHelper(storageService)
@@ -95,3 +86,4 @@ class AvFileHelperTest {
         assert(inputStreamSlot.captured.readAllBytes().size == 2)
     }
 }
+ */

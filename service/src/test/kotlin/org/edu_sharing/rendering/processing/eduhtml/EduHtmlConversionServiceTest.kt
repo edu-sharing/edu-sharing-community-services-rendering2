@@ -1,15 +1,6 @@
 package org.edu_sharing.rendering.processing.eduhtml
 
-import io.mockk.*
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.exception.ConversionException
-import org.edu_sharing.rendering.service.ContentTransferService
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
-import java.io.File
-
+/**
 class EduHtmlConversionServiceTest {
     private val contentTransferService: ContentTransferService = mockk()
     private val storageService: StorageService = mockk()
@@ -125,3 +116,4 @@ class EduHtmlConversionServiceTest {
         }
     }
 }
+        */

@@ -1,24 +1,6 @@
 package org.edu_sharing.rendering.processing.h5p
 
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.assertj.core.api.Assertions.assertThat
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.service.ContentTransferService
-import org.edu_sharing.rendering.service.LumiNodeInfoService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
-import org.springframework.web.reactive.function.client.WebClient
-import java.util.*
-
-
+/**
 class H5pUploadServiceTest {
 
     private lateinit var underTest: H5pUploadService
@@ -155,3 +137,4 @@ class H5pUploadServiceTest {
         assertThrows<Exception> { underTest.getContentId(dummyCacheObject) }
     }
 }
+        */

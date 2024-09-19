@@ -21,16 +21,17 @@ class Mapper {
         )
     }
 
-    fun cacheObjectToRenderingJob(cacheObject: CacheObject, module: RenderModules): RenderingJob {
+    fun cacheObjectToRenderingJob(cacheObject: CacheObject, module: RenderModules, isConversionType: Boolean = false): RenderingJob {
         return RenderingJob(
             esObjectType = cacheObject.type,
             esObjectId = cacheObject.nodeId,
             esHash = cacheObject.hash,
             mimeType = cacheObject.mimeType,
-            repoId = cacheObject.repoId ?: "",
+            repoId = cacheObject.repoId,
             nodeVersion = cacheObject.version ?: "",
             size = cacheObject.size,
-            module = module
+            module = module,
+            conversionType = isConversionType
         )
     }
 
@@ -40,7 +41,7 @@ class Mapper {
             esObjectType = request.type,
             esHash = request.hash,
             mimeType = request.mimeType,
-            repoId = request.repoId ?: "",
+            repoId = request.repoId,
             nodeVersion = request.version,
             size = request.size,
             module = module

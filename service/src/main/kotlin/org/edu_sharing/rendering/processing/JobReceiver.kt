@@ -63,8 +63,15 @@ class JobReceiver(
         jobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
-            this.storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
-        } catch (exception: Exception) {
+            if (! jobEntry.conversionType) {
+                storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+                jobEntry.status = JobStatus.FINISHED
+                jobRepository.save(jobEntry)
+                return
+            } else {
+                storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+            }
+        } catch (_: Exception) {
             jobEntry.status = JobStatus.FAILED
             jobRepository.save(jobEntry)
             return

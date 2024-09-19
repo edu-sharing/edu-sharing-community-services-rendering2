@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Component
 class VideoRenderModule (
     @Value("\${app.session.video.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
-    private val directStorageHandler: DirectStorageHandler,
     private val mapper: Mapper,
     private val videoService: VideoService
 ): RenderModule {
@@ -24,17 +22,23 @@ class VideoRenderModule (
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
-        if (!videoService.isConversionObject(cacheObject)) {
-            return RenderDataResponse(
-                objectLinks = directStorageHandler.getObjectLinkList(cacheObject),
-                module = module()
-            )
+        val objectLinks = videoService.getObjectLinks(cacheObject)
+
+        val isConversionType = videoService.isConversionObject(cacheObject)
+
+        // Non-conversion type and already in cache
+        if (!isConversionType && objectLinks != null ) {
+            return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
 
-        val objectLinks = videoService.getObjectLinks(cacheObject)
-        val missingQualities = videoService.getMissingQualities(objectLinks)
-        if (missingQualities.isEmpty()) {
-            return RenderDataResponse(objectLinks = objectLinks, module = module())
+        // Missing qualities only apply to  conversion objects
+        var missingQualities: List<Int> = emptyList()
+        if (isConversionType) {
+            missingQualities = videoService.getMissingQualities(objectLinks)
+            if (missingQualities.isEmpty()) {
+                // None missing, so no further action is needed
+                return RenderDataResponse(objectLinks = objectLinks, module = module())
+            }
         }
 
         val jobId = videoService.retrieveOrCreateJob(cacheObject, module(), missingQualities)

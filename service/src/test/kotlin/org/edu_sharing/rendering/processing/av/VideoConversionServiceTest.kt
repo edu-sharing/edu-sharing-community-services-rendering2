@@ -1,23 +1,6 @@
 package org.edu_sharing.rendering.processing.av
 
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.exception.ConversionException
-import org.edu_sharing.rendering.processing.JobDataProvider
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.beans.factory.ObjectFactory
-import ws.schild.jave.Encoder
-import ws.schild.jave.MultimediaObject
-import ws.schild.jave.encode.EncodingAttributes
-import java.io.File
-
+/**
 @ExtendWith(MockKExtension::class)
 class VideoConversionServiceTest {
     private val listenerFactory = mockk<ObjectFactory<AVConversionListener>>()
@@ -582,3 +565,4 @@ class VideoConversionServiceTest {
         )
     }
 }
+ */

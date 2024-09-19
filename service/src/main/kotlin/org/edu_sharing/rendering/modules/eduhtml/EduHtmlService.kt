@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
 import org.edu_sharing.rendering.blobStorage.StaticStorageService
-import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.dto.CacheObject
 import org.edu_sharing.rendering.dto.ObjectLink
 import org.edu_sharing.rendering.dto.RenderDataRequest
@@ -10,6 +9,7 @@ import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
 import org.edu_sharing.rendering.entity.JobStatus
 import org.edu_sharing.rendering.entity.SubJob
+import org.edu_sharing.rendering.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
 import org.edu_sharing.rendering.repository.mongo.SubJobRepository
 import org.springframework.amqp.core.AmqpTemplate
@@ -54,8 +54,11 @@ class EduHtmlService(
     }
 
     fun getObjectLink(cacheObject: CacheObject): ObjectLink {
-        //TODO check if file exists in storage
-//        storageImplementation.getFileProperties(bucket, indexPath)
+        val fileExists = storageImplementation.objectExists(cacheObject, "index.html")
+        if (!fileExists) {
+            throw ResourceNotFoundException("Resource ${cacheObject.nodeId} not cached")
+        }
+
         return storageImplementation.getObjectLink(cacheObject, "index.html")
     }
 }

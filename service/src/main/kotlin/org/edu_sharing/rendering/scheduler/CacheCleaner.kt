@@ -19,7 +19,12 @@ class CacheCleaner (
     @Scheduled(fixedRateString = "\${app.cache.cleaner.schedule}")
     fun cleanCache() {
         log.info("Running cache cleaner...")
-        storageService.getStorageInfo().forEach{
+        storageService.getStorageInfo().forEach loop@{
+            if (it.maxSize == 0L) {
+                log.info("No quota set for bucket ${it.location}. Nothing to clean.")
+                // This is "break" in kotlin
+                return@loop
+            }
             val usedSpace = it.size.toDouble() / it.maxSize.toDouble()
             log.info( "${it.location}: ${bytesToHumanReadableSize(it.size)} of ${bytesToHumanReadableSize(it.maxSize)} (${(usedSpace * 100).toLong()}%)")
 
@@ -31,9 +36,9 @@ class CacheCleaner (
     }
 
     private fun bytesToHumanReadableSize(bytes: Long) = when {
-        bytes >= 1 shl 30 -> "%.1f GB".format(bytes / (1 shl 30))
-        bytes >= 1 shl 20 -> "%.1f MB".format(bytes / (1 shl 20))
-        bytes >= 1 shl 10 -> "%.0f kB".format(bytes / (1 shl 10))
+        bytes >= 1 shl 30 -> "%.1f GB".format(bytes.toDouble() / (1 shl 30))
+        bytes >= 1 shl 20 -> "%.1f MB".format(bytes.toDouble() / (1 shl 20))
+        bytes >= 1 shl 10 -> "%.0f kB".format(bytes.toDouble() / (1 shl 10))
         else -> "$bytes bytes"
     }
 }

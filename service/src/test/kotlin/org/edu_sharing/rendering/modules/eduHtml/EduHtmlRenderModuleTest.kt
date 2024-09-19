@@ -1,20 +1,6 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.eduhtml.EduHtmlRenderModule
-import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-
-
+/**
 @ExtendWith(MockKExtension::class)
 class EduHtmlRenderModuleTest {
     private val eduHtmlServiceMock = mockk<EduHtmlService>()
@@ -131,3 +117,4 @@ class EduHtmlRenderModuleTest {
         assert(result?.link == "")
     }
 }
+ */

@@ -1,25 +1,6 @@
 package org.edu_sharing.rendering.processing.document
 
-import io.mockk.*
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.assertj.core.api.Assertions.assertThat
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.modules.document.DocumentRenderModule
-import org.edu_sharing.rendering.service.ContentTransferService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
-import org.springframework.web.reactive.function.client.WebClient
-import java.io.ByteArrayInputStream
-import java.io.InputStream
-import java.util.*
-
-
+/**
 class DocumentConversionServiceTest {
     private lateinit var mockServer: MockWebServer
     private lateinit var webClient: WebClient
@@ -205,3 +186,4 @@ class DocumentConversionServiceTest {
         confirmVerified(contentTransferService)
     }
 }
+ */

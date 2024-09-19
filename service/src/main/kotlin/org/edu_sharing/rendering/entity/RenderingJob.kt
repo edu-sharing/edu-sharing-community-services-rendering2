@@ -34,5 +34,6 @@ data class RenderingJob(
     @LastModifiedDate
     var lastModifiedDate: Date? = null,
     @Version
-    val version: Int? = null
+    val version: Int? = null,
+    val conversionType: Boolean = false
 )

@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.service
 
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.blobStorage.StaticStorageService
-import org.edu_sharing.rendering.blobStorage.StorageService
 import org.edu_sharing.rendering.config.annotation.ConditionalOnController
 import org.edu_sharing.rendering.dto.AssetLinkParams
 import org.edu_sharing.rendering.dto.CacheObject
@@ -53,19 +52,16 @@ class AssetService(
         val cacheObject = CacheObject.of(repoId, nodeId, hash, type)
         val storagePath = request.requestURI.substringAfter("/static/${repoId}/${nodeId}/${hash}/${type}/")
 
-        // TODO go on from here
         val fileDetails = storageImplementation.getFileProperties(cacheObject)
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
-                // TODO bucket strategy
                 stream = storageImplementation.getObjectStream(cacheObject, storagePath)
             )
         }
 
         val longRange = parseRange(range, fileDetails.size)
-        // TODO bucket strategy
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject,
             storagePath,

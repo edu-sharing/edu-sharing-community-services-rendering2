@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.dto.RenderModules
 import org.edu_sharing.rendering.dto.mapper.Mapper
 import org.edu_sharing.rendering.entity.RenderingJob
 import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.DirectStorageHandler
 import org.edu_sharing.rendering.modules.RenderModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -18,24 +17,27 @@ class ImageRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val imageService: ImageService,
-    private val directStorageHandler: DirectStorageHandler
 ) : RenderModule {
     override fun module() = RenderModules.IMAGE
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
-        val isConversionObject = imageService.isConversionObject(cacheObject)
-        if (!isConversionObject) {
-            return RenderDataResponse(
-                objectLinks = directStorageHandler.getObjectLinkList(cacheObject),
-                module = module()
-            )
+        val objectLinks = imageService.getObjectLinks(cacheObject)
+        val isConversionType = imageService.isConversionObject(cacheObject)
+
+        // Non-conversion type and already in cache
+        if (!isConversionType && objectLinks != null ) {
+            return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
 
-        val objectLinks = imageService.getObjectLinks(cacheObject)
-        val missingQualities = imageService.getMissingQualities(objectLinks)
-        if (missingQualities.isEmpty()) {
-            return RenderDataResponse(objectLinks = objectLinks, module = module())
+        // Missing qualities only apply to  conversion objects
+        var missingQualities: List<Int> = emptyList()
+        if (isConversionType) {
+            missingQualities = imageService.getMissingQualities(objectLinks)
+            if (missingQualities.isEmpty()) {
+                // None missing, so no further action is needed
+                return RenderDataResponse(objectLinks = objectLinks, module = module())
+            }
         }
 
         val jobId = imageService.retrieveOrCreateJob(cacheObject, module(), missingQualities)

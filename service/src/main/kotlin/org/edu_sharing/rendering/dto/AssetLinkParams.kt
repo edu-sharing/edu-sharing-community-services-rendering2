@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.dto
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class AssetLinkParams(
-    @JsonProperty("nodeId")
+    @JsonProperty("repoId")
     val repoId: String,
     @JsonProperty("nodeId")
     val nodeId: String,

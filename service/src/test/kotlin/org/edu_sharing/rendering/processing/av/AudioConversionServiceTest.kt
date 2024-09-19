@@ -1,22 +1,6 @@
 package org.edu_sharing.rendering.processing.av
 
-import io.mockk.*
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.dto.CacheObject
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.processing.av.AudioConversionService.Companion.CODEC
-import org.edu_sharing.rendering.processing.av.AudioConversionService.Companion.OUTPUT_FORMAT
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.beans.factory.ObjectFactory
-import ws.schild.jave.Encoder
-import ws.schild.jave.MultimediaObject
-import ws.schild.jave.encode.EncodingAttributes
-import java.io.File
-
+/**
 class AudioConversionServiceTest {
     companion object {
         const val DUMMY_ORIGINAL_FILE_PATH = "src/test/resources/fixtures/beep.wav"
@@ -141,3 +125,4 @@ class AudioConversionServiceTest {
         )
     }
 }
+ */

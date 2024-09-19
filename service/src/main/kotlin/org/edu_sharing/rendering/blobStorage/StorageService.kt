@@ -6,7 +6,6 @@ import org.edu_sharing.rendering.dto.ObjectLink
 import java.io.InputStream
 
 interface StorageService {
-    // TODO remove all access to internal buckets from the api  -> bucket strategy
     fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String> = emptyMap())
     fun getObjectLink(cacheObject: CacheObject): ObjectLink
     fun removeObject(cacheObject: CacheObject, isTemp: Boolean = false)

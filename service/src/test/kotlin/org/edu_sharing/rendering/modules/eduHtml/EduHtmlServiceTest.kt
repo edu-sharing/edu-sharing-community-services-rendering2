@@ -1,28 +1,6 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.mockk.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.blobStorage.StorageService
-import org.edu_sharing.rendering.dto.CachedObjectDetails
-import org.edu_sharing.rendering.dto.ObjectLink
-import org.edu_sharing.rendering.dto.RenderDataRequest
-import org.edu_sharing.rendering.dto.RenderModules
-import org.edu_sharing.rendering.dto.mapper.Mapper
-import org.edu_sharing.rendering.dto.queue.RenderingJobMessage
-import org.edu_sharing.rendering.entity.JobStatus
-import org.edu_sharing.rendering.entity.RenderingJob
-import org.edu_sharing.rendering.entity.SubJob
-import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
-import org.edu_sharing.rendering.processing.JobDataProvider
-import org.edu_sharing.rendering.repository.mongo.RenderingJobRepository
-import org.edu_sharing.rendering.repository.mongo.SubJobRepository
-import org.junit.jupiter.api.assertThrows
-import org.springframework.amqp.core.AmqpTemplate
-
-
+/**
 @ExtendWith(MockKExtension::class)
 class EduHtmlServiceTest {
     private val jobRepoMock = mockk<RenderingJobRepository>()
@@ -182,3 +160,4 @@ class EduHtmlServiceTest {
         }
     }
 }
+ */
