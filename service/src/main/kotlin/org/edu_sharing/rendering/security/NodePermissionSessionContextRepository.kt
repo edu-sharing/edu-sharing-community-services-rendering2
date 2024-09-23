@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.security
 import jakarta.servlet.http.HttpSession
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.core.RenderModuleMappingService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -17,15 +16,13 @@ private const val PERMISSIONS = "permissions"
 class NodePermissionSessionContextRepository(
     @Value("\${app.session.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long,
-    private val renderModuleMappingService: RenderModuleMappingService,
     private val renderModuleRegistry: ModuleRegistry
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    private fun getExperiationTime(nodePermission: NodePermission) : Long {
-        val module = renderModuleMappingService.getModule(nodePermission.mediaType, nodePermission.mimeType)
-        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(module)
+    private fun getExpirationTime(nodePermission: NodePermission) : Long {
+        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(nodePermission.mediaType, nodePermission.mimeType)
         return renderModule.getNodePermissionExpirationTime() ?: nodePermissionExpirationTime
     }
 
@@ -58,7 +55,7 @@ class NodePermissionSessionContextRepository(
         val session = getSession(false) ?: return
         val nodePermissions = readNodePermissionsFromSession(session) ?: return
         val now = LocalDateTime.now()
-        nodePermissions.removeAll { now.isAfter(it.lastAccessDate.plusSeconds(getExperiationTime(it))) }
+        nodePermissions.removeAll { now.isAfter(it.lastAccessDate.plusSeconds(getExpirationTime(it))) }
         if (nodePermissions.isEmpty()) {
             session.removeAttribute(PERMISSIONS)
         } else {

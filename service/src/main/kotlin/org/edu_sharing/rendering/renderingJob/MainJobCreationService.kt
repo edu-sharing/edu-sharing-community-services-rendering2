@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.renderingJob
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository

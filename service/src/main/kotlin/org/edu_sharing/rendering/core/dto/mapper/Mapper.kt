@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.core.dto.mapper
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.springframework.stereotype.Component
 

@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.service
 
 import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.core.RenderModuleMappingService
 import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
 import org.junit.jupiter.api.Test

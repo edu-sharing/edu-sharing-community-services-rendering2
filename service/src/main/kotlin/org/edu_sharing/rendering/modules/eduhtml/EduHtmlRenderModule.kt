@@ -4,12 +4,12 @@ import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.modules.ModuleTypeDefinition
+import org.edu_sharing.rendering.modules.ModuleTypeMapper
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.modules.RenderModules
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -19,7 +19,7 @@ class EduHtmlRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val eduHtmlService: EduHtmlService,
     private val mapper: Mapper
-) : RenderModule {
+) : RenderModule, ModuleTypeMapper {
     override fun module() = "EDUHTML"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
@@ -51,7 +51,6 @@ class EduHtmlRenderModule(
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
-    override fun onModuleRegistration(registry: ModuleRegistry) {
-        registry.registerByType("file-eduhtml", this)
-    }
+    override fun moduleTypeAssociations() =
+        listOf(ModuleTypeDefinition(type = "file-eduhtml") to this)
 }

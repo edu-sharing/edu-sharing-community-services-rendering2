@@ -1,16 +1,17 @@
 package org.edu_sharing.rendering.modules.av
 
 import org.apache.commons.lang3.NotImplementedException
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
+import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
+import org.edu_sharing.rendering.modules.video.VideoRenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
@@ -26,7 +27,9 @@ class AvReceiver(
     private val audioConversionService: AudioConversionService,
     private val videoConversionService: VideoConversionService,
     private val mapper: Mapper,
-    private val storageImplementation: StorageService
+    private val storageImplementation: StorageService,
+    private val audioModule: AudioRenderModule,
+    private val videoModule: VideoRenderModule,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -55,8 +58,8 @@ class AvReceiver(
         subJob.status = JobStatus.PROCESSING
         subJobRepository.save(subJob)
         val service = when(jobEntry.module) {
-            RenderModules.AUDIO -> audioConversionService
-            RenderModules.VIDEO -> videoConversionService
+            audioModule.module() -> audioConversionService
+            videoModule.module() -> videoConversionService
             else -> throw NotImplementedException(jobEntry.module.toString())
         }
         var success = true

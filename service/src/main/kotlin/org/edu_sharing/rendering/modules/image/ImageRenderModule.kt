@@ -3,11 +3,17 @@ package org.edu_sharing.rendering.modules.image
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.ConversionModule
+import org.edu_sharing.rendering.modules.ModuleTypeDefinition
+import org.edu_sharing.rendering.modules.ModuleTypeMapper
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -17,7 +23,16 @@ class ImageRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val imageService: ImageService,
-) : RenderModule {
+    private val subJobRepository: SubJobRepository,
+    private val amqpTemplate: AmqpTemplate
+) : RenderModule, ModuleTypeMapper, ConversionModule {
+
+    @Value("\${app.queue.image.key}")
+    lateinit var imageRoutingKey: String
+
+    @Value("\${app.queue.topicExchange}")
+    lateinit var topicExchangeName: String
+
     override fun module() = "IMAGE"
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
@@ -51,4 +66,19 @@ class ImageRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
+
+    override fun moduleTypeAssociations() =
+        listOf(ModuleTypeDefinition(mimeTypePrefix = "image") to this)
+
+    override fun createJob(
+        renderingJob: RenderingJob,
+        message: RenderingJobMessage
+    ) {
+        message.missingQualities.forEach {
+            val imageJob = SubJob(routingKey = imageRoutingKey, quality = it, parent = renderingJob)
+            renderingJob.subJobs.add(imageJob)
+            subJobRepository.save(imageJob)
+        }
+        amqpTemplate.convertAndSend(topicExchangeName, imageRoutingKey, SubJobMessage(renderingJob.id.toString()))
+    }
 }

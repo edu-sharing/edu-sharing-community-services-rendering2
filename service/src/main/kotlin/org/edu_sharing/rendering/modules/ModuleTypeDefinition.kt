@@ -1,6 +1,10 @@
 package org.edu_sharing.rendering.modules
 
-data class ModuleTypeDefinition(val type: String?, val mimeTypePrefix: String?, val mimeTypeSuffix: String?) {
+data class ModuleTypeDefinition(
+    val type: String? = null,
+    val mimeTypePrefix: String? = null,
+    val mimeTypeSuffix: String? = null
+) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

@@ -1,11 +1,10 @@
 package org.edu_sharing.rendering.modules.document
 
 import org.apache.tika.mime.MimeTypes
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
+import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType
 import org.springframework.http.client.MultipartBodyBuilder
@@ -21,7 +20,8 @@ import java.nio.file.Files
 class DocumentConversionService(
     private val contentTransferService: ContentTransferService,
     private val storageImplementation: StorageService,
-    private val documentConverterWebClient: WebClient
+    private val documentConverterWebClient: WebClient,
+    private val spreadsheetRenderModule: SpreadsheetRenderModule?
 ) {
     fun convertAndMoveToCache(cacheObject: CacheObject, module: DocumentRenderModule) {
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
@@ -33,7 +33,7 @@ class DocumentConversionService(
         }
         val builder = MultipartBodyBuilder()
         builder.part("file", FileSystemResource(originalFile))
-        if (module.module() == RenderModules.SPREADSHEET) {
+        if (spreadsheetRenderModule != null && module.module() == spreadsheetRenderModule.module()) {
             builder.part("format", "html")
         }
         try {

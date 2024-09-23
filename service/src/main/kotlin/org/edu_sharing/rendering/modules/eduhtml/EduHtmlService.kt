@@ -6,7 +6,6 @@ import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage

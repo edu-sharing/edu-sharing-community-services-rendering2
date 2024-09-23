@@ -6,7 +6,6 @@ import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.modules.RenderModules
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
