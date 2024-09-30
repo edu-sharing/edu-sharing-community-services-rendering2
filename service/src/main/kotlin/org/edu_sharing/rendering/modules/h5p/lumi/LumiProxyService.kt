@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.lang3.StringUtils
 import org.apache.logging.log4j.ThreadContext
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity

@@ -12,6 +12,6 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return cacheObject.repoId?.replace("/","_") ?: ""
+        return cacheObject.repoId.replace("/","_")
     }
 }

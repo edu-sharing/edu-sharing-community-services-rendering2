@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 

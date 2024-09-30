@@ -3,14 +3,13 @@ package org.edu_sharing.rendering.modules.moodle
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.processing.JobDataProvider
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -49,7 +48,7 @@ class MoodleJobServiceTest {
         val request = mockk<RenderDataRequest>()
 
         // Act
-        assertThrows<IllegalStateException> { underTest.createJob(request, RenderModules.MOODLE) }
+        assertThrows<IllegalStateException> { underTest.createJob(request, "MOODLE") }
     }
 
     @Test
@@ -59,7 +58,7 @@ class MoodleJobServiceTest {
         val request = mockk<RenderDataRequest>()
 
         // Act
-        assertThrows<IllegalStateException> { underTest.createJob(request, RenderModules.MOODLE) }
+        assertThrows<IllegalStateException> { underTest.createJob(request, "MOODLE") }
     }
 
     @Test
@@ -71,7 +70,7 @@ class MoodleJobServiceTest {
         every { request.nodeId } returns "node123"
 
         // Act and Assert
-        assertThrows<IllegalArgumentException> { underTest.createJob(request, RenderModules.MOODLE) }
+        assertThrows<IllegalArgumentException> { underTest.createJob(request, "MOODLE") }
     }
 
     @Test
@@ -102,14 +101,14 @@ class MoodleJobServiceTest {
         val subJobSlot = slot<SubJob>()
 
         every { request.userData } returns userData
-        every { mapperMock.renderDataRequestToRenderingJob(request, RenderModules.MOODLE) } returns expectedJob
+        every { mapperMock.renderDataRequestToRenderingJob(request, "MOODLE") } returns expectedJob
         every { jobRepository.save(expectedJob) } returns expectedJob
         every { subJobRepository.save(capture(subJobSlot)) } returns expectedSubJob
         every { request.title } returns "titletest"
         justRun { amqpTemplate.convertAndSend("topicExchange1", "jobRoutingKey1", expectedMessage) }
 
         // Act
-        val result = underTest.createJob(request, RenderModules.MOODLE)
+        val result = underTest.createJob(request, "MOODLE")
 
         // Assert
         assert(expectedJob.id.toString() == result)
@@ -119,7 +118,7 @@ class MoodleJobServiceTest {
 
         verifySequence {
             request.userData
-            mapperMock.renderDataRequestToRenderingJob(request, RenderModules.MOODLE)
+            mapperMock.renderDataRequestToRenderingJob(request, "MOODLE")
             jobRepository.save(expectedJob)
             subJobRepository.save(any())
             request.title
@@ -159,14 +158,14 @@ class MoodleJobServiceTest {
         val subJobSlot = slot<SubJob>()
 
         every { request.userData } returns userData
-        every { mapperMock.renderDataRequestToRenderingJob(request, RenderModules.MOODLE) } returns expectedJob
+        every { mapperMock.renderDataRequestToRenderingJob(request, "MOODLE") } returns expectedJob
         every { jobRepository.save(expectedJob) } returns expectedJob
         every { subJobRepository.save(capture(subJobSlot)) } returns expectedSubJob
         every { request.title } returns null
         justRun { amqpTemplate.convertAndSend("topicExchange1", "jobRoutingKey1", expectedMessage) }
 
         // Act
-        val result = underTest.createJob(request, RenderModules.MOODLE)
+        val result = underTest.createJob(request, "MOODLE")
 
         // Assert
         assert(expectedJob.id.toString() == result)

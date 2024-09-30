@@ -8,19 +8,22 @@ import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.amqp.core.AmqpTemplate
 
 @ExtendWith(MockKExtension::class)
 class ImageRenderModuleTest {
     private val nodePermissionTime = 67L
     private val mapperMock = mockk<Mapper>()
     private val imageServiceMock = mockk<ImageService>()
+    private val subJobRepository = mockk<SubJobRepository>()
+    private val amqpTemplate = mockk<AmqpTemplate>()
 
     lateinit var underTest: ImageRenderModule
 
@@ -29,7 +32,9 @@ class ImageRenderModuleTest {
         underTest = ImageRenderModule(
             nodePermissionExpirationTime = nodePermissionTime,
             mapper = mapperMock,
-            imageService = imageServiceMock
+            imageService = imageServiceMock,
+            subJobRepository = subJobRepository,
+            amqpTemplate = amqpTemplate
         )
         clearAllMocks()
     }
@@ -49,7 +54,7 @@ class ImageRenderModuleTest {
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.IMAGE)
+        assert(result.module == "IMAGE")
         assert(result.jobId == null)
         assert(result.objectLinks != null)
         assert(result.objectLinks!!.size == 2)
@@ -74,13 +79,13 @@ class ImageRenderModuleTest {
         every { imageServiceMock.isConversionObject(cacheObject) } returns true
         every { imageServiceMock.getObjectLinks(cacheObject) } returns availableLinks
         every { imageServiceMock.getMissingQualities(availableLinks) } returns missingQualities
-        every { imageServiceMock.retrieveOrCreateJob(cacheObject, RenderModules.IMAGE, missingQualities)}returns "jobid1"
+        every { imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)}returns "jobid1"
 
         // Act
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.IMAGE)
+        assert(result.module == "IMAGE")
         assert(result.jobId == "jobid1")
         assert(result.objectLinks == availableLinks)
 
@@ -89,7 +94,7 @@ class ImageRenderModuleTest {
             imageServiceMock.isConversionObject(cacheObject)
             imageServiceMock.getObjectLinks(cacheObject)
             imageServiceMock.getMissingQualities(availableLinks)
-            imageServiceMock.retrieveOrCreateJob(cacheObject, RenderModules.IMAGE, missingQualities)
+            imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)
         }
     }
 
@@ -110,7 +115,7 @@ class ImageRenderModuleTest {
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.IMAGE)
+        assert(result.module == "IMAGE")
         assert(result.jobId == null)
         assert(result.objectLinks == availableLinks)
 
@@ -172,7 +177,7 @@ class ImageRenderModuleTest {
 
     @Test
     fun testModuleReturnsImageModule() {
-        assert(underTest.module() == RenderModules.IMAGE)
+        assert(underTest.module() == "IMAGE")
     }
 
     @Test

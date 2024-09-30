@@ -16,7 +16,6 @@ class RenderDataService(
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
         val renderModule: RenderModule = moduleRegistry.getRenderModule(request.type, request.mimeType)
-        val response = renderModule.handle(request)
-        return response
+        return renderModule.handle(request)
     }
 }

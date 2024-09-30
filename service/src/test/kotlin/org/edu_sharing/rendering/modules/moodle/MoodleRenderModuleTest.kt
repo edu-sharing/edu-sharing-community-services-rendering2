@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.moodle
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.junit.jupiter.api.BeforeEach
@@ -25,7 +24,7 @@ class MoodleRenderModuleTest {
 
     @Test
     fun testModuleReturnsMoodleModule() {
-        assert(underTest.module() == RenderModules.MOODLE)
+        assert(underTest.module() == "MOODLE")
     }
 
     @Test
@@ -33,7 +32,7 @@ class MoodleRenderModuleTest {
         // Arrange
         val request = mockk<RenderDataRequest>()
 
-        every { moodleJobService.createJob(request, RenderModules.MOODLE) } returns "job123"
+        every { moodleJobService.createJob(request, "MOODLE") } returns "job123"
 
         // Act
         val result = underTest.handle(request)
@@ -41,9 +40,9 @@ class MoodleRenderModuleTest {
         // Assert
         assert(result.jobId == "job123")
         assert(result.objectLinks!!.isEmpty())
-        assert(result.module == RenderModules.MOODLE)
+        assert(result.module == "MOODLE")
 
-        verify(exactly = 1) { moodleJobService.createJob(request, RenderModules.MOODLE) }
+        verify(exactly = 1) { moodleJobService.createJob(request, "MOODLE") }
         confirmVerified(moodleJobService)
     }
 

@@ -52,7 +52,7 @@ class AssetController(
         return prepareResponse(asset)
     }
 
-    protected fun prepareResponse(asset: ReadableAsset, doEncodeData: Boolean = false): ResponseEntity<Resource> {
+    private fun prepareResponse(asset: ReadableAsset, doEncodeData: Boolean = false): ResponseEntity<Resource> {
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)

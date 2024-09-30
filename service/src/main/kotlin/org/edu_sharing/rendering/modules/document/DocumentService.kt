@@ -1,10 +1,10 @@
 package org.edu_sharing.rendering.modules.document
 
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.stereotype.Service
 
 @Service
@@ -29,6 +29,10 @@ class DocumentService(
             return existingJobId
         }
 
-        return mainJobCreationService.createMainJob(cacheObject, module.module())
+        return mainJobCreationService.createMainJob(
+            cacheObject = cacheObject,
+            module = module.module(),
+            isConversionType = true
+        )
     }
 }

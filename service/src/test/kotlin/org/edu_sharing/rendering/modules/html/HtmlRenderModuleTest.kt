@@ -5,16 +5,15 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.verifySequence
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.noConversion.HtmlRenderModule
+import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -33,7 +32,7 @@ class HtmlRenderModuleTest {
             nodePermissionExpirationTime = 55L,
             mapper = mapperMock,
             mainJobCreationService = mainJobCreationServiceMock,
-            storageImplementation = storageServiceMock)
+            storageService = storageServiceMock)
         clearAllMocks()
     }
 
@@ -51,7 +50,7 @@ class HtmlRenderModuleTest {
 
         // Assert
         assert(result.objectLinks?.get(0)?.link == "mylink")
-        assert(result.module == RenderModules.HTML)
+        assert(result.module == "HTML")
         assert(result.jobId == null)
 
         verifySequence {
@@ -61,7 +60,7 @@ class HtmlRenderModuleTest {
 
     @Test
     fun testModuleReturnsHtmlRenderModule() {
-        assert(underTest.module() == RenderModules.HTML)
+        assert(underTest.module() == "HTML")
     }
 
     @Test

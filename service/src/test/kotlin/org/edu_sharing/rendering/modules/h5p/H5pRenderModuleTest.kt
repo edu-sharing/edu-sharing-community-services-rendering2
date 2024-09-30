@@ -7,10 +7,9 @@ import io.mockk.mockk
 import io.mockk.verifySequence
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.RenderModules
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -41,7 +40,7 @@ class H5pRenderModuleTest {
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.H5P)
+        assert(result.module == "H5P")
         assert(result.objectLinks?.get(0)?.link == "http://test.com:8000$H5P_BASE_PATH/lumiid123")
         assert(result.jobId == null)
 
@@ -59,13 +58,13 @@ class H5pRenderModuleTest {
         every { request.nodeId } returns "node123"
         every { request.hash } returns "hash123"
         every { lumiNodeInfoServiceMock.getContentId("node123", "hash123") } returns null
-        every { h5pJobServiceMock.createJob(request, RenderModules.H5P) } returns "job123"
+        every { h5pJobServiceMock.createJob(request, "H5P") } returns "job123"
 
         // Act
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.H5P)
+        assert(result.module == "H5P")
         assert(result.jobId == "job123")
         assert(result.objectLinks?.size == 0)
 
@@ -73,13 +72,13 @@ class H5pRenderModuleTest {
             request.nodeId
             request.hash
             lumiNodeInfoServiceMock.getContentId("node123", "hash123")
-            h5pJobServiceMock.createJob(request, RenderModules.H5P)
+            h5pJobServiceMock.createJob(request, "H5P")
         }
     }
 
     @Test
     fun testModuleReturnsH5pModule() {
-        assert(underTest.module() == RenderModules.H5P)
+        assert(underTest.module() == "H5P")
     }
 
     @Test

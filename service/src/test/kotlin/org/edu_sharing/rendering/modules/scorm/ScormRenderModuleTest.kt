@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.scorm
 
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import org.edu_sharing.rendering.modules.RenderModules
 import org.edu_sharing.rendering.modules.moodle.MoodleJobService
 import org.edu_sharing.rendering.modules.moodle.ScormRenderModule
 import org.junit.jupiter.api.BeforeEach
@@ -23,7 +22,7 @@ class ScormRenderModuleTest {
 
     @Test
     fun testModuleReturnsScormModule() {
-        assert(underTest.module() == RenderModules.SCORM)
+        assert(underTest.module() == "SCORM")
     }
 
     @Test

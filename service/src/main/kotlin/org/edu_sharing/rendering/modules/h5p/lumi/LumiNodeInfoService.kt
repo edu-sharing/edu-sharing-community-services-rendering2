@@ -1,6 +1,8 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeHashResponse
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -42,7 +44,7 @@ class LumiNodeInfoService(
         return setCache(cacheEntry)
     }
 
-    fun setCache(nodeInfo: LumiNodeInfo) : LumiNodeInfo  {
+    fun setCache(nodeInfo: LumiNodeInfo) : LumiNodeInfo {
         return lumiCacheRepository.save(nodeInfo)
     }
 }
