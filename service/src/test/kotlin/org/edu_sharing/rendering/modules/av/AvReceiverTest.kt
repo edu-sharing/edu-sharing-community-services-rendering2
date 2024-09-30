@@ -5,7 +5,7 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
-import org.edu_sharing.rendering.modules.video.VideoRenderModule
+import org.edu_sharing.rendering.modules.av.video.VideoRenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob

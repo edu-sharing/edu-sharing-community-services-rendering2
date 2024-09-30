@@ -1,10 +1,10 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -16,7 +16,7 @@ class AudioService(
     @Value("\${app.converter.audio.mimeTypes}")
     lateinit var convertedAudioMimeTypes: List<String>
 
-    private fun isConversionObject(cacheObject: CacheObject) = convertedAudioMimeTypes.contains(cacheObject.mimeType)
+    fun isConversionObject(cacheObject: CacheObject) = convertedAudioMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject): List<ObjectLink>? {
         val lookUpObject = cacheObject.copy()

@@ -1,6 +1,24 @@
 package org.edu_sharing.rendering.modules.av.video
 
-/**
+import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.exception.ConversionException
+import org.edu_sharing.rendering.modules.av.AVConversionListener
+import org.edu_sharing.rendering.modules.av.AvFileHelper
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.beans.factory.ObjectFactory
+import ws.schild.jave.Encoder
+import ws.schild.jave.MultimediaObject
+import ws.schild.jave.encode.EncodingAttributes
+import java.io.File
+
 @ExtendWith(MockKExtension::class)
 class VideoConversionServiceTest {
     private val listenerFactory = mockk<ObjectFactory<AVConversionListener>>()
@@ -35,7 +53,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "audio/wav",
-            module = RenderModules.AUDIO,
+            module = "VIDEO",
             status = JobStatus.PROCESSING
         )
         every { listenerFactory.`object` } returns listener
@@ -43,7 +61,7 @@ class VideoConversionServiceTest {
         justRun { listener.subJob = any() }
         justRun { fileHelper.initOutputTempFile("mp4") }
         every { fileHelper.fetchOriginalTempFile(cacheObject) } throws Exception()
-        justRun { fileHelper.cleanup() }
+        justRun { fileHelper.close() }
 
         // Act
         assertThrows<Exception> { underTest.convert(cacheObject, subJob) }
@@ -51,14 +69,13 @@ class VideoConversionServiceTest {
         // Assert
         verifyOrder {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = any()
+            fileHelperFactory.`object`
             fileHelper.initOutputTempFile("mp4")
             fileHelper.fetchOriginalTempFile(cacheObject)
-            fileHelper.cleanup()
+            fileHelper.close()
         }
     }
-
     @Test
     fun testConvertCallsEncoderWithProperOptionsForInputData() {
         // Arrange
@@ -68,7 +85,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "video/mp4",
-            module = RenderModules.VIDEO,
+            module = "VIDEO",
             status = JobStatus.QUEUED,
             quality = 320
         )
@@ -100,7 +117,7 @@ class VideoConversionServiceTest {
                 listener
             )
         }
-        justRun { avFileHelper.cleanup() }
+        justRun { avFileHelper.close() }
 
         excludeRecords {
             outputFile.length()
@@ -139,8 +156,8 @@ class VideoConversionServiceTest {
 
         verifySequence {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = subJob
+            fileHelperFactory.`object`
             avFileHelper.initOutputTempFile("mp4")
             avFileHelper.fetchOriginalTempFile(cacheObject)
             avFileHelper.originalFile
@@ -153,7 +170,7 @@ class VideoConversionServiceTest {
             )
             avFileHelper.outputFile
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
-            avFileHelper.cleanup()
+            avFileHelper.close()
         }
     }
 
@@ -166,7 +183,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "video/mp4",
-            module = RenderModules.VIDEO,
+            module = "VIDEO",
             status = JobStatus.QUEUED,
             quality = 720
         )
@@ -179,18 +196,18 @@ class VideoConversionServiceTest {
         justRun { avFileHelper.initOutputTempFile("mp4") }
         justRun { avFileHelper.fetchOriginalTempFile(cacheObject)}
         every { avFileHelper.originalFile } returns originalFile
-        justRun { avFileHelper.cleanup() }
+        justRun { avFileHelper.close() }
 
         assertThrows<ConversionException> { underTest.convert(cacheObject, subJob) }
 
         verifySequence {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = subJob
+            fileHelperFactory.`object`
             avFileHelper.initOutputTempFile("mp4")
             avFileHelper.fetchOriginalTempFile(cacheObject)
             avFileHelper.originalFile
-            avFileHelper.cleanup()
+            avFileHelper.close()
         }
     }
 
@@ -204,7 +221,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "video/mp4",
-            module = RenderModules.VIDEO,
+            module = "VIDEO",
             status = JobStatus.QUEUED,
             quality = 320
         )
@@ -230,14 +247,14 @@ class VideoConversionServiceTest {
                 listener
             )
         }
-        justRun { avFileHelper.cleanup() }
+        justRun { avFileHelper.close() }
 
         assertThrows<ConversionException> { underTest.convert(cacheObject, subJob) }
 
         verifySequence {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = subJob
+            fileHelperFactory.`object`
             avFileHelper.initOutputTempFile("mp4")
             avFileHelper.fetchOriginalTempFile(cacheObject)
             avFileHelper.originalFile
@@ -248,7 +265,7 @@ class VideoConversionServiceTest {
                 capture(attributeSlot),
                 listener
             )
-            avFileHelper.cleanup()
+            avFileHelper.close()
         }
         underTest.videoResolutions = listOf(320, 720)
 
@@ -264,7 +281,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "video/mp4",
-            module = RenderModules.VIDEO,
+            module = "VIDEO",
             status = JobStatus.QUEUED,
             quality = 321
         )
@@ -296,7 +313,7 @@ class VideoConversionServiceTest {
                 listener
             )
         }
-        justRun { avFileHelper.cleanup() }
+        justRun { avFileHelper.close() }
 
         excludeRecords {
             outputFile.length()
@@ -335,8 +352,8 @@ class VideoConversionServiceTest {
 
         verifySequence {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = subJob
+            fileHelperFactory.`object`
             avFileHelper.initOutputTempFile("mp4")
             avFileHelper.fetchOriginalTempFile(cacheObject)
             avFileHelper.originalFile
@@ -349,7 +366,7 @@ class VideoConversionServiceTest {
             )
             avFileHelper.outputFile
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
-            avFileHelper.cleanup()
+            avFileHelper.close()
         }
         underTest.videoResolutions = listOf(320, 720)
     }
@@ -364,7 +381,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "video/mp4",
-            module = RenderModules.VIDEO,
+            module = "VIDEO",
             status = JobStatus.QUEUED,
             quality = 480
         )
@@ -396,7 +413,7 @@ class VideoConversionServiceTest {
                 listener
             )
         }
-        justRun { avFileHelper.cleanup() }
+        justRun { avFileHelper.close() }
 
         excludeRecords {
             outputFile.length()
@@ -435,8 +452,8 @@ class VideoConversionServiceTest {
 
         verifySequence {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = subJob
+            fileHelperFactory.`object`
             avFileHelper.initOutputTempFile("mp4")
             avFileHelper.fetchOriginalTempFile(cacheObject)
             avFileHelper.originalFile
@@ -449,7 +466,7 @@ class VideoConversionServiceTest {
             )
             avFileHelper.outputFile
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
-            avFileHelper.cleanup()
+            avFileHelper.close()
         }
         underTest.videoResolutions = listOf(320, 720)
     }
@@ -464,7 +481,7 @@ class VideoConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "video/mp4",
-            module = RenderModules.VIDEO,
+            module = "VIDEO",
             status = JobStatus.QUEUED,
             quality = 320
         )
@@ -496,7 +513,7 @@ class VideoConversionServiceTest {
                 listener
             )
         }
-        justRun { avFileHelper.cleanup() }
+        justRun { avFileHelper.close() }
 
         excludeRecords {
             outputFile.length()
@@ -535,8 +552,8 @@ class VideoConversionServiceTest {
 
         verifySequence {
             listenerFactory.`object`
-            fileHelperFactory.`object`
             listener.subJob = subJob
+            fileHelperFactory.`object`
             avFileHelper.initOutputTempFile("mp4")
             avFileHelper.fetchOriginalTempFile(cacheObject)
             avFileHelper.originalFile
@@ -549,12 +566,10 @@ class VideoConversionServiceTest {
             )
             avFileHelper.outputFile
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
-            avFileHelper.cleanup()
+            avFileHelper.close()
         }
         underTest.videoResolutions = listOf(320, 720)
     }
-
-
 
     private fun getCacheObjectForTesting(): CacheObject {
         return CacheObject(
@@ -562,7 +577,7 @@ class VideoConversionServiceTest {
             hash = "hash",
             type = "file-video",
             mimeType = "video/mp4",
+            repoId = "repo123"
         )
     }
 }
- */

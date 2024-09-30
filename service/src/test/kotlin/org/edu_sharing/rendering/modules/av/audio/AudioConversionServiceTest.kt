@@ -64,7 +64,7 @@ class AudioConversionServiceTest {
         val attrSlot = slot<EncodingAttributes>()
         val mmoSlot = slot<MultimediaObject>()
         every { encoder.encode(capture(mmoSlot), dummyOutputFile, capture(attrSlot), listener) } throws Exception()
-        justRun { fileHelper.cleanup() }
+        justRun { fileHelper.close() }
 
         // Act
         assertThrows<Exception> { underTest.convert(cacheObject, subJob) }
@@ -84,13 +84,12 @@ class AudioConversionServiceTest {
             fileHelper.originalFile
             fileHelper.outputFile
             encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener)
-            fileHelper.cleanup()
+            fileHelper.close()
         }
 
         dummyOutputFile.delete()
     }
 
-    /**
     @Test
     fun testConvertExecutesCorrectSequenceOnSuccessfulRun() {
         // Arrange
@@ -101,10 +100,9 @@ class AudioConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "audio/wav",
-            module = RenderModules.AUDIO,
+            module = "AUDIO",
             status = JobStatus.PROCESSING
         )
-        val listenerSubJobSlot = slot<SubJob>()
         val dummyOutputFile = File("testFile")
         val dummyOriginalFile = File(DUMMY_ORIGINAL_FILE_PATH)
         every { listenerFactory.`object` } returns listener
@@ -117,13 +115,12 @@ class AudioConversionServiceTest {
         justRun { encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener) }
         val cacheObjectSlot = slot<CacheObject>()
         justRun { fileHelper.uploadToCache(capture(cacheObjectSlot)) }
-        justRun { fileHelper.cleanup() }
+        justRun { fileHelper.close() }
 
         // Act
         underTest.convert(cacheObject, subJob)
 
         // Assert
-        println(cacheObjectSlot.captured)
         verifySequence {
             fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
@@ -132,12 +129,11 @@ class AudioConversionServiceTest {
             encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener)
             fileHelper.outputFile
             fileHelper.uploadToCache(any())
-            fileHelper.cleanup()
+            fileHelper.close()
         }
 
         dummyOutputFile.delete()
     }
-    */
 
     private fun getCacheObjectForTesting(): CacheObject {
         return CacheObject(

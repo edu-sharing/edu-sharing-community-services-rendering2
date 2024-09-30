@@ -2,17 +2,19 @@ package org.edu_sharing.rendering.modules.av.video
 
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
+import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.video.VideoRenderModule
-import org.edu_sharing.rendering.modules.video.VideoService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -55,6 +57,7 @@ class VideoRenderModuleTest {
         )
 
         every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
+        every {videoService.getObjectLinks(cacheObject)} returns linkList
         every { videoService.isConversionObject(cacheObject) } returns false
 
         // Act
@@ -67,6 +70,7 @@ class VideoRenderModuleTest {
 
         verifySequence {
             mapper.renderDataRequestToCacheObject(request)
+            videoService.getObjectLinks(cacheObject)
             videoService.isConversionObject(cacheObject)
         }
     }
@@ -95,8 +99,8 @@ class VideoRenderModuleTest {
 
         verifySequence {
             mapper.renderDataRequestToCacheObject(request)
-            videoService.isConversionObject(cacheObject)
             videoService.getObjectLinks(cacheObject)
+            videoService.isConversionObject(cacheObject)
             videoService.getMissingQualities(linkList)
         }
     }
@@ -134,8 +138,8 @@ class VideoRenderModuleTest {
 
         verifySequence {
             mapper.renderDataRequestToCacheObject(request)
-            videoService.isConversionObject(cacheObject)
             videoService.getObjectLinks(cacheObject)
+            videoService.isConversionObject(cacheObject)
             videoService.getMissingQualities(linkList)
             videoService.retrieveOrCreateJob(
                 cacheObject,
@@ -186,5 +190,56 @@ class VideoRenderModuleTest {
     @Test
     fun testGetNodePermissionExpirationTimeReturnsSetTime() {
         assert(underTest.getNodePermissionExpirationTime() == nodeExpiration)
+    }
+
+    @Test
+    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
+        // Act
+        val result = underTest.moduleTypeAssociations()
+
+        // Assert
+        assert(result.size == 1)
+        assert(result[0].first.type == null)
+        assert(result[0].first.mimeTypeSuffix == null)
+        assert(result[0].first.mimeTypePrefix == "video")
+        assert(result[0].second == underTest)
+    }
+
+    @Test
+    fun testCreateJobCreatesAndEnqueuesProperJob() {
+        // Arrange
+        val provider = JobDataProvider()
+        val jobId = "507f191e810c19729de860ea"
+        val job = provider.prepareJobForConversionModuleTesting(jobId, "AUDIO")
+        val subJobList = mutableListOf<SubJob>()
+        val subJobMessageList = mutableListOf<SubJobMessage>()
+
+
+        underTest.avRoutingKey = "avRoutingKey"
+        underTest.topicExchangeName = "topicExchangeName"
+
+        val renderingMessage = mockk<RenderingJobMessage>()
+
+        every {renderingMessage.missingQualities} returns listOf(1,2)
+        every {subJobRepository.save(capture(subJobList))} returns mockk<SubJob>()
+        justRun {amqpTemplate.convertAndSend("topicExchangeName", "avRoutingKey", capture(subJobMessageList))}
+
+        // Act
+        underTest.createJob(job, renderingMessage)
+
+        // Assert
+        assert(subJobList.size == 2)
+        assert(subJobList[0].quality == 1)
+        assert(subJobList[1].quality == 2)
+        assert(subJobList[0].parent == job)
+        assert(subJobList[1].parent == job)
+        assert(subJobList[0].routingKey == "avRoutingKey")
+        assert(subJobList[1].routingKey == "avRoutingKey")
+
+        assert(subJobMessageList.size == 2)
+        assert(subJobMessageList[0].quality == 1)
+        assert(subJobMessageList[1].quality == 2)
+        assert(subJobMessageList[0].id == jobId)
+        assert(subJobMessageList[1].id == jobId)
     }
 }

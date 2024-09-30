@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.modules.video
+package org.edu_sharing.rendering.modules.av.video
 
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest

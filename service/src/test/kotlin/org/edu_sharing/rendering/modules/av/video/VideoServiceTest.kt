@@ -1,9 +1,18 @@
 package org.edu_sharing.rendering.modules.av.video
 
-/**
+import io.mockk.clearAllMocks
+import io.mockk.every
+import io.mockk.junit5.MockKExtension
+import io.mockk.mockk
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+
 @ExtendWith(MockKExtension::class)
 class VideoServiceTest {
-    private val directStorageHandler = mockk<DirectStorageHandler>()
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
 
@@ -11,7 +20,8 @@ class VideoServiceTest {
         nodeId = "nodeid12",
         type = "video",
         hash = "hash",
-        mimeType = "video/mp4"
+        mimeType = "video/mp4",
+        repoId = "repo123"
     )
 
     lateinit var underTest: VideoService
@@ -19,7 +29,6 @@ class VideoServiceTest {
     @BeforeEach
     fun setup() {
         underTest = VideoService(
-            directStorageHandler,
             storageService,
             mainJobCreationService
         )
@@ -36,6 +45,7 @@ class VideoServiceTest {
         assert(underTest.isConversionObject(cacheObject))
     }
 
+
     @Test
     fun testIsConversionObjectReturnsFalseIfNotInList() {
         val cacheObject = mockk<CacheObject>()
@@ -43,6 +53,7 @@ class VideoServiceTest {
         assert(!underTest.isConversionObject(cacheObject))
     }
 
+    /**
     @Test
     fun testGetObjectLinksInvokesDefaultStrategyIfNotConversionType() {
         // Arrange
@@ -211,5 +222,5 @@ class VideoServiceTest {
         // Assert
         assert(result == "new-job-id")
     }
+    */
 }
- */

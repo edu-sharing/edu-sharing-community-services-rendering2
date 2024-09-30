@@ -64,4 +64,19 @@ class JobDataProvider {
         )
         return subJob
     }
+
+    fun prepareJobForConversionModuleTesting(id: String, module: String = "VIDEO"): RenderingJob {
+        val job = RenderingJob(
+            id = ObjectId(id),
+            esHash = "hash",
+            esObjectId = "esobjectid",
+            esObjectType = "esobjecttype",
+            mimeType = "multipart/form-data",
+            module = module,
+            nodeVersion = "1.2",
+            repoId = "repoid",
+            status = JobStatus.QUEUED
+        )
+        return job
+    }
 }
