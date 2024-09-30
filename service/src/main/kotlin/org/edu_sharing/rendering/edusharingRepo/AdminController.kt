@@ -36,7 +36,7 @@ class AdminController(
     fun handleInvalidKeyException(exception : InvalidKeyException) : ResponseEntity<ErrorMessage> {
         val message = ErrorMessage(
             HttpStatus.NOT_FOUND.value(),
-            exception.message
+            exception.message ?: ""
         )
 
         return ResponseEntity(message, HttpStatus.NOT_FOUND)

@@ -1,9 +1,20 @@
 package org.edu_sharing.rendering.edusharingRepo
 
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verifySequence
+import org.edu_sharing.rendering.edusharingRepo.config.AppConfig
+import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.*
+
 
 @WebMvcTest(
     MetadataController::class,
@@ -16,7 +27,7 @@ import org.springframework.test.web.servlet.MockMvc
     ]
 )
 class MetadataControllerTest(@Autowired val mockMvc: MockMvc) {
-    /**
+
     @MockkBean
     lateinit var service: MetadataService
 
@@ -57,5 +68,4 @@ class MetadataControllerTest(@Autowired val mockMvc: MockMvc) {
             config.publicKey
         }
     }
-    */
 }

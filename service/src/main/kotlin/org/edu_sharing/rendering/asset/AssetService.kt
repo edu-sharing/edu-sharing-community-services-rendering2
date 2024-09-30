@@ -4,10 +4,10 @@ import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
-import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.CachedObjectDetails
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.storage.StaticStorageService
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 import java.io.InputStream
@@ -45,14 +45,21 @@ class AssetService(
 
 
     @PreAuthorize("hasPermission(#nodeId, 'Read')")
-    fun getStaticAsset(request: HttpServletRequest, range: String, repoId: String, nodeId: String, hash: String, type: String): ReadableAsset {
+    fun getStaticAsset(
+        request: HttpServletRequest,
+        range: String,
+        repoId: String,
+        nodeId: String,
+        hash: String,
+        type: String
+    ): ReadableAsset {
         // build cache object
         // /public/assets/static/<cacheObjectStuff>/index.html
         // /public/assets/static/<cacheObjectStuff>/123/whatever.html
         val cacheObject = CacheObject.of(repoId, nodeId, hash, type)
         val storagePath = request.requestURI.substringAfter("/static/${repoId}/${nodeId}/${hash}/${type}/")
 
-        val fileDetails = storageImplementation.getFileProperties(cacheObject)
+        val fileDetails = storageImplementation.getFileProperties(cacheObject, storagePath)
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
@@ -88,8 +95,8 @@ class AssetService(
         val numericalRange = range.split(if (range.contains("=")) "=" else " ")[1]
         val (start, end) = numericalRange.split("-", limit = 2)
         val startLong = start.toLong()
-        val remainingBytes = fileSize-startLong
-        val desiredSize = if (end != ""  && startLong >= end.toLong()) {
+        val remainingBytes = fileSize - startLong
+        val desiredSize = if (end != "" && startLong >= end.toLong()) {
             defaultChunkSize
         } else if (end == "") {
             defaultChunkSize
@@ -97,7 +104,7 @@ class AssetService(
             end.toLong() - startLong
         }
         val chunkSize = if (desiredSize >= remainingBytes) {
-            remainingBytes-1
+            remainingBytes - 1
         } else {
             desiredSize
         }

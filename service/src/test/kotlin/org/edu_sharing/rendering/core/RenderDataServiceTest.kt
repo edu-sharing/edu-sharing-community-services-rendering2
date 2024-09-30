@@ -1,16 +1,26 @@
 package org.edu_sharing.rendering.core
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verifySequence
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+
 class RenderDataServiceTest {
-/**
-    private val renderModuleMappingService = mockk<RenderModuleMappingService>()
     private val moduleRegistry = mockk<ModuleRegistry>()
-    private val renderModule = mockk<RenderModule>()
     private val request = mockk<RenderDataRequest>()
+    private val renderModule = mockk<RenderModule>()
     private lateinit var renderDataService: RenderDataService
 
     @BeforeEach
     fun setup() {
-        renderDataService = RenderDataService(renderModuleMappingService, moduleRegistry)
+        renderDataService = RenderDataService(moduleRegistry = moduleRegistry)
     }
 
     @Test
@@ -20,8 +30,7 @@ class RenderDataServiceTest {
 
         every { request.type } returns "someType"
         every { request.mimeType } returns "application/json"
-        every { renderModuleMappingService.getModule("someType", "application/json") } returns RenderModules.PDF
-        every { moduleRegistry.getRenderModule<RenderModule>(RenderModules.PDF) } returns renderModule
+        every { moduleRegistry.getRenderModule<RenderModule>("someType", "application/json") } returns renderModule
         every { renderModule.handle(request) } returns response
 
         // Act
@@ -31,8 +40,7 @@ class RenderDataServiceTest {
         verifySequence {
             request.type
             request.mimeType
-            renderModuleMappingService.getModule(any(), any())
-            moduleRegistry.getRenderModule<RenderModule>(any())
+            moduleRegistry.getRenderModule<RenderModule>("someType", "application/json")
             renderModule.handle(request)
         }
 
@@ -44,7 +52,7 @@ class RenderDataServiceTest {
         // Arrange
         every { request.type } returns "someType"
         every { request.mimeType } returns "application/json"
-        every { renderModuleMappingService.getModule("someType", "application/json") } throws Exception()
+        every { moduleRegistry.getRenderModule<RenderModule>("someType", "application/json") } throws Exception()
 
         // Act and assert
         assertThrows<Exception> { renderDataService.getRenderData(request) }
@@ -52,9 +60,8 @@ class RenderDataServiceTest {
         verifySequence {
             request.type
             request.mimeType
-            renderModuleMappingService.getModule(any(), any())
+            moduleRegistry.getRenderModule<RenderModule>("someType", "application/json")
         }
 
     }
-    */
 }

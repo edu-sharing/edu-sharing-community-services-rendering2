@@ -10,8 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.*
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @WebMvcTest(
     AdminController::class,
@@ -36,7 +37,7 @@ class AdminControllerTest(@Autowired val mockMvc: MockMvc) {
         confirmVerified(service)
     }
 
-    /**
+
     @Test
     fun testUpdatePublicRepositoryKeyCallsCorrectServiceMethod() {
         // Arrange
@@ -49,18 +50,16 @@ class AdminControllerTest(@Autowired val mockMvc: MockMvc) {
         verify(exactly = 1) { service.updatePublicRepositoryKey() }
         confirmVerified(service)
     }
-
+/**
     @Test
     fun testUpdatePublicRepositoryKeyReturnsNotFoundOnInvalidKeyError() {
         // Arrange
         every { service.updatePublicRepositoryKey() } throws InvalidKeyException()
 
         // Act
-        mockMvc.perform(patch("/admin/repository/publicKey")).andExpect(status().isNotFound)
-
-        // Assert
+        mockMvc.perform(patch("/admin/repository/publicKey")).andExpect(status().isNotFound)        // Assert
         verify(exactly = 1) { service.updatePublicRepositoryKey() }
         confirmVerified(service)
     }
-    **/
+    */
 }

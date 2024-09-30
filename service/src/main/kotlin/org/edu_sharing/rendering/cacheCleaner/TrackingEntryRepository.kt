@@ -1,5 +1,4 @@
 package org.edu_sharing.rendering.cacheCleaner
-
 import org.bson.types.ObjectId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

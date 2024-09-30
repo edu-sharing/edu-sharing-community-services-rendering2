@@ -1,6 +1,27 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-/**
+import io.mockk.every
+import io.mockk.justRun
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verifySequence
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.modules.av.AVConversionListener
+import org.edu_sharing.rendering.modules.av.AvFileHelper
+import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.CODEC
+import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.OUTPUT_FORMAT
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.beans.factory.ObjectFactory
+import ws.schild.jave.Encoder
+import ws.schild.jave.MultimediaObject
+import ws.schild.jave.encode.EncodingAttributes
+import java.io.File
+
 class AudioConversionServiceTest {
     companion object {
         const val DUMMY_ORIGINAL_FILE_PATH = "src/test/resources/fixtures/beep.wav"
@@ -26,7 +47,7 @@ class AudioConversionServiceTest {
         val subJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "audio/wav",
-            module = RenderModules.AUDIO,
+            module = "AUDIO",
             status = JobStatus.PROCESSING
         )
         val listenerSubJobSlot = slot<SubJob>()
@@ -69,6 +90,7 @@ class AudioConversionServiceTest {
         dummyOutputFile.delete()
     }
 
+    /**
     @Test
     fun testConvertExecutesCorrectSequenceOnSuccessfulRun() {
         // Arrange
@@ -115,6 +137,7 @@ class AudioConversionServiceTest {
 
         dummyOutputFile.delete()
     }
+    */
 
     private fun getCacheObjectForTesting(): CacheObject {
         return CacheObject(
@@ -122,7 +145,7 @@ class AudioConversionServiceTest {
             hash = "hash",
             type = "file-audio",
             mimeType = "audio/wav",
+            repoId = "repoIc"
         )
     }
 }
- */

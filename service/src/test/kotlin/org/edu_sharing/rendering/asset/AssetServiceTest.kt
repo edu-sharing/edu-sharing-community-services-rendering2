@@ -2,9 +2,12 @@ package org.edu_sharing.rendering.asset
 
 import io.mockk.clearAllMocks
 import io.mockk.every
+import io.mockk.excludeRecords
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verifySequence
+import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.CachedObjectDetails
@@ -73,12 +76,13 @@ class AssetServiceTest {
 
         every { mapper.assetLinkParamsToCacheObject(assetParams) } returns cacheObject
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
-        every { storageService.getObjectChunkStream(
-            cacheObject,
-            400000,
-            100000,
-            false
-        )
+        every {
+            storageService.getObjectChunkStream(
+                cacheObject,
+                400000,
+                100000,
+                false
+            )
         } returns stream
 
         // Act
@@ -116,12 +120,13 @@ class AssetServiceTest {
 
         every { mapper.assetLinkParamsToCacheObject(assetParams) } returns cacheObject
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
-        every { storageService.getObjectChunkStream(
-            cacheObject,
-            400000,
-            100000,
-            false
-        )
+        every {
+            storageService.getObjectChunkStream(
+                cacheObject,
+                400000,
+                100000,
+                false
+            )
         } returns stream
 
         // Act
@@ -159,12 +164,13 @@ class AssetServiceTest {
 
         every { mapper.assetLinkParamsToCacheObject(assetParams) } returns cacheObject
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
-        every { storageService.getObjectChunkStream(
-            cacheObject,
-            2100000,
-            100000,
-            false
-        )
+        every {
+            storageService.getObjectChunkStream(
+                cacheObject,
+                2100000,
+                100000,
+                false
+            )
         } returns stream
 
         // Act
@@ -202,12 +208,13 @@ class AssetServiceTest {
 
         every { mapper.assetLinkParamsToCacheObject(assetParams) } returns cacheObject
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
-        every { storageService.getObjectChunkStream(
-            cacheObject,
-            399999,
-            100000,
-            false
-        )
+        every {
+            storageService.getObjectChunkStream(
+                cacheObject,
+                399999,
+                100000,
+                false
+            )
         } returns stream
 
         // Act
@@ -245,12 +252,13 @@ class AssetServiceTest {
 
         every { mapper.assetLinkParamsToCacheObject(assetParams) } returns cacheObject
         every { storageService.getFileProperties(cacheObject) } returns fileDetails
-        every { storageService.getObjectChunkStream(
-            cacheObject,
-            2100000,
-            100000,
-            false
-        )
+        every {
+            storageService.getObjectChunkStream(
+                cacheObject,
+                2100000,
+                100000,
+                false
+            )
         } returns stream
 
         // Act
@@ -273,7 +281,7 @@ class AssetServiceTest {
             )
         }
     }
-    /**
+
     @Test
     fun testGetStaticAssetReturnsFullStreamIfNoRangeSet() {
         // Arrange
@@ -284,23 +292,43 @@ class AssetServiceTest {
         val stream = mockk<InputStream>()
         val request = mockk<HttpServletRequest>()
 
-        every {request.requestURI} returns "blala/static/myuri"
-        every { storageService.getFileProperties("file-eduhtml", "myuri") } returns fileDetails
-        every { storageService.getObjectStream("file-eduhtml", "myuri") } returns stream
+        val repoId = "repoId123"
+        val nodeId = "nodeId123"
+        val hash = "hash123"
+        val type = "type123"
+
+        val cacheObjectSlot = slot<CacheObject>()
+
+        every { request.requestURI } returns "blala/static/${repoId}/${nodeId}/${hash}/${type}/myuri"
+        every { storageService.getFileProperties(capture(cacheObjectSlot), "myuri") } returns fileDetails
+        every { storageService.getObjectStream(any(), "myuri") } returns stream
 
         excludeRecords { request.requestURI }
 
         // Act
-        val result = underTest.getStaticAsset(request, "", "node123")
+        val result = underTest.getStaticAsset(
+            request = request,
+            range = "",
+            repoId = repoId,
+            nodeId = nodeId,
+            hash = hash,
+            type = type
+        )
 
         // Assert
         assert(result.stream == stream)
         assert(result.mimeType == "application/pdf")
         assert(result.fileSize == 3L)
 
+        val captured = cacheObjectSlot.captured
+        assert(captured.nodeId == nodeId)
+        assert(captured.hash == hash)
+        assert(captured.repoId == repoId)
+        assert(captured.type == type)
+
         verifySequence {
-            storageService.getFileProperties("file-eduhtml", "myuri")
-            storageService.getObjectStream("file-eduhtml", "myuri")
+            storageService.getFileProperties(any(), "myuri")
+            storageService.getObjectStream(any(), "myuri")
         }
     }
 
@@ -308,31 +336,43 @@ class AssetServiceTest {
     fun testGetStaticAssetReturnsChunkIfRangeSet() {
         // Arrange
         val fileDetails = CachedObjectDetails(
-            size = 4000000,
+            size = 3000000,
             mimeType = "video/mp4",
         )
         val stream = mockk<InputStream>()
         val request = mockk<HttpServletRequest>()
         val range = "bytes=100000-400000"
 
-        every {request.requestURI} returns "blala/static/myuri"
-        every { storageService.getFileProperties("file-eduhtml", "myuri") } returns fileDetails
-        every { storageService.getObjectChunkStream("file-eduhtml", "myuri", 100000, 400000) } returns stream
+        val repoId = "repoId123"
+        val nodeId = "nodeId123"
+        val hash = "hash123"
+        val type = "type123"
+
+        every { request.requestURI } returns "blala/static/${repoId}/${nodeId}/${hash}/${type}/myuri"
+        every { storageService.getFileProperties(any(), "myuri") } returns fileDetails
+        every { storageService.getObjectChunkStream(any(), "myuri", 100000, 400000) } returns stream
 
         excludeRecords { request.requestURI }
 
         // Act
-        val result = underTest.getStaticAsset(request, range, "node123")
+        val result = underTest.getStaticAsset(
+            request = request,
+            range = range,
+            repoId = repoId,
+            nodeId = nodeId,
+            hash = hash,
+            type = type
+        )
 
         // Assert
         assert(result.stream == stream)
         assert(result.mimeType == "video/mp4")
-        assert(result.fileSize == 4000000L)
-        assert(result.range == "bytes 100000-400000/4000000")
+        assert(result.fileSize == 3000000L)
+        assert(result.range == "bytes 100000-400000/3000000")
 
         verifySequence {
-            storageService.getFileProperties("file-eduhtml", "myuri")
-            storageService.getObjectChunkStream("file-eduhtml", "myuri", 100000, 400000)        }
+            storageService.getFileProperties(any(), "myuri")
+            storageService.getObjectChunkStream(any(), "myuri", 100000, 400000)
+        }
     }
- */
 }

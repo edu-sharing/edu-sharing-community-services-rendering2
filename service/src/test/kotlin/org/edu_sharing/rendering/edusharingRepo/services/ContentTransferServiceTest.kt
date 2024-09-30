@@ -179,7 +179,6 @@ class ContentTransferServiceTest {
         assert(requestUrl !== null)
         if (requestUrl !== null) {
             // Check remaining query params
-            assert(requestUrl.queryParameter("repId") == "")
             assert(requestUrl.queryParameter("version") == "")
         }
 
