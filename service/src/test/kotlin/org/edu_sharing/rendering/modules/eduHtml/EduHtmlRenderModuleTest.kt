@@ -1,15 +1,39 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-/**
+import io.mockk.clearAllMocks
+import io.mockk.every
+import io.mockk.junit5.MockKExtension
+import io.mockk.mockk
+import io.mockk.verify
+import io.mockk.verifySequence
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlRenderModule
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+
+
 @ExtendWith(MockKExtension::class)
 class EduHtmlRenderModuleTest {
     private val eduHtmlServiceMock = mockk<EduHtmlService>()
+    private val mapper = mockk<Mapper>()
 
     private lateinit var underTest: EduHtmlRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = EduHtmlRenderModule(67L, eduHtmlServiceMock)
+        underTest = EduHtmlRenderModule(
+            nodePermissionExpirationTime = 67L,
+            eduHtmlService = eduHtmlServiceMock,
+            mapper = mapper
+        )
         clearAllMocks()
     }
 
@@ -17,20 +41,21 @@ class EduHtmlRenderModuleTest {
     fun testHandleReturnsLinkIfCached() {
         // Arrange
         val request = mockk<RenderDataRequest>()
-        every { request.nodeId } returns "node123"
-        every { eduHtmlServiceMock.getObjectLink("node123") } returns ObjectLink(link = "mylink")
+        val cacheObject = mockk<CacheObject>()
+        every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { eduHtmlServiceMock.getObjectLink(cacheObject = cacheObject) } returns ObjectLink(link = "mylink")
 
         // Act
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.EDUHTML)
+        assert(result.module == "EDUHTML")
         assert(result.objectLinks?.get(0)?.link == "mylink")
         assert(result.jobId == null)
 
         verifySequence {
-            request.nodeId
-            eduHtmlServiceMock.getObjectLink("node123")
+            mapper.renderDataRequestToCacheObject(request)
+            eduHtmlServiceMock.getObjectLink(cacheObject = cacheObject)
         }
     }
 
@@ -38,23 +63,23 @@ class EduHtmlRenderModuleTest {
     fun testHandleCreatesNewJobIfNotCachedAndReturnsJobId() {
         // Arrange
         val request: RenderDataRequest = mockk<RenderDataRequest>()
-        every { request.nodeId } returns "node123"
-        every { eduHtmlServiceMock.getObjectLink("node123") } throws ResourceNotFoundException("testException")
+        val cacheObject = mockk<CacheObject>()
+        every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { eduHtmlServiceMock.getObjectLink(cacheObject) } throws ResourceNotFoundException("testException")
         val jobId = "job123"
-        every { eduHtmlServiceMock.createJob(request, RenderModules.EDUHTML) } returns jobId
+        every { eduHtmlServiceMock.createJob(request, "EDUHTML") } returns jobId
 
         // Act
         val result = underTest.handle(request)
 
         // Assert
-        assert(result.module == RenderModules.EDUHTML)
+        assert(result.module == "EDUHTML")
         assert(result.objectLinks?.size == 0)
         assert(result.jobId == "job123")
 
         verifySequence {
-            request.nodeId
-            eduHtmlServiceMock.getObjectLink("node123")
-            eduHtmlServiceMock.createJob(request, RenderModules.EDUHTML)
+            eduHtmlServiceMock.getObjectLink(cacheObject)
+            eduHtmlServiceMock.createJob(request, "EDUHTML")
         }
     }
 
@@ -79,7 +104,7 @@ class EduHtmlRenderModuleTest {
 
     @Test
     fun testModuleReturnsEduHtmlModule() {
-        assert(underTest.module() == RenderModules.EDUHTML)
+        assert(underTest.module() == "EDUHTML")
     }
 
     @Test
@@ -116,5 +141,17 @@ class EduHtmlRenderModuleTest {
         // Assert
         assert(result?.link == "")
     }
+
+    @Test
+    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
+        // Act
+        val result = underTest.moduleTypeAssociations()
+
+        // Assert
+        assert(result.size == 1)
+        assert(result[0].first.type == "file-eduhtml")
+        assert(result[0].first.mimeTypeSuffix == null)
+        assert(result[0].first.mimeTypePrefix == null)
+        assert(result[0].second == underTest)
+    }
 }
- */

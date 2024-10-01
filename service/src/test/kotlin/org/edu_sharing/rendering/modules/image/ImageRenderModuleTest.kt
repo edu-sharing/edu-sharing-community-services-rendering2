@@ -48,6 +48,7 @@ class ImageRenderModuleTest {
         val linkList = listOf(ObjectLink(link = "link1"), ObjectLink(link = "link2"))
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { imageServiceMock.getObjectLinks(cacheObject = cacheObject) } returns linkList
         every { imageServiceMock.isConversionObject(cacheObject) } returns false
 
         // Act
@@ -62,6 +63,7 @@ class ImageRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
+            imageServiceMock.getObjectLinks(cacheObject = cacheObject)
             imageServiceMock.isConversionObject(cacheObject)
         }
     }
@@ -73,13 +75,13 @@ class ImageRenderModuleTest {
         val cacheObject = mockk<CacheObject>()
 
         val availableLinks = listOf(ObjectLink(link = "link1"))
-        val missingQualities = listOf(100,200)
+        val missingQualities = listOf(100, 200)
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
         every { imageServiceMock.isConversionObject(cacheObject) } returns true
         every { imageServiceMock.getObjectLinks(cacheObject) } returns availableLinks
         every { imageServiceMock.getMissingQualities(availableLinks) } returns missingQualities
-        every { imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)}returns "jobid1"
+        every { imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities) } returns "jobid1"
 
         // Act
         val result = underTest.handle(request)
@@ -91,8 +93,8 @@ class ImageRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
-            imageServiceMock.isConversionObject(cacheObject)
             imageServiceMock.getObjectLinks(cacheObject)
+            imageServiceMock.isConversionObject(cacheObject)
             imageServiceMock.getMissingQualities(availableLinks)
             imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)
         }
@@ -121,8 +123,8 @@ class ImageRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
-            imageServiceMock.isConversionObject(cacheObject)
             imageServiceMock.getObjectLinks(cacheObject)
+            imageServiceMock.isConversionObject(cacheObject)
             imageServiceMock.getMissingQualities(availableLinks)
         }
     }

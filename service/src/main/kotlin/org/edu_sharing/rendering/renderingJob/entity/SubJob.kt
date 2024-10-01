@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.renderingJob.entity
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
@@ -17,5 +18,7 @@ data class SubJob(
     var progress: Int = 0,
     var message: String? = null,
     @DocumentReference(lazy = true)
-    var parent: RenderingJob
+    var parent: RenderingJob,
+    @Version
+    val version: Int? = null
 )

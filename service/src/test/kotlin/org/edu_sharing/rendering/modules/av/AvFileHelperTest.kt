@@ -1,9 +1,19 @@
 package org.edu_sharing.rendering.modules.av
+import io.mockk.confirmVerified
+import io.mockk.*
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.InputStream
 
-/**
 class AvFileHelperTest {
     private val storageService: StorageService = mockk()
     private val underTest = AvFileHelper(storageService)
+
 
     @AfterEach
     fun after() {
@@ -24,6 +34,7 @@ class AvFileHelperTest {
         assert(path.substringBefore(".").length == 36)
     }
 
+
     @Test
     fun testFetchOriginalFileGeneratesCorrectFileAndCopiesResultFromStorageService() {
         // Arrange
@@ -31,7 +42,8 @@ class AvFileHelperTest {
             nodeId = "nodeId",
             hash = "hash",
             type = "type",
-            mimeType = "audio/wav"
+            mimeType = "audio/wav",
+            repoId = "repo123"
         )
         val inputStream = ByteArrayInputStream(ByteArray(1))
         inputStream.use {
@@ -54,7 +66,8 @@ class AvFileHelperTest {
             nodeId = "nodeId",
             hash = "hash",
             type = "type",
-            mimeType = "audio/wav"
+            mimeType = "audio/wav",
+            repoId = "repo123"
         )
 
         // Act and assert
@@ -68,7 +81,8 @@ class AvFileHelperTest {
             nodeId = "nodeId",
             hash = "hash",
             type = "type",
-            mimeType = "audio/wav"
+            mimeType = "audio/wav",
+            repoId = "repo123"
         )
         val metadata = mapOf("test" to "value")
         val testFile = File("src/test/resources/fixtures/testFileWith1")
@@ -86,4 +100,3 @@ class AvFileHelperTest {
         assert(inputStreamSlot.captured.readAllBytes().size == 2)
     }
 }
- */

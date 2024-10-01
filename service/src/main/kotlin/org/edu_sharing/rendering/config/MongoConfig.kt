@@ -2,6 +2,8 @@ package org.edu_sharing.rendering.config
 
 import com.mongodb.WriteConcern
 import org.edu_sharing.rendering.edusharingRepo.config.AppConfig
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.auditing.DateTimeProvider
@@ -21,6 +23,8 @@ class MongoConfig {
             when {
                 action == null -> WriteConcern.UNACKNOWLEDGED
                 action.entityType == AppConfig::class.java -> WriteConcern.ACKNOWLEDGED
+                action.entityType == RenderingJob::class.java -> WriteConcern.ACKNOWLEDGED
+                action.entityType == SubJob::class.java -> WriteConcern.ACKNOWLEDGED
                 else -> WriteConcern.UNACKNOWLEDGED
             }
         }

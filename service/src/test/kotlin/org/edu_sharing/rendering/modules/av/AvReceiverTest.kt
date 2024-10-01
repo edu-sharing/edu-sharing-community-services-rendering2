@@ -101,8 +101,6 @@ class AvReceiverTest {
             mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)
         }
         confirmVerified(mainJobLogic)
-
-
     }
 
     @Test
@@ -149,6 +147,8 @@ class AvReceiverTest {
             )
         } throws Exception()
         every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
+        every { audioModule.module() } returns "AUDIO"
+        every { videoModule.module() } returns "VIDEO"
 
         //Act
         underTest.receiveMessage(message)
@@ -208,6 +208,8 @@ class AvReceiverTest {
         }
         justRun { videoConversionService.convert(cacheObject, matchingSubJob) }
         every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
+        every { audioModule.module() } returns "AUDIO"
+        every { videoModule.module() } returns "VIDEO"
 
         //Act
         underTest.receiveMessage(message)
@@ -252,6 +254,8 @@ class AvReceiverTest {
         justRun { audioConversionService.convert(any(), any()) }
         every { mainJobLogic.processMainJob(any()) } returns true
         justRun { storageService.removeObject(cacheObject, true) }
+        every { audioModule.module() } returns "AUDIO"
+        every { videoModule.module() } returns "VIDEO"
 
         //Act
         underTest.receiveMessage(message)

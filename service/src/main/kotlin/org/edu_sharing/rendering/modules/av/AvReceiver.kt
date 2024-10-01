@@ -60,7 +60,7 @@ class AvReceiver(
         val service = when(jobEntry.module) {
             audioModule.module() -> audioConversionService
             videoModule.module() -> videoConversionService
-            else -> throw NotImplementedException(jobEntry.module.toString())
+            else -> throw NotImplementedException(jobEntry.module)
         }
         var success = true
         try {

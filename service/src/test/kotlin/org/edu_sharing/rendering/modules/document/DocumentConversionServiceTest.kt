@@ -1,6 +1,27 @@
 package org.edu_sharing.rendering.modules.document
 
-/**
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.justRun
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verifySequence
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.assertj.core.api.Assertions.assertThat
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
+import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.http.MediaType
+import org.springframework.web.reactive.function.client.WebClient
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.util.UUID
+
 class DocumentConversionServiceTest {
     private lateinit var mockServer: MockWebServer
     private lateinit var webClient: WebClient
@@ -9,27 +30,30 @@ class DocumentConversionServiceTest {
         nodeId = "test_node_id",
         hash = "test_hash",
         type = "doc",
-        mimeType = "application/msword"
+        mimeType = "application/msword",
+        repoId = "repo123"
     )
 
     private val dummyCacheObjectExcel = CacheObject(
         nodeId = "test_node_id",
         hash = "test_hash",
         type = "doc",
-        mimeType = "application/vnd.ms-excel"
+        mimeType = "application/vnd.ms-excel",
+        repoId = "repo123"
     )
 
     private val dummyCacheObjectWithNonsenseMimeType = CacheObject(
         nodeId = "test_node_id",
         hash = "test_hash",
         type = "doc",
-        mimeType = "text/octet-stream"
+        mimeType = "text/octet-stream",
+        repoId = "repo123"
     )
 
     // Mock objects
     private val contentTransferService = mockk<ContentTransferService>()
     private val storageImplementation = mockk<StorageService>()
-    private val module: DocumentRenderModule = mockk()
+    private val module: SpreadsheetRenderModule = mockk()
 
     // Class under test
     private lateinit var underTest: DocumentConversionService
@@ -42,7 +66,10 @@ class DocumentConversionServiceTest {
             .baseUrl(mockServer.url("/").toString())
             .build()
         underTest = DocumentConversionService(
-            contentTransferService, storageImplementation, webClient
+            contentTransferService = contentTransferService,
+            storageImplementation = storageImplementation,
+            documentConverterWebClient = webClient,
+            spreadsheetRenderModule = module
         )
     }
 
@@ -59,7 +86,7 @@ class DocumentConversionServiceTest {
             dummyFileData.toByteArray()
         )
         every { module.getTargetMimetype() } returns MediaType.APPLICATION_PDF_VALUE
-        every { module.module() } returns RenderModules.DOCUMENT
+        every { module.module() } returns "DOCUMENT"
 
         val expectedContent = "1234ABC"
         val mockResponse = MockResponse()
@@ -90,12 +117,12 @@ class DocumentConversionServiceTest {
         verifySequence {
             contentTransferService.getAsInputStream(dummyCacheObjectWord)
             module.module()
+            module.module()
             module.getTargetMimetype()
             storageImplementation.putObject(expectedConvertedCacheObject, any())
         }
         confirmVerified(storageImplementation, module, contentTransferService)
     }
-
     @Test
     fun testConvertAndMoveToCacheCallsConverterWithProperParamsAndCachesResultWithSpreadsheetActive() {
         // Arrange
@@ -104,7 +131,7 @@ class DocumentConversionServiceTest {
             dummyFileData.toByteArray()
         )
         every { module.getTargetMimetype() } returns MediaType.TEXT_HTML_VALUE
-        every { module.module() } returns RenderModules.SPREADSHEET
+        every { module.module() } returns "SPREADSHEET"
 
         val expectedContent = "1234ABC"
         val mockResponse = MockResponse()
@@ -137,6 +164,7 @@ class DocumentConversionServiceTest {
         verifySequence {
             contentTransferService.getAsInputStream(dummyCacheObjectExcel)
             module.module()
+            module.module()
             module.getTargetMimetype()
             storageImplementation.putObject(expectedConvertedCacheObject, any())
         }
@@ -151,7 +179,7 @@ class DocumentConversionServiceTest {
             dummyFileData.toByteArray()
         )
         every { module.getTargetMimetype() } returns MediaType.APPLICATION_PDF_VALUE
-        every { module.module() } returns RenderModules.DOCUMENT
+        every { module.module() } returns "DOCUMENT"
 
         val mockResponse = MockResponse()
             .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
@@ -163,6 +191,7 @@ class DocumentConversionServiceTest {
 
         verifySequence {
             contentTransferService.getAsInputStream(any())
+            module.module()
             module.module()
             module.getTargetMimetype()
         }
@@ -186,4 +215,3 @@ class DocumentConversionServiceTest {
         confirmVerified(contentTransferService)
     }
 }
- */

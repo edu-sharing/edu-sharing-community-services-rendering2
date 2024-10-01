@@ -1,10 +1,10 @@
 package org.edu_sharing.rendering.modules.av.video
 
-import io.mockk.clearAllMocks
-import io.mockk.every
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.BeforeEach
@@ -53,15 +53,15 @@ class VideoServiceTest {
         assert(!underTest.isConversionObject(cacheObject))
     }
 
-    /**
     @Test
     fun testGetObjectLinksInvokesDefaultStrategyIfNotConversionType() {
         // Arrange
         val cacheObject = mockk<CacheObject>()
-        val expectedLinks = listOf(ObjectLink(link = "link1"))
+        val link = ObjectLink(link = "link1")
+        val expectedLinks = listOf(link)
 
         every { cacheObject.mimeType } returns "video/wmv"
-        every { directStorageHandler.getObjectLinkList(cacheObject) } returns expectedLinks
+        every { storageService.getObjectLink(cacheObject = cacheObject) } returns link
 
         // Act
         val result = underTest.getObjectLinks(cacheObject)
@@ -71,9 +71,10 @@ class VideoServiceTest {
 
         verifySequence {
             cacheObject.mimeType
-            directStorageHandler.getObjectLinkList(cacheObject)
+            storageService.getObjectLink(cacheObject = cacheObject)
         }
     }
+
 
     @Test
     fun testGetObjectLinksReturnsLinksForAlreadyCachedLinksWithDefaultResolutionsIfNotProvidedOtherwise() {
@@ -153,7 +154,6 @@ class VideoServiceTest {
         }
         confirmVerified(storageService)
     }
-
     @Test
     fun getMissingQualitiesReturnsDefaultResolutionsIfNullProvided() {
         assert(underTest.getMissingQualities(null) == listOf(100, 200))
@@ -201,7 +201,7 @@ class VideoServiceTest {
         every { mainJobCreationService.getExistingJobId(cacheObject) } returns "existing-job-id"
 
         // Act
-        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.VIDEO, listOf(1))
+        val result = underTest.retrieveOrCreateJob(cacheObject,"VIDEO", listOf(1))
 
         // Assert
         assert(result == "existing-job-id")
@@ -213,14 +213,13 @@ class VideoServiceTest {
         val missingQualities = listOf(100, 150)
 
         every { mainJobCreationService.getExistingJobId(cacheObject) } returns null
-        every { mainJobCreationService.createMainJob(cacheObject, RenderModules.VIDEO, missingQualities) } returns
+        every { mainJobCreationService.createMainJob(cacheObject, "VIDEO", missingQualities) } returns
                 "new-job-id"
 
         // Act
-        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.VIDEO, missingQualities)
+        val result = underTest.retrieveOrCreateJob(cacheObject, "VIDEO", missingQualities)
 
         // Assert
         assert(result == "new-job-id")
     }
-    */
 }

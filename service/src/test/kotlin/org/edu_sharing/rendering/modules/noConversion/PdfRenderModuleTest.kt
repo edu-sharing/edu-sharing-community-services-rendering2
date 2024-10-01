@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.modules.pdf
+package org.edu_sharing.rendering.modules.noConversion
 
 import io.mockk.clearAllMocks
 import io.mockk.every
@@ -9,7 +9,6 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -41,9 +40,10 @@ class PdfRenderModuleTest {
         // Arrange
         val request = mockk<RenderDataRequest>()
         val cacheObject = mockk<CacheObject>()
-        val linkList = listOf(ObjectLink(link = "mylink"))
+        val link = ObjectLink(link = "mylink")
 
         every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { storageServiceMock.getObjectLink(cacheObject)} returns link
 
         // Act
         val result = underTest.handle(request)
@@ -55,6 +55,7 @@ class PdfRenderModuleTest {
 
         verifySequence {
             mapperMock.renderDataRequestToCacheObject(request)
+            storageServiceMock.getObjectLink(cacheObject)
         }
     }
 

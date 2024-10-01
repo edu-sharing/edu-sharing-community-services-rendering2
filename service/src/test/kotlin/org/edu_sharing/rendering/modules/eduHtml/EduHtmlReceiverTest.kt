@@ -1,6 +1,25 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-/**
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.justRun
+import io.mockk.mockk
+import io.mockk.verify
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Test
+
 class EduHtmlReceiverTest {
     private val eduHtmlService: EduHtmlService = mockk()
     private val eduHtmlConversionService: EduHtmlConversionService = mockk()
@@ -41,6 +60,7 @@ class EduHtmlReceiverTest {
         confirmVerified(mainJobLogic)
     }
 
+
     @Test
     fun testReceiveMessageSetsSubJobToFailedIfCachingFails() {
         // Arrange
@@ -77,7 +97,7 @@ class EduHtmlReceiverTest {
         justRun { eduHtmlConversionService.cacheData(cacheObject) }
         every { mainJobLogic.processMainJob(id) } returns true
         every { subJobRepository.save(failedSubJob) } returns failedSubJob
-        every { eduHtmlService.getObjectLink(JobDataProvider.ES_OBJECT_ID)} throws Exception()
+        every { eduHtmlService.getObjectLink(cacheObject = cacheObject)} throws Exception()
         // Act
         underTest.receiveMessage(message)
         // Assert
@@ -85,7 +105,7 @@ class EduHtmlReceiverTest {
         verify(exactly = 1) { eduHtmlConversionService.cacheData(cacheObject) }
         verify(exactly = 1) { mainJobLogic.processMainJob(id) }
         verify(exactly = 1) { subJobRepository.save(failedSubJob) }
-        verify(exactly = 1) { eduHtmlService.getObjectLink(JobDataProvider.ES_OBJECT_ID) }
+        verify(exactly = 1) { eduHtmlService.getObjectLink(cacheObject = cacheObject) }
         confirmVerified(mainJobLogic,eduHtmlConversionService, mainJobLogic)
     }
 
@@ -104,7 +124,7 @@ class EduHtmlReceiverTest {
         justRun { eduHtmlConversionService.cacheData(cacheObject) }
         every { mainJobLogic.processMainJob(id) } returns true
         every { subJobRepository.save(successfulSubJob) } returns successfulSubJob
-        every { eduHtmlService.getObjectLink(JobDataProvider.ES_OBJECT_ID)} returns ObjectLink(link = link)
+        every { eduHtmlService.getObjectLink(cacheObject = cacheObject)} returns ObjectLink(link = link)
         // Act
         underTest.receiveMessage(message)
         // Assert
@@ -112,7 +132,7 @@ class EduHtmlReceiverTest {
         verify(exactly = 1) { eduHtmlConversionService.cacheData(cacheObject) }
         verify(exactly = 1) { mainJobLogic.processMainJob(id) }
         verify(exactly = 1) { subJobRepository.save(successfulSubJob) }
-        verify(exactly = 1) { eduHtmlService.getObjectLink(JobDataProvider.ES_OBJECT_ID) }
+        verify(exactly = 1) { eduHtmlService.getObjectLink(cacheObject = cacheObject) }
         confirmVerified(mainJobLogic,eduHtmlConversionService, mainJobLogic)
     }
 
@@ -123,7 +143,7 @@ class EduHtmlReceiverTest {
             esObjectId = JobDataProvider.ES_OBJECT_ID,
             esObjectType = "esobjecttype",
             mimeType = "image/jpeg",
-            module = RenderModules.EDUHTML,
+            module = "EDUHTML",
             nodeVersion = "1.2",
             repoId = "repoid",
             status = JobStatus.PROCESSING
@@ -142,7 +162,7 @@ class EduHtmlReceiverTest {
             esObjectId = JobDataProvider.ES_OBJECT_ID,
             esObjectType = "esobjecttype",
             mimeType = "image/jpeg",
-            module = RenderModules.IMAGE,
+            module = "IMAGE",
             nodeVersion = "1.2",
             repoId = "repoid",
             status = JobStatus.PROCESSING,
@@ -156,5 +176,5 @@ class EduHtmlReceiverTest {
         )
         return subJob
     }
+
 }
- */

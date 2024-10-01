@@ -1,9 +1,24 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-/**
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.justRun
+import io.mockk.mockk
+import io.mockk.verify
+import io.mockk.verifyAll
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.exception.ConversionException
+import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
+import org.edu_sharing.rendering.storage.StaticStorageService
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.http.MediaType
+import java.io.File
+
 class EduHtmlConversionServiceTest {
     private val contentTransferService: ContentTransferService = mockk()
-    private val storageService: StorageService = mockk()
+    private val storageService: StaticStorageService = mockk()
     private val underTest = EduHtmlConversionService(contentTransferService, storageService)
 
     @Test
@@ -15,7 +30,8 @@ class EduHtmlConversionServiceTest {
             val cacheObject = CacheObject(
                 nodeId = nodeId,
                 hash = "hash",
-                type = "eduhtml"
+                type = "eduhtml",
+                repoId = "repo123"
             )
 
             val coHtml = cacheObject.copy(mimeType = MediaType.TEXT_HTML_VALUE)
@@ -43,27 +59,32 @@ class EduHtmlConversionServiceTest {
                 storageService.putObject(
                     cacheObject = coHtml,
                     inputStream = any(),
-                    targetPath = "$nodeId/index.html",
+                    targetPath = "index.html",
+                    metadata = any()
                 )
                 storageService.putObject(
                     cacheObject = coCss,
                     inputStream = any(),
-                    targetPath = "$nodeId/style.css",
+                    targetPath = "style.css",
+                    metadata = any()
                 )
                 storageService.putObject(
                     cacheObject = coJs,
                     inputStream = any(),
-                    targetPath = "$nodeId/assets/index.js",
+                    targetPath = "assets/index.js",
+                    metadata = any()
                 )
                 storageService.putObject(
                     cacheObject = coJpg,
                     inputStream = any(),
-                    targetPath = "$nodeId/assets/vinni.jpg",
+                    targetPath = "assets/vinni.jpg",
+                    metadata = any()
                 )
             }
         }
         confirmVerified(storageService, contentTransferService)
     }
+
 
     @Test
     fun testIfCacheDataThrowsExceptionOnCompletelyEmptyZipFile() {
@@ -75,13 +96,13 @@ class EduHtmlConversionServiceTest {
             val cacheObject = CacheObject(
                 nodeId = nodeId,
                 hash = "hash",
-                type = "eduhtml"
+                type = "eduhtml",
+                repoId = "repo123"
             )
             every { contentTransferService.getAsInputStream(cacheObject) } returns inputStream
 
             // Assert
             assertThrows<ConversionException> {
-
                 // Act
                 underTest.cacheData(cacheObject)
             }
@@ -100,7 +121,8 @@ class EduHtmlConversionServiceTest {
             val cacheObject = CacheObject(
                 nodeId = nodeId,
                 hash = "hash",
-                type = "eduhtml"
+                type = "eduhtml",
+                repoId = "repo123"
             )
             every { contentTransferService.getAsInputStream(cacheObject) } returns inputStream
 
@@ -116,4 +138,3 @@ class EduHtmlConversionServiceTest {
         }
     }
 }
-        */

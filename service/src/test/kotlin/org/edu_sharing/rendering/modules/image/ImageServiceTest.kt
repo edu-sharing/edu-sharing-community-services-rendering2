@@ -1,9 +1,21 @@
 package org.edu_sharing.rendering.modules.image
 
-/**
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.junit5.MockKExtension
+import io.mockk.mockk
+import io.mockk.verify
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+
 @ExtendWith(MockKExtension::class)
 class ImageServiceTest {
-    private val directStorageHandler = mockk<DirectStorageHandler>()
     private val storageService = mockk<StorageService>()
     private val mainJobService = mockk<MainJobCreationService>()
 
@@ -13,12 +25,13 @@ class ImageServiceTest {
         nodeId = "nodeid",
         type = "image",
         hash = "hash",
-        mimeType = "image/png"
+        mimeType = "image/png",
+        repoId = "repo123"
     )
 
     @BeforeEach
     fun setup() {
-        underTest = ImageService(directStorageHandler, storageService, mainJobService)
+        underTest = ImageService(storageService, mainJobService)
         underTest.convertedImageMimeTypes = listOf("image/jpeg", "image/png")
         underTest.targetImageSizes = listOf(100,200)
         underTest.targetImageFormat = "jpeg"
@@ -53,7 +66,8 @@ class ImageServiceTest {
         // Arrange
         val cacheObjectWithNonConversion = cacheObject.copy()
         cacheObjectWithNonConversion.mimeType = "image/ogg"
-        every {directStorageHandler.getObjectLinkList(cacheObjectWithNonConversion)} returns listOf(ObjectLink(link = "mylink"))
+
+        every {storageService.getObjectLink(cacheObjectWithNonConversion)} returns ObjectLink(link = "mylink")
 
         // Act
         val result = underTest.getObjectLinks(cacheObjectWithNonConversion)
@@ -61,8 +75,8 @@ class ImageServiceTest {
         // Assert
         assert(result?.get(0)?.link == "mylink")
 
-        verify (exactly = 1) { directStorageHandler.getObjectLinkList(cacheObjectWithNonConversion) }
-        confirmVerified(directStorageHandler)
+        verify (exactly = 1) { storageService.getObjectLink(cacheObjectWithNonConversion) }
+        confirmVerified(storageService)
     }
 
     @Test
@@ -173,7 +187,7 @@ class ImageServiceTest {
         every { mainJobService.getExistingJobId(cacheObject) } returns "existing-job-id"
 
         // Act
-        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.IMAGE, listOf(1))
+        val result = underTest.retrieveOrCreateJob(cacheObject, "IMAGE", listOf(1))
 
         // Assert
         assert(result == "existing-job-id")
@@ -185,14 +199,13 @@ class ImageServiceTest {
         val missingQualities = listOf(100, 150)
 
         every { mainJobService.getExistingJobId(cacheObject) } returns null
-        every { mainJobService.createMainJob(cacheObject, RenderModules.IMAGE, missingQualities) } returns
+        every { mainJobService.createMainJob(cacheObject, "IMAGE", missingQualities, true) } returns
                 "new-job-id"
 
         // Act
-        val result = underTest.retrieveOrCreateJob(cacheObject, RenderModules.IMAGE, missingQualities)
+        val result = underTest.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)
 
         // Assert
         assert(result == "new-job-id")
     }
 }
- */

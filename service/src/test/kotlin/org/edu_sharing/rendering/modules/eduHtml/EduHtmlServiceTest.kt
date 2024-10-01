@@ -1,13 +1,34 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-/**
+import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.storage.StaticStorageService
+import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.amqp.core.AmqpTemplate
+
+
 @ExtendWith(MockKExtension::class)
 class EduHtmlServiceTest {
     private val jobRepoMock = mockk<RenderingJobRepository>()
     private val subJobRepoMock = mockk<SubJobRepository>()
     private val mapperMock = mockk<Mapper>()
     private val amqpTemplateMock = mockk<AmqpTemplate>()
-    private val storageMock = mockk<StorageService>()
+    private val storageMock = mockk< StaticStorageService>()
     private val jobDataProvider = JobDataProvider()
 
     private lateinit var underTest: EduHtmlService
@@ -41,11 +62,11 @@ class EduHtmlServiceTest {
     @Test
     fun testCreateJobReturnsExistingJobIfFound() {
         // Arrange
-        val renderingJob = jobDataProvider.getJobWithoutSubJobs(RenderModules.EDUHTML)
+        val renderingJob = jobDataProvider.getJobWithoutSubJobs("EDUHTML")
         every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns listOf(renderingJob)
 
         // Act
-        val result = underTest.createJob(request, RenderModules.EDUHTML)
+        val result = underTest.createJob(request, "EDUHTML")
 
         // Assert
         assert(result == JobDataProvider.DUMMY_JOB_ID)
@@ -59,7 +80,7 @@ class EduHtmlServiceTest {
         // Arrange
         val dummyJob = jobDataProvider.getJobWithoutSubJobs()
         every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns emptyList()
-        every { mapperMock.renderDataRequestToRenderingJob(request, RenderModules.EDUHTML) } returns dummyJob
+        every { mapperMock.renderDataRequestToRenderingJob(request, "EDUHTML") } returns dummyJob
         every { jobRepoMock.save(dummyJob) } returns mockk<RenderingJob>()
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
@@ -67,7 +88,7 @@ class EduHtmlServiceTest {
         justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
 
         // Act
-        val result = underTest.createJob(request, RenderModules.EDUHTML)
+        val result = underTest.createJob(request, "EDUHTML")
 
         // Assert
         assert(subJobSlot.captured.routingKey == "routingkey")
@@ -77,7 +98,7 @@ class EduHtmlServiceTest {
 
         verifySequence {
             jobRepoMock.findAllByEsObjectId("dummyNodeId")
-            mapperMock.renderDataRequestToRenderingJob(request, RenderModules.EDUHTML)
+            mapperMock.renderDataRequestToRenderingJob(request, "EDUHTML")
             jobRepoMock.save(dummyJob)
             subJobRepoMock.save(any())
             amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
@@ -87,40 +108,40 @@ class EduHtmlServiceTest {
     @Test
     fun testGetObjectLinkReturnsObjectLinkToIndexPathIfCached() {
         // Arrange
-        val nodeId = "node123"
         val objectLink = ObjectLink(link = "mylink")
+        val cacheObject = mockk<CacheObject>()
 
         every {
-            storageMock.getFileProperties("eduhtml", "node123/index.html")
-        } returns mockk<CachedObjectDetails>()
+            storageMock.objectExists(cacheObject, "index.html")
+        } returns true
 
-        every { storageMock.getObjectLink("node123/index.html") } returns objectLink
+        every { storageMock.getObjectLink(cacheObject, "index.html") } returns objectLink
 
         // Act
-        val result = underTest.getObjectLink(nodeId)
+        val result = underTest.getObjectLink(cacheObject)
 
         // Assert
         assert(result == objectLink)
 
         verifySequence {
-            storageMock.getFileProperties("eduhtml", "node123/index.html")
-            storageMock.getObjectLink("node123/index.html")
+            storageMock.objectExists(cacheObject, "index.html")
+            storageMock.getObjectLink(cacheObject, "index.html")
         }
     }
 
     @Test
     fun testGetObjectLinkThrowsExceptionIfGetFilePropertiesFails() {
         // Arrange
-        val nodeId = "node123"
+        val cacheObject = mockk<CacheObject>()
 
         every {
-            storageMock.getFileProperties("eduhtml", "node123/index.html")
-        } throws Exception("test")
+            storageMock.objectExists(cacheObject, "index.html")
+        } returns false
 
         // Act and assert
-        assertThrows<Exception> { underTest.getObjectLink(nodeId) }
+        assertThrows<Exception> { underTest.getObjectLink(cacheObject) }
         verifySequence {
-            storageMock.getFileProperties("eduhtml", "node123/index.html")
+            storageMock.objectExists(cacheObject, "index.html")
         }
     }
 
@@ -131,7 +152,7 @@ class EduHtmlServiceTest {
         val dummyJob = jobDataProvider.getJobWithoutSubJobs()
         every { finishedJob.status } returns JobStatus.FINISHED
         every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
-        every { mapperMock.renderDataRequestToRenderingJob(request, RenderModules.EDUHTML) } returns dummyJob
+        every { mapperMock.renderDataRequestToRenderingJob(request, "EDUHTML") } returns dummyJob
         every { jobRepoMock.save(dummyJob) } returns mockk<RenderingJob>()
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
@@ -143,7 +164,7 @@ class EduHtmlServiceTest {
         }
 
         // Act
-        val result = underTest.createJob(request, RenderModules.EDUHTML)
+        val result = underTest.createJob(request, "EDUHTML")
 
         // Assert
         assert(subJobSlot.captured.routingKey == "routingkey")
@@ -153,11 +174,10 @@ class EduHtmlServiceTest {
 
         verifySequence {
             jobRepoMock.findAllByEsObjectId("dummyNodeId")
-            mapperMock.renderDataRequestToRenderingJob(request, RenderModules.EDUHTML)
+            mapperMock.renderDataRequestToRenderingJob(request, "EDUHTML")
             jobRepoMock.save(dummyJob)
             subJobRepoMock.save(any())
             amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
         }
     }
 }
- */
