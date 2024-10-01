@@ -1,10 +1,23 @@
 package org.edu_sharing.rendering.renderingJob
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verifySequence
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.renderingJob.dto.JobInfoReply
+import org.edu_sharing.rendering.renderingJob.dto.JobProgressInfo
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 
 @WebMvcTest(JobInfoController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
@@ -12,7 +25,6 @@ class JobInfoControllerTest(@Autowired val mockMvc: MockMvc) {
     @MockkBean
     lateinit var jobInfoService: JobInfoService
 
-    /**
     @Test
     fun testGetJobInfoReturnsJobInfoFromService() {
         // Arrange
@@ -39,15 +51,15 @@ class JobInfoControllerTest(@Autowired val mockMvc: MockMvc) {
         // Assert
         val response = ObjectMapper().readValue(result.response.contentAsString, JobInfoReply::class.java)
         assert(response.status == JobStatus.QUEUED)
-        assert(response.module == RenderModules.IMAGE)
+        assert(response.module == "IMAGE")
         assert(response.jobs.size == 1)
-        assert(JobProgressInfo.status == JobStatus.QUEUED)
-        assert(JobProgressInfo.objectLink?.link == "mylink.de")
-        assert(JobProgressInfo.progress.toInt() == 0)
-        assert(JobProgressInfo.quality == 0)
-        assert(JobProgressInfo.objectLink?.isHighestQuality == false)
-        assert(JobProgressInfo.objectLink?.width == 0)
-        assert(JobProgressInfo.objectLink?.height == 0)
+        assert(response.status == JobStatus.QUEUED)
+        assert(response.jobs[0].objectLink?.link == "mylink.de")
+        assert(response.jobs[0].progress.toInt() == 0)
+        assert(response.jobs[0].quality == 0)
+        assert(response.jobs[0].objectLink?.isHighestQuality == false)
+        assert(response.jobs[0].objectLink?.width == 0)
+        assert(response.jobs[0].objectLink?.height == 0)
 
         verifySequence {
             jobInfoService.getRenderingJob(jobId)
@@ -56,5 +68,4 @@ class JobInfoControllerTest(@Autowired val mockMvc: MockMvc) {
 
         confirmVerified(jobInfoService)
     }
-    */
 }

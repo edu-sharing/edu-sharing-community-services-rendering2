@@ -1,11 +1,19 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
 import io.mockk.*
+import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.modules.image.ImageRenderModule
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.Test
+import org.springframework.data.repository.findByIdOrNull
+import java.io.ByteArrayInputStream
 
 class JobReceiverTest {
     private val jobRepository: RenderingJobRepository = mockk()
@@ -21,13 +29,12 @@ class JobReceiverTest {
         moduleRegistry = moduleRegistry
     )
 
-    /**
     @Test
     fun testReceiveMessageReturnsIfNoJobFound() {
         val jobId = "507f191e810c19729de860ea"
         every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns null
         val message = RenderingJobMessage(jobId)
-        jobReceiver.receiveMessage(message)
+        underTest.receiveMessage(message)
         verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
         confirmVerified(jobRepository)
     }
@@ -40,206 +47,72 @@ class JobReceiverTest {
         val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
         val message = RenderingJobMessage(jobId)
         every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
-        every { storageService.putTempFile(cacheObject, contentInputStream)} throws Exception()
+        every { contentTransferService.getAsInputStream(cacheObject) } returns contentInputStream
+        every { storageService.putTempFile(cacheObject, contentInputStream) } throws Exception()
         every { jobRepository.save(any()) } returns job
-        jobReceiver.receiveMessage(message)
+        underTest.receiveMessage(message)
         verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
+        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject) }
+        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream) }
         verify(exactly = 2) { jobRepository.save(any()) }
-        assertThat(job.status).isEqualTo(JobStatus.FAILED)
-        confirmVerified()
+        assert(job.status == JobStatus.FAILED)
+        confirmVerified(jobRepository, contentTransferService, storageService, jobRepository)
     }
 
     @Test
-    fun testReceiveMessageCreatesAndEnqueuesImageJobIfImageModuleDetected() {
+    fun testReceiveMessageFetchesConversionModuleAndCallsJobCreation() {
+
         // Arrange
         val jobId = "507f191e810c19729de860ea"
         val job = prepareJobForTesting(jobId, "IMAGE")
         val cacheObject = mapper.renderingJobToCacheObject(job)
         val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
-        val message = RenderingJobMessage(id = jobId, missingQualities = listOf(1,2))
-        val routingKey = "image"
-        val exchangeName = "exchange"
+        val message = RenderingJobMessage(id = jobId, missingQualities = listOf(1, 2))
+        val conversionModule = mockk<ImageRenderModule>()
+        val submittedJobSlot = slot<RenderingJob>()
+        val savedJobSlot = slot<RenderingJob>()
+
         every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
+        every { contentTransferService.getAsInputStream(cacheObject) } returns contentInputStream
         justRun { storageService.putTempFile(cacheObject, contentInputStream) }
-        every { jobRepository.save(any()) } returns job
-        every { subJobRepository.save(any()) } returns SubJob(routingKey = "image", quality = 1, parent = job)
-        every { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId)) } returns Unit
-        jobReceiver.imageRoutingKey = routingKey
-        jobReceiver.topicExchangeName = exchangeName
+        every { jobRepository.save(capture(savedJobSlot)) } returns job
+        every { moduleRegistry.getRenderModule<RenderModule>("IMAGE")} returns conversionModule
+        justRun { conversionModule.createJob(capture(submittedJobSlot), message) }
+
         // Act
-        jobReceiver.receiveMessage(message)
+        underTest.receiveMessage(message)
+
         // Assert
-        verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
-        verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) { jobRepository.save(any()) }
-        verify(exactly = 1) { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId)) }
-        assertThat(job.status).isEqualTo(JobStatus.PROCESSING)
-        assertThat(job.subJobs.size == 2)
-        assertThat(job.subJobs[0].quality == 1)
-        assertThat(job.subJobs[1].quality == 2)
-        confirmVerified()
+        assert(savedJobSlot.isCaptured)
+        assert(savedJobSlot.captured.id == job.id)
+        assert(savedJobSlot.captured.status == JobStatus.PROCESSING)
+
+        assert(submittedJobSlot.isCaptured)
+        assert(submittedJobSlot.captured.id == job.id)
+        assert(submittedJobSlot.captured.status == JobStatus.PROCESSING)
+
+        verifySequence {
+            jobRepository.findByIdOrNull(ObjectId(jobId))
+            jobRepository.save(any())
+            contentTransferService.getAsInputStream(cacheObject)
+            storageService.putTempFile(cacheObject, contentInputStream)
+            moduleRegistry.getRenderModule<RenderModule>("IMAGE")
+            conversionModule.createJob(capture(submittedJobSlot), message)
+        }
+
+        confirmVerified(
+            jobRepository,
+            contentTransferService,
+            storageService,
+            moduleRegistry,
+        )
     }
 
-    @Test
-    fun testReceiveMessageCreatesAndEnqueuesVideoJobsIfVideoModuleDetected() {
-        // Arrange
-        val jobId = "507f191e810c19729de860ea"
-        val job = prepareJobForTesting(jobId, "VIDEO")
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
-        val message = RenderingJobMessage(id = jobId, missingQualities = listOf(1,2))
-        val routingKey = "video"
-        val exchangeName = "exchange"
-        every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
-        justRun { storageService.putTempFile(cacheObject, contentInputStream) }
-        every { jobRepository.save(any()) } returns job
-        every { subJobRepository.save(any()) } returns SubJob(routingKey = "video", quality = 1, parent = job)
-        every { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId,1)) } returns Unit
-        every { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId,2)) } returns Unit
-        jobReceiver.avRoutingKey = routingKey
-        jobReceiver.topicExchangeName = exchangeName
-        // Act
-        jobReceiver.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
-        verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) { jobRepository.save(any()) }
-        verify(exactly = 1) { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId,1)) }
-        verify(exactly = 1) { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId,2)) }
-        assertThat(job.status).isEqualTo(JobStatus.PROCESSING)
-        assertThat(job.subJobs.size == 2)
-        assertThat(job.subJobs[0].quality == 1)
-        assertThat(job.subJobs[1].quality == 2)
-        confirmVerified()
-    }
-
-    @Test
-    fun testReceiveMessageCreatesAndEnqueuesAudioJobIfAudioModuleDetected() {
-        // Arrange
-        val jobId = "507f191e810c19729de860ea"
-        val job = prepareJobForTesting(jobId, RenderModules.AUDIO)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
-        val message = RenderingJobMessage(id = jobId, missingQualities = listOf(1))
-        val routingKey = "video"
-        val exchangeName = "exchange"
-        every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
-        justRun { storageService.putTempFile(cacheObject, contentInputStream) }
-        every { jobRepository.save(any()) } returns job
-        every { subJobRepository.save(any()) } returns SubJob(routingKey = "video", quality = 1, parent = job)
-        every { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId,1)) } returns Unit
-        jobReceiver.avRoutingKey = routingKey
-        jobReceiver.topicExchangeName = exchangeName
-        // Act
-        jobReceiver.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
-        verify(exactly = 1) { subJobRepository.save(any()) }
-        verify(exactly = 1) { jobRepository.save(any()) }
-        verify(exactly = 1) { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId,1)) }
-        assertThat(job.status).isEqualTo(JobStatus.PROCESSING)
-        assertThat(job.subJobs.size == 1)
-        assertThat(job.subJobs[0].quality == 1)
-        confirmVerified()
-    }
-
-    @Test
-    fun testReceiveMessageCreatesAndEnqueuesDocumentJobIfDocumentModuleDetected() {
-        // Arrange
-        val jobId = "507f191e810c19729de860ea"
-        val job = prepareJobForTesting(jobId, RenderModules.DOCUMENT)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
-        val message = RenderingJobMessage(id = jobId)
-        val routingKey = "document"
-        val exchangeName = "exchange"
-        every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
-        justRun { storageService.putTempFile(cacheObject, contentInputStream) }
-        every { jobRepository.save(any()) } returns job
-        every { subJobRepository.save(any()) } returns SubJob(routingKey = "document", parent = job)
-        every { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId)) } returns Unit
-        jobReceiver.documentRoutingKey = routingKey
-        jobReceiver.topicExchangeName = exchangeName
-        // Act
-        jobReceiver.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
-        verify(exactly = 1) { subJobRepository.save(any()) }
-        verify(exactly = 1) { jobRepository.save(any()) }
-        verify(exactly = 1) { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId)) }
-        assertThat(job.status).isEqualTo(JobStatus.PROCESSING)
-        assertThat(job.subJobs.size == 1)
-        confirmVerified()
-    }
-
-    @Test
-    fun testReceiveMessageCreatesAndEnqueuesDocumentJobIfSpreadsheetModuleDetected() {
-        // Arrange
-        val jobId = "507f191e810c19729de860ea"
-        val job = prepareJobForTesting(jobId, RenderModules.SPREADSHEET)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
-        val message = RenderingJobMessage(id = jobId)
-        val routingKey = "document"
-        val exchangeName = "exchange"
-        every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
-        justRun { storageService.putTempFile(cacheObject, contentInputStream) }
-        every { jobRepository.save(any()) } returns job
-        every { subJobRepository.save(any()) } returns SubJob(routingKey = "document", parent = job)
-        every { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId)) } returns Unit
-        jobReceiver.documentRoutingKey = routingKey
-        jobReceiver.topicExchangeName = exchangeName
-        // Act
-        jobReceiver.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
-        verify(exactly = 1) { subJobRepository.save(any()) }
-        verify(exactly = 1) { jobRepository.save(any()) }
-        verify(exactly = 1) { amqpTemplate.convertAndSend(exchangeName, routingKey, SubJobMessage(jobId)) }
-        assertThat(job.status).isEqualTo(JobStatus.PROCESSING)
-        assertThat(job.subJobs.size == 1)
-        confirmVerified()
-    }
-
-    @Test
-    fun testReceiveMessageSetsJobToFailedAndReturnsIfModuleCannotBeMapped() {
-        val jobId = "507f191e810c19729de860ea"
-        val job = prepareJobForTesting(jobId, RenderModules.PDF)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val contentInputStream = ByteArrayInputStream("coolcontent".toByteArray())
-        val message = RenderingJobMessage(jobId)
-        every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns job
-        every { contentTransferService.getAsInputStream(cacheObject)} returns contentInputStream
-        justRun { storageService.putTempFile(cacheObject, contentInputStream)}
-        every { jobRepository.save(any()) } returns job
-        jobReceiver.receiveMessage(message)
-        verify(exactly = 1) { jobRepository.findByIdOrNull(ObjectId(jobId)) }
-        verify(exactly = 1) { contentTransferService.getAsInputStream(cacheObject)}
-        verify(exactly = 1) { storageService.putTempFile(cacheObject, contentInputStream)}
-        verify(exactly = 2) { jobRepository.save(any()) }
-        assertThat(job.status).isEqualTo(JobStatus.FAILED)
-        confirmVerified()
-    }
-
-    private fun prepareJobForTesting(id: String, module: RenderModules = RenderModules.VIDEO): RenderingJob {
+    private fun prepareJobForTesting(
+        id: String,
+        module: String = "VIDEO",
+        conversionType: Boolean = true
+    ): RenderingJob {
         val job = RenderingJob(
             id = ObjectId(id),
             esHash = "hash",
@@ -249,9 +122,10 @@ class JobReceiverTest {
             module = module,
             nodeVersion = "1.2",
             repoId = "repoid",
-            status = JobStatus.QUEUED
+            status = JobStatus.QUEUED,
+            conversionType = conversionType
         )
         return job
     }
- */
+
 }

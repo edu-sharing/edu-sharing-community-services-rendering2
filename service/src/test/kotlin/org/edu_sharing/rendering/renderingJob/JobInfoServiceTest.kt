@@ -74,7 +74,7 @@ class JobInfoServiceTest {
         assert(result.jobs.size == 1)
         assert(result.jobs[0].status == JobStatus.QUEUED)
         assert(result.status == JobStatus.QUEUED)
-        assert(result.module == "EDUHTML")
+        assert(result.module == "HTML")
 
         confirmVerified(jobRepository, subJobRepository, moduleRegistry)
     }
@@ -92,7 +92,7 @@ class JobInfoServiceTest {
         assert(result.jobs.size == 1)
         assert(result.jobs[0].status == JobStatus.PROCESSING)
         assert(result.status == JobStatus.PROCESSING)
-        assert(result.module == "EDUHTML")
+        assert(result.module == "HTML")
 
         confirmVerified(jobRepository, subJobRepository, moduleRegistry)
     }
@@ -135,7 +135,7 @@ class JobInfoServiceTest {
         val renderModule = mockk<RenderModule>()
 
         every { renderModule.getObjectLinkFromJobData(any(), any()) } returns ObjectLink(link = "mylink")
-        every { moduleRegistry.getRenderModule<RenderModule>("EDUHTML") } returns renderModule
+        every { moduleRegistry.getRenderModule<RenderModule>("HTML") } returns renderModule
         every { subJobRepository.countByIdBeforeAndStatusAndRoutingKey(
             queuedSubJob.id,
             queuedSubJob.status,
@@ -147,7 +147,7 @@ class JobInfoServiceTest {
 
         assert(result.status == JobStatus.PROCESSING)
         assert(result.jobs.size == 4)
-        assert(result.module == "EDUHTML")
+        assert(result.module == "HTML")
 
         val infoForQueued = result.jobs.first { it.status == JobStatus.QUEUED }
         assert(infoForQueued.quality == 1)
@@ -170,7 +170,7 @@ class JobInfoServiceTest {
         assert(infoForFailed.progress == 0L)
 
         verifySequence {
-            moduleRegistry.getRenderModule<RenderModule>("EDUHTML")
+            moduleRegistry.getRenderModule<RenderModule>("HTML")
             subJobRepository.countByIdBeforeAndStatusAndRoutingKey(
                 queuedSubJob.id,
                 queuedSubJob.status,
