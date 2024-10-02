@@ -23,7 +23,7 @@ requires-python = ">=3.12.5"
 line-length = 120
 
 packages = [
-    { include = "src/main/python"}
+    { include = "src"}
 ]
 
 [build-system]
