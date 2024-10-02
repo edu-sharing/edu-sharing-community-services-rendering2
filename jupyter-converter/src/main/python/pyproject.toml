@@ -9,7 +9,22 @@ readme = "README.md"
 python = "^3.12"
 fastapi = "^0.115.0"
 uvicorn = "^0.31.0"
+nbconvert = "^7.16.4"
+python-multipart = "^0.0.12"
 
+
+[project]
+# see: https://docs.astral.sh/ruff/tutorial/#configuration
+requires-python = ">=3.12.5"
+
+
+[tool.ruff]
+# see: https://docs.astral.sh/ruff/tutorial/#configuration
+line-length = 120
+
+packages = [
+    { include = "src/main/python"}
+]
 
 [build-system]
 requires = ["poetry-core"]

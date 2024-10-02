@@ -67,6 +67,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>edu_sharing-community-services-rendering2-jupyter-converter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>edu_sharing-community-services-rendering2-lumi</artifactId>
         <version>${project.version}</version>
         <classifier>bin</classifier>
@@ -108,6 +113,7 @@
     <module>deploy</module>
     <module>service</module>
     <module>document-converter</module>
+    <module>jupyter-converter</module>
     <module>lumi</module>
   </modules>
 </project>
