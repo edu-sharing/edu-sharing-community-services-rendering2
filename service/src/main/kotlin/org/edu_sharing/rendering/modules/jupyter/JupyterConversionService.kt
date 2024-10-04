@@ -1,11 +1,9 @@
-package org.edu_sharing.rendering.modules.document
+package org.edu_sharing.rendering.modules.jupyter
 
-import org.apache.tika.mime.MimeTypes
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ConversionService
-import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.document.DocumentReceiver.Companion.PUBLIC_FAILURE_MESSAGE
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
@@ -21,55 +19,50 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
 import java.nio.file.Files
+import kotlin.io.inputStream
 
 @ConditionalOnConverter
 @Service
-class DocumentConversionService(
+class JupyterConversionService(
     private val contentTransferService: ContentTransferService,
     private val storageImplementation: StorageService,
-    private val documentConverterWebClient: WebClient,
+    private val jupyterConverterWebClient: WebClient,
+    private val module: JupyterRenderModule,
     private val subJobRepository: SubJobRepository,
-    private val moduleRegistry: ModuleRegistry,
-    private val spreadsheetRenderModule: SpreadsheetRenderModule?
-): ConversionService {
+) : ConversionService {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
 
-    override fun process(cacheObject: CacheObject, renderingJob: RenderingJob) {
+    override fun process(
+        cacheObject: CacheObject,
+        renderingJob: RenderingJob
+    ) {
         val subJob = renderingJob.subJobs.first()
-        subJob.status = JobStatus.PROCESSING
-        subJobRepository.save(subJob)
         try {
-            convertAndMoveToCache(
-                cacheObject,
-                moduleRegistry.getRenderModule(renderingJob.module)
-            )
+            convertAndMoveToCache(cacheObject)
             subJob.status = JobStatus.FINISHED
-        } catch (_: Exception) {
-            log.error("Document conversion failed for object ${renderingJob.esObjectId}")
+        } catch (e: Exception) {
+            log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception ${e.message}")
             subJob.status = JobStatus.FAILED
             subJob.message = PUBLIC_FAILURE_MESSAGE
         }
         subJobRepository.save(subJob)
     }
 
-    private fun convertAndMoveToCache(cacheObject: CacheObject, module: DocumentRenderModule) {
+    private fun convertAndMoveToCache(cacheObject: CacheObject) {
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val originalFile = File(
-            "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}${getExtensionFromMimeType(cacheObject.mimeType)}"
+            "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}.ipynb}"
         )
         inputStream.use {
             Files.copy(inputStream, originalFile.toPath())
         }
         val builder = MultipartBodyBuilder()
         builder.part("file", FileSystemResource(originalFile))
-        if (spreadsheetRenderModule != null && module.module() == spreadsheetRenderModule.module()) {
-            builder.part("format", "html")
-        }
         try {
-            val returnedData = documentConverterWebClient.post()
+            val returnedData = jupyterConverterWebClient.post()
                 .uri {
-                    UriComponentsBuilder.fromUri(it.build()).path("/conversion").build(true).toUri()
+                    UriComponentsBuilder.fromUri(it.build()).path("/convert").build(true).toUri()
                 }.contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
@@ -89,13 +82,5 @@ class DocumentConversionService(
         } finally {
             originalFile.delete()
         }
-    }
-
-    private fun getExtensionFromMimeType(mimeType: String): String {
-        val extension = MimeTypes.getDefaultMimeTypes().forName(mimeType).extension
-        if (extension.isBlank()) {
-            throw Exception("Mime type $mimeType is not supported")
-        }
-        return extension
     }
 }

@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.modules.document
+package org.edu_sharing.rendering.modules.jupyter
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
@@ -13,29 +13,25 @@ import org.springframework.stereotype.Component
 
 @ConditionalOnConverter
 @Component
-class DocumentReceiver (
+class JupyterReceiver(
     val mainJobLogic: MainJobLogic,
     val mapper: Mapper,
-    val documentConversionService: DocumentConversionService,
+    val jupyterConversionService: JupyterConversionService
 ): AbstractReceiver(
     mainJobLogic = mainJobLogic,
     mapper = mapper,
-    conversionService = documentConversionService
+    conversionService = jupyterConversionService
 ) {
-    companion object {
-        const val PUBLIC_FAILURE_MESSAGE = "Conversion failed"
-    }
-
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.document.name}", durable = "false"),
+                value = Queue(name = "\${app.queue.jupyter.name}", durable = "false"),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.document.key}"]
+                key = ["\${app.queue.jupyter.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
-       super.processMessage(message)
+        super.processMessage(message)
     }
 }
