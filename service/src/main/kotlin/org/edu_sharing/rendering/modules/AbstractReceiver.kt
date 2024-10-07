@@ -10,6 +10,9 @@ abstract class AbstractReceiver(
     private val mapper: Mapper,
     private val conversionService: ConversionService
 ) {
+    companion object {
+        const val PUBLIC_FAILURE_MESSAGE = "Conversion failed"
+    }
 
     private val log = LoggerFactory.getLogger(this.javaClass)
 
@@ -24,7 +27,7 @@ abstract class AbstractReceiver(
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         conversionService.process(cacheObject, jobEntry)
-        mainJobLogic.processMainJob(jobEntry.id.toString())
+        mainJobLogic.processMainJob(message.id)
     }
 
 }

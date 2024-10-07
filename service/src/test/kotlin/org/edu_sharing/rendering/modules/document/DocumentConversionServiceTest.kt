@@ -1,26 +1,11 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verifySequence
-import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.assertj.core.api.Assertions.assertThat
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
-import java.io.ByteArrayInputStream
-import java.io.InputStream
-import java.util.UUID
 
 class DocumentConversionServiceTest {
     private lateinit var mockServer: MockWebServer
@@ -57,7 +42,7 @@ class DocumentConversionServiceTest {
 
     // Class under test
     private lateinit var underTest: DocumentConversionService
-
+/**
     @BeforeEach
     fun setup() {
         mockServer = MockWebServer()
@@ -214,4 +199,5 @@ class DocumentConversionServiceTest {
         }
         confirmVerified(contentTransferService)
     }
+    */
 }

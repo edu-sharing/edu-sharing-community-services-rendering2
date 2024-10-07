@@ -54,9 +54,9 @@ class JupyterRenderModule(
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
-        val documentJob = SubJob(routingKey = jupyterKey, parent = renderingJob)
-        subJobRepository.save(documentJob)
-        renderingJob.subJobs.add(documentJob)
+        val jupyterJob = SubJob(routingKey = jupyterKey, parent = renderingJob)
+        subJobRepository.save(jupyterJob)
+        renderingJob.subJobs.add(jupyterJob)
         amqpTemplate.convertAndSend(topicExchangeName, jupyterKey, SubJobMessage(renderingJob.id.toString()))
     }
 
