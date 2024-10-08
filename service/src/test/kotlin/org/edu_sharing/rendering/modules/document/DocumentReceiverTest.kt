@@ -1,148 +1,91 @@
 package org.edu_sharing.rendering.modules.document
 
 import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 
+@ExtendWith(MockKExtension::class)
 class DocumentReceiverTest {
     private val mainJobLogic: MainJobLogic = mockk()
-    private val mapper = Mapper()
+    private val mapper = mockk<Mapper>()
     private val documentConversionService: DocumentConversionService = mockk()
-    private val subJobRepository: SubJobRepository = mockk()
-    private val moduleRegistry: ModuleRegistry = mockk()
-    private val underTest = DocumentReceiver(
-        mainJobLogic = mainJobLogic,
-        mapper = mapper,
-        documentConversionService = documentConversionService,
-    )
-    private val module: DocumentRenderModule = mockk()
 
-    /**
-    @Test
-    fun testReceiveMessageReturnsEarlyIfNoMainJobFound() {
-        // Arrange
-        val id = "507f191e810c19729de860eb"
-        val message = RenderingJobMessage(id = id)
-        every { mainJobLogic.getMainJobEntry(id) } returns null
-        // Act
-        underTest.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
-        confirmVerified(mainJobLogic)
-    }
+    lateinit var underTest: DocumentReceiver
 
-    @Test
-    fun testReceiveMessageReturnsEarlyIfMainJobHasNoSubJobs() {
-        // Arrange
-        val id = "507f191e810c19729de860ea"
-        val message = RenderingJobMessage(id = id)
-        val job = prepareJobForTesting(id)
-        every { mainJobLogic.getMainJobEntry(id) } returns job
-        // Act
-        underTest.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
-        confirmVerified(mainJobLogic)
-    }
-
-    @Test
-    fun testReceiveMessageSetsSubJobToFailedIfConversionFails() {
-        // Arrange
-        val id = "507f191e810c19729de860ea"
-        val subId = "507f191e810c19729de860eb"
-        val message = RenderingJobMessage(id = id)
-        val job = prepareJobForTesting(id = id, subId = subId)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val failedSubJob = getDummySubJob(subId, JobStatus.FAILED)
-        failedSubJob.message = DocumentReceiver.PUBLIC_FAILURE_MESSAGE
-        every { mainJobLogic.getMainJobEntry(id) } returns job
-        every { subJobRepository.save(any()) } returns failedSubJob
-        every { moduleRegistry.getRenderModule<RenderModule>(moduleName = "DOCUMENT") } returns module
-        every { documentConversionService.convertAndMoveToCache(cacheObject, module) } throws Exception("")
-        every { mainJobLogic.processMainJob(id) } returns true
-
-        // Act
-        underTest.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
-        verify(exactly = 1) { documentConversionService.convertAndMoveToCache(cacheObject, module) }
-        verify(exactly = 1) { mainJobLogic.processMainJob(id) }
-        verifyOrder {
-            subJobRepository.save(any())
-            subJobRepository.save(failedSubJob)
-        }
-        confirmVerified(mainJobLogic, documentConversionService, mainJobLogic)
-    }
-
-    @Test
-    fun testReceiveMessageSetsSubJobToSuccessIfConversionSucceeds() {
-        // Arrange
-        val id = "507f191e810c19729de860ea"
-        val subId = "507f191e810c19729de860eb"
-        val message = RenderingJobMessage(id = id)
-        val job = prepareJobForTesting(id = id, subId = subId)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val successfulSubJob = getDummySubJob(subId, JobStatus.FINISHED)
-        every { mainJobLogic.getMainJobEntry(id) } returns job
-        every { subJobRepository.save(any()) } returns successfulSubJob
-        every { moduleRegistry.getRenderModule<RenderModule>(moduleName = "DOCUMENT") } returns module
-        justRun { documentConversionService.convertAndMoveToCache(cacheObject, module) }
-        every { mainJobLogic.processMainJob(id) } returns true
-
-        // Act
-        underTest.receiveMessage(message)
-        // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
-        verify(exactly = 1) { documentConversionService.convertAndMoveToCache(cacheObject, module) }
-        verify(exactly = 1) { mainJobLogic.processMainJob(id) }
-        verifyOrder {
-            subJobRepository.save(any())
-            subJobRepository.save(successfulSubJob)
-        }
-        confirmVerified(mainJobLogic, documentConversionService, mainJobLogic)
-    }
-
-    private fun prepareJobForTesting(id: String, subId: String? = null): RenderingJob {
-        val job = RenderingJob(
-            id = ObjectId(id),
-            esHash = "hash",
-            esObjectId = JobDataProvider.ES_OBJECT_ID,
-            esObjectType = "esobjecttype",
-            mimeType = "image/jpeg",
-            module = "DOCUMENT",
-            nodeVersion = "1.2",
-            repoId = "repoid",
-            status = JobStatus.PROCESSING
+    @BeforeEach
+    fun setup() {
+        underTest = DocumentReceiver(
+            mainJobLogic = mainJobLogic,
+            mapper = mapper,
+            documentConversionService = documentConversionService
         )
-        if (subId != null) {
-            job.subJobs = mutableListOf(getDummySubJob(subId, JobStatus.QUEUED))
-        }
-        return job
     }
 
-    private fun getDummySubJob(subId: String, status: JobStatus): SubJob {
-        // Sub jobs need a fake parent
-        val dummy = RenderingJob(
-            id = ObjectId(JobDataProvider.DUMMY_JOB_ID),
-            esHash = "hash",
-            esObjectId = JobDataProvider.ES_OBJECT_ID,
-            esObjectType = "esobjecttype",
-            mimeType = "image/jpeg",
-            module = "IMAGE",
-            nodeVersion = "1.2",
-            repoId = "repoid",
-            status = JobStatus.PROCESSING,
-            creationTimestamp = JobDataProvider.DUMMY_CREATION_TS
-        )
-        val subJob = SubJob(
-            id = ObjectId(subId),
-            parent = dummy,
-            routingKey = "whatever",
-            status = status
-        )
-        return subJob
+    @AfterEach
+    fun tearDown() {
+        clearAllMocks()
     }
-    */
+
+    @Test
+    fun testReceiveMessageReturnsWithoutModifyingActionsOnMissingMainJob() {
+        // Arrange
+        val message = mockk<RenderingJobMessage>()
+        every { message.id } returns "job123"
+        every { mainJobLogic.getMainJobEntry("job123") } returns null
+
+        // Act and assert
+        underTest.receiveMessage(message)
+    }
+
+    @Test
+    fun testReceiveMessageReturnsWithoutModifyingActionsOnMissingSubJobs() {
+        // Arrange
+        val message = mockk<RenderingJobMessage>()
+        val job = mockk<RenderingJob>()
+        every { message.id } returns "job123"
+        every { mainJobLogic.getMainJobEntry("job123") } returns job
+        every { job.subJobs } returns mutableListOf()
+
+        // Act and assert
+        underTest.receiveMessage(message)
+    }
+
+    @Test
+    fun testReceiveMessageProcessesJobCorrectly() {
+        // Arrange
+        val message = mockk<RenderingJobMessage>()
+        val job = mockk<RenderingJob>()
+        val cacheObject = mockk<CacheObject>()
+        every { message.id } returns "job123"
+        every { mainJobLogic.getMainJobEntry("job123") } returns job
+        every { job.subJobs } returns mutableListOf(mockk<SubJob>())
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        justRun { documentConversionService.process(cacheObject, job) }
+        every { mainJobLogic.processMainJob("job123") } returns true
+
+        excludeRecords {
+            message.id
+            job.subJobs
+        }
+
+        // Act
+        underTest.receiveMessage(message)
+
+        // Assert
+        verifySequence {
+            mainJobLogic.getMainJobEntry("job123")
+            mapper.renderingJobToCacheObject(job)
+            documentConversionService.process(cacheObject, job)
+            mainJobLogic.processMainJob("job123")
+        }
+    }
 }

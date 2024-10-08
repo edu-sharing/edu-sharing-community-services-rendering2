@@ -92,6 +92,5 @@ class JupyterReceiverTest {
             jupyterConversionService.process(cacheObject, job)
             mainJobLogic.processMainJob("job123")
         }
-
     }
 }

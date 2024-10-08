@@ -15,6 +15,7 @@ import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
@@ -105,5 +106,41 @@ class ConverterWebServiceCallerTest {
             contentTransferService.getAsInputStream(dummyCacheObjectWord)
             storageImplementation.putObject(expectedConvertedCacheObject, any())
         }
+    }
+
+    @Test
+    fun testCallConverterServiceThrowsExceptionThrownByStorageImplementation() {
+        // Arrange
+        val externalPath = UUID.randomUUID().toString()
+        val arguments = ConverterWebServiceArguments(
+            client = webClient,
+            originalFileExtension = ".doc",
+            targetMimeType = "application/pdf",
+            cacheObject = dummyCacheObjectWord,
+            externalServiceMethodPath = externalPath,
+            urlParams = mapOf("testParam" to "true")
+        )
+
+        val dummyFileData = UUID.randomUUID().toString()
+        every { contentTransferService.getAsInputStream(dummyCacheObjectWord) } returns ByteArrayInputStream(
+            dummyFileData.toByteArray()
+        )
+
+        val expectedContent = "1234ABC"
+        val mockResponse = MockResponse()
+            .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
+            .setBody(expectedContent)
+            .setResponseCode(200)
+        mockServer.enqueue(mockResponse)
+
+        val expectedConvertedCacheObject = dummyCacheObjectWord.copy()
+        expectedConvertedCacheObject.mimeType = MediaType.APPLICATION_PDF_VALUE
+        val inputStreamSlot = slot<InputStream>()
+
+        every { storageImplementation.putObject(expectedConvertedCacheObject, capture(inputStreamSlot)) } throws Exception()
+
+
+        // Act and assert
+        assertThrows<Exception> { underTest.callConverterService(arguments) }
     }
 }
