@@ -86,7 +86,6 @@ class DocumentServiceTest {
         val result = underTest.retrieveOrCreateJob(cacheObject, module)
 
         // Assert
-
         assert(result == "job123")
 
         verify(exactly = 1) { mainJobCreationService.retrieveOrCreateJob(cacheObject, module) }
