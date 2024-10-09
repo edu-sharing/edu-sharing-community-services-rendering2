@@ -58,7 +58,7 @@ class AvReceiver(
             logger.warn("Expected main job not found: " + message.id)
             return
         }
-        val subJob = jobEntry.subJobs.firstOrNull { it.quality == message.quality }
+        var subJob = jobEntry.subJobs.firstOrNull { it.quality == message.quality }
         if (subJob == null) {
             logger.error("Expected sub job not found for message: {}", message)
             mainJobLogic.processMainJob(message.id)
@@ -66,7 +66,7 @@ class AvReceiver(
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         subJob.status = JobStatus.PROCESSING
-        subJobRepository.save(subJob)
+        subJob = subJobRepository.save(subJob)
         val service = when(jobEntry.module) {
             audioModule.module() -> audioConversionService
             videoModule.module() -> videoConversionService
@@ -83,7 +83,12 @@ class AvReceiver(
             subJob.message = exception.message
             success = false
         } finally {
-            subJob.status = if (success) JobStatus.FINISHED else JobStatus.FAILED
+            if (success) {
+                subJob.status = JobStatus.FINISHED
+                subJob.progress = 100
+            } else {
+                subJob.status = JobStatus.FAILED
+            }
             subJobRepository.save(subJob)
         }
         if (mainJobLogic.processMainJob(message.id)) {

@@ -46,9 +46,9 @@ class DocumentReceiver (
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-        val subJob = jobEntry.subJobs[0]
+        var subJob = jobEntry.subJobs[0]
         subJob.status = JobStatus.PROCESSING
-        subJobRepository.save(subJob)
+        subJob = subJobRepository.save(subJob)
         try {
             documentConversionService.convertAndMoveToCache(
                 cacheObject,

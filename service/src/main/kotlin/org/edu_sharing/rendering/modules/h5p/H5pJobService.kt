@@ -32,8 +32,8 @@ class H5pJobService(
             return existingJob.id.toString()
         }
 
-        val job = mapper.renderDataRequestToRenderingJob(request, module)
-        jobRepository.save(job)
+        var job = mapper.renderDataRequestToRenderingJob(request, module)
+        job = jobRepository.save(job)
 
         val subJob = SubJob(
             status = JobStatus.QUEUED,

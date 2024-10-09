@@ -39,11 +39,11 @@ class MoodleReceiver (
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
-        val subJob = jobEntry.subJobs.first()
+        var subJob = jobEntry.subJobs.first()
         subJob.status = JobStatus.PROCESSING
         jobEntry.status = JobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
-        subJobRepository.save(subJob)
+        subJob = subJobRepository.save(subJob)
         try {
             val url = moodleService.getUrl(message, moduleRegistry.getRenderModule(jobEntry.module))
             subJob.status = JobStatus.FINISHED

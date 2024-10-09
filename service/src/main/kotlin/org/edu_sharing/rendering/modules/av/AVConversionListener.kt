@@ -27,7 +27,7 @@ class AVConversionListener(
     override fun progress(p0: Int) {
         if (p0 % 10 == 0 && ::subJob.isInitialized) {
             subJob.progress = p0 / 10
-            subJobRepository.save(subJob)
+            subJob = subJobRepository.save(subJob)
         }
     }
 

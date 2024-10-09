@@ -37,8 +37,8 @@ class EduHtmlService(
             return existingJobs[0].id.toString()
         }
 
-        val job = mapper.renderDataRequestToRenderingJob(request, module)
-        jobRepository.save(job)
+        var job = mapper.renderDataRequestToRenderingJob(request, module)
+        job = jobRepository.save(job)
 
         val subJob = SubJob(
             routingKey = jobRoutingKey,

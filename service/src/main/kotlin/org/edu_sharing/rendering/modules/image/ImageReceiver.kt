@@ -42,16 +42,17 @@ class ImageReceiver(
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         val sourceImage = conversionService.fetchSourceImage(cacheObject)
         jobEntry.subJobs.forEach {
+            var subJob = it
             try {
-                it.status = JobStatus.PROCESSING
-                subJobRepository.save(it)
-                conversionService.convert(cacheObject, it.quality, sourceImage)
-                it.status = JobStatus.FINISHED
+                subJob.status = JobStatus.PROCESSING
+                subJob = subJobRepository.save(subJob)
+                conversionService.convert(cacheObject, subJob.quality, sourceImage)
+                subJob.status = JobStatus.FINISHED
             } catch (exception: Exception) {
                 logger.warn(exception.message)
-                it.status = JobStatus.FAILED
+                subJob.status = JobStatus.FAILED
             }
-            subJobRepository.save(it)
+            subJobRepository.save(subJob)
         }
         mainJobLogic.processMainJob(message.id)
     }

@@ -78,17 +78,19 @@ class VideoRenderModule (
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
-        message.missingQualities.forEach {
-            val priority = configuredResolutions.getConfigByResolution(it,0)
-            val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = renderingJob)
-            renderingJob.subJobs.add(avJob)
-            subJobRepository.save(avJob)
-            amqpTemplate.convertAndSend(
-                topicExchangeName,
-                avRoutingKey,
-                SubJobMessage(renderingJob.id.toString(), it),
-                PriorityPostProcessor(priority)
-            )
+        message.missingQualities
+            .map { it to configuredResolutions.getPriority(it,0) }
+            .sortedByDescending { it.second }
+            .forEach { (resolution, priority) ->
+                val avJob = SubJob(routingKey = avRoutingKey, quality = resolution, parent = renderingJob)
+                renderingJob.subJobs.add(avJob)
+                subJobRepository.save(avJob)
+                amqpTemplate.convertAndSend(
+                    topicExchangeName,
+                    avRoutingKey,
+                    SubJobMessage(renderingJob.id.toString(), resolution),
+                    PriorityPostProcessor(priority)
+                )
         }
     }
 }

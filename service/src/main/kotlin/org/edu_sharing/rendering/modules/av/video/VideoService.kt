@@ -58,6 +58,6 @@ class VideoService(
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>): String {
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
         if (existingJobId != null) return existingJobId
-        return mainJobCreationService.createMainJob(cacheObject, module, missingQualities)
+        return mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject))
     }
 }

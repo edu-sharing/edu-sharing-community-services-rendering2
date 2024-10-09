@@ -45,11 +45,11 @@ class H5pReceiver(
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
-        val subJob = jobEntry.subJobs.first()
+        var subJob = jobEntry.subJobs.first()
         subJob.status = JobStatus.PROCESSING
         jobEntry.status = JobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
-        subJobRepository.save(subJob)
+        subJob = subJobRepository.save(subJob)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
             val contentId = h5pUploadService.getContentId(cacheObject)

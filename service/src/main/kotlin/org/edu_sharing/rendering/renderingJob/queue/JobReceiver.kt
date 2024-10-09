@@ -42,7 +42,7 @@ class JobReceiver(
     fun receiveMessage(message: RenderingJobMessage) {
         var jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
         jobEntry.status = JobStatus.PROCESSING
-        jobRepository.save(jobEntry)
+        jobEntry = jobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
             if (! jobEntry.conversionType) {
