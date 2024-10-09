@@ -23,13 +23,11 @@ class VideoConversionService(
     private val listenerFactory: ObjectFactory<AVConversionListener>,
     private val encoder: Encoder,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
+    private val videoResolutions: VideoConverterConfig
 ) : AvConversionService {
 
     @Value("\${app.converter.video.format}")
     lateinit var videoFormat: String
-
-    @Value("\${app.converter.video.resolutions}")
-    lateinit var videoResolutions: List<Int>
 
     companion object {
         const val AUDIO_BITRATE = 160000
@@ -104,12 +102,12 @@ class VideoConversionService(
         if (videoResolutions.isEmpty()) {
             throw ConversionException("Video target resolutions are not set")
         }
-        val maxResolution = videoResolutions.max()
+        val maxResolution = videoResolutions.getMaxResolution()
         if (targetHeight == maxResolution) {
             return true
         }
         if (originalHeight < maxResolution) {
-            return targetHeight == videoResolutions.sorted().last { it <= originalHeight }
+            return targetHeight == videoResolutions.getResolutions().sorted().last { it <= originalHeight }
         }
         return false
     }

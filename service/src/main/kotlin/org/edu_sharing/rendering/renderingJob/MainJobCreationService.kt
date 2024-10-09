@@ -24,7 +24,7 @@ class MainJobCreationService(
     fun createMainJob(
         cacheObject: CacheObject,
         module: String,
-        missingQualities: List<Int> = emptyList(),
+        missingQualities: Collection<Int> = emptyList(),
         isConversionType: Boolean = false
     ): String {
         val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject, module, isConversionType)

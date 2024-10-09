@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.modules.ModuleTypeMapper
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -65,7 +66,12 @@ class AudioRenderModule(
             val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = renderingJob)
             renderingJob.subJobs.add(avJob)
             subJobRepository.save(avJob)
-            amqpTemplate.convertAndSend(topicExchangeName, avRoutingKey, SubJobMessage(renderingJob.id.toString(), it))
+            amqpTemplate.convertAndSend(
+                topicExchangeName,
+                avRoutingKey,
+                SubJobMessage(renderingJob.id.toString(), it),
+                PriorityPostProcessor(255)
+            )
         }
     }
 }

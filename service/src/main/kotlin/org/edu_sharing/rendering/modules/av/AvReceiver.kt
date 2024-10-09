@@ -13,6 +13,7 @@ import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -29,18 +30,27 @@ class AvReceiver(
     private val mapper: Mapper,
     private val storageImplementation: StorageService,
     private val audioModule: AudioRenderModule,
-    private val videoModule: VideoRenderModule,
+    private val videoModule: VideoRenderModule
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.av.name}", durable = "false"),
+                value = Queue(
+                    name = "\${app.queue.av.name}",
+                    durable = "false",
+                    arguments = [Argument(
+                        name = "x-max-priority",
+                        value = "#{videoConverterConfig.getMaxPriority()}",
+                        type = "java.lang.Integer"
+                    )]
+                ),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
                 key = ["\${app.queue.av.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ],
+        containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SubJobMessage) {
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)

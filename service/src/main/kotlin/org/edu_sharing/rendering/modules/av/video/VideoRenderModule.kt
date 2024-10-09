@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.modules.ModuleTypeMapper
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -24,7 +25,8 @@ class VideoRenderModule (
     private val mapper: Mapper,
     private val videoService: VideoService,
     private val subJobRepository: SubJobRepository,
-    private val amqpTemplate: AmqpTemplate
+    private val amqpTemplate: AmqpTemplate,
+    private val configuredResolutions: VideoConverterConfig
 ): RenderModule, ModuleTypeMapper, ConversionModule {
 
     @Value("\${app.queue.av.key}")
@@ -32,6 +34,7 @@ class VideoRenderModule (
 
     @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
+
 
     override fun module() = "VIDEO"
 
@@ -47,7 +50,7 @@ class VideoRenderModule (
         }
 
         // Missing qualities only apply to  conversion objects
-        var missingQualities: List<Int> = emptyList()
+        var missingQualities: Collection<Int> = emptyList()
         if (isConversionType) {
             missingQualities = videoService.getMissingQualities(objectLinks)
             if (missingQualities.isEmpty()) {
@@ -76,10 +79,16 @@ class VideoRenderModule (
         message: RenderingJobMessage
     ) {
         message.missingQualities.forEach {
+            val priority = configuredResolutions.getConfigByResolution(it,0)
             val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = renderingJob)
             renderingJob.subJobs.add(avJob)
             subJobRepository.save(avJob)
-            amqpTemplate.convertAndSend(topicExchangeName, avRoutingKey, SubJobMessage(renderingJob.id.toString(), it))
+            amqpTemplate.convertAndSend(
+                topicExchangeName,
+                avRoutingKey,
+                SubJobMessage(renderingJob.id.toString(), it),
+                PriorityPostProcessor(priority)
+            )
         }
     }
 }

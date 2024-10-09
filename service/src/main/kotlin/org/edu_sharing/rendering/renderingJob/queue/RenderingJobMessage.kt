@@ -8,5 +8,5 @@ package org.edu_sharing.rendering.renderingJob.queue
  */
 data class RenderingJobMessage(
     val id: String,
-    val missingQualities: List<Int> = emptyList()
+    val missingQualities: Collection<Int> = emptyList()
 )
