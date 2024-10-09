@@ -25,18 +25,23 @@ class VideoConversionServiceTest {
     private val encoder = mockk<Encoder>()
     private val fileHelperFactory = mockk<ObjectFactory<AvFileHelper>>()
     private val jobDataProvider = JobDataProvider()
+    private val config = VideoConverterConfig()
 
     private lateinit var underTest: VideoConversionService
 
     @BeforeEach
     fun setup() {
+        config.resolutions = mapOf<String, VideoResolutionItemConfig>(
+            "320" to VideoResolutionItemConfig(2),
+            "720" to VideoResolutionItemConfig(1)
+        )
         underTest = VideoConversionService(
             listenerFactory = listenerFactory,
             encoder = encoder,
-            avFileHelperFactory = fileHelperFactory
+            avFileHelperFactory = fileHelperFactory,
+            videoResolutions = config
         )
         underTest.videoFormat = "mp4"
-        underTest.videoResolutions = listOf(320, 720)
     }
 
     @AfterEach
@@ -214,7 +219,8 @@ class VideoConversionServiceTest {
     @Test
     fun testConvertThrowsExceptionIfVideoResolutionsAreNotSet() {
         // Arrange
-        underTest.videoResolutions = emptyList()
+        config.resolutions = mapOf<String, VideoResolutionItemConfig>()
+
         val listener = mockk<AVConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
@@ -267,14 +273,11 @@ class VideoConversionServiceTest {
             )
             avFileHelper.close()
         }
-        underTest.videoResolutions = listOf(320, 720)
-
     }
 
     @Test
     fun testConvertCallsEncoderWithProperOptionsForInputDataAndResultingOddTargetWidth() {
         // Arrange
-        underTest.videoResolutions = listOf(321, 723)
         val listener = mockk<AVConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
@@ -344,7 +347,7 @@ class VideoConversionServiceTest {
 
         val uploadMetadataCaptured = uploadMetadataSlot.captured
         assert(uploadMetadataCaptured.containsKey("isHighestResolution"))
-        assert(uploadMetadataCaptured["isHighestResolution"] == "true")
+        assert(uploadMetadataCaptured["isHighestResolution"] == "false")
         assert(uploadMetadataCaptured.containsKey("height"))
         assert(uploadMetadataCaptured["height"] == "321")
         assert(uploadMetadataCaptured.containsKey("width"))
@@ -368,13 +371,17 @@ class VideoConversionServiceTest {
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
             avFileHelper.close()
         }
-        underTest.videoResolutions = listOf(320, 720)
     }
 
     @Test
     fun testConvertCallsEncoderWithProperOptionsForInputDataIfConvertedToMaxResolution() {
         // Arrange
-        underTest.videoResolutions = listOf(320, 480)
+
+        config.resolutions = mapOf<String, VideoResolutionItemConfig>(
+            "320" to VideoResolutionItemConfig(2),
+            "480" to VideoResolutionItemConfig(1)
+        )
+
         val listener = mockk<AVConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
@@ -468,13 +475,17 @@ class VideoConversionServiceTest {
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
             avFileHelper.close()
         }
-        underTest.videoResolutions = listOf(320, 720)
     }
 
     @Test
     fun testConvertCallsEncoderWithProperOptionsForInputDataIfHigherResolutionAvailable() {
         // Arrange
-        underTest.videoResolutions = listOf(320, 480)
+
+        config.resolutions = mapOf<String, VideoResolutionItemConfig>(
+            "320" to VideoResolutionItemConfig(2),
+            "480" to VideoResolutionItemConfig(1)
+        )
+
         val listener = mockk<AVConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
@@ -568,7 +579,6 @@ class VideoConversionServiceTest {
             avFileHelper.uploadToCache(capture(uploadObjectSlot), capture(uploadMetadataSlot))
             avFileHelper.close()
         }
-        underTest.videoResolutions = listOf(320, 720)
     }
 
     private fun getCacheObjectForTesting(): CacheObject {

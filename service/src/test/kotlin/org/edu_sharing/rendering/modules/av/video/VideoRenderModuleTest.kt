@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -27,17 +28,23 @@ class VideoRenderModuleTest {
     private val videoService = mockk<VideoService>()
     private val amqpTemplate = mockk<AmqpTemplate>()
     private val subJobRepository = mockk<SubJobRepository>()
+    private val config = VideoConverterConfig()
 
     lateinit var underTest: VideoRenderModule
 
     @BeforeEach
     fun setup() {
+        config.resolutions = mapOf<String, VideoResolutionItemConfig>(
+            "320" to VideoResolutionItemConfig(2),
+            "720" to VideoResolutionItemConfig(1)
+        )
         underTest = VideoRenderModule(
             nodePermissionExpirationTime = nodeExpiration,
             mapper = mapper,
             videoService = videoService,
             amqpTemplate = amqpTemplate,
-            subJobRepository = subJobRepository
+            subJobRepository = subJobRepository,
+            configuredResolutions = config
         )
     }
 
@@ -213,6 +220,7 @@ class VideoRenderModuleTest {
         val job = provider.prepareJobForConversionModuleTesting(jobId, "AUDIO")
         val subJobList = mutableListOf<SubJob>()
         val subJobMessageList = mutableListOf<SubJobMessage>()
+        val postProcessorSlot = mutableListOf<PriorityPostProcessor>()
 
 
         underTest.avRoutingKey = "avRoutingKey"
@@ -220,26 +228,34 @@ class VideoRenderModuleTest {
 
         val renderingMessage = mockk<RenderingJobMessage>()
 
-        every {renderingMessage.missingQualities} returns listOf(1,2)
+        every {renderingMessage.missingQualities} returns listOf(720,320)
         every {subJobRepository.save(capture(subJobList))} returns mockk<SubJob>()
-        justRun {amqpTemplate.convertAndSend("topicExchangeName", "avRoutingKey", capture(subJobMessageList))}
+        justRun {amqpTemplate.convertAndSend(
+            "topicExchangeName",
+            "avRoutingKey",
+            capture(subJobMessageList),
+            capture(postProcessorSlot))}
 
         // Act
         underTest.createJob(job, renderingMessage)
 
         // Assert
         assert(subJobList.size == 2)
-        assert(subJobList[0].quality == 1)
-        assert(subJobList[1].quality == 2)
+        assert(subJobList[0].quality == 320)
+        assert(subJobList[1].quality == 720)
         assert(subJobList[0].parent == job)
         assert(subJobList[1].parent == job)
         assert(subJobList[0].routingKey == "avRoutingKey")
         assert(subJobList[1].routingKey == "avRoutingKey")
 
         assert(subJobMessageList.size == 2)
-        assert(subJobMessageList[0].quality == 1)
-        assert(subJobMessageList[1].quality == 2)
+        assert(subJobMessageList[0].quality == 320)
+        assert(subJobMessageList[1].quality == 720)
         assert(subJobMessageList[0].id == jobId)
         assert(subJobMessageList[1].id == jobId)
+
+        assert(postProcessorSlot.size == 2)
+        assert(postProcessorSlot[0].priority == 2)
+        assert(postProcessorSlot[1].priority == 1)
     }
 }

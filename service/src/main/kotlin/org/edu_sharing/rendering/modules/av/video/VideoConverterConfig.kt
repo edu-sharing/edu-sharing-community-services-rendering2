@@ -11,7 +11,7 @@ class VideoConverterConfig() {
 
     fun getResolutions() = resolutions.keys.map { it.toInt() }
     fun getMaxPriority() = resolutions.values.map { it.priority }.max()
-    fun getConfigByResolution(resolution: Int, default: Int) = resolutions[resolution.toString()]?.priority ?: default
+    fun getPriority(resolution: Int, default: Int) = resolutions[resolution.toString()]?.priority ?: default
     fun isEmpty(): Boolean = resolutions.isEmpty()
     fun getMaxResolution() = getResolutions().max()
 }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 class VideoServiceTest {
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
+    private val config = VideoConverterConfig()
 
     private val cacheObject = CacheObject(
         nodeId = "nodeid12",
@@ -28,11 +29,15 @@ class VideoServiceTest {
 
     @BeforeEach
     fun setup() {
+        config.resolutions = mapOf<String, VideoResolutionItemConfig>(
+            "100" to VideoResolutionItemConfig(2),
+            "200" to VideoResolutionItemConfig(1)
+        )
         underTest = VideoService(
             storageService,
-            mainJobCreationService
+            mainJobCreationService,
+            config
         )
-        underTest.targetVideoResolutions = listOf(100, 200)
         underTest.targetVideoFormat = "mp4"
         underTest.convertedVideoMimeTypes = listOf("video/mp4", "video/mpeg")
         clearAllMocks()
@@ -213,7 +218,7 @@ class VideoServiceTest {
         val missingQualities = listOf(100, 150)
 
         every { mainJobCreationService.getExistingJobId(cacheObject) } returns null
-        every { mainJobCreationService.createMainJob(cacheObject, "VIDEO", missingQualities) } returns
+        every { mainJobCreationService.createMainJob(cacheObject, "VIDEO", missingQualities, true) } returns
                 "new-job-id"
 
         // Act

@@ -29,7 +29,7 @@ data class RenderingJob(
     @ReadOnlyProperty
     @DocumentReference(lazy = true, lookup = "{'parent':?#{#self._id} }")
     var subJobs: MutableList<SubJob> = ArrayList(),
-    @Indexed(expireAfter = "86400")
+    @Indexed(expireAfterSeconds = 86400)
     @LastModifiedDate
     var lastModifiedDate: Date? = null,
     @Version
