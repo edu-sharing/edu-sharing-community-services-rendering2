@@ -49,4 +49,6 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             ?: throw ObjectTypeNotSupportedException()
         return result as T
     }
+
+    fun getModuleTypeMapperList() = moduleTypeMapper
 }
