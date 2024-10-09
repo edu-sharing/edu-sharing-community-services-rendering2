@@ -17,8 +17,8 @@ class ModuleInfoController(
             .flatMap { it.moduleTypeAssociations() }
             .map {
                 RenderModuleInfo(
-                    it.second.module(),
-                    it.first
+                    name = it.second.module(),
+                    typeMapping = it.first
                 )
             }
     }
