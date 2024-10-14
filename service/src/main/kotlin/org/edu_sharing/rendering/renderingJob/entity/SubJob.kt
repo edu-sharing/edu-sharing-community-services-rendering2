@@ -13,7 +13,7 @@ import java.util.Date
 
 @Document
 @CompoundIndexes(
-    CompoundIndex(name="id", def="{'status': 1, 'routingKey': 1, 'priority': 1, '_id': 1}"),
+    CompoundIndex(name="createdDate", def="{'status': 1, 'routingKey': 1, 'priority': 1, 'createdDate': 1}"),
 )
 data class SubJob(
     @Id
