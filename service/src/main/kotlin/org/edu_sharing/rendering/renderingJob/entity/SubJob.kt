@@ -19,6 +19,8 @@ data class SubJob(
     @Id
     var id: ObjectId = ObjectId(),
     var routingKey: String,
+    @CreatedDate
+    var createdDate: Date? = null,
     @Indexed
     var status: JobStatus = JobStatus.QUEUED,
     val quality: Int = 0,

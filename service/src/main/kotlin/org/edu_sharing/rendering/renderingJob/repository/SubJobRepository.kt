@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.springframework.data.mongodb.repository.Aggregation
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
+import java.util.Date
 
 @Repository
 interface SubJobRepository: MongoRepository<SubJob, ObjectId> {
