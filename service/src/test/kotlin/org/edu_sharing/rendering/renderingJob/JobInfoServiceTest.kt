@@ -136,10 +136,11 @@ class JobInfoServiceTest {
 
         every { renderModule.getObjectLinkFromJobData(any(), any()) } returns ObjectLink(link = "mylink")
         every { moduleRegistry.getRenderModule<RenderModule>("HTML") } returns renderModule
-        every { subJobRepository.countByIdBeforeAndStatusAndRoutingKey(
-            queuedSubJob.id,
-            queuedSubJob.status,
-            queuedSubJob.routingKey,
+        every { subJobRepository.getQueuePosition(
+            id = queuedSubJob.id,
+            status = queuedSubJob.status,
+            routingKey = queuedSubJob.routingKey,
+            priority = queuedSubJob.priority
         ) } returns 12
 
         // Act
@@ -171,10 +172,11 @@ class JobInfoServiceTest {
 
         verifySequence {
             moduleRegistry.getRenderModule<RenderModule>("HTML")
-            subJobRepository.countByIdBeforeAndStatusAndRoutingKey(
-                queuedSubJob.id,
-                queuedSubJob.status,
-                queuedSubJob.routingKey,
+            subJobRepository.getQueuePosition(
+                id = queuedSubJob.id,
+                status = queuedSubJob.status,
+                routingKey = queuedSubJob.routingKey,
+                priority = queuedSubJob.priority
             )
             renderModule.getObjectLinkFromJobData(any(), any())
         }

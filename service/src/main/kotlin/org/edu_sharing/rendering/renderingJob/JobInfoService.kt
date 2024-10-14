@@ -54,16 +54,21 @@ class JobInfoService (
     }
 
     private fun getQueuePosition(subJob: SubJob): Long {
-        return subJobRepository.countByIdBeforeAndStatusAndRoutingKey(
-            subJob.id,
-            subJob.status,
-            subJob.routingKey
+        if(subJob.createdDate == null){
+            throw IllegalArgumentException("createDate not set")
+        }
+
+        return subJobRepository.getQueuePosition(
+            createDate = subJob.createdDate,
+            status = subJob.status,
+            routingKey = subJob.routingKey,
+            priority = subJob.priority
         )
     }
 
     private fun isMainJobQueuedOrCopying(job: RenderingJob): Boolean {
         val isQueued = job.status == JobStatus.QUEUED
-        val isCopying = job.status == JobStatus.PROCESSING && job.subJobs.size == 0
+        val isCopying = job.status == JobStatus.PROCESSING && job.subJobs.isEmpty()
         return isQueued || isCopying
     }
 }

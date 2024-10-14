@@ -82,7 +82,12 @@ class VideoRenderModule (
             .map { it to configuredResolutions.getPriority(it,0) }
             .sortedByDescending { it.second }
             .forEach { (resolution, priority) ->
-                val avJob = SubJob(routingKey = avRoutingKey, quality = resolution, parent = renderingJob)
+                val avJob = SubJob(
+                    routingKey = avRoutingKey,
+                    quality = resolution,
+                    parent = renderingJob,
+                    priority = priority
+                )
                 renderingJob.subJobs.add(avJob)
                 subJobRepository.save(avJob)
                 amqpTemplate.convertAndSend(
