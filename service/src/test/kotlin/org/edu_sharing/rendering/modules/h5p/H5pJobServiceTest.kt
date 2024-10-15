@@ -73,7 +73,7 @@ class H5pJobServiceTest {
         val dummyJob = jobDataProvider.getJobWithoutSubJobs()
         every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns emptyList()
         every { mapperMock.renderDataRequestToRenderingJob(request, "H5P") } returns dummyJob
-        every { jobRepoMock.save(dummyJob) } returns mockk<RenderingJob>()
+        every { jobRepoMock.save(dummyJob) } returns dummyJob
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
@@ -106,7 +106,7 @@ class H5pJobServiceTest {
         every { finishedJob.status } returns JobStatus.FINISHED
         every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
         every { mapperMock.renderDataRequestToRenderingJob(request, "H5P") } returns dummyJob
-        every { jobRepoMock.save(dummyJob) } returns mockk<RenderingJob>()
+        every { jobRepoMock.save(dummyJob) } returns dummyJob
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())

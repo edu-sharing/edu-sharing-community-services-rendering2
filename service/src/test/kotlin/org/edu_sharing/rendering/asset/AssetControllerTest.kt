@@ -4,13 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.slot
+import io.mockk.mockk
 import io.mockk.verify
-import jakarta.servlet.http.HttpServletRequest
+import io.mockk.verifySequence
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.asset.dto.ReadableAsset
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.storage.StaticStorageService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
@@ -35,6 +37,9 @@ class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
 
     @MockkBean
     lateinit var assetService: AssetService
+
+    @MockkBean
+    lateinit var storageService: StaticStorageService
 
     @Test
     fun testGetAssetReturnsFullResourceWhenProvidedNoRangeHeader() {
@@ -108,13 +113,15 @@ class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
             stream = "qwe".byteInputStream(),
         )
 
-        val repoId = "repoId"
-        val nodeId = "nodeId"
-        val hash = "hash"
-        val type = "type"
+        val repoId = "repoId123"
+        val nodeId = "nodeId123"
+        val hash = "hash123"
+        val type = "type123"
 
-        val requestSlot = slot<HttpServletRequest>()
-        every { assetService.getStaticAsset(capture(requestSlot), "", repoId, nodeId, hash, type) } returns readableAsset
+        val cacheObject = mockk<CacheObject>()
+
+        every { storageService.getCacheObjectFromStaticPath("/$repoId/$nodeId/$hash/$type/css/index.css") } returns Pair(cacheObject, "mypath")
+        every { assetService.getStaticAsset("", cacheObject, "mypath") } returns readableAsset
 
         // Act and assert
         val result = mockMvc.perform(get("/public/asset/static/$repoId/$nodeId/$hash/$type/css/index.css"))
@@ -125,9 +132,10 @@ class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
             .andReturn()
 
         assert(result.response.contentAsString == "qwe")
-        assert(requestSlot.captured.requestURI == "/public/asset/static/repoId/nodeId/hash/type/css/index.css")
 
-        verify (exactly = 1) { assetService.getStaticAsset(any(), "", repoId, nodeId, hash, type) }
-        confirmVerified(assetService)
+        verifySequence {
+            storageService.getCacheObjectFromStaticPath("/$repoId/$nodeId/$hash/$type/css/index.css")
+            assetService.getStaticAsset("", cacheObject, "mypath")
+        }
     }
 }

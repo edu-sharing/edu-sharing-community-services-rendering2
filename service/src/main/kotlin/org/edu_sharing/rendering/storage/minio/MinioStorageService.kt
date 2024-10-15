@@ -9,16 +9,16 @@ import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
 import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PATH
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
-import org.edu_sharing.rendering.storage.StaticStorageService
-import org.edu_sharing.rendering.storage.StorageInfo
-import org.edu_sharing.rendering.storage.StorageService
-import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
+import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.CachedObjectDetails
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.storage.StaticStorageService
+import org.edu_sharing.rendering.storage.StorageInfo
+import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -54,7 +54,7 @@ class MinioStorageService(
         targetPath: String,
         metadata: Map<String, String>
     ) {
-        putObjectInternal(cacheObject, inputStream, bucketStrategy.prefixStaticPath(cacheObject, targetPath), metadata)
+        putObjectInternal(cacheObject, inputStream, bucketStrategy.getStoragePath(cacheObject, targetPath), metadata)
     }
 
     private fun putObjectInternal(
@@ -114,6 +114,9 @@ class MinioStorageService(
         return objectLink
     }
 
+    /**
+     * Method for static interface
+     */
     override fun getObjectLink(cacheObject: CacheObject, path: String): ObjectLink {
         val url = UriComponentsBuilder.newInstance()
             .scheme(publicUrl.substringBefore("://"))
@@ -124,6 +127,16 @@ class MinioStorageService(
             .toUriString()
         return ObjectLink(link = url)
     }
+
+
+    override fun getCacheObjectFromStaticPath(path: String): Pair<CacheObject, String> {
+        return bucketStrategy.getCacheObjectFromStaticPath(path)
+    }
+
+    override fun getStoragePath(cacheObject: CacheObject, path: String): String {
+        return bucketStrategy.getStoragePath(cacheObject, path)
+    }
+
 
     override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
         if (isTemp) {
@@ -179,7 +192,7 @@ class MinioStorageService(
         val response = eduMinioClient.getObject(
             GetObjectArgs.Builder()
                 .bucket(bucket)
-                .`object`(bucketStrategy.getStoragePath(cacheObject))
+                .`object`(bucketStrategy.getStoragePath(cacheObject, path))
                 .build()
         )
         trackingService.trackCacheObject(cacheObject, bucket)
@@ -354,7 +367,7 @@ class MinioStorageService(
 
 
     private fun getStatObject(cacheObject: CacheObject, path: String?=null): StatObjectResponse {
-        val storagePath = if(path == null) bucketStrategy.getStoragePath(cacheObject) else bucketStrategy.prefixStaticPath(cacheObject, path)
+        val storagePath = if(path == null) bucketStrategy.getStoragePath(cacheObject) else bucketStrategy.getStoragePath(cacheObject, path)
         return eduMinioClient.statObject(
             StatObjectArgs.builder()
                 .bucket(bucketStrategy.getBucket(cacheObject))

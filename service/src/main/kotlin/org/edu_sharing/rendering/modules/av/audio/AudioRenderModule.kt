@@ -62,15 +62,16 @@ class AudioRenderModule(
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
+        val priority = 255
         message.missingQualities.forEach {
-            val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = renderingJob)
+            val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = renderingJob, priority = priority)
             renderingJob.subJobs.add(avJob)
             subJobRepository.save(avJob)
             amqpTemplate.convertAndSend(
                 topicExchangeName,
                 avRoutingKey,
                 SubJobMessage(renderingJob.id.toString(), it),
-                PriorityPostProcessor(255)
+                PriorityPostProcessor(priority)
             )
         }
     }

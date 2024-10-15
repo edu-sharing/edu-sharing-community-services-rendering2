@@ -289,30 +289,22 @@ class AssetServiceTest {
             size = 3L,
             mimeType = "application/pdf",
         )
+        val cacheObject = mockk<CacheObject>()
         val stream = mockk<InputStream>()
         val request = mockk<HttpServletRequest>()
 
-        val repoId = "repoId123"
-        val nodeId = "nodeId123"
-        val hash = "hash123"
-        val type = "type123"
-
         val cacheObjectSlot = slot<CacheObject>()
 
-        every { request.requestURI } returns "blala/static/${repoId}/${nodeId}/${hash}/${type}/myuri"
-        every { storageService.getFileProperties(capture(cacheObjectSlot), "myuri") } returns fileDetails
-        every { storageService.getObjectStream(any(), "myuri") } returns stream
+        every { storageService.getFileProperties(capture(cacheObjectSlot), "mypath") } returns fileDetails
+        every { storageService.getObjectStream(any(), "mypath") } returns stream
 
         excludeRecords { request.requestURI }
 
         // Act
         val result = underTest.getStaticAsset(
-            request = request,
             range = "",
-            repoId = repoId,
-            nodeId = nodeId,
-            hash = hash,
-            type = type
+            cacheObject = cacheObject,
+            path = "mypath"
         )
 
         // Assert
@@ -320,15 +312,9 @@ class AssetServiceTest {
         assert(result.mimeType == "application/pdf")
         assert(result.fileSize == 3L)
 
-        val captured = cacheObjectSlot.captured
-        assert(captured.nodeId == nodeId)
-        assert(captured.hash == hash)
-        assert(captured.repoId == repoId)
-        assert(captured.type == type)
-
         verifySequence {
-            storageService.getFileProperties(any(), "myuri")
-            storageService.getObjectStream(any(), "myuri")
+            storageService.getFileProperties(any(), "mypath")
+            storageService.getObjectStream(any(), "mypath")
         }
     }
 
@@ -340,28 +326,18 @@ class AssetServiceTest {
             mimeType = "video/mp4",
         )
         val stream = mockk<InputStream>()
-        val request = mockk<HttpServletRequest>()
         val range = "bytes=100000-400000"
+        val cacheObject = mockk<CacheObject>()
 
-        val repoId = "repoId123"
-        val nodeId = "nodeId123"
-        val hash = "hash123"
-        val type = "type123"
 
-        every { request.requestURI } returns "blala/static/${repoId}/${nodeId}/${hash}/${type}/myuri"
         every { storageService.getFileProperties(any(), "myuri") } returns fileDetails
         every { storageService.getObjectChunkStream(any(), "myuri", 100000, 400000) } returns stream
 
-        excludeRecords { request.requestURI }
-
         // Act
         val result = underTest.getStaticAsset(
-            request = request,
             range = range,
-            repoId = repoId,
-            nodeId = nodeId,
-            hash = hash,
-            type = type
+            cacheObject = cacheObject,
+            path = "myuri"
         )
 
         // Assert

@@ -41,9 +41,10 @@ class ImageReceiverTest {
         val job = prepareJobForTesting(id, subId1, subId2)
         val bufferedImage = BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB)
         val subJobMessage = SubJobMessage(id = id)
+
         every { mainJobLogic.getMainJobEntry(id) } returns job
         every { conversionService.fetchSourceImage(any()) } returns bufferedImage
-        every { subJobRepository.save(any()) } returns job.subJobs[0]
+        every { subJobRepository.save(any()) } returnsMany listOf(job.subJobs[0], job.subJobs[0], job.subJobs[1], job.subJobs[1])
         every { conversionService.convert(any(), job.subJobs[0].quality, bufferedImage) } throws Exception()
         justRun { conversionService.convert(any(), job.subJobs[1].quality, bufferedImage) }
         every { mainJobLogic.processMainJob(id) } returns true

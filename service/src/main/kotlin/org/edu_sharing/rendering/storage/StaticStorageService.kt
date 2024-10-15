@@ -26,4 +26,8 @@ interface StaticStorageService: StorageService {
     fun getFileProperties(cacheObject: CacheObject, path: String): CachedObjectDetails
 
     fun objectExists(cacheObject: CacheObject, path: String): Boolean
+
+    fun getCacheObjectFromStaticPath(path: String): Pair<CacheObject, String>
+
+    fun getStoragePath(cacheObject: CacheObject,path: String): String
 }

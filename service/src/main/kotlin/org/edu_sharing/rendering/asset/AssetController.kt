@@ -6,6 +6,7 @@ import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.edu_sharing.rendering.storage.StaticStorageService
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
@@ -19,7 +20,8 @@ import java.net.URLDecoder
 @ConditionalOnController
 @RequestMapping(AssetController.ROOT_REQUEST_PATH)
 class AssetController(
-    private val assetService: AssetService
+    private val assetService: AssetService,
+    private val storageService: StaticStorageService
 ) {
 
     companion object{
@@ -39,16 +41,13 @@ class AssetController(
         return prepareResponse(asset, doEncodeData)
     }
 
-    @GetMapping("$STATIC_ASSET_PATH/{repoId}/{nodeId}/{hash}/{type}/**")
+    @GetMapping("$STATIC_ASSET_PATH/**")
     fun getStaticAsset(
         @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
-        @PathVariable repoId: String,
-        @PathVariable nodeId: String,
-        @PathVariable hash: String,
-        @PathVariable type: String,
         request: HttpServletRequest
     ): ResponseEntity<Resource> {
-        val asset = assetService.getStaticAsset(request, range, repoId, nodeId, hash, type)
+        val (cacheObject, path) = storageService.getCacheObjectFromStaticPath(request.requestURI.substringAfter("$ROOT_REQUEST_PATH$STATIC_ASSET_PATH"))
+        val asset = assetService.getStaticAsset(range, cacheObject, path)
         return prepareResponse(asset)
     }
 

@@ -12,6 +12,14 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return cacheObject.repoId.replace("/","_")
+        return cacheObject.repoId
+    }
+
+    override fun prefixStaticPath(
+        cacheObject: CacheObject,
+        path: String
+    ): String {
+        val storagePath = getStoragePath(cacheObject, path)
+        return "/${cacheObject.repoId}/$storagePath"
     }
 }

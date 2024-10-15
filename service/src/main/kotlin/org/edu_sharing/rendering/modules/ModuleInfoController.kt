@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController
 class ModuleInfoController(
     private val moduleRegistry: ModuleRegistry
 ) {
-    @GetMapping
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getModulesInfo(): List<RenderModuleInfo> {
         return moduleRegistry.getModuleTypeMapperList()
             .flatMap { it.moduleTypeAssociations() }

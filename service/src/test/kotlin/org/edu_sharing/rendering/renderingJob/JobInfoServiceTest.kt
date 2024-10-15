@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.data.repository.findByIdOrNull
+import java.util.Date
 
 @ExtendWith(MockKExtension::class)
 class JobInfoServiceTest {
@@ -108,6 +109,7 @@ class JobInfoServiceTest {
             module = "EDUHTML",
             quality = 1
         )
+        queuedSubJob.createdDate = Date()
         val processingSubJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_2,
             status = JobStatus.PROCESSING,
@@ -137,7 +139,7 @@ class JobInfoServiceTest {
         every { renderModule.getObjectLinkFromJobData(any(), any()) } returns ObjectLink(link = "mylink")
         every { moduleRegistry.getRenderModule<RenderModule>("HTML") } returns renderModule
         every { subJobRepository.getQueuePosition(
-            id = queuedSubJob.id,
+            createDate = queuedSubJob.createdDate,
             status = queuedSubJob.status,
             routingKey = queuedSubJob.routingKey,
             priority = queuedSubJob.priority
@@ -173,7 +175,7 @@ class JobInfoServiceTest {
         verifySequence {
             moduleRegistry.getRenderModule<RenderModule>("HTML")
             subJobRepository.getQueuePosition(
-                id = queuedSubJob.id,
+                createDate = queuedSubJob.createdDate,
                 status = queuedSubJob.status,
                 routingKey = queuedSubJob.routingKey,
                 priority = queuedSubJob.priority

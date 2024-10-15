@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.modules.av.audio
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
@@ -10,6 +11,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -161,15 +163,27 @@ class AudioRenderModuleTest {
         underTest.topicExchangeName = "topicExchangeName"
 
         val renderingMessage = mockk<RenderingJobMessage>()
+        val postProcessorSlot = slot<PriorityPostProcessor>()
 
         every {renderingMessage.missingQualities} returns listOf(1,2)
         every {subJobRepository.save(capture(subJobList))} returns mockk<SubJob>()
-        justRun {amqpTemplate.convertAndSend("topicExchangeName", "avRoutingKey", capture(subJobMessageList))}
+        justRun {
+            amqpTemplate.convertAndSend(
+                "topicExchangeName",
+                "avRoutingKey",
+                capture(subJobMessageList),
+                capture(postProcessorSlot)
+            )
+        }
 
         // Act
         underTest.createJob(job, renderingMessage)
 
         // Assert
+        assert(postProcessorSlot.isCaptured)
+        assert(postProcessorSlot.captured.priority == 255)
+
+
         assert(subJobList.size == 2)
         assert(subJobList[0].quality == 1)
         assert(subJobList[1].quality == 2)

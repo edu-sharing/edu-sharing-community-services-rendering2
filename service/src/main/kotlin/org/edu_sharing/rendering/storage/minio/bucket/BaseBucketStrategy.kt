@@ -14,11 +14,24 @@ abstract class BaseBucketStrategy : BucketStrategy {
         return sb.toString()
     }
 
-    override fun prefixStaticPath(cacheObject: CacheObject, path: String): String {
-        return "${getCacheObjectRootPath(cacheObject)}/$path"
+    override fun getStoragePath(cacheObject: CacheObject, path: String): String {
+        return "/${getCacheObjectRootPath(cacheObject)}/${path.trimStart('/')}"
     }
 
     override fun getExtensionFromMimeType(mimeType: String): String {
         return if (mimeType.isNotBlank()) MimeTypes.getDefaultMimeTypes().forName(mimeType).extension else ""
+    }
+
+    override fun getCacheObjectFromStaticPath(path: String): Pair<CacheObject, String> {
+        val pathVars = path.trimStart('/').split("/", limit = 5)
+        if (pathVars.size < 4) {
+            throw IllegalArgumentException("Invalid number of path arguments")
+        }
+        return Pair(CacheObject.of(
+            repoId = pathVars[0],
+            type = pathVars[1],
+            nodeId = pathVars[2],
+            hash = pathVars[3],
+        ), "/${pathVars[4]}")
     }
 }

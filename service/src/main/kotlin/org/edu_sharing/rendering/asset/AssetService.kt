@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.asset
 
-import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
@@ -44,34 +43,28 @@ class AssetService(
     }
 
 
-    @PreAuthorize("hasPermission(#nodeId, 'Read')")
+    @PreAuthorize("hasPermission(#cacheObject.nodeId, 'Read')")
     fun getStaticAsset(
-        request: HttpServletRequest,
         range: String,
-        repoId: String,
-        nodeId: String,
-        hash: String,
-        type: String
+        cacheObject: CacheObject,
+        path: String
     ): ReadableAsset {
         // build cache object
         // /public/assets/static/<cacheObjectStuff>/index.html
         // /public/assets/static/<cacheObjectStuff>/123/whatever.html
-        val cacheObject = CacheObject.of(repoId, nodeId, hash, type)
-        val storagePath = request.requestURI.substringAfter("/static/${repoId}/${nodeId}/${hash}/${type}/")
-
-        val fileDetails = storageImplementation.getFileProperties(cacheObject, storagePath)
+        val fileDetails = storageImplementation.getFileProperties(cacheObject, path)
         if (range.isBlank()) {
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
-                stream = storageImplementation.getObjectStream(cacheObject, storagePath)
+                stream = storageImplementation.getObjectStream(cacheObject, path)
             )
         }
 
         val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject,
-            storagePath,
+            path,
             longRange.first,
             longRange.last
         )
