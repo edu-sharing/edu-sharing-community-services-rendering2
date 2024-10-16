@@ -26,11 +26,17 @@ class LumiProxyService(
         method: HttpMethod,
         request: HttpServletRequest,
         traceId: String,
-        responseType: Class<T>
+        responseType: Class<T>,
     ): ResponseEntity<T> {
-        return processProxyRequest(pathPrefix, body, method, request, traceId, responseType)
+        return processProxyRequest(
+            pathPrefix = pathPrefix,
+            body = body,
+            method = method,
+            request = request,
+            traceId = traceId,
+            responseType = responseType,
+        )
     }
-
 
     fun <T> processProxyRequest(
         pathPrefix: String,
@@ -38,7 +44,7 @@ class LumiProxyService(
         method: HttpMethod,
         request: HttpServletRequest,
         traceId: String,
-        responseType: Class<T>
+        responseType: Class<T>,
     ): ResponseEntity<T> {
         ThreadContext.put("traceId", traceId)
 

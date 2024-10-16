@@ -3,7 +3,10 @@ package org.edu_sharing.rendering.modules.h5p.lumi
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -13,7 +16,9 @@ import java.util.*
 @ConditionalOnController
 class LumiProxyController(
     val lumiProxyService: LumiProxyService,
-    val lumiNodeInfoService: LumiNodeInfoService
+    val lumiNodeInfoService: LumiNodeInfoService,
+    @Value("\${app.asset.static.frameAncestors}")
+    private val allowedFrameAncestors: String?
 ) {
     @GetMapping("/{contentId}")
     fun getContent(
@@ -22,15 +27,25 @@ class LumiProxyController(
         method: HttpMethod,
         request: HttpServletRequest,
     ): ResponseEntity<String> {
-        return lumiProxyService.processProxyRequest(
-            H5P_BASE_PATH,
-            lumiNodeInfoService.getNodeInfo(contentId),
-            body,
-            method,
-            request,
-            UUID.randomUUID().toString(),
-            String::class.java
+        val result =  lumiProxyService.processProxyRequest(
+            pathPrefix = H5P_BASE_PATH,
+            nodeInfo = lumiNodeInfoService.getNodeInfo(contentId),
+            body = body,
+            method = method,
+            request = request,
+            traceId = UUID.randomUUID().toString(),
+            responseType = String::class.java,
         )
+        if (! allowedFrameAncestors.isNullOrBlank()) {
+            val headers = HttpHeaders()
+            headers.addAll(result.headers)
+            headers.add("Content-Security-Policy", "frame-ancestors $allowedFrameAncestors" )
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .headers(headers)
+                .body(result.body)
+        }
+        return result
     }
 
     @GetMapping("/content/{contentId}/**")

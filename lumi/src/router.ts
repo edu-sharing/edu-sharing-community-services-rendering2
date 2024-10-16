@@ -77,8 +77,8 @@ const router = (
                         ? req.language ?? 'en'
                         : languageOverride,
                     {
-                        showCopyButton: true,
-                        showDownloadButton: true,
+                        showCopyButton: false,
+                        showDownloadButton: false,
                         showFrame: true,
                         showH5PIcon: true,
                         showLicenseButton: true,
