@@ -13,7 +13,7 @@ import ws.schild.jave.progress.EncoderProgressListener
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @ConditionalOnConverter
-class AVConversionListener(
+class AvConversionListener(
     private val subJobRepository: SubJobRepository
 ) : EncoderProgressListener {
 

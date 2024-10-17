@@ -7,7 +7,7 @@ import io.mockk.slot
 import io.mockk.verifySequence
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.modules.av.AVConversionListener
+import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.CODEC
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.OUTPUT_FORMAT
@@ -27,7 +27,7 @@ class AudioConversionServiceTest {
         const val DUMMY_ORIGINAL_FILE_PATH = "src/test/resources/fixtures/beep.wav"
     }
 
-    private val listenerFactory: ObjectFactory<AVConversionListener> = mockk()
+    private val listenerFactory: ObjectFactory<AvConversionListener> = mockk()
     private val encoder: Encoder = mockk()
     private val fileHelperFactory: ObjectFactory<AvFileHelper> = mockk()
     private val underTest = AudioConversionService(
@@ -41,7 +41,7 @@ class AudioConversionServiceTest {
     fun testConvertThrowsExceptionAndCallsCleanupIfEncoderThrowsException() {
         // Arrange
         underTest.bitrate = "160"
-        val listener: AVConversionListener = mockk()
+        val listener: AvConversionListener = mockk()
         val fileHelper: AvFileHelper = mockk()
         val cacheObject = getCacheObjectForTesting()
         val subJob = jobDataProvider.getDummySubJob(
@@ -94,7 +94,7 @@ class AudioConversionServiceTest {
     fun testConvertExecutesCorrectSequenceOnSuccessfulRun() {
         // Arrange
         underTest.bitrate = "160"
-        val listener: AVConversionListener = mockk()
+        val listener: AvConversionListener = mockk()
         val fileHelper: AvFileHelper = mockk()
         val cacheObject = getCacheObjectForTesting()
         val subJob = jobDataProvider.getDummySubJob(

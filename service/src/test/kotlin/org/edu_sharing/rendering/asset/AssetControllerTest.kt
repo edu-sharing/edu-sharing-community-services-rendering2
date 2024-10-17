@@ -17,13 +17,18 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.context.ApplicationContext
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 
-@WebMvcTest(AssetController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
+@WebMvcTest(
+    AssetController::class,
+    excludeAutoConfiguration = [SecurityAutoConfiguration::class],
+    properties = ["app.asset.static.frameAncestors=test"]
+)
 class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
 
     private val assetLinkParams = AssetLinkParams(
@@ -129,6 +134,7 @@ class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
             .andExpect(header().string("Content-Type", "application/pdf"))
             .andExpect(header().string("Accept-Ranges", "bytes"))
             .andExpect(header().string("Content-Length", "3"))
+            .andExpect(header().string("Content-Security-Policy", "frame-ancestors test"))
             .andReturn()
 
         assert(result.response.contentAsString == "qwe")
@@ -138,4 +144,53 @@ class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
             assetService.getStaticAsset("", cacheObject, "mypath")
         }
     }
+}
+
+@WebMvcTest(
+    AssetController::class,
+    excludeAutoConfiguration = [SecurityAutoConfiguration::class],
+    properties = ["app.asset.static.frameAncestors="]
+)
+class AssetControllerNoAncestorsTest(@Autowired val mockMvc: MockMvc) {
+    @MockkBean
+    lateinit var assetService: AssetService
+
+    @MockkBean
+    lateinit var storageService: StaticStorageService
+
+    @Test
+    fun testGetStaticAssetReturnsFullResourceWhenProvidedNoRangeHeader() {
+        // Arrange
+        val readableAsset = ReadableAsset(
+            mimeType = "application/pdf",
+            fileSize = 3,
+            stream = "qwe".byteInputStream(),
+        )
+
+        val repoId = "repoId123"
+        val nodeId = "nodeId123"
+        val hash = "hash123"
+        val type = "type123"
+
+        val cacheObject = mockk<CacheObject>()
+
+        every { storageService.getCacheObjectFromStaticPath("/$repoId/$nodeId/$hash/$type/css/index.css") } returns Pair(cacheObject, "mypath")
+        every { assetService.getStaticAsset("", cacheObject, "mypath") } returns readableAsset
+
+        // Act and assert
+        val result = mockMvc.perform(get("/public/asset/static/$repoId/$nodeId/$hash/$type/css/index.css"))
+            .andExpect(status().isOk)
+            .andExpect(header().string("Content-Type", "application/pdf"))
+            .andExpect(header().string("Accept-Ranges", "bytes"))
+            .andExpect(header().string("Content-Length", "3"))
+            .andReturn()
+
+        assert(result.response.contentAsString == "qwe")
+
+        verifySequence {
+            storageService.getCacheObjectFromStaticPath("/$repoId/$nodeId/$hash/$type/css/index.css")
+            assetService.getStaticAsset("", cacheObject, "mypath")
+        }
+    }
+
 }

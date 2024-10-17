@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import org.apache.commons.io.output.ByteArrayOutputStream
+import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
 @RestController
+@ConditionalOnController
 @RequestMapping("/public/metadata")
 class MetadataController (
     private val metadataService: MetadataService,

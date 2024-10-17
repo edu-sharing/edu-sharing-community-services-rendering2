@@ -4,7 +4,7 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ConversionException
-import org.edu_sharing.rendering.modules.av.AVConversionListener
+import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.testUtils.JobDataProvider
@@ -21,7 +21,7 @@ import java.io.File
 
 @ExtendWith(MockKExtension::class)
 class VideoConversionServiceTest {
-    private val listenerFactory = mockk<ObjectFactory<AVConversionListener>>()
+    private val listenerFactory = mockk<ObjectFactory<AvConversionListener>>()
     private val encoder = mockk<Encoder>()
     private val fileHelperFactory = mockk<ObjectFactory<AvFileHelper>>()
     private val jobDataProvider = JobDataProvider()
@@ -52,7 +52,7 @@ class VideoConversionServiceTest {
     @Test
     fun testConvertThrowsExceptionAndCallsCleanupIfFileHelperThrowsException() {
         // Arrange
-        val listener: AVConversionListener = mockk()
+        val listener: AvConversionListener = mockk()
         val fileHelper: AvFileHelper = mockk()
         val cacheObject = getCacheObjectForTesting()
         val subJob = jobDataProvider.getDummySubJob(
@@ -84,7 +84,7 @@ class VideoConversionServiceTest {
     @Test
     fun testConvertCallsEncoderWithProperOptionsForInputData() {
         // Arrange
-        val listener = mockk<AVConversionListener>()
+        val listener = mockk<AvConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
         val subJob = jobDataProvider.getDummySubJob(
@@ -182,7 +182,7 @@ class VideoConversionServiceTest {
     @Test
     fun testConvertThrowsExceptionIfUpScalingDetected() {
         // Arrange
-        val listener = mockk<AVConversionListener>()
+        val listener = mockk<AvConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
         val subJob = jobDataProvider.getDummySubJob(
@@ -221,7 +221,7 @@ class VideoConversionServiceTest {
         // Arrange
         config.resolutions = mapOf<String, VideoResolutionItemConfig>()
 
-        val listener = mockk<AVConversionListener>()
+        val listener = mockk<AvConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
         val subJob = jobDataProvider.getDummySubJob(
@@ -278,7 +278,7 @@ class VideoConversionServiceTest {
     @Test
     fun testConvertCallsEncoderWithProperOptionsForInputDataAndResultingOddTargetWidth() {
         // Arrange
-        val listener = mockk<AVConversionListener>()
+        val listener = mockk<AvConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
         val subJob = jobDataProvider.getDummySubJob(
@@ -382,7 +382,7 @@ class VideoConversionServiceTest {
             "480" to VideoResolutionItemConfig(1)
         )
 
-        val listener = mockk<AVConversionListener>()
+        val listener = mockk<AvConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
         val subJob = jobDataProvider.getDummySubJob(
@@ -486,7 +486,7 @@ class VideoConversionServiceTest {
             "480" to VideoResolutionItemConfig(1)
         )
 
-        val listener = mockk<AVConversionListener>()
+        val listener = mockk<AvConversionListener>()
         val avFileHelper = mockk<AvFileHelper>()
 
         val subJob = jobDataProvider.getDummySubJob(
