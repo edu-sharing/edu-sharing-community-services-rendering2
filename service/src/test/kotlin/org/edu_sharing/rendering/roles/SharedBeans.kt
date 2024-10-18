@@ -53,7 +53,6 @@ abstract class SharedBeans {
     // When modifying please maintain alphabetic ordering
     companion object {
         val set = setOf<String>(
-            PermissionEvaluator::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             ApiClient::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             ApiExceptionHandler::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             AudioRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
@@ -84,6 +83,7 @@ abstract class SharedBeans {
             MoodleRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             MoodleJobService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             NodePermissionSessionContextRepository::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            PermissionEvaluator::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             PdfRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             QueueConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             RedisConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
