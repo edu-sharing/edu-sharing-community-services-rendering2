@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules
 
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.core.io.FileSystemResource
@@ -12,6 +13,7 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.io.inputStream
 
+@ConditionalOnConverter
 @Component
 class ConverterWebServiceCaller(
     private val contentTransferService: ContentTransferService,

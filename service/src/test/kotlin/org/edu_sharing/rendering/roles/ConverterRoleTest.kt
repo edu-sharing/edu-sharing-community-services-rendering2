@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.roles
 
+import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.av.AvConfig
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvFileHelperFactory
@@ -13,6 +14,9 @@ import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
 import org.edu_sharing.rendering.modules.image.ImageConversionService
 import org.edu_sharing.rendering.modules.image.ImageReceiver
+import org.edu_sharing.rendering.modules.jupyter.JupyterConversionService
+import org.edu_sharing.rendering.modules.jupyter.JupyterConverterConfig
+import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -36,6 +40,7 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext) {
             AvFileHelperFactory::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             AvReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             AudioConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            ConverterWebServiceCaller::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             VideoConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             DocumentConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             DocumentConverterConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
@@ -44,6 +49,9 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext) {
             EduHtmlReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             ImageConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             ImageReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            JupyterReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            JupyterConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            JupyterConverterConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
         )
 
         val roleSpecificFunctionalBeans = setOf(

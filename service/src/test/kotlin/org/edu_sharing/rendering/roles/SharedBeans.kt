@@ -31,6 +31,8 @@ import org.edu_sharing.rendering.modules.h5p.lumi.LumiConfig
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageService
+import org.edu_sharing.rendering.modules.jupyter.JupyterJobService
+import org.edu_sharing.rendering.modules.jupyter.JupyterRenderModule
 import org.edu_sharing.rendering.modules.moodle.MoodleJobService
 import org.edu_sharing.rendering.modules.moodle.MoodleRenderModule
 import org.edu_sharing.rendering.modules.moodle.ScormRenderModule
@@ -70,6 +72,8 @@ abstract class SharedBeans {
             HtmlRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             ImageRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             ImageService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            JupyterJobService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+            JupyterRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             LumiConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             LumiNodeInfoService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
             MainJobLogic::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
