@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "jupyter-converter"
+version = "0.1.0"
+description = ""
+authors = ["ziegler <ziegler@edu-sharing.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.2"
+uvicorn = "^0.32.0"
+nbconvert = "^7.16.4"
+python-multipart = "^0.0.12"
+
+[project]
+requires-python = ">=3.12.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
