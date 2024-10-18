@@ -1,7 +1,12 @@
-package org.edu_sharing.rendering.modules.document
+package org.edu_sharing.rendering.modules.jupyter
 
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.every
+import io.mockk.excludeRecords
 import io.mockk.junit5.MockKExtension
+import io.mockk.justRun
+import io.mockk.mockk
+import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
@@ -14,19 +19,19 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
-class DocumentReceiverTest {
-    private val mainJobLogic: MainJobLogic = mockk()
+class JupyterReceiverTest {
+    private val mainJobLogic = mockk<MainJobLogic>()
     private val mapper = mockk<Mapper>()
-    private val documentConversionService: DocumentConversionService = mockk()
+    private val jupyterConversionService = mockk<JupyterConversionService>()
 
-    lateinit var underTest: DocumentReceiver
+    lateinit var underTest: JupyterReceiver
 
     @BeforeEach
     fun setup() {
-        underTest = DocumentReceiver(
+        underTest = JupyterReceiver(
             mainJobLogic = mainJobLogic,
             mapper = mapper,
-            documentConversionService = documentConversionService
+            jupyterConversionService = jupyterConversionService
         )
     }
 
@@ -69,7 +74,7 @@ class DocumentReceiverTest {
         every { mainJobLogic.getMainJobEntry("job123") } returns job
         every { job.subJobs } returns mutableListOf(mockk<SubJob>())
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
-        justRun { documentConversionService.process(cacheObject, job) }
+        justRun { jupyterConversionService.process(cacheObject, job) }
         every { mainJobLogic.processMainJob("job123") } returns true
 
         excludeRecords {
@@ -84,7 +89,7 @@ class DocumentReceiverTest {
         verifySequence {
             mainJobLogic.getMainJobEntry("job123")
             mapper.renderingJobToCacheObject(job)
-            documentConversionService.process(cacheObject, job)
+            jupyterConversionService.process(cacheObject, job)
             mainJobLogic.processMainJob("job123")
         }
     }

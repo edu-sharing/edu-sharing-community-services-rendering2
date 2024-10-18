@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.renderingJob
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -43,5 +44,18 @@ class MainJobCreationService(
             it.status != JobStatus.FINISHED && it.status != JobStatus.FAILED && it.esHash == cacheObject.hash
         }
         return if (unfinishedJob !== null) unfinishedJob.id.toString() else null
+    }
+
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModule): String {
+        val existingJobId = getExistingJobId(cacheObject)
+        if (existingJobId != null) {
+            return existingJobId
+        }
+
+        return createMainJob(
+            cacheObject = cacheObject,
+            module = module.module(),
+            isConversionType = true
+        )
     }
 }

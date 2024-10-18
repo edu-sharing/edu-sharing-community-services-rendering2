@@ -102,7 +102,7 @@ class H5pRenderModuleTest {
     }
 
     @Test
-    fun testGetObjectLinksFromJobDataReturnsEmptyStringIfSubjobMessageIsNull() {
+    fun testGetObjectLinksFromJobDataReturnsEmptyStringIfSubJobMessageIsNull() {
         // Arrange
         val subJob = mockk<SubJob>()
         val job = mockk<RenderingJob>()

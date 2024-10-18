@@ -19,11 +19,11 @@ class DocumentServiceTest {
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
     private val module = mockk<DocumentRenderModule>()
-    private lateinit var service: DocumentService
+    private lateinit var underTest: DocumentService
 
     @BeforeEach
     fun setUp() {
-        service = DocumentService(
+        underTest = DocumentService(
             storageImplementation = storageService,
             mainJobCreationService = mainJobCreationService
         )
@@ -41,7 +41,7 @@ class DocumentServiceTest {
         every { storageService.getObjectLink(lookupObject) } returns objectLink
 
         // Act
-        val result = service.getObjectLinks(cacheObject, module)
+        val result = underTest.getObjectLinks(cacheObject, module)
 
         // Assert
         assert(result == mutableListOf(objectLink))
@@ -63,7 +63,7 @@ class DocumentServiceTest {
         every { module.getTargetMimetype() } returns "image/jpeg"
         every { storageService.getObjectLink(lookupObject) } throws ResourceNotFoundException("test")
 
-        val result = service.getObjectLinks(cacheObject, module)
+        val result = underTest.getObjectLinks(cacheObject, module)
         assert(result == null)
 
         verifySequence {
@@ -75,40 +75,20 @@ class DocumentServiceTest {
     }
 
     @Test
-    fun testRetrieveOrCreateJobReturnsExistingJobIdIfFound() {
-
+    fun testRetrieveOrCreateJobCallsMainJobCreationServiceWithCorrectArguments() {
         // Arrange
-        val cacheObject = CacheObject(nodeId = "123", type = "document", hash = "abc123", repoId = "repo123")
-        every { mainJobCreationService.getExistingJobId(cacheObject) } returns "job123"
+        val cacheObject = mockk<CacheObject>()
+        val module = mockk<DocumentRenderModule>()
+
+        every {mainJobCreationService.retrieveOrCreateJob(cacheObject, module)} returns "job123"
 
         // Act
-        val result = service.retrieveOrCreateJob(cacheObject, module)
+        val result = underTest.retrieveOrCreateJob(cacheObject, module)
 
         // Assert
         assert(result == "job123")
 
-        verify(exactly = 1) { mainJobCreationService.getExistingJobId(cacheObject) }
-        confirmVerified(mainJobCreationService)
-    }
-
-    @Test
-    fun testRetrieveOrCreateJobCreatesNewJobIfNoExistingFound() {
-        // Arrange
-        val cacheObject = CacheObject(nodeId = "123", type = "document", hash = "abc123", repoId = "repo123")
-        every { mainJobCreationService.getExistingJobId(cacheObject) } returns null
-        every { module.module() } returns "DOCUMENT"
-        every { mainJobCreationService.createMainJob(cacheObject, "DOCUMENT", emptyList(), true) } returns "job123"
-
-        // Act
-        val result = service.retrieveOrCreateJob(cacheObject, module)
-
-        // Assert
-        assert(result == "job123")
-
-        verifySequence {
-            mainJobCreationService.getExistingJobId(cacheObject)
-            module.module()
-            mainJobCreationService.createMainJob(cacheObject, "DOCUMENT", emptyList(), true)
-        }
+        verify(exactly = 1) { mainJobCreationService.retrieveOrCreateJob(cacheObject, module) }
+        confirmVerified(storageService, mainJobCreationService)
     }
 }
