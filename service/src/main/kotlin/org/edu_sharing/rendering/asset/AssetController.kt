@@ -41,7 +41,11 @@ class AssetController(
         val decoded = Base64().decode(URLDecoder.decode(assetParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
         val asset = assetService.getAsset(assetLinkParams, range)
-        return prepareResponse(asset = asset, additionalHeaders = emptyMap(),doEncodeData = doEncodeData)
+        val headers: MutableMap<String, String> = mutableMapOf()
+        if (! allowedFrameAncestors.isNullOrBlank()) {
+            headers.put("Content-Security-Policy", "frame-ancestors $allowedFrameAncestors" )
+        }
+        return prepareResponse(asset = asset, additionalHeaders = headers ,doEncodeData = doEncodeData)
     }
 
     @GetMapping("$STATIC_ASSET_PATH/**")
