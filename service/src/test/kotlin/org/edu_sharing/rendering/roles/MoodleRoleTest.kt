@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -17,26 +18,24 @@ import org.springframework.context.ApplicationContext
     ]
 )
 class MoodleRoleTest(@Autowired val context: ApplicationContext) {
+    
+    companion object {
+        private val roleSpecificBeans = setOf(
+            MoodleReceiver::class,
+            MoodleConfig::class,
+            MoodleUploadService::class
+        )
+    }
+    
     @Test
     fun testBeanConfiguration() {
-        val roleSpecificBeans = setOf(
-            MoodleReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MoodleConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MoodleUploadService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() }
-        )
-
         val allEdusharingBeans = context.beanDefinitionNames.filter {
             context.getBean(it).javaClass.packageName.startsWith("org.edu_sharing.rendering")
-        }
+        }.toSet()
 
-        roleSpecificBeans.forEach {
-            assert(allEdusharingBeans.contains(it))
-        }
+        val expectedBeans = roleSpecificBeans
+            .map {ClassUtils.getShortNameAsProperty(it.java)} union SharedBeans.all
 
-        val remainingBeans = allEdusharingBeans.filter {
-            ! roleSpecificBeans.contains(it) && ! SharedBeans.set.contains(it) && ! SharedBeans.functionalBeans.contains(it)
-        }
-
-        assert(remainingBeans.isEmpty())
+        assert(expectedBeans == allEdusharingBeans)
     }
 }

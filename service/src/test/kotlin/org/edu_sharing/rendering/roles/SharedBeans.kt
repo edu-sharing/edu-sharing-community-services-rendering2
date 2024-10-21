@@ -47,67 +47,68 @@ import org.edu_sharing.rendering.storage.minio.MinioConfig
 import org.edu_sharing.rendering.storage.minio.MinioStorageService
 import org.edu_sharing.rendering.storage.minio.bucket.BucketPerMediaTypeStrategy
 import org.springframework.security.access.PermissionEvaluator
-import kotlin.text.replaceFirstChar
-import kotlin.text.substringAfterLast
+import org.springframework.util.ClassUtils
 
 abstract class SharedBeans {
 
     // When modifying please maintain alphabetic ordering
     companion object {
-        val set = setOf<String>(
-            ApiClient::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ApiExceptionHandler::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AudioRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AudioService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            BucketPerMediaTypeStrategy::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ContentTransferService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            DocumentModuleTypeMapper::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            DocumentRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            DocumentService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            EduHtmlRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            EduHtmlService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            EduSharingConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            H5pJobService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            H5pRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            HtmlRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ImageRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ImageService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JupyterJobService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JupyterRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            LumiConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            LumiNodeInfoService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MainJobLogic::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MainJobCreationService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            Mapper::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MetadataService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MinioConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MinioStorageService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ModuleRegistry::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MongoConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MoodleRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MoodleJobService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            NodePermissionSessionContextRepository::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            PermissionEvaluator::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            PdfRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            QueueConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            RedisConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ScormRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            SecurityDisabledConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ServicesRenderingService2Application::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            SessionConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            SpreadsheetRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            SpringConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            SpringDocConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            TrackingService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            VideoConverterConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            VideoRenderModule::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            VideoService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
+        private val classBeans = setOf(
+            ApiClient::class,
+            ApiExceptionHandler::class,
+            AudioRenderModule::class,
+            AudioService::class,
+            BucketPerMediaTypeStrategy::class,
+            ContentTransferService::class,
+            DocumentModuleTypeMapper::class,
+            DocumentRenderModule::class,
+            DocumentService::class,
+            EduHtmlRenderModule::class,
+            EduHtmlService::class,
+            EduSharingConfig::class,
+            H5pJobService::class,
+            H5pRenderModule::class,
+            HtmlRenderModule::class,
+            ImageRenderModule::class,
+            ImageService::class,
+            JupyterJobService::class,
+            JupyterRenderModule::class,
+            LumiConfig::class,
+            LumiNodeInfoService::class,
+            MainJobLogic::class,
+            MainJobCreationService::class,
+            Mapper::class,
+            MetadataService::class,
+            MinioConfig::class,
+            MinioStorageService::class,
+            ModuleRegistry::class,
+            MongoConfig::class,
+            MoodleRenderModule::class,
+            MoodleJobService::class,
+            NodePermissionSessionContextRepository::class,
+            PermissionEvaluator::class,
+            PdfRenderModule::class,
+            QueueConfig::class,
+            RedisConfig::class,
+            ScormRenderModule::class,
+            SecurityDisabledConfig::class,
+            ServicesRenderingService2Application::class,
+            SessionConfig::class,
+            SpreadsheetRenderModule::class,
+            SpringConfig::class,
+            SpringDocConfig::class,
+            TrackingService::class,
+            VideoConverterConfig::class,
+            VideoRenderModule::class,
+            VideoService::class,
         )
 
-        val functionalBeans = setOf(
+        private val functionalBeans = setOf(
             "auditingDateTimeProvider",
             "permissionEvaluator",
             "eduMinioAdminClient"
         )
+
+        val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans
     }
 }

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -31,52 +32,44 @@ import org.springframework.context.ApplicationContext
     ]
 )
 class ConverterRoleTest(@Autowired val context: ApplicationContext) {
+    
+    companion object {
+        private val roleSpecificClassBeans = setOf(
+            AvConversionListener::class,
+            AvConfig::class,
+            AvFileHelperFactory::class,
+            AvReceiver::class,
+            AudioConversionService::class,
+            ConverterWebServiceCaller::class,
+            VideoConversionService::class,
+            DocumentConversionService::class,
+            DocumentConverterConfig::class,
+            DocumentReceiver::class,
+            EduHtmlConversionService::class,
+            EduHtmlReceiver::class,
+            ImageConversionService::class,
+            ImageReceiver::class,
+            JupyterReceiver::class,
+            JupyterConversionService::class,
+            JupyterConverterConfig::class,
+        )
+
+        private val roleSpecificFunctionalBeans = setOf(
+            "createAvFileHelper"
+        )
+    }
 
     @Test
     fun testBeanConfiguration() {
-        val roleSpecificBeans = setOf(
-            AvConversionListener::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AvConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AvFileHelperFactory::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AvReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AudioConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ConverterWebServiceCaller::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            VideoConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            DocumentConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            DocumentConverterConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            DocumentReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            EduHtmlConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            EduHtmlReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ImageConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ImageReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JupyterReceiver::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JupyterConversionService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JupyterConverterConfig::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-        )
+        val roleSpecificBeans = roleSpecificClassBeans
+            .map {ClassUtils.getShortNameAsProperty(it.java)} union roleSpecificFunctionalBeans
 
-        val roleSpecificFunctionalBeans = setOf(
-            "createAvFileHelper"
-        )
+        val expectedBeans = roleSpecificBeans union SharedBeans.all
 
         val allEdusharingBeans = context.beanDefinitionNames.filter {
             context.getBean(it).javaClass.packageName.startsWith("org.edu_sharing.rendering")
-        }
+        }.toSet()
 
-        roleSpecificBeans.forEach {
-            assert(allEdusharingBeans.contains(it))
-        }
-
-        roleSpecificFunctionalBeans.forEach {
-            assert(allEdusharingBeans.contains(it))
-        }
-
-        val remainingBeans = allEdusharingBeans.filter {
-            ! roleSpecificBeans.contains(it)
-                    && ! SharedBeans.set.contains(it)
-                    && ! SharedBeans.functionalBeans.contains(it)
-                    && ! roleSpecificFunctionalBeans.contains(it)
-        }
-
-        assert(remainingBeans.isEmpty())
+        assert(expectedBeans == allEdusharingBeans)
     }
 }

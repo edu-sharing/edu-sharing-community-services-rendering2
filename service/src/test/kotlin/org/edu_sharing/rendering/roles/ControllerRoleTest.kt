@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -25,33 +26,30 @@ import org.springframework.context.ApplicationContext
 )
 class ControllerRoleTest(@Autowired val context: ApplicationContext) {
 
+    companion object {
+        private val roleSpecificBeans = setOf(
+            AssetController::class,
+            AssetService::class,
+            RenderController::class,
+            RenderDataService::class,
+            ModuleInfoController::class,
+            LumiProxyController::class,
+            LumiProxyService::class,
+            JobInfoController::class,
+            JobInfoService::class,
+            MetadataController::class,
+        )
+    }
+
     @Test
     fun testBeanConfiguration() {
-        val roleSpecificBeans = setOf(
-            AssetController::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            AssetService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            RenderController::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            RenderDataService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            ModuleInfoController::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            LumiProxyController::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            LumiProxyService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JobInfoController::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            JobInfoService::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-            MetadataController::class.toString().substringAfterLast('.').replaceFirstChar { it.lowercase() },
-        )
-
         val allEdusharingBeans = context.beanDefinitionNames.filter {
             context.getBean(it).javaClass.packageName.startsWith("org.edu_sharing.rendering")
-        }
+        }.toSet()
 
-        roleSpecificBeans.forEach {
-            assert(allEdusharingBeans.contains(it))
-        }
+        val expectedBeans = roleSpecificBeans
+            .map { ClassUtils.getShortNameAsProperty(it.java) } union SharedBeans.all
 
-        val remainingBeans = allEdusharingBeans.filter {
-            ! roleSpecificBeans.contains(it) && ! SharedBeans.set.contains(it) && ! SharedBeans.functionalBeans.contains(it)
-        }
-
-       assert(remainingBeans.isEmpty())
+        assert(expectedBeans == allEdusharingBeans)
     }
 }
