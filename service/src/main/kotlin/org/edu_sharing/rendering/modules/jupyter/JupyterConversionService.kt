@@ -28,7 +28,9 @@ class JupyterConversionService(
         cacheObject: CacheObject,
         renderingJob: RenderingJob
     ) {
-        val subJob = renderingJob.subJobs.first()
+        var subJob = renderingJob.subJobs.first()
+        subJob.status = JobStatus.PROCESSING
+        subJob = subJobRepository.save(subJob)
         try {
             convertAndMoveToCache(cacheObject)
             subJob.status = JobStatus.FINISHED

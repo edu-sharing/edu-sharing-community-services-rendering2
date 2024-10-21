@@ -28,9 +28,9 @@ class DocumentConversionService(
     private val log = LoggerFactory.getLogger(this.javaClass)
 
     override fun process(cacheObject: CacheObject, renderingJob: RenderingJob) {
-        val subJob = renderingJob.subJobs.first()
+        var subJob = renderingJob.subJobs.first()
         subJob.status = JobStatus.PROCESSING
-        subJobRepository.save(subJob)
+        subJob = subJobRepository.save(subJob)
         try {
             convertAndMoveToCache(
                 cacheObject,

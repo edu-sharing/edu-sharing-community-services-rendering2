@@ -17,7 +17,6 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.document.DocumentReceiver.Companion.PUBLIC_FAILURE_MESSAGE
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.AfterEach
@@ -104,8 +103,8 @@ class DocumentConversionServiceTest {
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns mockk<SubJob>()
-        every { subJobRepository.save(finishedSubJob) } returns mockk<SubJob>()
+        every { subJobRepository.save(processingSubJob) } returns processingSubJob
+        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
         every { job.module } returns "DOCUMENT"
         every { module.module() } returns "DOCUMENT"
         every { module.getTargetMimetype() } returns "application/pdf"
@@ -174,8 +173,8 @@ class DocumentConversionServiceTest {
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns mockk<SubJob>()
-        every { subJobRepository.save(finishedSubJob) } returns mockk<SubJob>()
+        every { subJobRepository.save(processingSubJob) } returns processingSubJob
+        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
         every { job.module } returns "DOCUMENT"
         every { module.module() } returns "DOCUMENT"
         every { module.getTargetMimetype() } returns "application/pdf"
@@ -242,8 +241,8 @@ class DocumentConversionServiceTest {
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns mockk<SubJob>()
-        every { subJobRepository.save(finishedSubJob) } returns mockk<SubJob>()
+        every { subJobRepository.save(processingSubJob) } returns processingSubJob
+        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
         every { job.module } returns "DOCUMENT"
         every { module.module() } returns "DOCUMENT"
         every { module.getTargetMimetype() } returns "application/pdf"
@@ -310,8 +309,8 @@ class DocumentConversionServiceTest {
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns mockk<SubJob>()
-        every { subJobRepository.save(finishedSubJob) } returns mockk<SubJob>()
+        every { subJobRepository.save(processingSubJob) } returns processingSubJob
+        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
         every { job.module } returns "SPREADSHEET"
         every { module.module() } returns "SPREADSHEET"
         every { module.getTargetMimetype() } returns "text/html"
@@ -380,8 +379,8 @@ class DocumentConversionServiceTest {
         val module = mockk<DocumentRenderModule>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns mockk<SubJob>()
-        every { subJobRepository.save(failedSubJob) } returns mockk<SubJob>()
+        every { subJobRepository.save(processingSubJob) } returns processingSubJob
+        every { subJobRepository.save(failedSubJob) } returns failedSubJob
         every { job.module } returns "DOCUMENT"
         every { job.esObjectId } returns "node123"
         every { module.module() } returns "DOCUMENT"
