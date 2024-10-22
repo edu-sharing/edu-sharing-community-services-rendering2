@@ -64,7 +64,7 @@ class AssetController(
 
     private fun prepareResponse(
         asset: ReadableAsset,
-        additionalHeaders: Map<String, String> = emptyMap(),
+        additionalHeaders: Map<String, String>,
         doEncodeData: Boolean = false): ResponseEntity<Resource> {
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)

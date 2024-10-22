@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.av
-import io.mockk.confirmVerified
 import io.mockk.*
+import io.mockk.confirmVerified
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.AfterEach
@@ -17,7 +17,7 @@ class AvFileHelperTest {
 
     @AfterEach
     fun after() {
-        underTest.cleanup()
+        underTest.close()
     }
 
     @Test

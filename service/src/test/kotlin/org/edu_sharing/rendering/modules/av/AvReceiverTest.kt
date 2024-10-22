@@ -268,4 +268,50 @@ class AvReceiverTest {
         verify(exactly = 1) { storageService.removeObject(cacheObject, true) }
         confirmVerified(mainJobLogic, subJobRepository, audioConversionService, storageService)
     }
+
+    @Test
+    fun testReceiveMessageSetsJobToFailedForUnsupportedModule() {
+        //Arrange
+        val message = SubJobMessage(
+            id = JobDataProvider.DUMMY_JOB_ID,
+            quality = 720
+        )
+        val job = jobDataProvider.getJobWithoutSubJobs("NONSENSE")
+        val matchingSubJob = jobDataProvider.getDummySubJob(
+            subId = JobDataProvider.SUB_ID_1,
+            mimeType = "video/mp4",
+            module = "NONSENSE",
+            quality = 720,
+            status = JobStatus.QUEUED
+        )
+        job.subJobs = mutableListOf(matchingSubJob)
+        val cacheObject = mapper.renderingJobToCacheObject(job)
+
+        every { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) } returns job
+        val subJobSlot = slot<SubJob>()
+        val statusList = mutableListOf<JobStatus>()
+        val messageList = mutableListOf<String>()
+        every { subJobRepository.save(capture(subJobSlot)) } answers {
+            statusList.add(subJobSlot.captured.status)
+            messageList.add(subJobSlot.captured.message ?: "")
+
+            matchingSubJob
+        }
+
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
+        every { audioModule.module() } returns "AUDIO"
+        every { videoModule.module() } returns "VIDEO"
+
+
+        //Act
+        underTest.receiveMessage(message)
+
+        // Assert
+        assert(statusList.size == 2)
+        assert(statusList[0] == JobStatus.PROCESSING)
+        assert(statusList[0] == JobStatus.PROCESSING)
+        assert(messageList.size == 2)
+        assert(messageList[0].isBlank())
+        assert(messageList[1] == "${AvReceiver.MODULE_NOT_SUPPORTED_ERROR} NONSENSE")
+    }
 }

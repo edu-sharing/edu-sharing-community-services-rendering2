@@ -32,6 +32,11 @@ class AvReceiver(
     private val audioModule: AudioRenderModule,
     private val videoModule: VideoRenderModule
 ) {
+
+    companion object {
+        const val MODULE_NOT_SUPPORTED_ERROR = "Module not supported for AV conversion:"
+    }
+
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
@@ -67,13 +72,13 @@ class AvReceiver(
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         subJob.status = JobStatus.PROCESSING
         subJob = subJobRepository.save(subJob)
-        val service = when(jobEntry.module) {
-            audioModule.module() -> audioConversionService
-            videoModule.module() -> videoConversionService
-            else -> throw NotImplementedException(jobEntry.module)
-        }
         var success = true
         try {
+            val service = when(jobEntry.module) {
+                audioModule.module() -> audioConversionService
+                videoModule.module() -> videoConversionService
+                else -> throw NotImplementedException("$MODULE_NOT_SUPPORTED_ERROR ${jobEntry.module}")
+            }
             service.convert(
                 cacheObject = cacheObject.deepCopy(),
                 subJob = subJob

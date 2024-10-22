@@ -37,6 +37,4 @@ class DocumentModuleTypeMapper(
             ModuleTypeDefinition(null, "application", XLSX) to (spreadsheetRenderModule ?: documentRenderModule),
         )
     }
-
-
 }

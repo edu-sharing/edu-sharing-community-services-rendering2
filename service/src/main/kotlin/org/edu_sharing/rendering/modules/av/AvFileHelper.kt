@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.av
 
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
 import java.io.Closeable
 import java.io.File
 import java.nio.file.Files
@@ -37,12 +37,8 @@ class AvFileHelper(
         storageImplementation.putObject(cacheObject, outputFile.readBytes().inputStream(), metaData)
     }
 
-    fun cleanup() {
+    override fun close() {
         if(::outputFile.isInitialized) {outputFile.delete()}
         if(::originalFile.isInitialized) {originalFile.delete()}
-    }
-
-    override fun close() {
-        cleanup()
     }
 }
