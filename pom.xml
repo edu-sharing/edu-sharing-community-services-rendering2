@@ -66,10 +66,19 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.20.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!--
+      <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>edu_sharing-community-services-rendering2-jupyter-converter</artifactId>
         <version>${project.version}</version>
       </dependency>
+      -->
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>edu_sharing-community-services-rendering2-lumi</artifactId>
@@ -113,7 +122,6 @@
     <module>deploy</module>
     <module>service</module>
     <module>document-converter</module>
-    <module>jupyter-converter</module>
     <module>lumi</module>
   </modules>
 </project>

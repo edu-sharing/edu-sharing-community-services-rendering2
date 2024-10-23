@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.roles
+package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.rendering.ServicesRenderingService2Application

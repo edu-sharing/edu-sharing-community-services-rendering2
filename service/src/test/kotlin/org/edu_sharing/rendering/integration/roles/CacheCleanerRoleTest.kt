@@ -1,7 +1,7 @@
-package org.edu_sharing.rendering.roles
+package org.edu_sharing.rendering.integration.roles
 
-import org.edu_sharing.rendering.modules.h5p.H5pReceiver
-import org.edu_sharing.rendering.modules.h5p.H5pUploadService
+import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
+import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -10,21 +10,20 @@ import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
-        "app.roles=h5p",
+        "app.roles=cache-cleaner",
         "app.storage.minio.bucket.mode=byType",
         "app.converter.spreadsheetToHtml.enabled=true",
         "app.security.enabled=false"
     ]
 )
-class H5pRoleTest(@Autowired val context: ApplicationContext) {
-    
+class CacheCleanerRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
+
     companion object {
         private val roleSpecificBeans = setOf(
-            H5pReceiver::class,
-            H5pUploadService::class
+            CacheCleaner::class
         )
     }
-    
+
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -33,7 +32,6 @@ class H5pRoleTest(@Autowired val context: ApplicationContext) {
 
         val expectedBeans = roleSpecificBeans
             .map { ClassUtils.getShortNameAsProperty(it.java) } union SharedBeans.all
-
-        assert(expectedBeans == allEdusharingBeans)
+        assert(allEdusharingBeans == expectedBeans)
     }
 }

@@ -1,5 +1,6 @@
-package org.edu_sharing.rendering.roles
+package org.edu_sharing.rendering.integration.roles
 
+import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.av.AvConfig
 import org.edu_sharing.rendering.modules.av.AvConversionListener
@@ -31,7 +32,7 @@ import org.springframework.util.ClassUtils
         "app.security.enabled=false"
     ]
 )
-class ConverterRoleTest(@Autowired val context: ApplicationContext) {
+class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
     
     companion object {
         private val roleSpecificClassBeans = setOf(

@@ -1,8 +1,8 @@
-package org.edu_sharing.rendering.roles
+package org.edu_sharing.rendering.integration.roles
 
-import org.edu_sharing.rendering.modules.moodle.MoodleConfig
-import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
-import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
+import org.edu_sharing.rendering.integration.AbstractIntegrationTest
+import org.edu_sharing.rendering.modules.h5p.H5pReceiver
+import org.edu_sharing.rendering.modules.h5p.H5pUploadService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -11,19 +11,18 @@ import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
-        "app.roles=moodle",
+        "app.roles=h5p",
         "app.storage.minio.bucket.mode=byType",
         "app.converter.spreadsheetToHtml.enabled=true",
         "app.security.enabled=false"
     ]
 )
-class MoodleRoleTest(@Autowired val context: ApplicationContext) {
+class H5pRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
     
     companion object {
         private val roleSpecificBeans = setOf(
-            MoodleReceiver::class,
-            MoodleConfig::class,
-            MoodleUploadService::class
+            H5pReceiver::class,
+            H5pUploadService::class
         )
     }
     
@@ -34,7 +33,7 @@ class MoodleRoleTest(@Autowired val context: ApplicationContext) {
         }.toSet()
 
         val expectedBeans = roleSpecificBeans
-            .map {ClassUtils.getShortNameAsProperty(it.java)} union SharedBeans.all
+            .map { ClassUtils.getShortNameAsProperty(it.java) } union SharedBeans.all
 
         assert(expectedBeans == allEdusharingBeans)
     }

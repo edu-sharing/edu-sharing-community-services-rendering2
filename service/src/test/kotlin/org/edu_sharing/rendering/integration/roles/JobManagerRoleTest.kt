@@ -1,5 +1,6 @@
-package org.edu_sharing.rendering.roles
+package org.edu_sharing.rendering.integration.roles
 
+import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.renderingJob.queue.JobReceiver
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,7 +16,7 @@ import org.springframework.util.ClassUtils
         "app.security.enabled=false"
     ]
 )
-class JobManagerRoleTest(@Autowired val context: ApplicationContext) {
+class JobManagerRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
 
     companion object {
         private val roleSpecificBeans = setOf(

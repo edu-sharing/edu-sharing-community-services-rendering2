@@ -1,6 +1,9 @@
-package org.edu_sharing.rendering.roles
+package org.edu_sharing.rendering.integration.roles
 
-import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
+import org.edu_sharing.rendering.integration.AbstractIntegrationTest
+import org.edu_sharing.rendering.modules.moodle.MoodleConfig
+import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
+import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -9,20 +12,22 @@ import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
-        "app.roles=cache-cleaner",
+        "app.roles=moodle",
         "app.storage.minio.bucket.mode=byType",
         "app.converter.spreadsheetToHtml.enabled=true",
         "app.security.enabled=false"
     ]
 )
-class CacheCleanerRoleTest(@Autowired val context: ApplicationContext) {
-
+class MoodleRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
+    
     companion object {
         private val roleSpecificBeans = setOf(
-            CacheCleaner::class
+            MoodleReceiver::class,
+            MoodleConfig::class,
+            MoodleUploadService::class
         )
     }
-
+    
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -30,8 +35,8 @@ class CacheCleanerRoleTest(@Autowired val context: ApplicationContext) {
         }.toSet()
 
         val expectedBeans = roleSpecificBeans
-            .map { ClassUtils.getShortNameAsProperty(it.java) } union SharedBeans.all
+            .map {ClassUtils.getShortNameAsProperty(it.java)} union SharedBeans.all
 
-        assert(allEdusharingBeans == expectedBeans)
+        assert(expectedBeans == allEdusharingBeans)
     }
 }
