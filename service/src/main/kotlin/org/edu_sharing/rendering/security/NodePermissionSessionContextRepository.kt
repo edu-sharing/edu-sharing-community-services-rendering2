@@ -65,9 +65,9 @@ class NodePermissionSessionContextRepository(
 
     fun saveNodePermission(nodePermission: NodePermission) {
         val session = getSession(true) ?: return
-        val nodePermissions = readNodePermissionsFromSession(session) ?: ArrayList()
+        val nodePermissions = readNodePermissionsFromSession(session) ?: mutableListOf()
         nodePermissions.removeAll { it.nodeId == nodePermission.nodeId }
-        nodePermissions.addLast(nodePermission)
+        nodePermissions.add(nodePermission)
         session.setAttribute(PERMISSIONS, nodePermissions)
     }
 
