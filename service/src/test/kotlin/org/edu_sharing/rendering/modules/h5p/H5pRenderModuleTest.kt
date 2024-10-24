@@ -115,4 +115,17 @@ class H5pRenderModuleTest {
         // Assert
         assert(result?.link == "")
     }
+
+    @Test
+    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
+        // Act
+        val result = underTest.moduleTypeAssociations()
+
+        // Assert
+        assert(result.size == 1)
+        assert(result[0].first.type == "file-h5p")
+        assert(result[0].first.mimeTypeSuffix == null)
+        assert(result[0].first.mimeTypePrefix == null)
+        assert(result[0].second == underTest)
+    }
 }

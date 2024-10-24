@@ -33,7 +33,7 @@ class ImageServiceTest {
     fun setup() {
         underTest = ImageService(storageService, mainJobService)
         underTest.convertedImageMimeTypes = listOf("image/jpeg", "image/png")
-        underTest.targetImageSizes = listOf(100,200)
+        underTest.targetImageSizes = listOf(100, 200)
         underTest.targetImageFormat = "jpeg"
     }
 
@@ -46,7 +46,7 @@ class ImageServiceTest {
         // Act and assert
         assert(underTest.isConversionObject(cacheObject))
 
-        verify (exactly = 1) { cacheObject.mimeType }
+        verify(exactly = 1) { cacheObject.mimeType }
     }
 
     @Test
@@ -58,7 +58,22 @@ class ImageServiceTest {
         // Act and assert
         assert(!underTest.isConversionObject(cacheObject))
 
-        verify (exactly = 1) { cacheObject.mimeType }
+        verify(exactly = 1) { cacheObject.mimeType }
+    }
+
+    @Test
+    fun testGetObjectLinksReturnsNullIfNotFoundForNonConversionObject() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+
+        every { cacheObject.mimeType } returns "image/gif"
+        every { storageService.getObjectLink(cacheObject) } throws ResourceNotFoundException("")
+
+        // Act and assert
+        assert(underTest.getObjectLinks(cacheObject) == null)
+        verify(exactly = 1) { storageService.getObjectLink(cacheObject) }
+        confirmVerified(storageService)
+
     }
 
     @Test
@@ -67,7 +82,7 @@ class ImageServiceTest {
         val cacheObjectWithNonConversion = cacheObject.copy()
         cacheObjectWithNonConversion.mimeType = "image/ogg"
 
-        every {storageService.getObjectLink(cacheObjectWithNonConversion)} returns ObjectLink(link = "mylink")
+        every { storageService.getObjectLink(cacheObjectWithNonConversion) } returns ObjectLink(link = "mylink")
 
         // Act
         val result = underTest.getObjectLinks(cacheObjectWithNonConversion)
@@ -75,7 +90,7 @@ class ImageServiceTest {
         // Assert
         assert(result?.get(0)?.link == "mylink")
 
-        verify (exactly = 1) { storageService.getObjectLink(cacheObjectWithNonConversion) }
+        verify(exactly = 1) { storageService.getObjectLink(cacheObjectWithNonConversion) }
         confirmVerified(storageService)
     }
 

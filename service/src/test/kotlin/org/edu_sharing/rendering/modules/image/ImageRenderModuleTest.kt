@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.modules.image
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
+import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -11,7 +12,11 @@ import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -24,6 +29,8 @@ class ImageRenderModuleTest {
     private val imageServiceMock = mockk<ImageService>()
     private val subJobRepository = mockk<SubJobRepository>()
     private val amqpTemplate = mockk<AmqpTemplate>()
+
+    private val jobDataProvider = JobDataProvider()
 
     lateinit var underTest: ImageRenderModule
 
@@ -40,7 +47,7 @@ class ImageRenderModuleTest {
     }
 
     @Test
-    fun testHandleInvokesDefaultStrategyWithNonConversionObjects() {
+    fun testHandleReturnsCachedLinksAndDoesNotCheckForMissingQualitiesWithNonConversionObjects() {
         // Arrange
         val request = mockk<RenderDataRequest>()
         val cacheObject = mockk<CacheObject>()
@@ -65,6 +72,33 @@ class ImageRenderModuleTest {
             mapperMock.renderDataRequestToCacheObject(request)
             imageServiceMock.getObjectLinks(cacheObject = cacheObject)
             imageServiceMock.isConversionObject(cacheObject)
+        }
+    }
+
+    @Test
+    fun testHandleCreatesCopyJobForMissingNonConversionObject() {
+        // Arrange
+        val request = mockk<RenderDataRequest>()
+        val cacheObject = mockk<CacheObject>()
+
+        every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { imageServiceMock.getObjectLinks(cacheObject = cacheObject) } returns null
+        every { imageServiceMock.isConversionObject(cacheObject) } returns false
+        every { imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", emptyList()) } returns "jobId123"
+
+        // Act
+        val result = underTest.handle(request)
+
+        // Assert
+        assert(result.module == "IMAGE")
+        assert(result.jobId == "jobId123")
+        assert(result.objectLinks == null)
+
+        verifySequence {
+            mapperMock.renderDataRequestToCacheObject(request)
+            imageServiceMock.getObjectLinks(cacheObject = cacheObject)
+            imageServiceMock.isConversionObject(cacheObject)
+            imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", emptyList())
         }
     }
 
@@ -96,6 +130,36 @@ class ImageRenderModuleTest {
             imageServiceMock.getObjectLinks(cacheObject)
             imageServiceMock.isConversionObject(cacheObject)
             imageServiceMock.getMissingQualities(availableLinks)
+            imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)
+        }
+    }
+
+    @Test
+    fun testHandleCreatesNewJobIfAllQualitiesAreMissing() {
+        // Arrange
+        val request = mockk<RenderDataRequest>()
+        val cacheObject = mockk<CacheObject>()
+        val missingQualities = listOf(100, 200)
+
+        every { mapperMock.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { imageServiceMock.getObjectLinks(cacheObject) } returns null
+        every { imageServiceMock.isConversionObject(cacheObject) } returns true
+        every { imageServiceMock.getMissingQualities(null) } returns missingQualities
+        every { imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities) } returns "jobid1"
+
+        // Act
+        val result = underTest.handle(request)
+
+        // Assert
+        assert(result.module == "IMAGE")
+        assert(result.jobId == "jobid1")
+        assert(result.objectLinks == null)
+
+        verifySequence {
+            mapperMock.renderDataRequestToCacheObject(request)
+            imageServiceMock.getObjectLinks(cacheObject)
+            imageServiceMock.isConversionObject(cacheObject)
+            imageServiceMock.getMissingQualities(null)
             imageServiceMock.retrieveOrCreateJob(cacheObject, "IMAGE", missingQualities)
         }
     }
@@ -185,5 +249,39 @@ class ImageRenderModuleTest {
     @Test
     fun testGetNodePermissionTimeReturnsSetTime() {
         assert(underTest.getNodePermissionExpirationTime() == nodePermissionTime)
+    }
+
+    @Test
+    fun testCreateJobCreatesOneSubJobPerMissingQuality() {
+        // Arrange
+        underTest.topicExchangeName = "topicExchangeName"
+        underTest.imageRoutingKey = "imageRoutingKey"
+        val job = jobDataProvider.getJobWithoutSubJobs("IMAGE")
+        val message = RenderingJobMessage(
+            id = "someJobId123",
+            missingQualities = listOf(100, 200)
+        )
+
+        val subJobList = mutableListOf<SubJob>()
+
+        every { subJobRepository.save(capture(subJobList)) } returns mockk<SubJob>()
+        justRun { amqpTemplate.convertAndSend("topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString())) }
+
+        // Act
+        underTest.createJob(renderingJob = job, message = message)
+
+        assertTrue(subJobList.size == 2, "Expected two subJobs to be created and inserted, got ${subJobList.size}.")
+        assertTrue(subJobList[0].routingKey == "imageRoutingKey", "Expected first job's routing key to be imageRoutingKey, got ${subJobList[0].routingKey}")
+        assertTrue(subJobList[0].quality == 100, "Expected first job's quality to be 100, got ${subJobList[0].quality}")
+        assertTrue(subJobList[1].routingKey == "imageRoutingKey", "Expected second job's routing key to be imageRoutingKey, got ${subJobList[1].routingKey}")
+        assertTrue(subJobList[1].quality == 200, "Expected second job's quality to be 200, got ${subJobList[1].quality}")
+
+        assertTrue(job.subJobs.size == 2, "Expected 2 sub jobs to be added to job, got ${job.subJobs.size}.")
+
+        verifySequence {
+            subJobRepository.save(any())
+            subJobRepository.save(any())
+            amqpTemplate.convertAndSend("topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString()))
+        }
     }
 }

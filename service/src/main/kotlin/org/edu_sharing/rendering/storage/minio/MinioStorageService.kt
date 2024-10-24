@@ -291,16 +291,21 @@ class MinioStorageService(
     override fun getStorageInfo(): List<StorageInfo> {
         val usageInfo = eduMinioAdminClient.adminClient.dataUsageInfo
         val infoList = mutableListOf<StorageInfo>()
-        usageInfo.bucketsUsageInfo().forEach { entry ->
-            val quota = eduMinioAdminClient.adminClient.getBucketQuota(entry.key)
-            val storageInfo = StorageInfo(
-                location = entry.key,
-                size = entry.value.size(),
-                maxSize = quota
-            )
-            infoList.add(storageInfo)
+        try {
+            usageInfo.bucketsUsageInfo().forEach { entry ->
+                val quota = eduMinioAdminClient.adminClient.getBucketQuota(entry.key)
+                val storageInfo = StorageInfo(
+                    location = entry.key,
+                    size = entry.value.size(),
+                    maxSize = quota
+                )
+                infoList.add(storageInfo)
+            }
+        } catch (exception: Exception) {
+            log.error(exception.toString())
         }
         return infoList
+
     }
 
     override fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float) {
