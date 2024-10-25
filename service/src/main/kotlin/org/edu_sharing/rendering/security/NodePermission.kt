@@ -7,7 +7,13 @@ import java.time.LocalDateTime
 
 @JsonSerialize
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-data class NodePermission(var nodeId: String, var permissions: Set<String>, var mimeType: String, var mediaType: String, var lastAccessDate: LocalDateTime) {
+data class NodePermission(
+    var nodeId: String,
+    var permissions: Set<String>,
+    var mimeType: String,
+    var mediaType: String,
+    var lastAccessDate: LocalDateTime
+) {
 
     fun hasPermission(permission: String) : Boolean {
         lastAccessDate = LocalDateTime.now()

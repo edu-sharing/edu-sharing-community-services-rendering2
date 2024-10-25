@@ -16,6 +16,7 @@ class ModuleInfoController(
     fun getModulesInfo(): List<RenderModuleInfo> {
         return moduleRegistry.getModuleTypeMapperList()
             .flatMap { it.moduleTypeAssociations() }
+            .filter { !(it.first.type == null && it.first.mimeTypeSuffix == null && it.first.mimeTypePrefix == null) }
             .map {
                 RenderModuleInfo(
                     name = it.second.module(),

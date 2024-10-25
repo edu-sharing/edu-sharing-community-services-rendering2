@@ -13,7 +13,7 @@ import java.util.*
 
 @Service
 class TrackingService(
-    protected val trackingEntryRepository: TrackingEntryRepository
+    private val trackingEntryRepository: TrackingEntryRepository
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -30,7 +30,7 @@ class TrackingService(
         }
 
         fun hasNext(): Boolean {
-            return result?.hasNext() ?: true
+            return result?.hasNext() != false
         }
     }
 
@@ -60,7 +60,7 @@ class TrackingService(
         try {
             trackingEntry.lastAccessed = Date()
             trackingEntryRepository.save(trackingEntry)
-        } catch (exception: DuplicateKeyException) {
+        } catch (_: DuplicateKeyException) {
             log.warn("tracking entry for node id ${cacheObject.nodeId} already exists.")
         } catch (exception: MongoException) {
             log.warn("Error creating tracking entry for node id ${cacheObject.nodeId}: ${exception.message}")

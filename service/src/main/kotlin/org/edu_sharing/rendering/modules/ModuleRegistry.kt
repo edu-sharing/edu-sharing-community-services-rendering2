@@ -41,8 +41,7 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : RenderModule> getRenderModule(type: String = "", mimeType: String = ""): T {
-        ModuleTypeDefinition(type, mimeType.substringBefore('/'), mimeType.substringAfter('/'))
+    fun <T : RenderModule> getRenderModule(type: String, mimeType: String): T {
         val result = modulesByType[type]
             ?: moduleByMimeType[mimeType]
             ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]

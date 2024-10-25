@@ -48,6 +48,9 @@ class MinioStorageService(
         putObjectInternal(cacheObject, inputStream, bucketStrategy.getStoragePath(cacheObject), metadata)
     }
 
+    /**
+     * Method for static interface
+     */
     override fun putObject(
         cacheObject: CacheObject,
         inputStream: InputStream,
@@ -61,7 +64,7 @@ class MinioStorageService(
         cacheObject: CacheObject,
         inputStream: InputStream,
         targetPath: String,
-        metadata: Map<String, String> = emptyMap(),
+        metadata: Map<String, String>
     ) {
         val bucket = bucketStrategy.getBucket(cacheObject)
         createBucket(bucket)
@@ -99,11 +102,11 @@ class MinioStorageService(
         val objectLink = ObjectLink(link = url)
         try {
             val metadata = getStatObject(cacheObject).userMetadata()
-            if (metadata.containsKey("width")) {
-                objectLink.width = metadata["width"]?.toIntOrNull() ?: 0
+            if (metadata["width"] != null) {
+                objectLink.width = metadata["width"]!!.toIntOrNull() ?: 0
             }
-            if (metadata.containsKey("height")) {
-                objectLink.height = metadata["height"]?.toIntOrNull() ?: 0
+            if (metadata["height"] != null) {
+                objectLink.height = metadata["height"]!!.toIntOrNull() ?: 0
             }
             if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
                 objectLink.isHighestQuality = true
@@ -235,7 +238,7 @@ class MinioStorageService(
      * Method for static interface
      */
     override fun getObjectChunkStream(cacheObject: CacheObject, path: String, offset: Long, length: Long): InputStream {
-        val storagePath = bucketStrategy.getStoragePath(cacheObject)
+        val storagePath = bucketStrategy.getStoragePath(cacheObject, path)
         val bucket = bucketStrategy.getBucket(cacheObject)
 
         val response = eduMinioClient.getObject(
@@ -323,13 +326,36 @@ class MinioStorageService(
                     break
                 }
 
-                val storedObjectResults = eduMinioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(storageInfo.location)
-                    .prefix(bucketStrategy.getCacheObjectRootPath(CacheObject.of(entry.repoId, entry.nodeId, entry.hash, entry.type)))
-                    .build())
+                val storedObjectResults = eduMinioClient.listObjects(
+                    ListObjectsArgs.builder()
+                        .bucket(storageInfo.location)
+                        .prefix(
+                            bucketStrategy.getCacheObjectRootPath(
+                                CacheObject.of(
+                                    entry.repoId,
+                                    entry.nodeId,
+                                    entry.hash,
+                                    entry.type
+                                )
+                            )
+                        )
+                        .build()
+                )
 
-                totalSize += storedObjectResults.mapNotNull {  try { it.get() } catch (_:Exception) {null} }.sumOf { it.size() }
-                minioObjectsToDelete.addAll(storedObjectResults.mapNotNull { try { it.get() } catch (_:Exception) {null} }.map { DeleteObject(it.objectName()) }.toList())
+                totalSize += storedObjectResults.mapNotNull {
+                    try {
+                        it.get()
+                    } catch (_: Exception) {
+                        null
+                    }
+                }.sumOf { it.size() }
+                minioObjectsToDelete.addAll(storedObjectResults.mapNotNull {
+                    try {
+                        it.get()
+                    } catch (_: Exception) {
+                        null
+                    }
+                }.map { DeleteObject(it.objectName()) }.toList())
                 trackingEntriesToDelete.add(entry)
             }
         } while (trackingIterator.hasNext() && totalSize < maxSize)
@@ -342,7 +368,7 @@ class MinioStorageService(
                 .build()
         )
 
-        for (removeObjectResult in removeObjectResults){
+        for (removeObjectResult in removeObjectResults) {
             val error = removeObjectResult.get()
             log.warn("Error deleting object " + error.objectName() + "; " + error.message())
         }
@@ -371,8 +397,12 @@ class MinioStorageService(
     }
 
 
-    private fun getStatObject(cacheObject: CacheObject, path: String?=null): StatObjectResponse {
-        val storagePath = if(path == null) bucketStrategy.getStoragePath(cacheObject) else bucketStrategy.getStoragePath(cacheObject, path)
+    private fun getStatObject(cacheObject: CacheObject, path: String? = null): StatObjectResponse {
+        val storagePath =
+            if (path == null) bucketStrategy.getStoragePath(cacheObject) else bucketStrategy.getStoragePath(
+                cacheObject,
+                path
+            )
         return eduMinioClient.statObject(
             StatObjectArgs.builder()
                 .bucket(bucketStrategy.getBucket(cacheObject))
@@ -389,7 +419,11 @@ class MinioStorageService(
     }
 
     private fun getTempPath(cacheObject: CacheObject): String {
-        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${bucketStrategy.getExtensionFromMimeType(cacheObject.mimeType)}"
+        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${
+            bucketStrategy.getExtensionFromMimeType(
+                cacheObject.mimeType
+            )
+        }"
     }
 
 }

@@ -1,13 +1,26 @@
 package org.edu_sharing.rendering.storage.minio
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
+import io.minio.errors.ErrorResponseException
+import io.minio.messages.ErrorResponse
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
+import okhttp3.Response
+import org.apache.commons.codec.binary.Base64
+import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.web.util.UriComponentsBuilder
+import java.io.ByteArrayInputStream
+import java.net.URLDecoder
 
 
 @ExtendWith(MockKExtension::class)
@@ -31,746 +44,718 @@ class MinioStorageServiceTest {
         clearAllMocks()
     }
 
-    /**
     @Test
     fun testPutObjectCallsClientWithCorrectParams() {
         // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val inputStream = ByteArrayInputStream("abc123".toByteArray())
+        val metadata = mapOf("test" to "testValue")
+        val bucketArgumentsSlot = slot<BucketExistsArgs>()
+        val objectArgumentSlot = slot<PutObjectArgs>()
+
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.bucketExists(capture(bucketArgumentsSlot)) } returns true
+        every { client.putObject(capture(objectArgumentSlot)) } returns mockk<ObjectWriteResponse>()
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
+
+        every { cacheObject.size } returns 123
+        every { cacheObject.mimeType } returns "application/json"
+
+        excludeRecords {
+            cacheObject.size
+            cacheObject.mimeType
+        }
+
+        // Act
+        underTest.putObject(cacheObject, inputStream, metadata)
+
+        // Assert
+        assert(bucketArgumentsSlot.isCaptured)
+        val capturedBucketArgs = bucketArgumentsSlot.captured
+        assert(capturedBucketArgs.bucket() == "targetbucket")
+
+        assert(objectArgumentSlot.isCaptured)
+        val capturedObjectArgs = objectArgumentSlot.captured
+        assert(capturedObjectArgs.bucket() == "targetbucket")
+        assert(capturedObjectArgs.stream().readAllBytes().toString(Charsets.UTF_8) == "abc123")
+        assert(capturedObjectArgs.`object`() == "somepath")
+        assert(capturedObjectArgs.contentType() == "application/json")
+        val writtenMetadata = capturedObjectArgs.userMetadata()
+        assert(writtenMetadata.size() == 1)
+        assert(writtenMetadata.get("x-amz-meta-test").first() == "testValue")
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.bucketExists(capture(bucketArgumentsSlot))
+            client.putObject(capture(objectArgumentSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
+        }
+    }
+
+    @Test
+    fun testPutObjectCallsClientWithCorrectParamsWithoutMetadataAndContentType() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val inputStream = ByteArrayInputStream("abc123".toByteArray())
+        val bucketArgumentsSlot = slot<BucketExistsArgs>()
+        val objectArgumentSlot = slot<PutObjectArgs>()
+
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.bucketExists(capture(bucketArgumentsSlot)) } returns true
+        every { client.putObject(capture(objectArgumentSlot)) } returns mockk<ObjectWriteResponse>()
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
+
+        every { cacheObject.size } returns 123
+        every { cacheObject.mimeType } returns ""
+
+        excludeRecords {
+            cacheObject.size
+            cacheObject.mimeType
+        }
+
+        // Act
+        underTest.putObject(cacheObject, inputStream)
+
+        // Assert
+        assert(bucketArgumentsSlot.isCaptured)
+        val capturedBucketArgs = bucketArgumentsSlot.captured
+        assert(capturedBucketArgs.bucket() == "targetbucket")
+
+        assert(objectArgumentSlot.isCaptured)
+        val capturedObjectArgs = objectArgumentSlot.captured
+        assert(capturedObjectArgs.bucket() == "targetbucket")
+        assert(capturedObjectArgs.stream().readAllBytes().toString(Charsets.UTF_8) == "abc123")
+        assert(capturedObjectArgs.`object`() == "somepath")
+        assert(capturedObjectArgs.contentType() == "application/octet-stream")
+        val writtenMetadata = capturedObjectArgs.userMetadata()
+        assert(writtenMetadata.size() == 0)
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.bucketExists(capture(bucketArgumentsSlot))
+            client.putObject(capture(objectArgumentSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
+        }
+    }
+
+    @Test
+    fun putObjectStaticCallsClientWithCorrectArguments() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val inputStream = ByteArrayInputStream("abc123".toByteArray())
+        val metadata = mapOf("test" to "testValue")
+        val bucketArgumentsSlot = slot<BucketExistsArgs>()
+        val objectArgumentSlot = slot<PutObjectArgs>()
+
+        every { bucketStrategy.getStoragePath(cacheObject, "inputpath") } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.bucketExists(capture(bucketArgumentsSlot)) } returns true
+        every { client.putObject(capture(objectArgumentSlot)) } returns mockk<ObjectWriteResponse>()
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
+
+        every { cacheObject.size } returns 123
+        every { cacheObject.mimeType } returns "application/json"
+
+        excludeRecords {
+            cacheObject.size
+            cacheObject.mimeType
+        }
+
+        // Act
+        underTest.putObject(cacheObject, inputStream, "inputpath", metadata)
+
+        // Assert
+        assert(bucketArgumentsSlot.isCaptured)
+        val capturedBucketArgs = bucketArgumentsSlot.captured
+        assert(capturedBucketArgs.bucket() == "targetbucket")
+
+        assert(objectArgumentSlot.isCaptured)
+        val capturedObjectArgs = objectArgumentSlot.captured
+        assert(capturedObjectArgs.bucket() == "targetbucket")
+        assert(capturedObjectArgs.stream().readAllBytes().toString(Charsets.UTF_8) == "abc123")
+        assert(capturedObjectArgs.`object`() == "somepath")
+        assert(capturedObjectArgs.contentType() == "application/json")
+        val writtenMetadata = capturedObjectArgs.userMetadata()
+        assert(writtenMetadata.size() == 1)
+        assert(writtenMetadata.get("x-amz-meta-test").first() == "testValue")
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, "inputpath")
+            bucketStrategy.getBucket(cacheObject)
+            client.bucketExists(capture(bucketArgumentsSlot))
+            client.putObject(capture(objectArgumentSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
+        }
+    }
+
+    @Test
+    fun testPutObjectStaticCallsClientWithCorrectParamsWithoutMetadataAndContentTypeAndCreatesMissingBucket() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val inputStream = ByteArrayInputStream("abc123".toByteArray())
+        val bucketArgumentsSlot = slot<BucketExistsArgs>()
+        val makeBucketArgumentSlot = slot<MakeBucketArgs>()
+        val objectArgumentSlot = slot<PutObjectArgs>()
+
+        every { bucketStrategy.getStoragePath(cacheObject, "inputpath") } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.bucketExists(capture(bucketArgumentsSlot)) } returns false
+        justRun { client.makeBucket(capture(makeBucketArgumentSlot)) }
+
+        every { client.putObject(capture(objectArgumentSlot)) } returns mockk<ObjectWriteResponse>()
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
+
+        every { cacheObject.size } returns -1
+        every { cacheObject.mimeType } returns ""
+
+        excludeRecords {
+            cacheObject.size
+            cacheObject.mimeType
+        }
+
+        // Act
+        underTest.putObject(cacheObject, inputStream, "inputpath")
+
+        // Assert
+        assert(bucketArgumentsSlot.isCaptured)
+        val capturedBucketArgs = bucketArgumentsSlot.captured
+        assert(capturedBucketArgs.bucket() == "targetbucket")
+
+        assert(makeBucketArgumentSlot.isCaptured)
+        val capturedMakeBucketArgs = makeBucketArgumentSlot.captured
+        assert(capturedMakeBucketArgs.bucket() == "targetbucket")
+
+        assert(objectArgumentSlot.isCaptured)
+        val capturedObjectArgs = objectArgumentSlot.captured
+        assert(capturedObjectArgs.bucket() == "targetbucket")
+        assert(capturedObjectArgs.stream().readAllBytes().toString(Charsets.UTF_8) == "abc123")
+        assert(capturedObjectArgs.`object`() == "somepath")
+        assert(capturedObjectArgs.contentType() == "application/octet-stream")
+        val writtenMetadata = capturedObjectArgs.userMetadata()
+        assert(writtenMetadata.size() == 0)
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, "inputpath")
+            bucketStrategy.getBucket(cacheObject)
+            client.bucketExists(capture(bucketArgumentsSlot))
+            client.makeBucket(capture(makeBucketArgumentSlot))
+            client.putObject(capture(objectArgumentSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
+        }
+    }
+
+    @Test
+    fun testGetObjectLinkCreatesCorrectLinkWithoutQualityAndSetMetadata() {
+        // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "audio",
+            type = "file-pdf",
             hash = "abc123",
-            mimeType = "audio/wav",
-            quality = 200,
+            mimeType = "application/pdf",
             size = 145,
             repoId = "repoId123"
         )
+        val statObjectArgsSlot = slot<StatObjectArgs>()
+        val statObjectResponse = mockk<StatObjectResponse>()
 
-        val metadata = mapOf("test" to "testvalue")
-        val stream = "123".byteInputStream()
-        val argumentSlot = slot<PutObjectArgs>()
-        val bucketCheckSlot = slot<BucketExistsArgs>()
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.statObject(capture(statObjectArgsSlot)) } returns statObjectResponse
+        every { statObjectResponse.userMetadata() } returns emptyMap()
 
-        every { client.putObject(capture(argumentSlot)) } returns mockk<ObjectWriteResponse>()
-        every { client.bucketExists(capture(bucketCheckSlot)) } returns true
-
-        // Act
-        underTest.putObject(cacheObject, stream, metadata)
-
-        // Assert
-        val arguments = argumentSlot.captured
-        val bucketArguments = bucketCheckSlot.captured
-
-        assert(bucketArguments.bucket() == "audio")
-        assert(arguments.stream().readAllBytes().toString(Charsets.UTF_8) == "123")
-        assert(arguments.objectSize() == 145L)
-        assert(arguments.partSize() == 145L)
-        assert(arguments.partCount() == 1)
-        assert(arguments.`object`() == "123/abc123_200.wav")
-        assert(arguments.bucket() == "audio")
-        assert(arguments.contentType() == "audio/wav")
-        val capturedMetadata = arguments.userMetadata()
-        assert(capturedMetadata.size() == 1)
-        capturedMetadata.forEach { t, u ->
-            assert(t.contains("test"))
-            assert(u == "testvalue")
+        excludeRecords {
+            statObjectResponse.userMetadata()
         }
 
+        // Act
+        val result = underTest.getObjectLink(cacheObject)
+
+        // Assert
+        assert(statObjectArgsSlot.isCaptured)
+        assert(statObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(statObjectArgsSlot.captured.`object`() == "targetpath")
+
+        val uri = UriComponentsBuilder.fromUriString(result.link).build()
+        val queryParams = uri.queryParams.toSingleValueMap()
+        assert(queryParams.size == 1)
+        val encodedParams = queryParams["assetParams"] ?: ""
+        assert(encodedParams.isNotBlank())
+        val decoded = Base64().decode(URLDecoder.decode(encodedParams, Charsets.UTF_8)).decodeToString()
+        val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
+        assert(assetLinkParams.repoId == "repoId123")
+        assert(assetLinkParams.nodeId == "123")
+        assert(assetLinkParams.hash == "abc123")
+        assert(assetLinkParams.quality == 0)
+        assert(assetLinkParams.mimeType == "application/pdf")
+        assert(assetLinkParams.type == "file-pdf")
+        assert(result.height == 0)
+        assert(result.width == 0)
+        assert(result.isHighestQuality == false)
+
         verifySequence {
-            client.bucketExists(any())
-            client.putObject(any())
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectArgsSlot))
         }
     }
 
     @Test
-    fun testPutObjectCallsClientWithCorrectParamsIfMimeTypeAndSizeAreNotProvided() {
+    fun testGetObjectLinkCreatesCorrectLinkWithQualityAndSetMetadata() {
         // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "audio",
+            type = "file-pdf",
             hash = "abc123",
-            quality = null,
-            size = -1,
-            repoId = "repo123"
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
         )
-
-        val stream = "123".byteInputStream()
-        val argumentSlot = slot<PutObjectArgs>()
-        val bucketCheckSlot = slot<BucketExistsArgs>()
-        val bucketCreateSlot = slot<MakeBucketArgs>()
-
-        every { client.putObject(capture(argumentSlot)) } returns mockk<ObjectWriteResponse>()
-        every { client.bucketExists(capture(bucketCheckSlot)) } returns false
-        justRun { client.makeBucket(capture(bucketCreateSlot)) }
-
-        // Act
-        underTest.putObject(cacheObject, stream)
-
-        // Assert
-        val arguments = argumentSlot.captured
-        val bucketArguments = bucketCheckSlot.captured
-        val bucketCreateArgs = bucketCreateSlot.captured
-
-        assert(bucketArguments.bucket() == "audio")
-        assert(bucketCreateArgs.bucket() == "audio")
-        assert(arguments.objectSize() == -1L)
-        assert(arguments.partSize() == underTest.defaultChunkSize)
-        assert(arguments.contentType() == "application/octet-stream")
-        assert(arguments.stream().readAllBytes().toString(Charsets.UTF_8) == "123")
-        assert(arguments.`object`() == "123/abc123")
-        assert(arguments.bucket() == "audio")
-        val capturedMetadata = arguments.userMetadata()
-        assert(capturedMetadata.size() == 0)
-
-        verifySequence {
-            client.bucketExists(any())
-            client.makeBucket(capture(bucketCreateSlot))
-            client.putObject(any())
-        }
-    }
-
-    @Test
-    fun testGetObjectLinkCreatesCorrectLink() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 200,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
+        val statObjectArgsSlot = slot<StatObjectArgs>()
+        val statObjectResponse = mockk<StatObjectResponse>()
         val metadata = mapOf(
-            "width" to "500",
-            "height" to "200",
-            "isHighestResolution" to "true"
+            "width" to "2",
+            "isHighestResolution" to "true",
+            "height" to "4"
         )
-        val statResponse = mockk<StatObjectResponse>()
-        val statSlot = slot<StatObjectArgs>()
 
-        every { client.statObject(capture(statSlot)) } returns statResponse
-        every { statResponse.userMetadata() } returns metadata
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.statObject(capture(statObjectArgsSlot)) } returns statObjectResponse
+        every { statObjectResponse.userMetadata() } returns metadata
+
+        excludeRecords {
+            statObjectResponse.userMetadata()
+        }
 
         // Act
         val result = underTest.getObjectLink(cacheObject)
 
         // Assert
-        val statArgs = statSlot.captured
-        assert(statArgs.`object`() == "123/abc123_200.mp4")
-        assert(statArgs.bucket() == "video")
-        assert(ObjectLink.isHighestQuality)
-        assert(ObjectLink.width == 500)
-        assert(ObjectLink.height == 200)
+        assert(statObjectArgsSlot.isCaptured)
+        assert(statObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(statObjectArgsSlot.captured.`object`() == "targetpath")
 
-        val uri = UriComponentsBuilder.fromUriString(ObjectLink.link).build()
+        val uri = UriComponentsBuilder.fromUriString(result.link).build()
         val queryParams = uri.queryParams.toSingleValueMap()
         assert(queryParams.size == 1)
         val encodedParams = queryParams["assetParams"] ?: ""
         assert(encodedParams.isNotBlank())
         val decoded = Base64().decode(URLDecoder.decode(encodedParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
-        assert(assetLinkParams.hash == cacheObject.hash)
-        assert(assetLinkParams.mimeType == cacheObject.mimeType)
-        assert(assetLinkParams.quality == cacheObject.quality)
-        assert(assetLinkParams.type == cacheObject.type)
-        assert(assetLinkParams.nodeId == cacheObject.nodeId)
+        assert(assetLinkParams.repoId == "repoId123")
+        assert(assetLinkParams.nodeId == "123")
+        assert(assetLinkParams.hash == "abc123")
+        assert(assetLinkParams.quality == 1)
+        assert(assetLinkParams.mimeType == "application/pdf")
+        assert(assetLinkParams.type == "file-pdf")
+        assert(result.height == 4)
+        assert(result.width == 2)
+        assert(result.isHighestQuality == true)
 
         verifySequence {
-            client.statObject(any())
-            statResponse.userMetadata()
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectArgsSlot))
         }
     }
 
     @Test
-    fun testGetObjectLinkCreatesCorrectLinkIfQualityIsNullAndNoMetadataPresent() {
+    fun testGetObjectLinkCreatesCorrectLinkWithQualityAndFaultyMetadata() {
         // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "video",
+            type = "file-pdf",
             hash = "abc123",
-            quality = null,
-            mimeType = "video/mp4",
-            repoId = "repo123"
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
         )
-        val metadata = mapOf("width" to "a", "height" to "b", "isHighestResolution" to "c")
-        val statResponse = mockk<StatObjectResponse>()
-        val statSlot = slot<StatObjectArgs>()
+        val statObjectArgsSlot = slot<StatObjectArgs>()
+        val statObjectResponse = mockk<StatObjectResponse>()
+        val metadata = mapOf(
+            "width" to "a",
+            "isHighestResolution" to "b",
+            "height" to "c"
+        )
 
-        every { client.statObject(capture(statSlot)) } returns statResponse
-        every { statResponse.userMetadata() } returns metadata
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { client.statObject(capture(statObjectArgsSlot)) } returns statObjectResponse
+        every { statObjectResponse.userMetadata() } returns metadata
+
+        excludeRecords {
+            statObjectResponse.userMetadata()
+        }
 
         // Act
         val result = underTest.getObjectLink(cacheObject)
 
         // Assert
-        val statArgs = statSlot.captured
-        assert(statArgs.`object`() == "123/abc123.mp4")
-        assert(statArgs.bucket() == "video")
-        assert(!ObjectLink.isHighestQuality)
-        assert(ObjectLink.width == 0)
-        assert(ObjectLink.height == 0)
+        assert(statObjectArgsSlot.isCaptured)
+        assert(statObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(statObjectArgsSlot.captured.`object`() == "targetpath")
 
-        val uri = UriComponentsBuilder.fromUriString(ObjectLink.link).build()
+        val uri = UriComponentsBuilder.fromUriString(result.link).build()
         val queryParams = uri.queryParams.toSingleValueMap()
         assert(queryParams.size == 1)
         val encodedParams = queryParams["assetParams"] ?: ""
         assert(encodedParams.isNotBlank())
         val decoded = Base64().decode(URLDecoder.decode(encodedParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
-        assert(assetLinkParams.hash == cacheObject.hash)
-        assert(assetLinkParams.mimeType == cacheObject.mimeType)
-        assert(assetLinkParams.quality == 0)
-        assert(assetLinkParams.type == cacheObject.type)
-        assert(assetLinkParams.nodeId == cacheObject.nodeId)
+        assert(assetLinkParams.repoId == "repoId123")
+        assert(assetLinkParams.nodeId == "123")
+        assert(assetLinkParams.hash == "abc123")
+        assert(assetLinkParams.quality == 1)
+        assert(assetLinkParams.mimeType == "application/pdf")
+        assert(assetLinkParams.type == "file-pdf")
+        assert(result.height == 0)
+        assert(result.width == 0)
+        assert(result.isHighestQuality == false)
 
         verifySequence {
-            client.statObject(any())
-            statResponse.userMetadata()
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectArgsSlot))
         }
     }
 
     @Test
-    fun testGetObjectLinkCreatesCorrectLinkIfQualityIsNullAndMetadataIsCorrupted() {
+    fun testGetObjectLinkThrowsProperExceptionIfNotFoundInStorage() {
         // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "video",
+            type = "file-pdf",
             hash = "abc123",
-            quality = null,
-            mimeType = "video/mp4",
-            repoId = "repo123"
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
         )
-        val metadata = emptyMap<String, String>()
-        val statResponse = mockk<StatObjectResponse>()
-        val statSlot = slot<StatObjectArgs>()
 
-        every { client.statObject(capture(statSlot)) } returns statResponse
-        every { statResponse.userMetadata() } returns metadata
-
-        // Act
-        val result = underTest.getObjectLink(cacheObject)
-
-        // Assert
-        val statArgs = statSlot.captured
-        assert(statArgs.`object`() == "123/abc123.mp4")
-        assert(statArgs.bucket() == "video")
-        assert(!ObjectLink.isHighestQuality)
-        assert(ObjectLink.width == 0)
-        assert(ObjectLink.height == 0)
-
-        val uri = UriComponentsBuilder.fromUriString(ObjectLink.link).build()
-        val queryParams = uri.queryParams.toSingleValueMap()
-        assert(queryParams.size == 1)
-        val encodedParams = queryParams["assetParams"] ?: ""
-        assert(encodedParams.isNotBlank())
-        val decoded = Base64().decode(URLDecoder.decode(encodedParams, Charsets.UTF_8)).decodeToString()
-        val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
-        assert(assetLinkParams.hash == cacheObject.hash)
-        assert(assetLinkParams.mimeType == cacheObject.mimeType)
-        assert(assetLinkParams.quality == 0)
-        assert(assetLinkParams.type == cacheObject.type)
-        assert(assetLinkParams.nodeId == cacheObject.nodeId)
-
-        verifySequence {
-            client.statObject(any())
-            statResponse.userMetadata()
-        }
-    }
-
-    @Test
-    fun testGetObjectLinkCreatesCorrectLinkIfQualityIsNullAndMetadataHasOnlyNullValues() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = null,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
-        val metadata = mapOf("width" to null, "height" to null, "isHighestResolution" to null)
-
-        val statResponse = mockk<StatObjectResponse>()
-        val statSlot = slot<StatObjectArgs>()
-
-        every { client.statObject(capture(statSlot)) } returns statResponse
-        every { statResponse.userMetadata() } returns metadata
-
-        // Act
-        val result = underTest.getObjectLink(cacheObject)
-
-        // Assert
-        val statArgs = statSlot.captured
-        assert(statArgs.`object`() == "123/abc123.mp4")
-        assert(statArgs.bucket() == "video")
-        assert(!ObjectLink.isHighestQuality)
-        assert(ObjectLink.width == 0)
-        assert(ObjectLink.height == 0)
-
-        val uri = UriComponentsBuilder.fromUriString(ObjectLink.link).build()
-        val queryParams = uri.queryParams.toSingleValueMap()
-        assert(queryParams.size == 1)
-        val encodedParams = queryParams["assetParams"] ?: ""
-        assert(encodedParams.isNotBlank())
-        val decoded = Base64().decode(URLDecoder.decode(encodedParams, Charsets.UTF_8)).decodeToString()
-        val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
-        assert(assetLinkParams.hash == cacheObject.hash)
-        assert(assetLinkParams.mimeType == cacheObject.mimeType)
-        assert(assetLinkParams.quality == 0)
-        assert(assetLinkParams.type == cacheObject.type)
-        assert(assetLinkParams.nodeId == cacheObject.nodeId)
-
-        verifySequence {
-            client.statObject(any())
-            statResponse.userMetadata()
-        }
-    }
-
-    @Test
-    fun testGetObjectLinkThrowsExceptionIfClientThrowsException() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = null,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
         val fakeResponse = mockk<ErrorResponse>()
         every { fakeResponse.message() } returns ""
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
         every { client.statObject(any()) } throws ErrorResponseException(fakeResponse, mockk<Response>(), "")
 
+        excludeRecords {
+            fakeResponse.message()
+        }
         // Act
         assertThrows<ResourceNotFoundException> { underTest.getObjectLink(cacheObject) }
 
-        // Assert
-
         verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
             client.statObject(any())
         }
     }
 
-    /**
     @Test
-    fun testGetObjectLinkReturnsStaticLinkIfPathProvided() {
-        // Arrange
-        val path = "/my/super/path/file.css"
+    fun testGetObjectLinkStaticReturnsProperLink() {
+        val cacheObject = mockk<CacheObject>()
+        every { bucketStrategy.prefixStaticPath(cacheObject, "nonprefixedpath") } returns "/targetpath"
 
-        // Act
-        val result = underTest.getObjectLink(path)
+        val result = underTest.getObjectLink(cacheObject, "nonprefixedpath")
 
-        // Assert
-        assert(result.link == "http://public:8909/public/asset/static/my/super/path/file.css")
+        val uri = UriComponentsBuilder.fromUriString(result.link).build()
+        assert(uri.host == "public")
+        assert(uri.port == 8909)
+        assert(uri.scheme == "http")
+        assert(uri.path == "/public/asset/static/targetpath")
+
+        verify(exactly = 1) { underTest.getObjectLink(cacheObject, "nonprefixedpath") }
+
+        confirmVerified(bucketStrategy)
     }
-    */
 
     @Test
-    fun testRemoveObjectCallsClientWithCorrectParams() {
+    fun testGetCacheObjectFromStaticPathReturnsResultFromBucketStrategy() {
         // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
+        val cacheObject = mockk<CacheObject>()
+        val path = "somePath"
+        val expected = Pair<CacheObject, String>(cacheObject, path)
 
-        val argumentSlot = slot<RemoveObjectArgs>()
-        justRun { client.removeObject(capture(argumentSlot)) }
+        every { bucketStrategy.getCacheObjectFromStaticPath(path) } returns expected
 
         // Act
-        underTest.removeObject(cacheObject)
+        val result = underTest.getCacheObjectFromStaticPath(path)
 
         // Assert
-        val arguments = argumentSlot.captured
-        assert(arguments.`object`() == "123/abc123_100.mp4")
-        assert(arguments.bucket() == "video")
+        assert(result == expected)
 
-        verify(exactly = 1) {
-            client.removeObject(capture(argumentSlot))
+        verify(exactly = 1) { bucketStrategy.getCacheObjectFromStaticPath(path) }
+        confirmVerified(bucketStrategy)
+    }
+
+    @Test
+    fun testGetStoragePathReturnsResultFromBucketStrategy() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val path = "somePath"
+        val expected = "someResult"
+
+        every { bucketStrategy.getStoragePath(cacheObject, path) } returns expected
+
+        // Act
+        val result = underTest.getStoragePath(cacheObject, path)
+
+        assert(result == expected)
+
+        verify(exactly = 1) { bucketStrategy.getStoragePath(cacheObject, path) }
+        confirmVerified(bucketStrategy)
+    }
+
+    @Test
+    fun testRemoveObjectCallsClientWithProperArgumentsForNonTempFile() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val removeObjectArgsSlot = slot<RemoveObjectArgs>()
+
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        justRun { client.removeObject(capture(removeObjectArgsSlot)) }
+        justRun { trackingService.deleteTrackedObject(cacheObject, "targetbucket") }
+
+        // Act
+        underTest.removeObject(cacheObject, false)
+
+        // Assert
+        assert(removeObjectArgsSlot.isCaptured)
+        assert(removeObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(removeObjectArgsSlot.captured.`object`() == "targetpath")
+
+        verifySequence {
+            bucketStrategy.getBucket(cacheObject)
+            bucketStrategy.getStoragePath(cacheObject)
+            client.removeObject(capture(removeObjectArgsSlot))
+            trackingService.deleteTrackedObject(cacheObject, "targetbucket")
         }
     }
 
     @Test
-    fun testRemoveObjectCallsClientWithCorrectParamsForTempFiles() {
+    fun testRemoveObjectCallsClientWithProperArgumentsForTempFile() {
         // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "video",
+            type = "file-pdf",
             hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            repoId = "repo123"
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
         )
 
-        val argumentSlot = slot<RemoveObjectArgs>()
-        justRun { client.removeObject(capture(argumentSlot)) }
+        val removeObjectArgsSlot = slot<RemoveObjectArgs>()
+
+        every { bucketStrategy.getExtensionFromMimeType("application/pdf") } returns ".pdf"
+        justRun { client.removeObject(capture(removeObjectArgsSlot)) }
 
         // Act
         underTest.removeObject(cacheObject, true)
 
-        // Assert
-        val arguments = argumentSlot.captured
-        assert(arguments.bucket() == "temp")
-        assert(arguments.`object`() == "video/123/abc123.mp4")
-        verify(exactly = 1) {
-            client.removeObject(capture(argumentSlot))
+        assert(removeObjectArgsSlot.isCaptured)
+        assert(removeObjectArgsSlot.captured.`object`() == "file-pdf/123/abc123.pdf")
+        assert(removeObjectArgsSlot.captured.bucket() == "temp")
+
+        verifySequence {
+            bucketStrategy.getExtensionFromMimeType("application/pdf")
+            client.removeObject(capture(removeObjectArgsSlot))
         }
     }
 
     @Test
-    fun testGetObjectStreamCallsClientWithCorrectParamsAndReturnsStream() {
+    fun testGetObjectStreamCallsClientWithCorrectArguments() {
         // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
-
-        val argumentSlot = slot<GetObjectArgs>()
+        val cacheObject = mockk<CacheObject>()
+        val getObjectArgsSlot = slot<GetObjectArgs>()
         val stream = mockk<GetObjectResponse>()
-        every { client.getObject(capture(argumentSlot)) } returns stream
+
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        every { client.getObject(capture(getObjectArgsSlot)) } returns stream
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
 
         // Act
-        val result = underTest.getObjectStream(cacheObject)
+        val result = underTest.getObjectStream(cacheObject, false)
+
+        assert(result == stream)
 
         // Assert
-        assert(result == stream)
-        val arguments = argumentSlot.captured
-        assert(arguments.bucket() == "video")
-        assert(arguments.`object`() == "123/abc123_100.mp4")
+        assert(getObjectArgsSlot.isCaptured)
+        assert(getObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(getObjectArgsSlot.captured.`object`() == "targetpath")
 
-        verify(exactly = 1) {
-            client.getObject(any())
+        verifySequence {
+            bucketStrategy.getBucket(cacheObject)
+            bucketStrategy.getStoragePath(cacheObject)
+            client.getObject(capture(getObjectArgsSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
         }
-        confirmVerified(client)
     }
 
     @Test
-    fun testGetObjectStreamCallsClientWithCorrectParamsAndReturnsStreamForTempFile() {
+    fun testGetObjectStreamCallsClientWithCorrectArgumentsForTempFile() {
         // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "video",
+            type = "file-pdf",
             hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            repoId = "repo123"
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
         )
 
-        val argumentSlot = slot<GetObjectArgs>()
+        val getObjectArgsSlot = slot<GetObjectArgs>()
         val stream = mockk<GetObjectResponse>()
-        every { client.getObject(capture(argumentSlot)) } returns stream
+
+        every { bucketStrategy.getExtensionFromMimeType("application/pdf") } returns ".pdf"
+        every { client.getObject(capture(getObjectArgsSlot)) } returns stream
 
         // Act
         val result = underTest.getObjectStream(cacheObject, true)
-
-        // Assert
         assert(result == stream)
-        val arguments = argumentSlot.captured
-        assert(arguments.bucket() == "temp")
-        assert(arguments.`object`() == "video/123/abc123.mp4")
 
-        verify(exactly = 1) {
-            client.getObject(any())
-        }
-        confirmVerified(client)
-    }
-
-    /**
-    @Test
-    fun testGetObjectStreamCallsClientWithCorrectParamsForStaticLink() {
-        // Arrange
-        val bucket = "mybucket"
-        val path = "mypath"
-
-        val argumentSlot = slot<GetObjectArgs>()
-        val stream = mockk<GetObjectResponse>()
-        every { client.getObject(capture(argumentSlot)) } returns stream
-
-        // Act
-        val result = underTest.getObjectStream(bucket, path)
-
-        // Assert
-        assert(result == stream)
-        val arguments = argumentSlot.captured
-        assert(arguments.`object`() == path)
-        assert(arguments.bucket() == bucket)
-
-        verify(exactly = 1) {
-            client.getObject(any())
-        }
-        confirmVerified(client)
-    }
-    */
-
-    @Test
-    fun testGetObjectChunkStreamCallsClientWithCorrectParamsAndReturnsStream() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
-
-        val argumentSlot = slot<GetObjectArgs>()
-        val stream = mockk<GetObjectResponse>()
-        every { client.getObject(capture(argumentSlot)) } returns stream
-
-        // Act
-        val result = underTest.getObjectChunkStream(cacheObject, 2, 1, false)
-
-        // Assert
-        assert(result == stream)
-        val arguments = argumentSlot.captured
-        assert(arguments.`object`() == "123/abc123_100.mp4")
-        assert(arguments.bucket() == "video")
-        assert(arguments.offset() == 1L)
-        assert(arguments.length() == 2L)
-
-        verify(exactly = 1) {
-            client.getObject(any())
-        }
-        confirmVerified(client)
-    }
-
-    @Test
-    fun testGetObjectChunkStreamCallsClientWithCorrectParamsAndReturnsStreamForTempFile() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            repoId = "repo123"
-        )
-
-        val argumentSlot = slot<GetObjectArgs>()
-        val stream = mockk<GetObjectResponse>()
-        every { client.getObject(capture(argumentSlot)) } returns stream
-
-        // Act
-        val result = underTest.getObjectChunkStream(cacheObject, 2, 1, true)
-
-        // Assert
-        assert(result == stream)
-        val arguments = argumentSlot.captured
-        assert(arguments.`object`() == "video/123/abc123.mp4")
-        assert(arguments.bucket() == "temp")
-        assert(arguments.offset() == 1L)
-        assert(arguments.length() == 2L)
-
-        verify(exactly = 1) {
-            client.getObject(any())
-        }
-        confirmVerified(client)
-    }
-
-    /**
-    @Test
-    fun testGetObjectChunkStreamCallsClientWithCorrectParamsAndReturnsStreamForStaticLink() {
-        // Arrange
-        val bucket = "mybucket"
-        val path = "mypath"
-        val argumentSlot = slot<GetObjectArgs>()
-        val stream = mockk<GetObjectResponse>()
-        every { client.getObject(capture(argumentSlot)) } returns stream
-
-        // Act
-        val result = underTest.getObjectChunkStream(bucket, path, 1, 2)
-
-        // Assert
-        assert(result == stream)
-        val arguments = argumentSlot.captured
-        assert(arguments.`object`() == path)
-        assert(arguments.bucket() == bucket)
-        assert(arguments.offset() == 1L)
-        assert(arguments.length() == 2L)
-
-        verify(exactly = 1) {
-            client.getObject(any())
-        }
-        confirmVerified(client)
-    }
-    */
-
-    @Test
-    fun testPutTempFileCallsClientWithCorrectParams() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            size = 12222,
-            repoId = "repo123"
-        )
-        val argumentSlot = slot<PutObjectArgs>()
-        val stream = "1234".byteInputStream()
-
-        every { client.bucketExists(any()) } returns true
-        every { client.putObject(capture(argumentSlot)) } returns mockk<ObjectWriteResponse>()
-
-        // Act
-        underTest.putTempFile(cacheObject, stream)
-
-        // Assert
-        val arguments = argumentSlot.captured
-        assert(arguments.stream().readAllBytes().toString(Charsets.UTF_8) == "1234")
-        assert(arguments.bucket() == "temp")
-        assert(arguments.`object`() == "video/123/abc123.mp4")
-        assert(arguments.contentType() == "video/mp4")
-        assert(arguments.objectSize() == 12222L)
+        assert(getObjectArgsSlot.isCaptured)
+        assert(getObjectArgsSlot.captured.`object`() == "file-pdf/123/abc123.pdf")
+        assert(getObjectArgsSlot.captured.bucket() == "temp")
 
         verifySequence {
-            client.bucketExists(any())
-            client.putObject(capture(argumentSlot))
+            bucketStrategy.getExtensionFromMimeType("application/pdf")
+            client.getObject(capture(getObjectArgsSlot))
         }
     }
 
     @Test
-    fun testPutTempFileCallsClientWithCorrectParamsIfSizeNotSet() {
+    fun testGetObjectStreamStaticCallsClientWithProperArguments() {
         // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            size = -1,
-            repoId = "repo123"
-        )
-        val argumentSlot = slot<PutObjectArgs>()
-        val stream = "1234".byteInputStream()
+        val cacheObject = mockk<CacheObject>()
+        val getObjectArgsSlot = slot<GetObjectArgs>()
+        val stream = mockk<GetObjectResponse>()
 
-        every { client.bucketExists(any()) } returns true
-        every { client.putObject(capture(argumentSlot)) } returns mockk<ObjectWriteResponse>()
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every {bucketStrategy.getStoragePath(cacheObject, "testpath") } returns "targetpath"
+        every { client.getObject(capture(getObjectArgsSlot)) } returns stream
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
 
         // Act
-        underTest.putTempFile(cacheObject, stream)
+        val result = underTest.getObjectStream(cacheObject, "testpath")
 
         // Assert
-        val arguments = argumentSlot.captured
-        assert(arguments.stream().readAllBytes().toString(Charsets.UTF_8) == "1234")
-        assert(arguments.bucket() == "temp")
-        assert(arguments.`object`() == "video/123/abc123.mp4")
-        assert(arguments.contentType() == "video/mp4")
-        assert(arguments.objectSize() == -1L)
-        assert(arguments.partSize() == underTest.defaultChunkSize)
+        assert(result == stream)
+        assert(getObjectArgsSlot.isCaptured)
+        assert(getObjectArgsSlot.captured.`object`() == "targetpath")
+        assert(getObjectArgsSlot.captured.bucket() == "targetbucket")
 
         verifySequence {
-            client.bucketExists(any())
-            client.putObject(capture(argumentSlot))
+            bucketStrategy.getBucket(cacheObject)
+            bucketStrategy.getStoragePath(cacheObject, "testpath")
+            client.getObject(capture(getObjectArgsSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
         }
     }
 
     @Test
-    fun testGetFilePropertiesCorrectlyMapsStatsReturnedByClient() {
+    fun testGetObjectChunkStreamCallsClientWithProperArguments() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val getObjectArgsSlot = slot<GetObjectArgs>()
+        val stream = mockk<GetObjectResponse>()
+
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "targetpath"
+        every { client.getObject(capture(getObjectArgsSlot)) } returns stream
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
+
+        // Act
+        val result = underTest.getObjectChunkStream(cacheObject, 5, 10, false)
+
+        // Assert
+        assert(result == stream)
+        assert(getObjectArgsSlot.isCaptured)
+        assert(getObjectArgsSlot.captured.`object`() == "targetpath")
+        assert(getObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(getObjectArgsSlot.captured.offset() == 10L)
+        assert(getObjectArgsSlot.captured.length() == 5L)
+
+        verifySequence {
+            bucketStrategy.getBucket(cacheObject)
+            bucketStrategy.getStoragePath(cacheObject)
+            client.getObject(capture(getObjectArgsSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
+        }
+    }
+
+    @Test
+    fun testGetObjectChunkStreamCallsClientWithProperArgumentsForTempObject() {
         // Arrange
         val cacheObject = CacheObject(
             nodeId = "123",
-            type = "video",
+            type = "file-pdf",
             hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            size = 1233,
-            repoId = "repo123"
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
         )
 
-        val statResponse = mockk<StatObjectResponse>()
-        every { statResponse.size() } returns 12345
-        every { statResponse.contentType() } returns "video/mp3"
-        every { client.statObject(any()) } returns statResponse
+        val getObjectArgsSlot = slot<GetObjectArgs>()
+        val stream = mockk<GetObjectResponse>()
 
-        excludeRecords {
-            statResponse.size()
-            statResponse.contentType()
-        }
+        every { bucketStrategy.getExtensionFromMimeType("application/pdf") } returns ".pdf"
+        every { client.getObject(capture(getObjectArgsSlot)) } returns stream
 
         // Act
-        val result = underTest.getFileProperties(cacheObject)
+        val result = underTest.getObjectChunkStream(cacheObject, 5, 10, true)
+
+        assert(result == stream)
+        assert(getObjectArgsSlot.isCaptured)
+        assert(getObjectArgsSlot.captured.`object`() == "file-pdf/123/abc123.pdf")
+        assert(getObjectArgsSlot.captured.bucket() == "temp")
+        assert(getObjectArgsSlot.captured.offset() == 10L)
+        assert(getObjectArgsSlot.captured.length() == 5L)
+
+        verifySequence {
+            bucketStrategy.getExtensionFromMimeType("application/pdf")
+            client.getObject(capture(getObjectArgsSlot))
+        }
+    }
+
+    @Test
+    fun testGetObjectChunkStreamStaticCallsClientWithProperArguments() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val getObjectArgsSlot = slot<GetObjectArgs>()
+        val stream = mockk<GetObjectResponse>()
+
+        every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
+        every { bucketStrategy.getStoragePath(cacheObject, "inputpath") } returns "targetpath"
+        every { client.getObject(capture(getObjectArgsSlot)) } returns stream
+        justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
+
+        // Act
+        val result = underTest.getObjectChunkStream(cacheObject, "inputpath", 5, 10)
 
         // Assert
-        assert(CachedObjectDetails.size == 12345L)
-        assert(CachedObjectDetails.mimeType == "video/mp3")
+        assert(stream == result)
+        assert(getObjectArgsSlot.isCaptured)
+        assert(getObjectArgsSlot.captured.bucket() == "targetbucket")
+        assert(getObjectArgsSlot.captured.`object`() == "targetpath")
+        assert(getObjectArgsSlot.captured.offset() == 5L)
+        assert(getObjectArgsSlot.captured.length() == 10L)
 
-        verify (exactly = 1) {client.statObject(any())}
-        confirmVerified(client)
-    }
-
-    @Test
-    fun testGetFilePropertiesThrowsExceptionIfClientThrowsException() {
-        // Arrange
-        val cacheObject = CacheObject(
-            nodeId = "123",
-            type = "video",
-            hash = "abc123",
-            quality = 100,
-            mimeType = "video/mp4",
-            size = 1233,
-            repoId = "repo123"
-        )
-
-        every { client.statObject(any()) } throws Exception("")
-
-        // Act
-        assertThrows<ResourceNotFoundException> { underTest.getFileProperties(cacheObject) }
-
-        verify (exactly = 1) {client.statObject(any())}
-        confirmVerified(client)
-    }
-
-
-    @Test
-    fun testGetFilePropertiesCorrectlyMapsStatsReturnedByClientForStaticObject() {
-        // Arrange
-        val path = "mypath"
-        val bucket = "mybucket"
-
-        val statResponse = mockk<StatObjectResponse>()
-        every { statResponse.size() } returns 12345
-        every { statResponse.contentType() } returns "video/mp3"
-        every { client.statObject(any()) } returns statResponse
-
-        excludeRecords {
-            statResponse.size()
-            statResponse.contentType()
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, "inputpath")
+            bucketStrategy.getBucket(cacheObject)
+            client.getObject(capture(getObjectArgsSlot))
+            trackingService.trackCacheObject(cacheObject, "targetbucket")
         }
-
-        // Act
-        val result = underTest.getFileProperties(bucket, path)
-
-        // Assert
-        assert(result.size == 12345L)
-        assert(result.mimeType == "video/mp3")
-
-        verify (exactly = 1) {client.statObject(any())}
-        confirmVerified(client)
     }
-
-
-    @Test
-    fun testGetFilePropertiesThrowsExceptionIfClientThrowsExceptionForStaticObject() {
-        // Arrange
-        val path = "mypath"
-        val bucket = "mybucket"
-
-        every { client.statObject(any()) } throws Exception("")
-
-        // Act
-        assertThrows<ResourceNotFoundException> { underTest.getFileProperties(bucket, path) }
-
-        verify (exactly = 1) {client.statObject(any())}
-        confirmVerified(client)
-    }
-     */
 }
