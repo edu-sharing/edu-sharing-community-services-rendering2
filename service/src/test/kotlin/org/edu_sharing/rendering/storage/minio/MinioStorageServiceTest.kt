@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.http.MediaType
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.ByteArrayInputStream
 import java.net.URLDecoder
@@ -641,7 +642,7 @@ class MinioStorageServiceTest {
         val stream = mockk<GetObjectResponse>()
 
         every { bucketStrategy.getBucket(cacheObject) } returns "targetbucket"
-        every {bucketStrategy.getStoragePath(cacheObject, "testpath") } returns "targetpath"
+        every { bucketStrategy.getStoragePath(cacheObject, "testpath") } returns "targetpath"
         every { client.getObject(capture(getObjectArgsSlot)) } returns stream
         justRun { trackingService.trackCacheObject(cacheObject, "targetbucket") }
 
@@ -758,4 +759,325 @@ class MinioStorageServiceTest {
             trackingService.trackCacheObject(cacheObject, "targetbucket")
         }
     }
+
+    @Test
+    fun testPutTempFileCallsClientWithProperArgumentForObjectOfKnownSizeWithProvidedMimeType() {
+        // Arrange
+        val cacheObject = CacheObject(
+            nodeId = "123",
+            type = "file-pdf",
+            hash = "abc123",
+            mimeType = "application/pdf",
+            size = 145,
+            repoId = "repoId123",
+            quality = 1
+        )
+
+        val stream = "abc123".toByteArray().inputStream()
+        val bucketExistArgSlot = slot<BucketExistsArgs>()
+        val putObjectArgSlot = slot<PutObjectArgs>()
+
+        every { client.bucketExists(capture(bucketExistArgSlot)) } returns true
+        every { bucketStrategy.getExtensionFromMimeType("application/pdf") } returns ".pdf"
+        every { client.putObject(capture(putObjectArgSlot)) } returns mockk<ObjectWriteResponse>()
+
+        // Act
+        underTest.putTempFile(cacheObject, stream)
+
+        // Assert
+        assert(bucketExistArgSlot.isCaptured)
+        assert(bucketExistArgSlot.captured.bucket() == "temp")
+
+        val capturedObjectArgs = putObjectArgSlot.captured
+        assert(capturedObjectArgs.bucket() == "temp")
+        assert(capturedObjectArgs.stream().readAllBytes().toString(Charsets.UTF_8) == "abc123")
+        assert(capturedObjectArgs.`object`() == "file-pdf/123/abc123.pdf")
+        assert(capturedObjectArgs.contentType() == "application/pdf")
+        assert(capturedObjectArgs.objectSize() == 145L)
+        val writtenMetadata = capturedObjectArgs.userMetadata()
+        assert(writtenMetadata.size() == 0)
+
+        verifySequence {
+            client.bucketExists(capture(bucketExistArgSlot))
+            bucketStrategy.getExtensionFromMimeType("application/pdf")
+            client.putObject(capture(putObjectArgSlot))
+        }
+    }
+
+    @Test
+    fun testPutTempFileCallsClientWithProperArgumentForObjectOfUnknownSizeWithoutProvidedMimeType() {
+        // Arrange
+        val cacheObject = CacheObject(
+            nodeId = "123",
+            type = "file-pdf",
+            hash = "abc123",
+            mimeType = "",
+            size = -1,
+            repoId = "repoId123",
+            quality = 1
+        )
+
+        val stream = "abc123".toByteArray().inputStream()
+        val bucketExistArgSlot = slot<BucketExistsArgs>()
+        val putObjectArgSlot = slot<PutObjectArgs>()
+
+        every { client.bucketExists(capture(bucketExistArgSlot)) } returns true
+        every { bucketStrategy.getExtensionFromMimeType("") } returns ""
+        every { client.putObject(capture(putObjectArgSlot)) } returns mockk<ObjectWriteResponse>()
+
+        // Act
+        underTest.putTempFile(cacheObject, stream)
+
+        // Assert
+        assert(bucketExistArgSlot.isCaptured)
+        assert(bucketExistArgSlot.captured.bucket() == "temp")
+
+        val capturedObjectArgs = putObjectArgSlot.captured
+        assert(capturedObjectArgs.bucket() == "temp")
+        assert(capturedObjectArgs.stream().readAllBytes().toString(Charsets.UTF_8) == "abc123")
+        assert(capturedObjectArgs.`object`() == "file-pdf/123/abc123")
+        assert(capturedObjectArgs.contentType() == MediaType.APPLICATION_OCTET_STREAM_VALUE)
+        assert(capturedObjectArgs.objectSize() == -1L)
+        val writtenMetadata = capturedObjectArgs.userMetadata()
+        assert(writtenMetadata.size() == 0)
+
+        verifySequence {
+            client.bucketExists(capture(bucketExistArgSlot))
+            bucketStrategy.getExtensionFromMimeType("")
+            client.putObject(capture(putObjectArgSlot))
+        }
+    }
+
+    @Test
+    fun testGetFilePropertiesCallsServiceWithProperArgsAndReturnsExpectedValues() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+
+        val statObjectSlot = slot<StatObjectArgs>()
+        val clientResponse = mockk<StatObjectResponse>()
+
+        every { clientResponse.size() } returns 123L
+        every { clientResponse.contentType() } returns "application/pdf"
+
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(capture(statObjectSlot)) } returns clientResponse
+
+        excludeRecords{
+            clientResponse.size()
+            clientResponse.contentType()
+        }
+
+        // Act
+        val result = underTest.getFileProperties(cacheObject)
+
+        // Assert
+        assert(statObjectSlot.isCaptured)
+        assert(statObjectSlot.captured.bucket() == "somebucket")
+        assert(statObjectSlot.captured.`object`() == "somepath")
+
+        assert(result.size == 123L)
+        assert(result.mimeType == "application/pdf")
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectSlot))
+        }
+    }
+
+    @Test
+    fun testGetFilePropertiesThrowsProperExceptionIfClientThrowsException() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(any()) } throws Exception()
+
+        // Act and Assert
+        assertThrows<ResourceNotFoundException> { underTest.getFileProperties(cacheObject) }
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(any())
+        }
+    }
+
+    @Test
+    fun testGetFilePropertiesStaticCallsServiceWithProperArgsAndReturnsExpectedValues() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val path = "inputpath"
+
+        val statObjectSlot = slot<StatObjectArgs>()
+        val clientResponse = mockk<StatObjectResponse>()
+
+        every { clientResponse.size() } returns 123L
+        every { clientResponse.contentType() } returns "application/pdf"
+
+        every { bucketStrategy.getStoragePath(cacheObject, path) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(capture(statObjectSlot)) } returns clientResponse
+
+        excludeRecords{
+            clientResponse.size()
+            clientResponse.contentType()
+        }
+
+        // Act
+        val result = underTest.getFileProperties(cacheObject, path)
+
+        // Assert
+        assert(statObjectSlot.isCaptured)
+        assert(statObjectSlot.captured.bucket() == "somebucket")
+        assert(statObjectSlot.captured.`object`() == "somepath")
+
+        assert(result.size == 123L)
+        assert(result.mimeType == "application/pdf")
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, path)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectSlot))
+        }
+    }
+
+    @Test
+    fun testGetFilePropertiesStaticThrowsProperExceptionIfClientThrowsException() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val path = "inputpath"
+
+        every { bucketStrategy.getStoragePath(cacheObject, path) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(any()) } throws Exception()
+
+        // Act and Assert
+        assertThrows<ResourceNotFoundException> { underTest.getFileProperties(cacheObject, path) }
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, path)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(any())
+        }
+    }
+
+    @Test
+    fun testObjectExistsReturnsTrueIfStatObjectFound() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+
+        val statObjectSlot = slot<StatObjectArgs>()
+        val clientResponse = mockk<StatObjectResponse>()
+
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(capture(statObjectSlot)) } returns clientResponse
+
+        // Act
+        val result = underTest.objectExists(cacheObject)
+
+        // Assert
+        assert(statObjectSlot.isCaptured)
+        assert(statObjectSlot.captured.bucket() == "somebucket")
+        assert(statObjectSlot.captured.`object`() == "somepath")
+
+        assert(result == true)
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectSlot))
+        }
+    }
+
+    @Test
+    fun testObjectExistsReturnsFalseIfStatObjectNotFound() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+
+        val statObjectSlot = slot<StatObjectArgs>()
+
+        every { bucketStrategy.getStoragePath(cacheObject) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(capture(statObjectSlot)) } throws Exception()
+
+        // Act
+        val result = underTest.objectExists(cacheObject)
+
+        // Assert
+        assert(statObjectSlot.isCaptured)
+        assert(statObjectSlot.captured.bucket() == "somebucket")
+        assert(statObjectSlot.captured.`object`() == "somepath")
+
+        assert(result == false)
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectSlot))
+        }
+    }
+
+    @Test
+    fun testObjectExistsStaticReturnsTrueIfStatObjectFound() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val path = "inputpath"
+
+        val statObjectSlot = slot<StatObjectArgs>()
+        val clientResponse = mockk<StatObjectResponse>()
+
+        every { bucketStrategy.getStoragePath(cacheObject, path) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(capture(statObjectSlot)) } returns clientResponse
+
+        // Act
+        val result = underTest.objectExists(cacheObject, path)
+
+        // Assert
+        assert(statObjectSlot.isCaptured)
+        assert(statObjectSlot.captured.bucket() == "somebucket")
+        assert(statObjectSlot.captured.`object`() == "somepath")
+
+        assert(result == true)
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, path)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectSlot))
+        }
+    }
+
+    @Test
+    fun testObjectExistsStaticReturnsFalseIfStatObjectNotFound() {
+        // Arrange
+        val cacheObject = mockk<CacheObject>()
+        val path = "somepath"
+
+        val statObjectSlot = slot<StatObjectArgs>()
+
+        every { bucketStrategy.getStoragePath(cacheObject, path) } returns "somepath"
+        every { bucketStrategy.getBucket(cacheObject) } returns "somebucket"
+        every { client.statObject(capture(statObjectSlot)) } throws Exception()
+
+        // Act
+        val result = underTest.objectExists(cacheObject, path)
+
+        // Assert
+        assert(statObjectSlot.isCaptured)
+        assert(statObjectSlot.captured.bucket() == "somebucket")
+        assert(statObjectSlot.captured.`object`() == "somepath")
+
+        assert(result == false)
+
+        verifySequence {
+            bucketStrategy.getStoragePath(cacheObject, path)
+            bucketStrategy.getBucket(cacheObject)
+            client.statObject(capture(statObjectSlot))
+        }
+    }
+
 }

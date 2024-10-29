@@ -24,7 +24,7 @@ abstract class BaseBucketStrategy : BucketStrategy {
 
     override fun getCacheObjectFromStaticPath(path: String): Pair<CacheObject, String> {
         val pathVars = path.trimStart('/').split("/", limit = 5)
-        if (pathVars.size < 4) {
+        if (pathVars.size < 5) {
             throw IllegalArgumentException("Invalid number of path arguments")
         }
         return Pair(CacheObject.of(

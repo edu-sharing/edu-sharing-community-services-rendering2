@@ -21,6 +21,7 @@ import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
@@ -260,7 +261,7 @@ class MinioStorageService(
                 .bucket("temp")
                 .`object`(this.getTempPath(cacheObject))
                 .stream(inputStream, cacheObject.size, if (cacheObject.size < 0) defaultChunkSize else -1)
-                .contentType(cacheObject.mimeType)
+                .contentType(if (cacheObject.mimeType.isNotBlank()) cacheObject.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
                 .build()
         )
     }
@@ -278,6 +279,9 @@ class MinioStorageService(
         }
     }
 
+    /**
+     * Method for static interface
+     */
     override fun getFileProperties(cacheObject: CacheObject, path: String): CachedObjectDetails {
         try {
             val statObject = getStatObject(cacheObject, path)

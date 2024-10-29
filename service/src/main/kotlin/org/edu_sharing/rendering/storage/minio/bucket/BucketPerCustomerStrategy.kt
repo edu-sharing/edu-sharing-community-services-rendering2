@@ -20,6 +20,6 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
         path: String
     ): String {
         val storagePath = getStoragePath(cacheObject, path)
-        return "/${cacheObject.repoId}/$storagePath"
+        return "/${cacheObject.repoId}/${storagePath.trimStart('/')}"
     }
 }
