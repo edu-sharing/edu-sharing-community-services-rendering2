@@ -1,10 +1,53 @@
-FROM python:3.13-alpine
-LABEL authors="metaventis"
+FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-bullseye AS builder
 
 RUN pip install poetry==1.8.3
 
-COPY . .
 
-RUN poetry install
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
-ENTRYPOINT ["poetry", "run", "python", "-m", "main"]
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock ./
+RUN touch README.md
+
+RUN poetry install --only main --no-root
+RUN rm -rf $POETRY_CACHE_DIR
+
+
+FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-slim-bullseye
+
+ARG git_branch=dev
+ARG git_closest_tag_fixed=dev
+ARG git_commit_id=dev
+ARG git_dirty=dev
+ARG project_artifactId=edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter
+ARG project_groupId=org.edu_sharing
+ARG project_version=dev
+
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR app
+
+RUN set -eux \
+    && adduser --uid=1000 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
+    && chown -RL worker:worker . \
+    && chown -RL worker:worker /tmp
+
+USER worker
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+
+COPY main.py ./main.py
+
+ENTRYPOINT ["python", "-m", "main"]
+
+LABEL git.branch=${git_branch} \
+git.closest.tag.name=${git_closest_tag_fixed} \
+git.commit.id=${git_commit_id} \
+git.dirty=${git_dirty} \
+mvn.project.artifactId=${project_artifactId} \
+mvn.project.groupId=${project_groupId} \
+mvn.project.version=${project_version}
