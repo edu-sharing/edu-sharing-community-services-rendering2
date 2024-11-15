@@ -21,7 +21,6 @@ FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-slim-bullseye
 
 ARG git_branch=dev
 ARG git_commit_id=dev
-ARG git_dirty=dev
 ARG project_artifactId=edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter
 ARG project_groupId=org.edu_sharing
 ARG project_version=dev
@@ -45,7 +44,6 @@ ENTRYPOINT ["python", "-m", "main"]
 
 LABEL git.branch=${git_branch} \
 git.commit.id=${git_commit_id} \
-git.dirty=${git_dirty} \
 mvn.project.artifactId=${project_artifactId} \
 mvn.project.groupId=${project_groupId} \
 mvn.project.version=${project_version}
