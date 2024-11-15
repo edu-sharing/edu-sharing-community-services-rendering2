@@ -20,7 +20,6 @@ RUN rm -rf $POETRY_CACHE_DIR
 FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-slim-bullseye
 
 ARG git_branch=dev
-ARG git_closest_tag_fixed=dev
 ARG git_commit_id=dev
 ARG git_dirty=dev
 ARG project_artifactId=edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter
@@ -45,7 +44,6 @@ COPY main.py ./main.py
 ENTRYPOINT ["python", "-m", "main"]
 
 LABEL git.branch=${git_branch} \
-git.closest.tag.name=${git_closest_tag_fixed} \
 git.commit.id=${git_commit_id} \
 git.dirty=${git_dirty} \
 mvn.project.artifactId=${project_artifactId} \
