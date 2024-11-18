@@ -29,7 +29,7 @@ deploy:
   variables:
     ENABLE_DOCKER_DAEMON_BUILD: "false"
   script:
-    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy -DskipTests
+    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy
 
 
 build-jupyter-converter:
