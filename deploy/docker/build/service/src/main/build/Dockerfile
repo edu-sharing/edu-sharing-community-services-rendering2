@@ -12,11 +12,6 @@ FROM ${docker.from.eclipse-temurin.21}
 VOLUME /tmp
 WORKDIR application
 
-#RUN set -eux \
-#    && adduser --uid=1000 --home=/application --gecos "" --shell=/bin/bash worker \
-#    && chown -RL worker:worker . \
-#    && chown -RL worker:worker /tmp
-
 RUN set -eux \
     && adduser --uid=1000 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
     && chown -RL worker:worker . \
