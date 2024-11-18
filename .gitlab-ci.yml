@@ -36,7 +36,8 @@ deploy:
     - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy
   artifacts:
     paths:
-      - Backend/services/module/target/surefire-reports
+      - service/target/surefire-reports
+      - document-converter/target/surefire-reports
     when: on_failure
     expire_in: 3 day
 
