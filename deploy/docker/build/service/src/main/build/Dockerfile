@@ -12,7 +12,7 @@ VOLUME /tmp
 WORKDIR application
 
 RUN set -eux \
-    && adduser --uid=1001 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
+    && adduser --uid=1002 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
     && chown -RL worker:worker . \
     && chown -RL worker:worker /tmp
 
