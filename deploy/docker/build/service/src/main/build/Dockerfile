@@ -8,17 +8,12 @@ RUN if [[ -z "$(ls -A ./snapshot-dependencies)" ]] ; then touch ./snapshot-depen
 
 FROM ${docker.from.eclipse-temurin.21}
 
-
 VOLUME /tmp
 WORKDIR application
 
 RUN set -eux \
-    && adduser --uid=1001 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker
-
-RUN set -eux \
-    && chown -RL worker:worker .
-
-RUN set -eux \
+    && adduser --uid=1001 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
+    && chown -RL worker:worker . \
     && chown -RL worker:worker /tmp
 
 
