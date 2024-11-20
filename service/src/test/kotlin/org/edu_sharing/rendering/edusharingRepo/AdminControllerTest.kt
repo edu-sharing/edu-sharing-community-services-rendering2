@@ -27,13 +27,13 @@ class AdminControllerTest(@Autowired val mockMvc: MockMvc) {
     @Test
     fun testRegisterWithRepoFetchesRepoKeyViaService() {
         // Arrange
-        justRun { service.registerWithRepository() }
+        justRun { service.registerWithRepository(body) }
 
         // Act
         mockMvc.perform(put("/admin/repository/register")).andExpect(status().isOk).andReturn()
 
         // Assert
-        verify(exactly = 1) { service.registerWithRepository() }
+        verify(exactly = 1) { service.registerWithRepository(body) }
         confirmVerified(service)
     }
 

@@ -1,40 +1,35 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import org.edu_sharing.rendering.edusharingRepo.config.AppConfig
-import org.edu_sharing.rendering.edusharingRepo.repository.AppConfigRepository
+import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
+import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
 import java.util.*
 
 @Service
 class MetadataService(
-    private val repository: AppConfigRepository
+    private val repository: RendererKeyConfigRepository
 ) : PrivatePublicKeyService {
 
-    fun getConfig(): AppConfig {
+    fun getConfig(): RendererKeyConfig {
         return repository.findById("0")
-            .orElse(AppConfig())
+            .orElse(RendererKeyConfig())
 //            .orElseThrow { throw EntryNotFoundException("No config found in database.") }
     }
 
-    fun storeConfig(appConfig: AppConfig) {
-        repository.save(appConfig)
+    fun storeConfig(rendererKeyConfig: RendererKeyConfig) {
+        repository.save(rendererKeyConfig)
     }
 
     override fun hasKeyPair() : Boolean {
         return !getConfig().privateKey.isNullOrBlank() && !getConfig().publicKey.isNullOrBlank()
     }
 
-    override fun hasRepositoryKey(): Boolean {
-        return !getConfig().repoPublicKey.isNullOrBlank()
-    }
 
-
-    @CacheEvict(cacheNames = ["privateKey"])
+    @CacheEvict("privateKey")
     override fun generateApplicationKeyPair() {
         val generator = KeyPairGenerator.getInstance("RSA")
         generator.initialize(2048)
@@ -48,29 +43,29 @@ class MetadataService(
         storeConfig(appConfig)
     }
 
-    @CacheEvict(cacheNames = ["repoPublicKey"])
-    override fun storeRepositoryKey(publicKey: String) {
-        val config = getConfig()
-        config.repoPublicKey = publicKey
-        storeConfig(config)
-    }
+//    @CacheEvict(cacheNames = ["repoPublicKey"])
+//    override fun storeRepositoryKey(publicKey: String) {
+//        val config = getConfig()
+//        config.repoPublicKey = publicKey
+//        storeConfig(config)
+//    }
+//
+//    @Throws(InvalidKeyException::class)
+//    @Cacheable(cacheNames = ["repoPublicKey"], unless = "true")
+//    override fun getRepositoryKey(): PublicKey {
+//        val config = getConfig()
+//        val publicKey = config.repoPublicKey
+//            ?: throw InvalidKeyException("No public key available. Please register the application with an edu-sharing repository first")
+//        val publicKeyData = publicKey
+//            .replace("-----BEGIN PUBLIC KEY-----", "")
+//            .replace("-----END PUBLIC KEY-----", "")
+//            .replace("\n", "")
+//
+//        val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
+//        return KeyFactory.getInstance("RSA").generatePublic(keySpec)
+//    }
 
-    @Throws(InvalidKeyException::class)
-    @Cacheable(cacheNames = ["repoPublicKey"], unless = "true")
-    override fun getRepositoryKey(): PublicKey {
-        val config = getConfig()
-        val publicKey = config.repoPublicKey
-            ?: throw InvalidKeyException("No public key available. Please register the application with an edu-sharing repository first")
-        val publicKeyData = publicKey
-            .replace("-----BEGIN PUBLIC KEY-----", "")
-            .replace("-----END PUBLIC KEY-----", "")
-            .replace("\n", "")
-
-        val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
-        return KeyFactory.getInstance("RSA").generatePublic(keySpec)
-    }
-
-    @Cacheable(cacheNames = ["privateKey"], unless = "true")
+    @Cacheable("privateKey")
     override fun getPrivateKey(): PrivateKey {
         val config = getConfig()
         val privateKey =

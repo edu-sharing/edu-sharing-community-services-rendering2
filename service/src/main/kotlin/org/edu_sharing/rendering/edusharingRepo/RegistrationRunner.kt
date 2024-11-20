@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.slf4j.LoggerFactory
@@ -9,28 +10,31 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.security.InvalidKeyException
-
+// TODO nur ein bestimmter node ggf! Rolle Master?
 @Component
-@ConditionalOnProperty(name = ["edu_sharing.registration.enabled"], havingValue = "true")
+@ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true")
 class RegistrationRunner(
     private val privatePublicKeyService: PrivatePublicKeyService,
-    private var repositoryRegistrationService: RepositoryRegistrationService
+    private var repositoryRegistrationService: RepositoryRegistrationService,
+    private var repositoryRegistrationConfig: RepositoryRegistrationConfig
+
+
 ) : ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Transactional
+
     override fun run(args: ApplicationArguments?) {
         if (!privatePublicKeyService.hasKeyPair()) {
             privatePublicKeyService.generateApplicationKeyPair()
         }
 
-        if (!privatePublicKeyService.hasRepositoryKey()) {
+        repositoryRegistrationConfig.getAllRegistrations().forEach {
             try {
-                repositoryRegistrationService.registerWithRepository()
-                log.info("Registration completed")
+                repositoryRegistrationService.registerWithRepository(it, true)
+                log.info("Registration completed for {}", it.url)
             } catch (e: InvalidKeyException) {
-                log.warn("Registration incomplete: {}", e.message, e)
+                log.warn("Registration failed for {} with\n {}", it.url, e.message, e)
             } catch (e: Exception) {
                 log.error(e.message, e)
             }

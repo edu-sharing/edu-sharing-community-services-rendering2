@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Service
-import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
 import java.net.URLEncoder
@@ -16,8 +15,8 @@ import java.util.*
 
 @Service
 class ContentTransferService(
+    private val repoRegistrationService: RepositoryRegistrationService,
     private val privatePublicKeyService: PrivatePublicKeyService,
-    private val eduSharingWebClient: WebClient,
     @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader
 ) {
     @Value("\${app.appId}")
@@ -40,7 +39,8 @@ class ContentTransferService(
         dsa.initSign(privateKey)
         dsa.update(sigData.toByteArray())
         val signed = dsa.sign()
-        val returnedData = eduSharingWebClient.get()
+        val returnedData = repoRegistrationService.getWebClientByRepoId(cacheObject.repoId)
+            .get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
                     .path("/content")

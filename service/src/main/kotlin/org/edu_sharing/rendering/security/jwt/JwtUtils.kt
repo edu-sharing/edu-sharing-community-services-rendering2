@@ -1,18 +1,49 @@
 package org.edu_sharing.rendering.security.jwt
 
-import io.jsonwebtoken.ExpiredJwtException
-import io.jsonwebtoken.JwtParser
-import io.jsonwebtoken.MalformedJwtException
-import io.jsonwebtoken.UnsupportedJwtException
+import io.jsonwebtoken.*
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.security.NodePermission
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.GrantedAuthority
+import org.springframework.stereotype.Component
 import java.security.InvalidKeyException
+import java.security.Key
 import java.time.LocalDateTime
 
-class JwtUtils(private val jwtParser: JwtParser) {
+
+@Component
+class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyService) {
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val jwtParser = Jwts.parser().keyLocator(JWTKeyLocator()).build()
+
+    inner class JWTKeyLocator : Locator<Key> {
+
+        override fun locate(header: Header?): Key? {
+            if (header == null) {
+                return null
+            }
+
+            val repoId = header["repoId"].toString()
+            return repositoryPublicKeyService.getRepositoryKey(repoId)
+        }
+    }
+
+    private class JWTNodePermissionResolver : SupportedJwtVisitor<NodePermission>() {
+
+        override fun onVerifiedClaims(jws: Jws<Claims>?): NodePermission? {
+            if (jws != null) {
+                return NodePermission(
+                    jws.payload.get("node", String::class.java),
+                    (jws.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
+                    jws.payload.get("mimeType", String::class.java),
+                    jws.payload.get("mediaType", String::class.java),
+                    LocalDateTime.now()
+                )
+            }
+            return null;
+        }
+    }
 
     fun validateJwtToken(jwt: String): Boolean {
         try {
@@ -44,15 +75,7 @@ class JwtUtils(private val jwtParser: JwtParser) {
         )
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun getNodePermissions(jwt: String): NodePermission {
-        val jwtObj = jwtParser.parseSignedClaims(jwt)
-        return NodePermission(
-            jwtObj.payload.get("node", String::class.java),
-            (jwtObj.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
-            jwtObj.payload.get("mimeType", String::class.java),
-            jwtObj.payload.get("mediaType", String::class.java),
-            LocalDateTime.now()
-        )
+        return jwtParser.parse(jwt).accept(JWTNodePermissionResolver())
     }
 }

@@ -2,8 +2,8 @@ package org.edu_sharing.rendering.edusharingRepo.services
 
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.edusharingRepo.config.AppConfig
-import org.edu_sharing.rendering.edusharingRepo.repository.AppConfigRepository
+import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
+import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -19,7 +19,7 @@ import java.util.*
 
 @ExtendWith(MockKExtension::class)
 class MetaDataServiceTest {
-    private val repository = mockk<AppConfigRepository>()
+    private val repository = mockk<RendererKeyConfigRepository>()
     lateinit var underTest: MetadataService
 
     @BeforeEach
@@ -30,7 +30,7 @@ class MetaDataServiceTest {
     @Test
     fun testGetConfigReturnsAppConfigReturnedFromRepository() {
         // Arrange
-        val config = AppConfig(repoPublicKey = "testKey")
+        val config = RendererKeyConfig(repoPublicKey = "testKey")
         every { repository.findById("0") } returns Optional.of(config)
 
         // Act
@@ -65,21 +65,21 @@ class MetaDataServiceTest {
     @Test
     fun testStoreConfigCallsRepositorySaveMethod() {
         // Arrange
-        val appConfig = mockk<AppConfig>()
-        every { repository.save(appConfig) } returns appConfig
+        val rendererKeyConfig = mockk<RendererKeyConfig>()
+        every { repository.save(rendererKeyConfig) } returns rendererKeyConfig
 
         // Act
-        underTest.storeConfig(appConfig)
+        underTest.storeConfig(rendererKeyConfig)
 
         // Assert
-        verify(exactly = 1) { repository.save(appConfig) }
+        verify(exactly = 1) { repository.save(rendererKeyConfig) }
         confirmVerified(repository)
     }
 
     @Test
     fun testHasKeyPairReturnsFalseIfBothKeysAreNull() {
         // Arrange
-        every { repository.findById("0") } returns Optional.of(AppConfig())
+        every { repository.findById("0") } returns Optional.of(RendererKeyConfig())
 
         // Act
         val result = underTest.hasKeyPair()
@@ -94,7 +94,7 @@ class MetaDataServiceTest {
     fun testHasKeyPairReturnsFalseIfBothKeysAreBlank() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(
+            RendererKeyConfig(
                 publicKey = "",
                 privateKey = "",
             )
@@ -113,7 +113,7 @@ class MetaDataServiceTest {
     fun testHasKeyPairReturnsFalseIfPrivateKeyIsBlank() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(
+            RendererKeyConfig(
                 publicKey = "123",
                 privateKey = "",
             )
@@ -132,7 +132,7 @@ class MetaDataServiceTest {
     fun testHasKeyPairReturnsFalseIfPrivateKeyIsNull() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(
+            RendererKeyConfig(
                 publicKey = "123",
                 privateKey = null,
             )
@@ -151,7 +151,7 @@ class MetaDataServiceTest {
     fun testHasKeyPairReturnsFalseIfPublicKeyIsBlank() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(
+            RendererKeyConfig(
                 publicKey = "",
                 privateKey = "123",
             )
@@ -170,7 +170,7 @@ class MetaDataServiceTest {
     fun testHasKeyPairReturnsFalseIfPublicKeyIsNull() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(
+            RendererKeyConfig(
                 publicKey = null,
                 privateKey = "123",
             )
@@ -189,7 +189,7 @@ class MetaDataServiceTest {
     fun testHasKeyPairReturnsTrueIfBothKeysArePresent() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(
+            RendererKeyConfig(
                 publicKey = "123",
                 privateKey = "123",
             )
@@ -208,7 +208,7 @@ class MetaDataServiceTest {
     fun testHasRepositoryKeyReturnsFalseIfRepoKeyIsNull() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig()
+            RendererKeyConfig()
         )
 
         // Act
@@ -224,7 +224,7 @@ class MetaDataServiceTest {
     fun testHasRepositoryKeyReturnsFalseIfRepoKeyIsBlank() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(repoPublicKey = "")
+            RendererKeyConfig(repoPublicKey = "")
         )
 
         // Act
@@ -240,7 +240,7 @@ class MetaDataServiceTest {
     fun testHasRepositoryKeyReturnsTrueIfRepoKeyIsPresent() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig(repoPublicKey = "111")
+            RendererKeyConfig(repoPublicKey = "111")
         )
 
         // Act
@@ -256,10 +256,10 @@ class MetaDataServiceTest {
     fun testGenerateApplicationKeyPairGeneratesAndStoresValidKeyPair() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig()
+            RendererKeyConfig()
         )
-        val configSlot = slot<AppConfig>()
-        every { repository.save(capture(configSlot)) } returns mockk<AppConfig>()
+        val configSlot = slot<RendererKeyConfig>()
+        every { repository.save(capture(configSlot)) } returns mockk<RendererKeyConfig>()
 
         // Act
         underTest.generateApplicationKeyPair()
@@ -309,10 +309,10 @@ class MetaDataServiceTest {
     fun testStoreRepositoryKeyAddsRepoKeyToConfig() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig()
+            RendererKeyConfig()
         )
-        val configSlot = slot<AppConfig>()
-        every { repository.save(capture(configSlot)) } returns mockk<AppConfig>()
+        val configSlot = slot<RendererKeyConfig>()
+        every { repository.save(capture(configSlot)) } returns mockk<RendererKeyConfig>()
 
         // Act
         underTest.storeRepositoryKey("somekey")
@@ -330,7 +330,7 @@ class MetaDataServiceTest {
     fun testGetRepositoryKeyThrowsExceptionIfNoKeyStored() {
         // Arrange
         every { repository.findById("0") } returns Optional.of(
-            AppConfig()
+            RendererKeyConfig()
         )
 
         // Act
@@ -340,7 +340,7 @@ class MetaDataServiceTest {
     @Test
     fun testGetRepositoryKeyReturnsKeyInstanceIfKeyStored() {
         // Arrange
-        val config = mockk<AppConfig>()
+        val config = mockk<RendererKeyConfig>()
         val repoKeyString = "-----BEGIN PUBLIC KEY-----\n" +
                 "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwxetiK0FoTxnxCPdZU2y\n" +
                 "djbvT07rgEK+Z9LfQmPdCKiIHZtVE78/Jk21EI0n6W18sbJaSpuQ8AXEgj9DJu/7\n" +
@@ -366,7 +366,7 @@ class MetaDataServiceTest {
     @Test
     fun testGetPrivateKeyThrowsExceptionIfNotSetInConfig() {
         // Arrange
-        every { repository.findById("0") } returns Optional.of(AppConfig())
+        every { repository.findById("0") } returns Optional.of(RendererKeyConfig())
 
         // Act and assert
         assertThrows<InvalidKeyException> { underTest.getPrivateKey() }
@@ -381,10 +381,10 @@ class MetaDataServiceTest {
         val generator = KeyPairGenerator.getInstance("RSA")
         generator.initialize(2048)
         val keyPair = generator.generateKeyPair()
-        val appConfig = AppConfig()
-        appConfig.privateKey = Base64.getEncoder().encode(keyPair.private.encoded).decodeToString()
+        val rendererKeyConfig = RendererKeyConfig()
+        rendererKeyConfig.privateKey = Base64.getEncoder().encode(keyPair.private.encoded).decodeToString()
 
-        every { repository.findById("0") } returns Optional.of(appConfig)
+        every { repository.findById("0") } returns Optional.of(rendererKeyConfig)
 
         // Act and assert
         assertDoesNotThrow { underTest.getPrivateKey() }

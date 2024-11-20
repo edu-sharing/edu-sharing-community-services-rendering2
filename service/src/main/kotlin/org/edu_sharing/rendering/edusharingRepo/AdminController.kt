@@ -1,45 +1,68 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import jakarta.validation.Valid
+import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
+import org.edu_sharing.rendering.edusharingRepo.dto.RegistrationInfo
+import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PutMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.ResponseStatus
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.security.InvalidKeyException
 
 @RestController
+@ConditionalOnController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
-@ConditionalOnProperty(name = ["edu_sharing.registration.enabled"], havingValue = "true")
+@ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true", matchIfMissing = true)
 class AdminController(
     private val repositoryRegistrationService: RepositoryRegistrationService
 ) {
-    @PutMapping("/repository/register")
-    fun registerWithRepo() {
-        repositoryRegistrationService.registerWithRepository()
+
+    @GetMapping("/repository/register")
+    fun registeredRepos(): List<RegistrationInfo> {
+        return repositoryRegistrationService.getRegisteredRepositories()
+            .map { toRegistrationInfo(it) }
     }
 
-    @PatchMapping("/repository/publicKey")
-    fun updatePublicRepositoryKey(){
-        repositoryRegistrationService.updatePublicRepositoryKey()
+    @PostMapping("/repository/register")
+    fun registerWithRepo(@RequestBody @Valid body: RegisterRepositoryRequest): RegistrationInfo {
+        return toRegistrationInfo(repositoryRegistrationService.registerWithRepository(body))
+    }
+
+    @PatchMapping("/repository/register")
+    fun updateRepoRegistration(@RequestBody @Valid body: RegisterRepositoryRequest) {
+        repositoryRegistrationService.registerWithRepository(body, true)
+    }
+
+    @DeleteMapping("/repository/register")
+    fun deleteRepository(@RequestBody @Valid body: RemoveRepositoryRequest) {
+        repositoryRegistrationService.deleteRepository(body);
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(InvalidKeyException::class)
-    fun handleInvalidKeyException(exception : InvalidKeyException) : ResponseEntity<ErrorMessage> {
+    fun handleInvalidKeyException(exception: InvalidKeyException): ResponseEntity<ErrorMessage> {
         val message = ErrorMessage(
             HttpStatus.NOT_FOUND.value(),
             exception.message ?: ""
         )
 
         return ResponseEntity(message, HttpStatus.NOT_FOUND)
+    }
+
+    private fun toRegistrationInfo(entity: RepositoryRegistration): RegistrationInfo {
+        return RegistrationInfo(
+            repoId = entity.repoId,
+            url = entity.url,
+            publicKey = entity.publicKey
+        )
     }
 
 }

@@ -1,26 +1,56 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
+import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
+import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
+import org.edu_sharing.rendering.storage.StorageService
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.CachePut
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.scheduler.Schedulers
 import java.security.InvalidKeyException
+import java.security.KeyFactory
+import java.security.PublicKey
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 
+interface RepositoryPublicKeyService {
+    fun getRepositoryKey(repoId: String): PublicKey
+}
+
 @Service
-@ConditionalOnProperty(name = ["edu_sharing.registration.enabled"], havingValue = "true")
 class RepositoryRegistrationService(
-    private val privatePublicKeyService: PrivatePublicKeyService,
-    private val adminV1Api: AdminV1Api,
-    private val eduSharingWebClient: WebClient,
-    @Value("\${app.public.url}") private var publicUrl: String,
-    @Value("\${app.public.port}") private var port: String
-) {
-    fun updatePublicRepositoryKey() {
-        val publicKey = eduSharingWebClient
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    private val storageService: StorageService,
+    private val appInfo: AppInfo
+) : RepositoryPublicKeyService {
+
+    fun getWebClientByRepoId(repoId: String): WebClient {
+        return getWebClientByRepoId(
+            repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+                .map { it.url }
+                .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
+        )
+    }
+
+
+    fun getWebClient(url: String): WebClient {
+        return WebClient
+            .builder()
+            .baseUrl(url)
+            .build()
+    }
+
+    private fun createRegistration(url: String, force: Boolean): RepositoryRegistration {
+        val metadata = getWebClient(url)
             .get()
             .uri {
                 it.path("/metadata")
@@ -35,17 +65,104 @@ class RepositoryRegistrationService(
                 val buffer = it.byteInputStream()
                 val props = Properties()
                 props.loadFromXML(buffer)
-                props["public_key"].toString()
+                object {
+                    val appId = props["appid"].toString()
+                    val publicKey = props["public_key"].toString()
+                }
             }
             .block()
-        if (publicKey.isNullOrBlank() || publicKey == "null") {
-            throw InvalidKeyException("Received key is empty")
+
+        if (metadata == null) {
+            throw InvalidKeyException("Received metadata info is null")
         }
-        privatePublicKeyService.storeRepositoryKey(publicKey)
+
+
+//        val existingEntry = repositoryRegistrationStorageService.getRegistrationByRepoId(metadata.appId)
+//        if (!existingEntry.isPresent && !storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
+//        }
+
+        if(!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0){
+            if(force) {
+                repositoryRegistrationStorageService.clearRegistrations()
+            }else {
+                throw IllegalArgumentException("It's not allowed to register more than one repository")
+            }
+        }
+
+
+
+        // TODO
+        if (force) {
+            val existingEntry = repositoryRegistrationStorageService.getRegistrationByRepoId(metadata.appId)
+                .orElse(
+                    RepositoryRegistration(
+                        repoId = metadata.appId,
+                        url = url,
+                        publicKey = metadata.publicKey
+                    )
+                )
+
+            existingEntry.url = url
+            existingEntry.publicKey = metadata.publicKey
+            return repositoryRegistrationStorageService.storeRegistration(existingEntry)
+        }
+
+        return repositoryRegistrationStorageService.storeRegistration(
+            RepositoryRegistration(
+                repoId = metadata.appId,
+                url = url,
+                publicKey = metadata.publicKey
+            )
+        )
     }
 
-    fun registerWithRepository() {
-        adminV1Api.addApplication1("$publicUrl:$port/public/metadata")
-        updatePublicRepositoryKey()
+
+    @Transactional
+    @CachePut("repositoryKeys", key = "#result.id")
+    fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false): RepositoryRegistration {
+        val registrationEntity = createRegistration(request.url, force)
+
+        val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
+        adminV1Api.addApplication1("${appInfo.public.url}:${appInfo.public.port}/public/metadata")
+
+        return registrationEntity
+    }
+
+    private fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
+        val apiClient: ApiClient = ApiClientFixes()
+        apiClient.setBasePath("${url}/rest")
+        apiClient.setUsername(username)
+        apiClient.setPassword(password)
+        val adminV1Api = AdminV1Api(apiClient)
+        return adminV1Api
+    }
+
+
+    @CacheEvict("repositoryKeys", key = "#request.repoId")
+    fun deleteRepository(request: RemoveRepositoryRequest) {
+        val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
+        adminV1Api.removeApplication(appInfo.appId)
+        repositoryRegistrationStorageService.removeRegistration(request.repoId)
+    }
+
+    @Cacheable("repositoryKeys", key = "#repoId")
+    override fun getRepositoryKey(repoId: String): PublicKey {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
+
+        val publicKey = registration.publicKey
+            ?: throw InvalidKeyException("No public key available. Please register the application with an edu-sharing repository first")
+        val publicKeyData = publicKey
+            .replace("-----BEGIN PUBLIC KEY-----", "")
+            .replace("-----END PUBLIC KEY-----", "")
+            .replace("\n", "")
+
+        val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
+        return KeyFactory.getInstance("RSA").generatePublic(keySpec)
+
+    }
+
+    fun getRegisteredRepositories(): List<RepositoryRegistration> {
+        return repositoryRegistrationStorageService.getRegistrations()
     }
 }

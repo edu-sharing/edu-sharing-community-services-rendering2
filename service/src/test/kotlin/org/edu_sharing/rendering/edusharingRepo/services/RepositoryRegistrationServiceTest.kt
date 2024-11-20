@@ -55,7 +55,7 @@ class RepositoryRegistrationServiceTest {
         justRun { privatePublicKeyService.storeRepositoryKey("testPublicKey") }
 
         // Act
-        assertDoesNotThrow { service.registerWithRepository() }
+        assertDoesNotThrow { service.registerWithRepository(body) }
 
         // Assert
         val request = mockServer.takeRequest()
@@ -71,7 +71,7 @@ class RepositoryRegistrationServiceTest {
     }
 
     @Test
-    fun testUpdatePublicRepositoryKeyThrowsExceptionOnEmptyReturn() {
+    fun testCreateRegistrationThrowsExceptionOnEmptyReturn() {
         // Arrange
         mockServer.enqueue(MockResponse()
             .setHeader("Content-Type", "application/xml")
@@ -82,7 +82,7 @@ class RepositoryRegistrationServiceTest {
     }
 
     @Test
-    fun testUpdatePublicRepositoryKeyThrowsExceptionOnReturnWithMissingEntry() {
+    fun testCreateRegistrationThrowsExceptionOnReturnWithMissingEntry() {
         // Arrange
         val serverResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<!DOCTYPE properties SYSTEM \"http://java.sun.com/dtd/properties.dtd\"><properties><entry key=\"some_other\">testPublicKey</entry></properties>"

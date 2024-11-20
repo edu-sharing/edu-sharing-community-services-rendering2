@@ -4,7 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifySequence
-import org.edu_sharing.rendering.edusharingRepo.config.AppConfig
+import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -34,7 +34,7 @@ class MetadataControllerTest(@Autowired val mockMvc: MockMvc) {
     @Test
     fun testGetMetadataReturnsProperXmlMetadata() {
         // Arrange
-        val config = mockk<AppConfig>()
+        val config = mockk<RendererKeyConfig>()
 
         every { config.publicKey } returns "somekey"
         every { service.getConfig() } returns config

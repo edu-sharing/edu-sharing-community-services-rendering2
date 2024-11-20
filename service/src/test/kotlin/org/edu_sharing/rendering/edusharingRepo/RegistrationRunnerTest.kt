@@ -33,7 +33,7 @@ class RegistrationRunnerTest {
         every { keyService.hasKeyPair() } returns false
         justRun { keyService.generateApplicationKeyPair() }
         every { keyService.hasRepositoryKey() } returns false
-        justRun { registrationService.registerWithRepository() }
+        justRun { registrationService.registerWithRepository(body) }
 
         // Act
         underTest.run(mockk<ApplicationArguments>())
@@ -43,7 +43,7 @@ class RegistrationRunnerTest {
             keyService.hasKeyPair()
             keyService.generateApplicationKeyPair()
             keyService.hasRepositoryKey()
-            registrationService.registerWithRepository()
+            registrationService.registerWithRepository(body)
         }
     }
 
@@ -86,7 +86,7 @@ class RegistrationRunnerTest {
         // Arrange
         every { keyService.hasKeyPair() } returns true
         every { keyService.hasRepositoryKey() } returns false
-        justRun { registrationService.registerWithRepository() }
+        justRun { registrationService.registerWithRepository(body) }
 
         // Act
         underTest.run(mockk<ApplicationArguments>())
@@ -95,7 +95,7 @@ class RegistrationRunnerTest {
         verifySequence {
             keyService.hasKeyPair()
             keyService.hasRepositoryKey()
-            registrationService.registerWithRepository()
+            registrationService.registerWithRepository(body)
         }
     }
 
@@ -104,7 +104,7 @@ class RegistrationRunnerTest {
         // Arrange
         every { keyService.hasKeyPair() } returns true
         every { keyService.hasRepositoryKey() } returns false
-        every { registrationService.registerWithRepository() } throws InvalidKeyException()
+        every { registrationService.registerWithRepository(body) } throws InvalidKeyException()
 
         // Act
         assertDoesNotThrow { underTest.run(mockk<ApplicationArguments>()) }
@@ -113,7 +113,7 @@ class RegistrationRunnerTest {
         verifySequence {
             keyService.hasKeyPair()
             keyService.hasRepositoryKey()
-            registrationService.registerWithRepository()
+            registrationService.registerWithRepository(body)
         }
     }
 
@@ -122,7 +122,7 @@ class RegistrationRunnerTest {
         // Arrange
         every { keyService.hasKeyPair() } returns true
         every { keyService.hasRepositoryKey() } returns false
-        every { registrationService.registerWithRepository() } throws Exception()
+        every { registrationService.registerWithRepository(body) } throws Exception()
 
         // Act
         assertDoesNotThrow { underTest.run(mockk<ApplicationArguments>()) }
@@ -131,7 +131,7 @@ class RegistrationRunnerTest {
         verifySequence {
             keyService.hasKeyPair()
             keyService.hasRepositoryKey()
-            registrationService.registerWithRepository()
+            registrationService.registerWithRepository(body)
         }
     }
 }

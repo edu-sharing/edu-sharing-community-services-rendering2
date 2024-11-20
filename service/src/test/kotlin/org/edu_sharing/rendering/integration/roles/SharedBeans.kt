@@ -10,7 +10,7 @@ import org.edu_sharing.rendering.config.SpringConfig
 import org.edu_sharing.rendering.config.SpringDocConfig
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
-import org.edu_sharing.rendering.edusharingRepo.config.EduSharingConfig
+import org.edu_sharing.rendering.edusharingRepo.entity.EduSharingConfig
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
 import org.edu_sharing.rendering.modules.ModuleRegistry

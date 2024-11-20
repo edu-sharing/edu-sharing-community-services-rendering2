@@ -18,6 +18,7 @@ import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.storage.StorageInfo
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.storage.minio.bucket.BucketPerCustomerStrategy
 import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -377,6 +378,10 @@ class MinioStorageService(
             log.warn("Error deleting object " + error.objectName() + "; " + error.message())
         }
         trackingService.deleteAllTrackedObjects(trackingEntriesToDelete)
+    }
+
+    override fun isStoringByRepoId(): Boolean {
+        return bucketStrategy is BucketPerCustomerStrategy
     }
 
     override fun objectExists(cacheObject: CacheObject): Boolean {

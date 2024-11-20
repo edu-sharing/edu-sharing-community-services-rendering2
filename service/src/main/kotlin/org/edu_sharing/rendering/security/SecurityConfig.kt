@@ -39,18 +39,6 @@ class SecurityConfig(
 ) {
 
     @Bean
-    fun jwtParser(keyService: PrivatePublicKeyService): JwtParser {
-        return Jwts.parser()
-            .verifyWith(keyService.getRepositoryKey())
-            .build()
-    }
-
-    @Bean
-    fun jwtUtils(jwtParser: JwtParser): JwtUtils {
-        return JwtUtils(jwtParser)
-    }
-
-    @Bean
     fun permissionEvaluator(nodePermissionSessionContextRepository: NodePermissionSessionContextRepository): PermissionEvaluator {
         return NodePermissionSessionContextEvaluator(nodePermissionSessionContextRepository)
     }
