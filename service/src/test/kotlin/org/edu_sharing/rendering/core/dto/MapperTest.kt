@@ -19,6 +19,7 @@ class MapperTest {
     private val version = "1.2"
     private val repoId = "repo123"
     private val title = "title123"
+    private val url = "url123"
 
     @Test
     fun testRenderDataRequestToCacheObjectProperlyMaps() {
@@ -32,6 +33,7 @@ class MapperTest {
             version = version,
             repoId = repoId,
             title = title,
+            url = url,
             userData = RequestUserData(
                 authorityName = "authority123",
                 firstName = "Max",
@@ -121,6 +123,7 @@ class MapperTest {
             version = version,
             repoId = repoId,
             title = title,
+            url = url,
             userData = RequestUserData(
                 authorityName = "authority123",
                 firstName = "Max",

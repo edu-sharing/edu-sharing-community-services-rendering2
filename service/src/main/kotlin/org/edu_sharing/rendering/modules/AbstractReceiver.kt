@@ -16,7 +16,7 @@ abstract class AbstractReceiver(
 
     private val log = LoggerFactory.getLogger(this.javaClass)
 
-    protected fun processMessage(message: RenderingJobMessage) {
+    protected fun processMessage(message: RenderingJobMessage, async: Boolean) {
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(
@@ -27,7 +27,9 @@ abstract class AbstractReceiver(
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         conversionService.process(cacheObject, jobEntry)
-        mainJobLogic.processMainJob(message.id)
+        if (!async) {
+            mainJobLogic.processMainJob(message.id)
+        }
     }
 
 }

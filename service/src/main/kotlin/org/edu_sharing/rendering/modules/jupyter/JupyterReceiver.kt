@@ -32,6 +32,6 @@ class JupyterReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
-        super.processMessage(message)
+        super.processMessage(message, false)
     }
 }

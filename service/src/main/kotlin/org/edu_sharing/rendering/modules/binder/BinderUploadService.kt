@@ -1,5 +1,8 @@
 package org.edu_sharing.rendering.modules.binder
 
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.modules.ConversionService
 import org.edu_sharing.rendering.modules.binder.dto.BinderPhases
 import org.edu_sharing.rendering.modules.binder.dto.BinderSseEvent
 import org.edu_sharing.rendering.modules.binder.dto.ProgressEntry
@@ -7,13 +10,14 @@ import org.edu_sharing.rendering.modules.binder.dto.ProgressInfoObject
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import java.net.URI
 import java.time.LocalDate
 
 @Service
@@ -21,16 +25,17 @@ class BinderUploadService(
     private val binderWebClient: WebClient,
     private val subJobRepository: SubJobRepository,
     private val mainJobLogic: MainJobLogic
-) {
+) : ConversionService {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private inline fun <reified T> typeReference() = object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
+    private inline fun <reified T> typeReference() =
+        object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
 
-    fun triggerUpload(
-        renderingJob: RenderingJob,
-        gitHubUser: String,
-        gitHubRepo: String,
+    override fun process(
+        cacheObject: CacheObject,
+        renderingJob: RenderingJob
     ) {
+        val (gitHubUser, gitHubRepo) = extractGitHubUserAndRepoFromUrl(cacheObject.externalUrl ?: "")
         if (renderingJob.subJobs.isEmpty()) {
             return
         }
@@ -44,16 +49,14 @@ class BinderUploadService(
             .retrieve()
             .bodyToFlux(typeReference<ServerSentEvent<BinderSseEvent>>())
 
-        eventStream.subscribe({
-            content ->
+        eventStream.subscribe({ content ->
             {
                 logger.info("Time: ${LocalDate.now()} - event: name[${content.event()}], id [${content.id()}], content[${content.data()}] ")
                 if (content.data() != null) {
-                    updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), subJob)
+                    updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), subJob.id)
                 }
             }
-        }, {
-            error ->
+        }, { error ->
             {
                 logger.error("Error receiving SSE: $error")
             }
@@ -62,24 +65,43 @@ class BinderUploadService(
         })
     }
 
-    private fun updateSubJob(eventData: BinderSseEvent, subJob: SubJob) {
+    private fun updateSubJob(eventData: BinderSseEvent, subJobId: ObjectId) {
+        var subJob = subJobRepository.findByIdOrNull(subJobId) ?: return
         var hasBeenFinished = false
-        when(eventData.phase) {
-            BinderPhases.WAITING.event -> { subJob.progress = 5 }
-            BinderPhases.FETCHING.event -> { subJob.progress = 10 }
-            BinderPhases.BUILDING.event -> { subJob.progress = 15 }
+        when (eventData.phase) {
+            BinderPhases.WAITING.event -> {
+                subJob.progress = 5
+            }
+
+            BinderPhases.FETCHING.event -> {
+                subJob.progress = 10
+            }
+
+            BinderPhases.BUILDING.event -> {
+                subJob.progress = 15
+            }
+
             BinderPhases.PUSHING.event -> {
                 if (eventData.progress != null) {
                     subJob.progress = 15 + calculatePushingProgress(eventData.progress)
                 }
             }
-            BinderPhases.BUILT.event -> { subJob.progress = 75 }
-            BinderPhases.LAUNCHING.event -> { subJob.progress = 90 }
+
+            BinderPhases.BUILT.event -> {
+                subJob.progress = 75
+            }
+
+            BinderPhases.LAUNCHING.event -> {
+                subJob.progress = 90
+            }
+
             BinderPhases.READY.event -> {
                 subJob.progress = 100
                 subJob.status = JobStatus.FINISHED
+                subJob.message = eventData.url
                 hasBeenFinished = true
             }
+
             BinderPhases.FAILED.event -> {
                 subJob.progress = 100
                 hasBeenFinished = true
@@ -108,5 +130,12 @@ class BinderUploadService(
 
         return pushingProgress
     }
-}
 
+    private fun extractGitHubUserAndRepoFromUrl(gitHubUrl: String): Pair<String, String> {
+        val pathList = URI(gitHubUrl).path.trim('/').split('/')
+        if (pathList.size < 2) {
+            throw IllegalArgumentException("GitHub URL for Binder import must contain user and repo")
+        }
+        return Pair(pathList[0], pathList[1])
+    }
+}

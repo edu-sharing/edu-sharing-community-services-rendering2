@@ -43,7 +43,8 @@ class Mapper {
             repoId = request.repoId,
             nodeVersion = request.version,
             size = request.size,
-            module = module
+            module = module,
+            externalUrl = request.url
         )
     }
 
@@ -55,7 +56,8 @@ class Mapper {
             mimeType = renderingJob.mimeType,
             size = renderingJob.size ?: -1,
             version = renderingJob.nodeVersion,
-            repoId = renderingJob.repoId
+            repoId = renderingJob.repoId,
+            externalUrl = renderingJob.externalUrl
         )
     }
 

@@ -8,7 +8,8 @@ data class CacheObject(
     var quality: Int? = null,
     var mimeType: String = "",
     val repoId: String,
-    val version: String? = null
+    val version: String? = null,
+    val externalUrl: String? = null,
 ) {
 
     companion object{
@@ -26,7 +27,8 @@ data class CacheObject(
             quality = quality,
             mimeType = mimeType,
             repoId = repoId,
-            version = version
+            version = version,
+            externalUrl = externalUrl
         )
     }
 }

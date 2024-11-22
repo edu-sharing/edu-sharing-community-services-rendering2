@@ -35,7 +35,8 @@ class H5pJobServiceTest {
         version = "dummyVersion",
         repoId = "dummyRepoId",
         title = "dummyTitle",
-        userData = null
+        userData = null,
+        url = null
     )
 
     @BeforeEach
