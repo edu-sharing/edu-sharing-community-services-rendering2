@@ -6,11 +6,14 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
+import java.time.Duration
 
 @Service
 @ConditionalOnMoodle
 class MoodleUploadService (
-    private val moodleWebClient: WebClient
+    private val moodleWebClient: WebClient,
+    @Value("\${app.moodle.timeout-seconds}")
+    private val timeoutSeconds: Long
 ) {
 
     @Value("\${app.moodle.host}")
@@ -66,6 +69,7 @@ class MoodleUploadService (
             .body(BodyInserters.fromFormData(postParams))
             .retrieve()
             .bodyToMono(String::class.java)
+            .timeout(Duration.ofSeconds(timeoutSeconds))
             .block()
         val courseId = courseIdRaw?.toIntOrNull()
         if (courseId === null) {
