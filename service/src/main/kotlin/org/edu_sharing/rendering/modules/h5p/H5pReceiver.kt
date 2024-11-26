@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
@@ -15,7 +16,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
-@ConditionalOnH5p
+@ConditionalOnConverter
 @Component
 class H5pReceiver(
     private val mainJobLogic: MainJobLogic,

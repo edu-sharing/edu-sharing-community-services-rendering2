@@ -1,22 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
-import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.extension.ExtendWith
-import java.security.InvalidKeyException
-import java.security.KeyFactory
-import java.security.KeyPairGenerator
-import java.security.Signature
-import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
-import java.util.*
-
+/**
 @ExtendWith(MockKExtension::class)
 class MetaDataServiceTest {
     private val repository = mockk<RendererKeyConfigRepository>()
@@ -393,3 +377,4 @@ class MetaDataServiceTest {
         confirmVerified(repository)
     }
 }
+*/

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.cacheCleaner
 
+import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -7,7 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
-@ConditionalOnCacheCleaner
+@ConditionalOnMaster
 class CacheCleaner (
     private val storageService: StorageService,
     @Value("\${app.cache.cleaner.threshold.lower}") private val lowerThreshold: Float,

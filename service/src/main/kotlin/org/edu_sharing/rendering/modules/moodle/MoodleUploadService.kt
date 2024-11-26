@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.moodle
 
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
@@ -9,7 +10,7 @@ import org.springframework.web.util.UriComponentsBuilder
 import java.time.Duration
 
 @Service
-@ConditionalOnMoodle
+@ConditionalOnConverter
 class MoodleUploadService (
     private val moodleWebClient: WebClient,
     @Value("\${app.moodle.timeout-seconds}")

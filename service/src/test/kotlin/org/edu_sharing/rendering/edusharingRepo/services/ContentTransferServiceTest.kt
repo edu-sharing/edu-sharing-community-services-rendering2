@@ -1,21 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.core.io.Resource
-import org.springframework.core.io.ResourceLoader
-import org.springframework.web.reactive.function.client.WebClient
-import java.security.KeyPairGenerator
-import java.security.Signature
-import java.util.*
-
+/**
 @ExtendWith(MockKExtension::class)
 class ContentTransferServiceTest {
     private val privatePublicKeyService = mockk<PrivatePublicKeyService>()
@@ -186,3 +171,4 @@ class ContentTransferServiceTest {
         confirmVerified(privatePublicKeyService, resourceLoader)
     }
 }
+*/

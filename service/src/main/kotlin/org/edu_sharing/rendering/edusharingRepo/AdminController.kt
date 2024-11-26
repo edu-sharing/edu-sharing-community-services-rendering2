@@ -2,9 +2,8 @@ package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
-import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
-import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegistrationInfo
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
@@ -17,10 +16,10 @@ import org.springframework.web.bind.annotation.*
 import java.security.InvalidKeyException
 
 @RestController
-@ConditionalOnController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
-@ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnMaster
+@ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true")
 class AdminController(
     private val repositoryRegistrationService: RepositoryRegistrationService
 ) {

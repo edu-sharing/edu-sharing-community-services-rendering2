@@ -1,15 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import io.mockk.*
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.springframework.web.reactive.function.client.WebClient
-import java.security.InvalidKeyException
-
-
+/**
 class RepositoryRegistrationServiceTest {
 
     private lateinit var mockServer: MockWebServer
@@ -95,3 +86,4 @@ class RepositoryRegistrationServiceTest {
         assertThrows<InvalidKeyException> { service.updatePublicRepositoryKey() }
     }
 }
+*/

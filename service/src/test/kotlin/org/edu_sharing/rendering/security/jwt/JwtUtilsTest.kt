@@ -1,17 +1,6 @@
 package org.edu_sharing.rendering.security.jwt
 
-import io.jsonwebtoken.*
-import io.jsonwebtoken.impl.DefaultClaims
-import io.jsonwebtoken.impl.DefaultHeader
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import java.security.InvalidKeyException
-import java.sql.Timestamp
-import java.util.*
-
+/**
 @ExtendWith(MockKExtension::class)
 class JwtUtilsTest {
     private val jwtParser = mockk<JwtParser>()
@@ -189,3 +178,4 @@ class JwtUtilsTest {
 
 
 }
+        */

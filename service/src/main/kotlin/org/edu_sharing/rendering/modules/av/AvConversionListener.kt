@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.av
 
-import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -12,7 +11,7 @@ import ws.schild.jave.progress.EncoderProgressListener
 
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-@ConditionalOnConverter
+@ConditionalOnAvConverter
 class AvConversionListener(
     private val subJobRepository: SubJobRepository
 ) : EncoderProgressListener {

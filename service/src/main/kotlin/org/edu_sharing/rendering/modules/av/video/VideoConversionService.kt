@@ -1,12 +1,12 @@
 package org.edu_sharing.rendering.modules.av.video
 
-import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService
 import org.edu_sharing.rendering.modules.av.AvFileHelper
+import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -17,7 +17,7 @@ import ws.schild.jave.encode.EncodingAttributes
 import ws.schild.jave.encode.VideoAttributes
 import ws.schild.jave.info.VideoSize
 
-@ConditionalOnConverter
+@ConditionalOnAvConverter
 @Service
 class VideoConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,

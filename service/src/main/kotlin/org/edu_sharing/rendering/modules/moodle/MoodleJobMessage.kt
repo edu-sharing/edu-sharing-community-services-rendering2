@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.moodle
 
-@ConditionalOnMoodle
 data class MoodleJobMessage(
     val id: String,
     val nodeId: String,

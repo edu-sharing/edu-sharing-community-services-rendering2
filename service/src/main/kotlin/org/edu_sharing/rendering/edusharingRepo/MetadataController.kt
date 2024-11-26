@@ -1,9 +1,10 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import org.apache.commons.io.output.ByteArrayOutputStream
-import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -11,8 +12,9 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
 @RestController
-@ConditionalOnController
+@ConditionalOnMaster
 @RequestMapping("/public/metadata")
+@ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true")
 class MetadataController (
     private val metadataService: MetadataService,
     private val appInfo: AppInfo

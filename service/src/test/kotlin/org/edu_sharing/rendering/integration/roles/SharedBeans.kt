@@ -1,18 +1,15 @@
 package org.edu_sharing.rendering.integration.roles
 
-import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.rendering.ServicesRenderingService2Application
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
-import org.edu_sharing.rendering.config.MongoConfig
-import org.edu_sharing.rendering.config.RedisConfig
-import org.edu_sharing.rendering.config.SessionConfig
-import org.edu_sharing.rendering.config.SpringConfig
-import org.edu_sharing.rendering.config.SpringDocConfig
+import org.edu_sharing.rendering.config.*
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
-import org.edu_sharing.rendering.edusharingRepo.entity.EduSharingConfig
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.audio.AudioService
@@ -33,6 +30,7 @@ import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageService
 import org.edu_sharing.rendering.modules.jupyter.JupyterJobService
 import org.edu_sharing.rendering.modules.jupyter.JupyterRenderModule
+import org.edu_sharing.rendering.modules.moodle.MoodleConfig
 import org.edu_sharing.rendering.modules.moodle.MoodleJobService
 import org.edu_sharing.rendering.modules.moodle.MoodleRenderModule
 import org.edu_sharing.rendering.modules.moodle.ScormRenderModule
@@ -43,6 +41,7 @@ import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.security.SecurityDisabledConfig
+import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.edu_sharing.rendering.storage.minio.MinioConfig
 import org.edu_sharing.rendering.storage.minio.MinioStorageService
 import org.edu_sharing.rendering.storage.minio.bucket.BucketPerMediaTypeStrategy
@@ -54,8 +53,8 @@ abstract class SharedBeans {
     // When modifying please maintain alphabetic ordering
     companion object {
         private val classBeans = setOf(
-            ApiClient::class,
             ApiExceptionHandler::class,
+            AppInfo::class,
             AudioRenderModule::class,
             AudioService::class,
             BucketPerMediaTypeStrategy::class,
@@ -65,7 +64,6 @@ abstract class SharedBeans {
             DocumentService::class,
             EduHtmlRenderModule::class,
             EduHtmlService::class,
-            EduSharingConfig::class,
             H5pJobService::class,
             H5pRenderModule::class,
             HtmlRenderModule::class,
@@ -73,6 +71,7 @@ abstract class SharedBeans {
             ImageService::class,
             JupyterJobService::class,
             JupyterRenderModule::class,
+            JwtUtils::class,
             LumiConfig::class,
             LumiNodeInfoService::class,
             MainJobLogic::class,
@@ -83,6 +82,7 @@ abstract class SharedBeans {
             MinioStorageService::class,
             ModuleRegistry::class,
             MongoConfig::class,
+            MoodleConfig::class,
             MoodleRenderModule::class,
             MoodleJobService::class,
             NodePermissionSessionContextRepository::class,
@@ -90,6 +90,9 @@ abstract class SharedBeans {
             PdfRenderModule::class,
             QueueConfig::class,
             RedisConfig::class,
+            RepositoryRegistrationConfig::class,
+            RepositoryRegistrationService::class,
+            RepositoryRegistrationStorageService::class,
             ScormRenderModule::class,
             SecurityDisabledConfig::class,
             ServicesRenderingService2Application::class,

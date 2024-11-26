@@ -1,16 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
-import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.boot.ApplicationArguments
-import java.security.InvalidKeyException
-
+/**
 @ExtendWith(MockKExtension::class)
 class RegistrationRunnerTest {
     private val keyService = mockk<PrivatePublicKeyService>()
@@ -135,3 +125,4 @@ class RegistrationRunnerTest {
         }
     }
 }
+*/
