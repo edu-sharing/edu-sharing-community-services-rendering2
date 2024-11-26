@@ -30,7 +30,7 @@ class MetadataController (
 
         props["appid"] = appInfo.appId
         props["appcaption"] = appInfo.appCaption
-        props["type"] = "SERVICE2"
+        props["type"] = "RENDERINGSERVICE_2"
         props["host"] = appInfo.public.url
         props["port"] = appInfo.public.port.toString()
         props["trustedclient"] = "true"
