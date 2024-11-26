@@ -50,6 +50,33 @@
       6.2.7
     </docker.edu_sharing.community.common.redis-cluster.tag>
 
+
+    <docker.edu_sharing.community.common.minio.name>
+      edu_sharing-community-common-docker-minio
+    </docker.edu_sharing.community.common.minio.name>
+
+    <docker.edu_sharing.community.common.minio.tag>
+      2024.11.7
+    </docker.edu_sharing.community.common.minio.tag>
+
+    <docker.edu_sharing.community.common.rabbitmq.name>
+      edu_sharing-community-common-docker-rabbitmq
+    </docker.edu_sharing.community.common.rabbitmq.name>
+
+    <docker.edu_sharing.community.common.rabbitmq.tag>
+      4.0.4
+    </docker.edu_sharing.community.common.rabbitmq.tag>
+
+
+    <docker.edu_sharing.community.common.mongodb.name>
+      edu_sharing-community-common-docker-mongodb
+    </docker.edu_sharing.community.common.mongodb.name>
+
+    <docker.edu_sharing.community.common.mongodb.tag>
+      8.0.3
+    </docker.edu_sharing.community.common.mongodb.tag>
+
+
   </properties>
 
   <modules>
