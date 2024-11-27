@@ -1,9 +1,6 @@
 package org.edu_sharing.rendering.security
 
-import io.jsonwebtoken.JwtParser
-import io.jsonwebtoken.Jwts
 import org.edu_sharing.rendering.security.jwt.JwtUtils
-import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -79,7 +76,7 @@ class SecurityConfig(
                 it.configurationSource(corsConfigurationSource())
             }.authorizeHttpRequests {
                 it.requestMatchers(
-                    "/public/metadata"
+                    "/public/metadata", "/public/modules"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }.addFilterBefore(authenticationJwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)

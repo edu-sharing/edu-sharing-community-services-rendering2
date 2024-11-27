@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @ConditionalOnController
 @RestController
-@RequestMapping("/info/modules")
+@RequestMapping("/public/modules")
 class ModuleInfoController(
     private val moduleRegistry: ModuleRegistry
 ) {
