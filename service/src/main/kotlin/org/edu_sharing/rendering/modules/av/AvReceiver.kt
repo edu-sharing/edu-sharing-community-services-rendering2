@@ -87,10 +87,10 @@ class AvReceiver(
             val finishedSubJob = subJobRepository.findByIdOrNull(subJob.id)
             if (finishedSubJob !== null) {
                 if (success) {
-                    subJob.status = JobStatus.FINISHED
-                    subJob.progress = 100
+                    finishedSubJob.status = JobStatus.FINISHED
+                    finishedSubJob.progress = 100
                 } else {
-                    subJob.status = JobStatus.FAILED
+                    finishedSubJob.status = JobStatus.FAILED
                 }
                 subJobRepository.save(finishedSubJob)
             }
