@@ -2,8 +2,8 @@ package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
-import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
@@ -34,7 +34,7 @@ class RepositoryRegistrationService(
 ) : RepositoryPublicKeyService {
 
     fun getWebClientByRepoId(repoId: String): WebClient {
-        return getWebClientByRepoId(
+        return getWebClient(
             repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
                 .map { it.url }
                 .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
@@ -46,6 +46,7 @@ class RepositoryRegistrationService(
         return WebClient
             .builder()
             .baseUrl(url)
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024 * 1024) }
             .build()
     }
 

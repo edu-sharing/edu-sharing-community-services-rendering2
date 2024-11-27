@@ -13,6 +13,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.*
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @ConditionalOnAvConverter
@@ -83,13 +84,16 @@ class AvReceiver(
             subJob.message = exception.message
             success = false
         } finally {
-            if (success) {
-                subJob.status = JobStatus.FINISHED
-                subJob.progress = 100
-            } else {
-                subJob.status = JobStatus.FAILED
+            val finishedSubJob = subJobRepository.findByIdOrNull(subJob.id)
+            if (finishedSubJob !== null) {
+                if (success) {
+                    subJob.status = JobStatus.FINISHED
+                    subJob.progress = 100
+                } else {
+                    subJob.status = JobStatus.FAILED
+                }
+                subJobRepository.save(finishedSubJob)
             }
-            subJobRepository.save(subJob)
         }
         if (mainJobLogic.processMainJob(message.id)) {
             storageImplementation.removeObject(cacheObject, true)
