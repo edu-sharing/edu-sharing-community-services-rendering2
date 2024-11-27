@@ -9,7 +9,7 @@ services:
       MINIO_ROOT_PASSWORD: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
       MINIO_DEFAULT_BUCKETS: contentbucket,tempbucket,libbucket
     volumes:
-      - "rendering2-blob-storage-volume-data/bitnami/minio/data"
+      - "rendering2-blob-storage-volume-data:/bitnami/minio/data"
     expose:
       - 9000
       - 9001
@@ -47,6 +47,7 @@ services:
       MONGODB_ROOT_USER: "${RENDERING2_SERVICE_DATABASES_ROOT_USER:-root}"
       MONGODB_ROOT_PASSWORD: "${RENDERING2_SERVICE_DATABASES_ROOT_PASS:-root}"
       MONGODB_REPLICA_SET_KEY: "${RENDERING2_SERVICE_DATABASES_REPLICATION_SET_KEY:-rendering}"
+      EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU: "1"
     expose:
       - "27017"
     volumes:

@@ -31,7 +31,7 @@ class MetadataController (
         props["appid"] = appInfo.appId
         props["appcaption"] = appInfo.appCaption
         props["type"] = "RENDERINGSERVICE_2"
-        props["host"] = appInfo.public.url
+        props["host"] = appInfo.public.host
         props["port"] = appInfo.public.port.toString()
         props["trustedclient"] = "true"
         props["public_key"] = metadata.publicKey

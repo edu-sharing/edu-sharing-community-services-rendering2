@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
@@ -12,16 +13,16 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.nio.file.Path
 
 @Component
 class H5pRenderModule(
     @Value("\${app.session.h5p.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val h5pJobService: H5pJobService,
-    private val lumiNodeInfoService: LumiNodeInfoService
+    private val lumiNodeInfoService: LumiNodeInfoService,
+    private val appInfo: AppInfo
 ): RenderModule, ModuleTypeMapper {
-    @Value("\${app.public.url}:\${app.public.port}")
-    lateinit var baseUrl: String
 
     override fun module() = "H5P"
 
@@ -30,7 +31,7 @@ class H5pRenderModule(
         if (cachedLumiContentId != null) {
             return RenderDataResponse(
                 module = module(),
-                objectLinks = mutableListOf(ObjectLink(link = "$baseUrl$H5P_BASE_PATH/${cachedLumiContentId}")),
+                objectLinks = mutableListOf(ObjectLink(link = "${Path.of(appInfo.public.url, H5P_BASE_PATH, cachedLumiContentId)}")),
                 jobId = null
             )
         }

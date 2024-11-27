@@ -123,7 +123,7 @@ class RepositoryRegistrationService(
         val registrationEntity = createRegistration(request.url, force)
 
         val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
-        adminV1Api.addApplication1("${appInfo.public.url}:${appInfo.public.port}/public/metadata")
+        adminV1Api.addApplication1("${appInfo.public.url}public/metadata")
 
         return registrationEntity
     }

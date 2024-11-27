@@ -10,6 +10,6 @@ class AppInfo {
     lateinit var appCaption: String
     lateinit var public: Public
 
-    data class Public(var url: String, var port: Short)
+    data class Public(var protocol: String, var host: String, var port: Short, var url: String)
 }
 

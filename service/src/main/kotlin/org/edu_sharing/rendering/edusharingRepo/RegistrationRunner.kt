@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
@@ -18,8 +19,6 @@ class RegistrationRunner(
     private val privatePublicKeyService: PrivatePublicKeyService,
     private var repositoryRegistrationService: RepositoryRegistrationService,
     private var repositoryRegistrationConfig: RepositoryRegistrationConfig
-
-
 ) : ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(javaClass)
