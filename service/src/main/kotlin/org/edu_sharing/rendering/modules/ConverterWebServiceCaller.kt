@@ -11,7 +11,6 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
 import java.nio.file.Files
-import kotlin.io.inputStream
 
 @ConditionalOnConverter
 @Component
@@ -41,6 +40,7 @@ class ConverterWebServiceCaller(
                 .block()
             val convertedCacheObject = arguments.cacheObject.copy()
             convertedCacheObject.mimeType = arguments.targetMimeType
+            convertedCacheObject.size = -1
             if (returnedData == null) {
                 throw Exception("Empty data returned")
             }
