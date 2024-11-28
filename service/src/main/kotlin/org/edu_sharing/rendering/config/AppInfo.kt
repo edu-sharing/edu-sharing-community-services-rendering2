@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component
 class AppInfo {
     lateinit var appId: String
     lateinit var appCaption: String
-    lateinit var public: Public
+    lateinit var public: ConnectionInfo
+    lateinit var internal: ConnectionInfo
 
-    data class Public(var protocol: String, var host: String, var port: Short, var url: String)
+    data class ConnectionInfo(var protocol: String, var host: String, var port: Short, var url: String)
 }
 

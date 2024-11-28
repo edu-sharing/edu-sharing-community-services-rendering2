@@ -31,8 +31,10 @@ class MetadataController (
         props["appid"] = appInfo.appId
         props["appcaption"] = appInfo.appCaption
         props["type"] = "RENDERINGSERVICE_2"
+        props["protocol"] = appInfo.public.protocol
         props["host"] = appInfo.public.host
         props["port"] = appInfo.public.port.toString()
+        props["contenturl"] = appInfo.public.url
         props["trustedclient"] = "true"
         props["public_key"] = metadata.publicKey
         props.storeToXML(outputStream, "rendering application file for application type lms", "UTF-8")

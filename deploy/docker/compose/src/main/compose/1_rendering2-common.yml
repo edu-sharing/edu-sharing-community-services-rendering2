@@ -29,9 +29,11 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       RABBITMQ_DEFAULT_PASS: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
+      RABBITMQ_SECURE_PASSWORD: true
+      RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
     expose:
-      - 5672
-      - 15672
+      - "5672"
+      - "15672"
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT_HTTP:-10300}:15672"
 
@@ -39,7 +41,7 @@ services:
     image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.mongodb.name}:${docker.edu_sharing.community.common.mongodb.tag}"
     environment:
       ALLOW_EMPTY_PASSWORD: "false"
-      MONGODB_ADVERTISED_HOSTNAME: "rendering2-mongo"
+      MONGODB_ADVERTISED_HOSTNAME: "rendering2-database"
       MONGODB_REPLICA_SET_MODE: "primary"
       MONGODB_DATABASE: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       MONGODB_USERNAME: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
@@ -63,53 +65,64 @@ services:
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
     environment:
-      - app.appId=rendering2
-      - app.session.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_NODE_PERMISSION_EXPIRATION_TIME:-60}"
-      - app.session.image.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_IMAGE_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.audio.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_AUDIO_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.video.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_VIDEO_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.pdf.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_PDF_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.moodle.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_MOODLE_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.scorm.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_SCORM_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.eduHtml.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_EDUHTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.document.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_DOCUMENT_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.spreadsheet.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_SPREADSHEET_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.html.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_HTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.session.h5p.nodePermissionExpirationTime="${RENDERING2_SERVICE_SESSION_H5P_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      - app.converter.image.format="${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
-      - app.converter.image.mimeTypes="${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/webp,image/jpeg,image/jpg,image/png,image/bmp}"
-      - app.converter.image.sizes="${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-400,800}"
-      - app.converter.video.format="${RENDERING2_SERVICE_CONVERTER_VIDEO_FORMAT:-mp4}"
-      - app.converter.video.mimeTypes="${RENDERING2_SERVICE_CONVERTER_VIDEO_MIME_TYPES:-video/mp4,video/mpeg}"
-      - app.converter.video.resolutions="${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"
-      - app.converter.audio.mimeTypes="${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis}"
-      - app.converter.audio.bitrate="${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
-      - app.cache.cleaner.schedule="{RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-6000000}"
-      - app.cache.cleaner.threshold.lower="{RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.9}"
-      - app.cache.cleaner.threshold.upper="{RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.7}"
-      - app.minio.url=http://rendering2-blob-storage:9000
-      - app.minio.user="${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
-      - app.minio.password="${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
-      - spring.rabbitmq.host=rendering2-message-queue
-      - spring.rabbitmq.port=5672
-      - spring.rabbitmq.username="${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
-      - spring.rabbitmq.password="${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
-      - app.repository.registration.id.local.url=http://repository-service:8080/edu-sharing
-      - app.repository.registration.id.local.username=admin
-      - app.repository.registration.id.local.password="${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      - app.redis.url=rendering2-cache
-      - app.security.allowedOrigins="${REPOSITORY_SERVICE_ALLOW_ORIGIN:-}"
-      - app.security.adminPassword=admin
-      - spring.data.mongodb.host=rendering2-database
-      - spring.data.mongodb.username=${RENDERING2_SERVICE_DATABASE_USER:-rendering}
-      - spring.data.mongodb.password=${RENDERING2_SERVICE_DATABASES_PASS:-rendering}
-      - spring.data.mongodb.database=${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
-      - app.moodle.host="${RENDERING2_MOODLE_URL:-}"
-      - app.moodle.token="${RENDERING2_MOODLE_TOKEN:-}"
-      - app.moodle.categoryid="${RENDERING2_MOODLE_CATEGORY_ID:-1}"
-      - app.moodle.timeout-seconds="${RENDERING2_MOODLE_TIMEOUT:-90}"
-      - app.lumi.host=http://rendering2-lumi:3000
-      - app.documentConverter.host=http://rendering2-document-converter:8080
+      MINIO_HOST: rendering2-blob-storage
+      MINIO_PORT: 9000
+      RABBITMQ_HOST: rendering2-message-queue
+      RABBITMQ_PORT: 5672
+      REDIS_HOST: rendering2-cache
+      REDIS_PORT: 6379
+      MONGODB_HOST: rendering2-database
+      MONGODB_PORT: 27017
+      app.appId: rendering2
+      app.public.protocol: "${RENDERING2_SERVICE_PUBLIC_PROTOCOL:-http}"
+      app.public.host: "${RENDERING2_SERVICE_PUBLIC_HOST:-rendering2.127.0.0.1.nip.io}"
+      app.public.port: "${RENDERING2_SERVICE_PUBLIC_PORT:-10100}"
+      app.public.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/}"
+      app.internal.protocol: http
+      app.internal.host: rendering2-service
+      app.internal.port: 8080
+      app.session.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_NODE_PERMISSION_EXPIRATION_TIME:-60}"
+      app.session.image.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_IMAGE_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.audio.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_AUDIO_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.video.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_VIDEO_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.pdf.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_PDF_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.moodle.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_MOODLE_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.scorm.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SCORM_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.eduHtml.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_EDUHTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.document.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_DOCUMENT_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.spreadsheet.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SPREADSHEET_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.html.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_HTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.h5p.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_H5P_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.converter.image.format: "${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
+      app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/webp,image/jpeg,image/jpg,image/png,image/bmp}"
+      app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-400,800}"
+      app.converter.video.format: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FORMAT:-mp4}"
+      app.converter.video.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_VIDEO_MIME_TYPES:-video/mp4,video/mpeg}"
+      app.converter.video.resolutions: "${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"
+      app.converter.audio.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis}"
+      app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
+      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-6000000}"
+      app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.9}"
+      app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.7}"
+      app.minio.user: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
+      app.minio.password: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
+      spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
+      spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
+      app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
+      app.repository.registration.id.local.username: admin
+      app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
+      app.security.allowedOrigins: "${REPOSITORY_SERVICE_ALLOW_ORIGIN:-}"
+      app.security.adminPassword: admin
+      spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
+      spring.data.mongodb.username: ${RENDERING2_SERVICE_DATABASE_USER:-rendering}
+      spring.data.mongodb.password: ${RENDERING2_SERVICE_DATABASES_PASS:-rendering}
+      spring.data.mongodb.database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
+      app.moodle.host: "${RENDERING2_MOODLE_URL:-}"
+      app.moodle.token: "${RENDERING2_MOODLE_TOKEN:-}"
+      app.moodle.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
+      app.moodle.timeout-seconds: "${RENDERING2_MOODLE_TIMEOUT:-90}"
+      app.lumi.host: http://rendering2-lumi:3000
+      app.documentConverter.host: http://rendering2-document-converter:8080
     expose:
       - "8080"
     depends_on:
@@ -136,9 +149,11 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering}"
-      AWS_S3_ENDPOINT: http://rendering2-blob-storage:9000
+      MINIO_HOST: rendering2-blob-storage
+      MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
-      MONGODB_URL: mongodb://rendering2-database:27017
+      MONGODB_HOST: rendering2-database
+      MONGODB_PORT: 27017
       MONGODB_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       MONGODB_USER: "${RENDERING2_SERVICE_DATABASES_ROOT_USER:-root}"
       MONGODB_PASSWORD: "${RENDERING2_SERVICE_DATABASES_ROOT_PASS:-root}"
