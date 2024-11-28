@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node src/index.ts",
-    "setup": "rm -rf ./h5p && ./download-core.sh 1.26 1.25",
+    "setup": "rm -rf ./h5p && ./download-core.sh 1.27.0 1.25",
     "build": "npm run setup && rm -rf ./dist && tsc"
   },
   "keywords": [],

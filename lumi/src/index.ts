@@ -53,6 +53,11 @@ const start = async () => {
     ).load();
 
     config.baseUrl = process.env.BASE_URL || config.baseUrl
+    config.coreApiVersion = {
+        major: 1,
+        minor: 27
+    }
+    config.h5pVersion = "1.27.0"
 
     console.log("Started with config:")
     console.log(config)
