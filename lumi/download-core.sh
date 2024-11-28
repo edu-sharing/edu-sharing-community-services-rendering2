@@ -3,6 +3,9 @@
 # (= version tag of h5p-editor-php-library).
 # Example: scripts/download-core.sh 1.24.0 1.24.1
 
+# This script is based on the download-core.sh script provided by the lumi project.
+# In order to facilitate easier H5P core updates it has been modified by metaVentis GmbH
+
 core_version=$1
 if [ ! -z "$2" ]
 then
