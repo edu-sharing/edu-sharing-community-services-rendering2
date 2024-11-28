@@ -12,6 +12,7 @@ import router from "./router";
 import User from "./User";
 import dotenv from 'dotenv';
 import * as dbImplementations from '@lumieducation/h5p-mongos3';
+import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} from "./h5p.settings";
 
 
 const start = async () => {
@@ -54,10 +55,10 @@ const start = async () => {
 
     config.baseUrl = process.env.BASE_URL || config.baseUrl
     config.coreApiVersion = {
-        major: 1,
-        minor: 27
+        major: h5p_core_version_minor,
+        minor: h5p_core_version_major
     }
-    config.h5pVersion = "1.27.0"
+    config.h5pVersion = `${h5p_core_version_major}.${h5p_core_version_major}.${h5p_core_version_patch}`
 
     console.log("Started with config:")
     console.log(config)
