@@ -59,4 +59,12 @@
 
   </build>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.edu_sharing</groupId>
+      <artifactId>edu_sharing-community-common-deployment-mongodb-compose</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+
 </project>

@@ -10,9 +10,6 @@ services:
   rendering2-message-queue:
     restart: unless-stopped
 
-  rendering2-database:
-    restart: unless-stopped
-
   rendering2-service:
     restart: unless-stopped
 

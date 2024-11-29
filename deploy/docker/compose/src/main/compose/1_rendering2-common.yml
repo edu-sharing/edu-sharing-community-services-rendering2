@@ -37,23 +37,14 @@ services:
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT_HTTP:-10300}:15672"
 
-  rendering2-database:
-    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.mongodb.name}:${docker.edu_sharing.community.common.mongodb.tag}"
+  mongo-database:
     environment:
-      ALLOW_EMPTY_PASSWORD: "false"
-      MONGODB_ADVERTISED_HOSTNAME: "rendering2-database"
-      MONGODB_REPLICA_SET_MODE: "primary"
-      MONGODB_DATABASE: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
-      MONGODB_USERNAME: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
-      MONGODB_PASSWORD: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
-      MONGODB_ROOT_USER: "${RENDERING2_SERVICE_DATABASES_ROOT_USER:-root}"
-      MONGODB_ROOT_PASSWORD: "${RENDERING2_SERVICE_DATABASES_ROOT_PASS:-root}"
-      MONGODB_REPLICA_SET_KEY: "${RENDERING2_SERVICE_DATABASES_REPLICATION_SET_KEY:-rendering}"
-      EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU: "1"
-    expose:
-      - "27017"
-    volumes:
-      - "rendering2-mongo-volume-data:/bitnami/mongodb"
+      MONGODB_EXTRA_RENDERING2_DATABASE: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
+      MONGODB_EXTRA_RENDERING2_USERNAME: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
+      MONGODB_EXTRA_RENDERING2_PASSWORD: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
+      MONGODB_EXTRA_LUMI_DATABASE: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
+      MONGODB_EXTRA_LUMI_USERNAME: "${RENDERING2_LUMI_DATABASE_USER:-lumi}"
+      MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
 
   rendering2-service:
     image: "${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
@@ -71,7 +62,7 @@ services:
       RABBITMQ_PORT: 5672
       REDIS_HOST: rendering2-cache
       REDIS_PORT: 6379
-      MONGODB_HOST: rendering2-database
+      MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
       app.appId: rendering2
       app.public.protocol: "${RENDERING2_SERVICE_PUBLIC_PROTOCOL:-http}"
@@ -114,9 +105,9 @@ services:
       app.security.allowedOrigins: "${REPOSITORY_SERVICE_ALLOW_ORIGIN:-}"
       app.security.adminPassword: admin
       spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
-      spring.data.mongodb.username: ${RENDERING2_SERVICE_DATABASE_USER:-rendering}
-      spring.data.mongodb.password: ${RENDERING2_SERVICE_DATABASES_PASS:-rendering}
-      spring.data.mongodb.database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
+      spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
+      spring.data.mongodb.password: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
+      spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
       app.moodle.host: "${RENDERING2_MOODLE_URL:-}"
       app.moodle.token: "${RENDERING2_MOODLE_TOKEN:-}"
       app.moodle.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
@@ -126,7 +117,7 @@ services:
     expose:
       - "8080"
     depends_on:
-      - rendering2-database
+      - mongo-database
       - rendering2-message-queue
       - rendering2-cache
     ports:
@@ -152,11 +143,12 @@ services:
       MINIO_HOST: rendering2-blob-storage
       MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
-      MONGODB_HOST: rendering2-database
+      MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
+      MONGODB_AUTH_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       MONGODB_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
-      MONGODB_USER: "${RENDERING2_SERVICE_DATABASES_ROOT_USER:-root}"
-      MONGODB_PASSWORD: "${RENDERING2_SERVICE_DATABASES_ROOT_PASS:-root}"
+      MONGODB_USER: "${RENDERING2_LUMI_DATABASE_USER:-lumi}"
+      MONGODB_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
       CONTENT_AWS_S3_BUCKET: contentbucket
       CONTENT_MONGO_COLLECTION: h5p
       TEMPORARY_AWS_S3_BUCKET: tempbucket
@@ -171,4 +163,3 @@ services:
       - "3000"
 volumes:
   rendering2-blob-storage-volume-data:
-  rendering2-mongo-volume-data:

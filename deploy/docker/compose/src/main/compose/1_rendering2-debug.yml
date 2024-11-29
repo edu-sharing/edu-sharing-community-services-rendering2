@@ -16,10 +16,6 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT:-9104}:5672"
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT:-9105}:15672"
 
-  rendering2-database:
-    ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_DATABASE_PORT:-9106}:27017"
-
   rendering2-service:
     environment:
       JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
