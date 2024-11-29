@@ -52,9 +52,11 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: adminuser
       AWS_SECRET_ACCESS_KEY: adminpassword
-      AWS_S3_ENDPOINT: http://minio:9000
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
-      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_HOST: mongo
+      MONGODB_PORT: 27017
       MONGODB_DB: lumi
       MONGODB_USER: admin
       MONGODB_PASSWORD: admin
