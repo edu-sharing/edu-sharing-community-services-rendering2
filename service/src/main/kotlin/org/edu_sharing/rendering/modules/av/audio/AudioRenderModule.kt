@@ -43,7 +43,6 @@ class AudioRenderModule(
         if (objectLinks !== null) {
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
-
         return RenderDataResponse(jobId = audioService.retrieveOrCreateJob(cacheObject, module()), module = module())
     }
 
