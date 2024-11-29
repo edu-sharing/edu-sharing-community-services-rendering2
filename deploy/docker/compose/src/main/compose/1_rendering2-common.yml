@@ -39,7 +39,7 @@ services:
       MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
 
   rendering2-service:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
     command:
       - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
       - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
@@ -116,7 +116,7 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
   rendering2-document-converter:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
       - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
       - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
@@ -128,7 +128,7 @@ services:
       - "8080"
 
   rendering2-lumi:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering}"

@@ -36,7 +36,7 @@ services:
       - "27017:27017"
 
   rendering2-document-converter:
-    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:maven-fixes-10.0-SNAPSHOT"
+    image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:maven-fixes-10.0-SNAPSHOT"
     command:
       - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
       - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
@@ -48,7 +48,7 @@ services:
       - "8081:8080"
 
   rendering2-lumi:
-    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:maven-fixes-10.0-SNAPSHOT"
+    image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:maven-fixes-10.0-SNAPSHOT"
     environment:
       AWS_ACCESS_KEY_ID: adminuser
       AWS_SECRET_ACCESS_KEY: adminpassword
