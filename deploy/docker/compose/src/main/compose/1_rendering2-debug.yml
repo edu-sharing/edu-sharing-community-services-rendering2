@@ -7,10 +7,6 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT:-9101}:9000"
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT:-9102}:9001"
 
-  rendering2-cache:
-    ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_CACHE_PORT:-9103}:6379"
-
   rendering2-message-queue:
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_MESSAGE_QUEUE_PORT:-9104}:5672"

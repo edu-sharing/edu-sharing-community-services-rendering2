@@ -16,14 +16,6 @@ services:
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT_HTTP:-10201}:9001"
 
-  rendering2-cache:
-    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.redis.name}:${docker.edu_sharing.community.common.redis.tag}"
-    container_name: "rendering2-cache_${COMPOSE_PROJECT_NAME}"
-    environment:
-      ALLOW_EMPTY_PASSWORD: "yes"
-    expose:
-      - 6379
-
   rendering2-message-queue:
     image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.rabbitmq.name}:${docker.edu_sharing.community.common.rabbitmq.tag}"
     environment:
@@ -60,7 +52,7 @@ services:
       MINIO_PORT: 9000
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
-      REDIS_HOST: rendering2-cache
+      REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
@@ -119,7 +111,7 @@ services:
     depends_on:
       - mongo-database
       - rendering2-message-queue
-      - rendering2-cache
+      - redis-cache
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
