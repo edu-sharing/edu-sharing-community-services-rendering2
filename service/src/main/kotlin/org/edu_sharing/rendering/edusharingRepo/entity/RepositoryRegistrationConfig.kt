@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 @ConfigurationProperties("app.repository.registration")
 class RepositoryRegistrationConfig {
 
-    lateinit var id: Map<String, RepositoryRegistrationConfigItem>
+    var id: Map<String, RepositoryRegistrationConfigItem> = emptyMap()
 
     fun getAllRegistrations(): List<RegisterRepositoryRequest> {
         return id.entries.stream()

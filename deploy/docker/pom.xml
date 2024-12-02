@@ -71,16 +71,6 @@
       4.0.4
     </docker.edu_sharing.community.common.rabbitmq.tag>
 
-
-    <docker.edu_sharing.community.common.mongodb.name>
-      edu_sharing-community-common-docker-mongodb
-    </docker.edu_sharing.community.common.mongodb.name>
-
-    <docker.edu_sharing.community.common.mongodb.tag>
-      7.0.9
-    </docker.edu_sharing.community.common.mongodb.tag>
-
-
   </properties>
 
   <modules>

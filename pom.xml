@@ -67,12 +67,24 @@
         <version>${project.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.edu_sharing</groupId>
+        <artifactId>edu_sharing-community-common-deployment-mongodb-compose</artifactId>
+        <version>7.0-1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.edu_sharing</groupId>
+        <artifactId>edu_sharing-community-common-deployment-redis-cluster-compose</artifactId>
+        <version>6.2-1</version>
+      </dependency>
 
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>edu_sharing-community-services-rendering2-deploy-docker-compose</artifactId>
         <version>${project.version}</version>
       </dependency>
+
 
       <dependency>
         <groupId>org.testcontainers</groupId>
