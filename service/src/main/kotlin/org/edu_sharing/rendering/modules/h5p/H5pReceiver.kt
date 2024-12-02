@@ -9,14 +9,13 @@ import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.utils.combinePath
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import java.nio.file.Path
 
 @ConditionalOnConverter
 @Component
@@ -56,7 +55,7 @@ class H5pReceiver(
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
             subJob.status = JobStatus.FINISHED
-            subJob.message = "${Path.of(appInfo.public.url, H5P_BASE_PATH, contentId)}"
+            subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message)
             subJob.status = JobStatus.FAILED

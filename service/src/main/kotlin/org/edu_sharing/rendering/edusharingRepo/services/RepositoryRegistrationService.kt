@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.utils.combinePath
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable
@@ -82,14 +83,13 @@ class RepositoryRegistrationService(
 //        if (!existingEntry.isPresent && !storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
 //        }
 
-        if(!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0){
-            if(force) {
+        if (!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
+            if (force) {
                 repositoryRegistrationStorageService.clearRegistrations()
-            }else {
+            } else {
                 throw IllegalArgumentException("It's not allowed to register more than one repository")
             }
         }
-
 
 
         // TODO
@@ -124,7 +124,7 @@ class RepositoryRegistrationService(
         val registrationEntity = createRegistration(request.url, force)
 
         val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
-        adminV1Api.addApplication1("${appInfo.internal.url}public/metadata")
+        adminV1Api.addApplication1(appInfo.internal.url.combinePath("public/metadata"))
 
         return registrationEntity
     }

@@ -11,9 +11,9 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.utils.combinePath
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import java.nio.file.Path
 
 @Component
 class H5pRenderModule(
@@ -31,7 +31,7 @@ class H5pRenderModule(
         if (cachedLumiContentId != null) {
             return RenderDataResponse(
                 module = module(),
-                objectLinks = mutableListOf(ObjectLink(link = "${Path.of(appInfo.public.url, H5P_BASE_PATH, cachedLumiContentId)}")),
+                objectLinks = mutableListOf(ObjectLink(link = appInfo.public.url.combinePath(H5P_BASE_PATH, cachedLumiContentId))),
                 jobId = null
             )
         }

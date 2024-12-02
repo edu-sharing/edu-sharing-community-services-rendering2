@@ -60,7 +60,7 @@ services:
       app.public.protocol: "${RENDERING2_SERVICE_PUBLIC_PROTOCOL:-http}"
       app.public.host: "${RENDERING2_SERVICE_PUBLIC_HOST:-rendering2.127.0.0.1.nip.io}"
       app.public.port: "${RENDERING2_SERVICE_PUBLIC_PORT:-10100}"
-      app.public.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/}"
+      app.public.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-}"
       app.internal.protocol: http
       app.internal.host: rendering2-service
       app.internal.port: 8080
@@ -94,7 +94,7 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.security.allowedOrigins: "${REPOSITORY_SERVICE_ALLOW_ORIGIN:-}"
+      app.security.allowedOrigins: "${REPOSITORY_SERVICE_ALLOW_ORIGIN:-*}"
       app.security.adminPassword: admin
       spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
