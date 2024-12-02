@@ -11,7 +11,7 @@ import org.springframework.amqp.support.converter.MessageConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
-
+// @TODO think about adding persistence for queues for more robustness
 @Configuration
 class QueueConfig {
 
