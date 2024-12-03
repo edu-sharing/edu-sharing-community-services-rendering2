@@ -11,6 +11,6 @@ class AppInfo {
     lateinit var public: ConnectionInfo
     lateinit var internal: ConnectionInfo
 
-    data class ConnectionInfo(var protocol: String, var host: String, var port: Short, var url: String)
+    data class ConnectionInfo(var protocol: String, var host: String, var port: Short, var path: String, var url: String)
 }
 

@@ -57,9 +57,9 @@ services:
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
       VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
-      VIRTUAL_DEST: /
       VIRTUAL_PATH: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}/"
       VIRTUAL_PORT: 8080
+      server.servlet.context-path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
       app.appId: rendering2
       app.public.protocol: "${RENDERING2_SERVICE_PUBLIC_PROTOCOL:-http}"
       app.public.host: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
@@ -67,6 +67,7 @@ services:
       app.public.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
       app.internal.protocol: http
       app.internal.host: rendering2-service
+      app.internal.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
       app.internal.port: 8080
       app.session.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_NODE_PERMISSION_EXPIRATION_TIME:-60}"
       app.session.image.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_IMAGE_NODE_PERMISSION_EXPIRATION_TIME:-}"
