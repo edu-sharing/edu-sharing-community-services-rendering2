@@ -4,11 +4,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.edu_sharing.rendering.edusharingRepo.dto.AllowedOriginsResult
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegistrationInfo
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
+import org.edu_sharing.rendering.security.CorsService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -21,8 +23,14 @@ import java.security.InvalidKeyException
 @ConditionalOnMaster
 @ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true")
 class AdminController(
-    private val repositoryRegistrationService: RepositoryRegistrationService
+    private val repositoryRegistrationService: RepositoryRegistrationService,
+    private val corsService: CorsService
 ) {
+
+    @GetMapping("/security/cors/allowed_origins")
+    fun getAllowedOrigins(): AllowedOriginsResult {
+        return AllowedOriginsResult(corsService.getAllowedOrigins())
+    }
 
     @GetMapping("/repository/register")
     fun registeredRepos(): List<RegistrationInfo> {
@@ -41,8 +49,8 @@ class AdminController(
     }
 
     @DeleteMapping("/repository/register")
-    fun deleteRepository(@RequestBody @Valid body: RemoveRepositoryRequest) {
-        repositoryRegistrationService.deleteRepository(body);
+    fun deleteRepository(@RequestBody @Valid body: RemoveRepositoryRequest): RegistrationInfo {
+        return toRegistrationInfo(repositoryRegistrationService.deleteRepository(body))
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -60,7 +68,9 @@ class AdminController(
         return RegistrationInfo(
             repoId = entity.repoId,
             url = entity.url,
-            publicKey = entity.publicKey
+            publicKey = entity.publicKey,
+            domains = entity.domains ?: emptyList()
+
         )
     }
 

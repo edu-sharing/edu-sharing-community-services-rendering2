@@ -23,9 +23,9 @@ class RepositoryRegistrationStorageService(
     }
 
     @CacheEvict("registrations", key = "#repoId")
-    fun removeRegistration(repoId: String) {
+    fun removeRegistration(repoId: String) : Optional<RepositoryRegistration> =
         repoRegistrationRepository.removeByRepoId(repoId)
-    }
+
 
     fun getRegistrationCount() = repoRegistrationRepository.count()
     fun clearRegistrations() {

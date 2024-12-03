@@ -22,16 +22,13 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
-import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 
 @Configuration
 @EnableMethodSecurity
 @ConditionalOnProperty(name = ["app.security.enabled"], havingValue = "true")
 class SecurityConfig(
-    @Value("\${app.security.allowedOrigins}") var allowedOrigins: List<String>,
     @Value("\${app.security.adminPassword}") var adminPassword: String
 ) {
 
@@ -66,14 +63,15 @@ class SecurityConfig(
     @Order(1)
     fun publicAPIFilterChain(
         httpSecurity: HttpSecurity,
-        authenticationJwtTokenFilter: AuthTokenFilter
+        authenticationJwtTokenFilter: AuthTokenFilter,
+        corsConfigurationSource: CorsConfigurationSource
     ): SecurityFilterChain {
         return httpSecurity
             .securityMatcher("/public/**")
             .csrf {
                 it.disable()
             }.cors {
-                it.configurationSource(corsConfigurationSource())
+                it.configurationSource(corsConfigurationSource)
             }.authorizeHttpRequests {
                 it.requestMatchers(
                     "/public/metadata", "/public/modules"
@@ -85,12 +83,15 @@ class SecurityConfig(
 
     @Bean
     @Order(2)
-    fun privateAPIFilterChain(httpSecurity: HttpSecurity): SecurityFilterChain {
+    fun privateAPIFilterChain(
+        httpSecurity: HttpSecurity,
+        corsConfigurationSource: CorsConfigurationSource
+    ): SecurityFilterChain {
         return httpSecurity
             .csrf {
                 it.disable()
             }.cors {
-                it.configurationSource(corsConfigurationSource())
+                it.configurationSource(corsConfigurationSource)
             }.authorizeHttpRequests {
                 it.requestMatchers(
                     "/swagger-ui/**",
@@ -121,18 +122,18 @@ class SecurityConfig(
     }
 
 
-    @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
-        val config = CorsConfiguration()
-        config.allowCredentials = true
-        config.setAllowedOriginPatterns(allowedOrigins)
-        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization")
-        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
-        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
-        config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
-        config.addExposedHeader("Access-Control-Allow-Origin")
-        val source = UrlBasedCorsConfigurationSource()
-        source.registerCorsConfiguration("/**", config)
-        return source
-    }
+//    @Bean
+//    fun corsConfigurationSource(): CorsConfigurationSource {
+//        val config = CorsConfiguration()
+//        config.allowCredentials = true
+//        config.setAllowedOriginPatterns(allowedOrigins)
+//        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization")
+//        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
+//        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
+//        config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
+//        config.addExposedHeader("Access-Control-Allow-Origin")
+//        val source = UrlBasedCorsConfigurationSource()
+//        source.registerCorsConfiguration("/**", config)
+//        return source
+//    }
 }

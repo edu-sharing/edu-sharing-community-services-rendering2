@@ -5,6 +5,6 @@ import org.springframework.data.mongodb.repository.MongoRepository
 import java.util.*
 
 interface RepositoryRegistrationRepository : MongoRepository<RepositoryRegistration, String> {
-    fun removeByRepoId(repoId: String)
+    fun removeByRepoId(repoId: String): Optional<RepositoryRegistration>
     fun findByRepoId(repoId: String): Optional<RepositoryRegistration>
 }

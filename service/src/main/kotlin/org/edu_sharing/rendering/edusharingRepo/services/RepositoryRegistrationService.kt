@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
+import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.combinePath
 import org.springframework.cache.annotation.CacheEvict
@@ -31,8 +32,17 @@ interface RepositoryPublicKeyService {
 class RepositoryRegistrationService(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val storageService: StorageService,
-    private val appInfo: AppInfo
+    private val appInfo: AppInfo,
+    private val corsService: CorsService
 ) : RepositoryPublicKeyService {
+
+    init {
+        val registrations = repositoryRegistrationStorageService.getRegistrations()
+        corsService.addOrigin(
+            registrations
+                .filter { it.domains != null }
+                .flatMap { it.domains!! })
+    }
 
     fun getWebClientByRepoId(repoId: String): WebClient {
         return getWebClient(
@@ -70,9 +80,11 @@ class RepositoryRegistrationService(
                 object {
                     val appId = props["appid"].toString()
                     val publicKey = props["public_key"].toString()
+                    val domain = listOf(props["domain"].toString()) // todo we need to get all domains from the repository
                 }
             }
             .block()
+
 
         if (metadata == null) {
             throw InvalidKeyException("Received metadata info is null")
@@ -99,22 +111,29 @@ class RepositoryRegistrationService(
                     RepositoryRegistration(
                         repoId = metadata.appId,
                         url = url,
-                        publicKey = metadata.publicKey
+                        publicKey = metadata.publicKey,
+                        domains = metadata.domain
                     )
                 )
 
             existingEntry.url = url
             existingEntry.publicKey = metadata.publicKey
-            return repositoryRegistrationStorageService.storeRegistration(existingEntry)
+            existingEntry.domains = metadata.domain
+            val storeRegistration = repositoryRegistrationStorageService.storeRegistration(existingEntry)
+            corsService.addOrigin(storeRegistration.domains ?: emptyList())
+            return storeRegistration
         }
 
-        return repositoryRegistrationStorageService.storeRegistration(
+        val storeRegistration = repositoryRegistrationStorageService.storeRegistration(
             RepositoryRegistration(
                 repoId = metadata.appId,
                 url = url,
-                publicKey = metadata.publicKey
+                publicKey = metadata.publicKey,
+                domains = metadata.domain
             )
         )
+        corsService.addOrigin(storeRegistration.domains ?: emptyList())
+        return storeRegistration
     }
 
 
@@ -138,12 +157,16 @@ class RepositoryRegistrationService(
         return adminV1Api
     }
 
-
+    @Transactional
     @CacheEvict("repositoryKeys", key = "#request.repoId")
-    fun deleteRepository(request: RemoveRepositoryRequest) {
-        val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
+    fun deleteRepository(request: RemoveRepositoryRequest) : RepositoryRegistration {
+        val entry = repositoryRegistrationStorageService.removeRegistration(request.repoId)
+            .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
+
+        val adminV1Api = getAdminV1Api(entry.url, request.username, request.password)
         adminV1Api.removeApplication(appInfo.appId)
-        repositoryRegistrationStorageService.removeRegistration(request.repoId)
+        corsService.removeOrigin(entry.domains ?: emptyList())
+        return entry
     }
 
     @Cacheable("repositoryKeys", key = "#repoId")
@@ -152,7 +175,6 @@ class RepositoryRegistrationService(
             .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
 
         val publicKey = registration.publicKey
-            ?: throw InvalidKeyException("No public key available. Please register the application with an edu-sharing repository first")
         val publicKeyData = publicKey
             .replace("-----BEGIN PUBLIC KEY-----", "")
             .replace("-----END PUBLIC KEY-----", "")

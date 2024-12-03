@@ -11,5 +11,6 @@ data class RepositoryRegistration(
     val repoId: String,
 
     var url: String,
-    var publicKey: String
+    var publicKey: String,
+    var domains: List<String>? = emptyList()
 )
