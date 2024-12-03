@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.utils.cleanUrl
 import org.edu_sharing.rendering.utils.combinePath
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
@@ -80,7 +81,7 @@ class RepositoryRegistrationService(
                 object {
                     val appId = props["appid"].toString()
                     val publicKey = props["public_key"].toString()
-                    val domain = listOf(props["domain"].toString()) // todo we need to get all domains from the repository
+                    val domain = listOf("${props["clientprotocol"]}://${props["domain"]}:${props["clientport"]}".cleanUrl()) // todo we need to get all domains from the repository
                 }
             }
             .block()
@@ -98,6 +99,7 @@ class RepositoryRegistrationService(
         if (!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
             if (force) {
                 repositoryRegistrationStorageService.clearRegistrations()
+                corsService.clearExternalOrigins()
             } else {
                 throw IllegalArgumentException("It's not allowed to register more than one repository")
             }

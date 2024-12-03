@@ -23,4 +23,7 @@ class CorsService(private val corsConfig : CorsConfig) {
     fun getAllowedOrigins(): List<String> =
         corsConfig.getAllowedOrigins()
 
+    fun clearExternalOrigins(){
+        corsConfig.clearExternalOrigins()
+    }
 }
