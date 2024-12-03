@@ -56,13 +56,15 @@ services:
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
-      VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-rendering2.127.0.0.1.nip.io}"
+      VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
+      VIRTUAL_DEST: /
+      VIRTUAL_PATH: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}/"
       VIRTUAL_PORT: 8080
       app.appId: rendering2
       app.public.protocol: "${RENDERING2_SERVICE_PUBLIC_PROTOCOL:-http}"
-      app.public.host: "${RENDERING2_SERVICE_PUBLIC_HOST:-rendering2.127.0.0.1.nip.io}"
+      app.public.host: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
       app.public.port: "${RENDERING2_SERVICE_PUBLIC_PORT:-80}"
-      app.public.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-}"
+      app.public.path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
       app.internal.protocol: http
       app.internal.host: rendering2-service
       app.internal.port: 8080
