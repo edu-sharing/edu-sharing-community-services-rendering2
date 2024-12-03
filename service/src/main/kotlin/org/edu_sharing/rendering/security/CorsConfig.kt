@@ -25,6 +25,7 @@ class CorsConfig(private val appInfo: AppInfo) {
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration()
         config.allowedOrigins = allowedOrigins
+        config.allowCredentials = true
         config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization")
         config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
         config.addExposedHeader("Access-Control-Allow-Origin")
