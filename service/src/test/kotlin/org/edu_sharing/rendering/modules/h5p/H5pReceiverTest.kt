@@ -41,7 +41,7 @@ class H5PReceiverTest {
 
     @BeforeEach
     fun setUp() {
-        appInfo.public = AppInfo.ConnectionInfo("http", "localhost", 80, "http://localhost:80" )
+        appInfo.public = AppInfo.ConnectionInfo("http", "localhost", 80, "", "http://localhost:80", )
     }
 
     @Test

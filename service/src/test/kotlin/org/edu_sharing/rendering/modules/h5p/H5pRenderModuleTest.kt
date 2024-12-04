@@ -25,7 +25,7 @@ class H5pRenderModuleTest {
 
     @BeforeEach
     fun setUp() {
-        appInfo.public = AppInfo.ConnectionInfo("http", "test.com", 8000, "http://test.com:8000" )
+        appInfo.public = AppInfo.ConnectionInfo("http", "test.com", 8000, "", "http://test.com:8000" )
         underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiNodeInfoServiceMock, appInfo)
         clearAllMocks()
     }

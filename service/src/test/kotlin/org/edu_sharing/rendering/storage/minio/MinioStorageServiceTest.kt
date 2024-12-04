@@ -37,7 +37,7 @@ class MinioStorageServiceTest {
 
     @BeforeEach
     fun setup() {
-        appInfo.public = AppInfo.ConnectionInfo("http", "public", 8909, "http://public:8909" )
+        appInfo.public = AppInfo.ConnectionInfo("http", "public", 8909, "", "http://public:8909" )
         underTest = MinioStorageService(client, adminClient, bucketStrategy, trackingService, appInfo)
     }
 
