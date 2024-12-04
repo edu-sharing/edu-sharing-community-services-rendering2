@@ -7,18 +7,22 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.springframework.beans.factory.BeanClassLoaderAware
+import org.springframework.boot.autoconfigure.session.DefaultCookieSerializerCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializer
 import org.springframework.security.jackson2.SecurityJackson2Modules
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisIndexedHttpSession
+import org.springframework.session.web.http.DefaultCookieSerializer
 
 @Configuration
 @EnableRedisIndexedHttpSession
-class SessionConfig: BeanClassLoaderAware {
+class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
 
     private lateinit var loader: ClassLoader
+
+
 
     @Bean
     fun springSessionDefaultRedisSerializer(): RedisSerializer<Any> {
@@ -47,5 +51,9 @@ class SessionConfig: BeanClassLoaderAware {
 
     override fun setBeanClassLoader(classLoader: ClassLoader) {
         this.loader = classLoader
+    }
+
+    override fun customize(cookieSerializer: DefaultCookieSerializer?) {
+        cookieSerializer?.setDomainNamePattern("^.*?([^.]+\\.[^.]+)$")
     }
 }
