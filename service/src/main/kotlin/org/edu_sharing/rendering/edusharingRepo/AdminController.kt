@@ -4,11 +4,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
-import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
-import org.edu_sharing.rendering.edusharingRepo.dto.RegistrationInfo
-import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
+import org.edu_sharing.rendering.edusharingRepo.dto.*
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
+import org.edu_sharing.rendering.security.CorsService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
