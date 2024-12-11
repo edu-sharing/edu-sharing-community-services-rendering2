@@ -3,12 +3,15 @@ package org.edu_sharing.rendering.edusharingRepo.services
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
+import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.cleanUrl
@@ -36,7 +39,8 @@ class RepositoryRegistrationService(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val storageService: StorageService,
     private val appInfo: AppInfo,
-    private val corsService: CorsService
+    private val corsService: CorsService,
+    private val moduleRegistry: ModuleRegistry
 ) : RepositoryPublicKeyService {
 
     init {
@@ -198,6 +202,22 @@ class RepositoryRegistrationService(
     fun activateOptionalModule(request: ActivateOptionalModuleRequest) {
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
+
+        var invalidModules = mutableListOf<String>()
+        request.modules.forEach loop@{
+            try {
+                val renderModule = moduleRegistry.getRenderModule<RenderModule>(it)
+                if (! renderModule.isOptionalModule()) {
+                    invalidModules.add("$it is not an optional module")
+                }
+            } catch (_: ModuleNotRegisteredException) {
+                invalidModules.add("$it is not a valid module")
+                return@loop
+            }
+        }
+        if (invalidModules.isNotEmpty()) {
+            throw IllegalArgumentException("Invalid module(s): ${invalidModules.joinToString("; ")}")
+        }
         registration.optionalModules = registration.optionalModules.union(request.modules).toMutableList()
         repositoryRegistrationStorageService.storeRegistration(registration)
     }
