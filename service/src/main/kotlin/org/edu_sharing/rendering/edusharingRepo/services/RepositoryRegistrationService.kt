@@ -4,6 +4,8 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClie
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
+import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
+import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
@@ -114,7 +116,8 @@ class RepositoryRegistrationService(
                         repoId = metadata.appId,
                         url = url,
                         publicKey = metadata.publicKey,
-                        domains = metadata.domain
+                        domains = metadata.domain,
+                        optionalModules = mutableListOf()
                     )
                 )
 
@@ -131,7 +134,8 @@ class RepositoryRegistrationService(
                 repoId = metadata.appId,
                 url = url,
                 publicKey = metadata.publicKey,
-                domains = metadata.domain
+                domains = metadata.domain,
+                optionalModules = mutableListOf()
             )
         )
         corsService.addOrigin(storeRegistration.domains ?: emptyList())
@@ -189,5 +193,19 @@ class RepositoryRegistrationService(
 
     fun getRegisteredRepositories(): List<RepositoryRegistration> {
         return repositoryRegistrationStorageService.getRegistrations()
+    }
+
+    fun activateOptionalModule(request: ActivateOptionalModuleRequest) {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
+            .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
+        registration.optionalModules = registration.optionalModules.union(request.modules).toMutableList()
+        repositoryRegistrationStorageService.storeRegistration(registration)
+    }
+
+    fun deactivateOptionalModule(request: DeactivateOptionalModuleRequest) {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
+            .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
+        registration.optionalModules.removeAll(request.modules)
+        repositoryRegistrationStorageService.storeRegistration(registration)
     }
 }

@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
-import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
@@ -30,11 +30,16 @@ class RegistrationRunner(
         }
 
         repositoryRegistrationConfig.getAllRegistrations().forEach {
+            var (registrationRequest, optionalModuleList) = it
             try {
-                repositoryRegistrationService.registerWithRepository(it, true)
-                log.info("Registration completed for {}", it.url)
+                val registration = repositoryRegistrationService.registerWithRepository(registrationRequest, true)
+                repositoryRegistrationService.activateOptionalModule(ActivateOptionalModuleRequest(
+                    repoId = registration.repoId,
+                    modules = optionalModuleList
+                ))
+                log.info("Registration completed for ${registrationRequest.url} with optional modules $optionalModuleList.")
             } catch (e: InvalidKeyException) {
-                log.warn("Registration failed for {} with\n {}", it.url, e.message, e)
+                log.warn("Registration failed for ${registrationRequest.url} with\n ${e.message}", e)
             } catch (e: Exception) {
                 log.error(e.message, e)
             }

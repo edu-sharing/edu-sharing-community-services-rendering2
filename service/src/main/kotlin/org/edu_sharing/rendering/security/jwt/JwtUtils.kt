@@ -45,6 +45,24 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
         }
     }
 
+    private class JWTUserDetailsResolver : SupportedJwtVisitor<JWTBasedUserDetail>() {
+
+        override fun onVerifiedClaims(jws: Jws<Claims>?): JWTBasedUserDetail? {
+            if (jws != null) {
+                val grantedAuthority = mutableListOf<GrantedAuthority>()
+                return JWTBasedUserDetail(
+                    jws.payload.issuer,
+                    jws.payload.notBefore,
+                    jws.payload.expiration,
+                    grantedAuthority,
+                    jws.payload.get("repoId", String::class.java),
+                )
+            }
+            return null;
+        }
+    }
+
+
     fun validateJwtToken(jwt: String): Boolean {
         try {
             jwtParser.parse(jwt)
@@ -64,15 +82,7 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
     }
 
     fun getUserDetailsFromJwt(jwt: String): JWTBasedUserDetail {
-        val jwtObj = jwtParser.parseSignedClaims(jwt)
-        val grantedAuthority = mutableListOf<GrantedAuthority>()
-
-        return JWTBasedUserDetail(
-            jwtObj.payload.issuer,
-            jwtObj.payload.notBefore,
-            jwtObj.payload.expiration,
-            grantedAuthority,
-        )
+        return jwtParser.parse(jwt).accept(JWTUserDetailsResolver())
     }
 
     fun getNodePermissions(jwt: String): NodePermission {

@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Component
 
 @Component
@@ -18,7 +19,9 @@ class MoodleRenderModule(
     private val moodleJobService: MoodleJobService
 ) : RenderModule, ModuleTypeMapper {
     override fun module() = "MOODLE"
+    override fun isOptionalModule() = true
 
+    @PreAuthorize("@modulePermissionService.hasModuleAccess(#root)")
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         return RenderDataResponse(
             module = module(),

@@ -21,6 +21,8 @@ class EduHtmlRenderModule(
     private val mapper: Mapper
 ) : RenderModule, ModuleTypeMapper {
     override fun module() = "EDUHTML"
+    override fun isOptionalModule() = true
+
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val staticLink = try {

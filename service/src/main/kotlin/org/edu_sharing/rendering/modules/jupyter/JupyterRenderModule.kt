@@ -35,6 +35,8 @@ class JupyterRenderModule(
 
     override fun module() = "JUPYTER"
 
+    override fun isOptionalModule() = true
+
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
         val objectLinks = jupyterJobService.getObjectLinks(cacheObject, this)

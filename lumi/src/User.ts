@@ -9,10 +9,12 @@ export default class User implements IUser {
         this.name = 'Firstname Surname';
         this.type = 'local';
         this.email = 'test@example.com';
+        this.session = 'test'
     }
 
     public email: string;
     public id: string;
     public name: string;
     public type: 'local';
+    public session: string
 }

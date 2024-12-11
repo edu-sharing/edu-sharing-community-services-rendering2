@@ -10,13 +10,16 @@ class RepositoryRegistrationConfig {
 
     var id: Map<String, RepositoryRegistrationConfigItem> = emptyMap()
 
-    fun getAllRegistrations(): List<RegisterRepositoryRequest> {
+    fun getAllRegistrations(): List<Pair<RegisterRepositoryRequest, List<String>>> {
         return id.entries.stream()
             .map {
-                RegisterRepositoryRequest(
-                    url = it.value.url,
-                    username = it.value.username,
-                    password = it.value.password
+                Pair(
+                    RegisterRepositoryRequest(
+                        url = it.value.url,
+                        username = it.value.username,
+                        password = it.value.password
+                    ),
+                    it.value.optionalModules
                 )
             }
             .toList()

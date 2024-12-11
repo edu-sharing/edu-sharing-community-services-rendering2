@@ -26,6 +26,8 @@ class H5pRenderModule(
 
     override fun module() = "H5P"
 
+    override fun isOptionalModule() = true
+
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cachedLumiContentId = lumiNodeInfoService.getContentId(request.nodeId, request.hash)
         if (cachedLumiContentId != null) {
