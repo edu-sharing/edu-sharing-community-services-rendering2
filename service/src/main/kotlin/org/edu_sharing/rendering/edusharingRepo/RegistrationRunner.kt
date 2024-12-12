@@ -30,18 +30,30 @@ class RegistrationRunner(
         }
 
         repositoryRegistrationConfig.getAllRegistrations().forEach {
-            var (registrationRequest, optionalModuleList) = it
+            var (registrationRequest, optionalModuleList, moduleSettings) = it
             try {
                 val registration = repositoryRegistrationService.registerWithRepository(registrationRequest, true)
-                repositoryRegistrationService.activateOptionalModule(ActivateOptionalModuleRequest(
-                    repoId = registration.repoId,
-                    modules = optionalModuleList
-                ))
-                log.info("Registration completed for ${registrationRequest.url} with optional modules $optionalModuleList.")
+                optionalModuleList.forEach { module ->
+                    repositoryRegistrationService.activateOptionalModule(
+                        ActivateOptionalModuleRequest(
+                            repoId = registration.repoId,
+                            module = module,
+                            credentials = moduleSettings[module]?.credentials
+                        )
+                    )
+                    log.info("Optional module activated: $module.")
+                }
+                val orphanedSettingsKeys = moduleSettings.keys.subtract(optionalModuleList)
+                if (orphanedSettingsKeys.isNotEmpty()) {
+                    log.warn("Settings provided for modules: ${orphanedSettingsKeys.joinToString(",")}. These modules are not in the optional-modules list. Did you forget them?")
+                }
+                log.info("Registration completed for ${registrationRequest.url}.")
             } catch (e: InvalidKeyException) {
-                log.warn("Registration failed for ${registrationRequest.url} with\n ${e.message}", e)
+                log.error("Error while registering ${registrationRequest.url}: ${e.message}", e)
+                throw RuntimeException("Registration failed for ${registrationRequest.url} with\n ${e.message}", e)
             } catch (e: Exception) {
                 log.error(e.message, e)
+                throw RuntimeException(e.message)
             }
         }
     }

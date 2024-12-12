@@ -9,9 +9,11 @@ import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleReques
 import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RemoveRepositoryRequest
+import org.edu_sharing.rendering.edusharingRepo.entity.ModuleSettings
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.cleanUrl
@@ -58,7 +60,6 @@ class RepositoryRegistrationService(
                 .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
         )
     }
-
 
     fun getWebClient(url: String): WebClient {
         return WebClient
@@ -203,22 +204,20 @@ class RepositoryRegistrationService(
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
 
-        var invalidModules = mutableListOf<String>()
-        request.modules.forEach loop@{
-            try {
-                val renderModule = moduleRegistry.getRenderModule<RenderModule>(it)
-                if (! renderModule.isOptionalModule()) {
-                    invalidModules.add("$it is not an optional module")
-                }
-            } catch (_: ModuleNotRegisteredException) {
-                invalidModules.add("$it is not a valid module")
-                return@loop
+        try {
+            val renderModule = moduleRegistry.getRenderModule<RenderModule>(request.module)
+            if (! renderModule.isOptionalModule()) {
+                throw IllegalArgumentException("${request.module} is not an optional module")
             }
+            if (renderModule is ThirdPartyModule) {
+                renderModule.validateThirdPartyCredentials(request.credentials ?: emptyMap())
+                registration.module[request.module] = ModuleSettings(credentials = request.credentials ?: emptyMap())
+            }
+        } catch (_: ModuleNotRegisteredException) {
+            throw IllegalArgumentException("${request.module} is not a valid module")
         }
-        if (invalidModules.isNotEmpty()) {
-            throw IllegalArgumentException("Invalid module(s): ${invalidModules.joinToString("; ")}")
-        }
-        registration.optionalModules = registration.optionalModules.union(request.modules).toMutableList()
+
+        registration.optionalModules = registration.optionalModules.union(listOf(request.module)).toMutableList()
         repositoryRegistrationStorageService.storeRegistration(registration)
     }
 

@@ -46,7 +46,11 @@ class MoodleReceiver (
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         try {
-            val url = moodleService.getUrl(message, moduleRegistry.getRenderModule(jobEntry.module))
+            val url = moodleService.getUrl(
+                moodleJobMessage = message,
+                module = moduleRegistry.getRenderModule(jobEntry.module),
+                repoId = jobEntry.repoId
+            )
             subJob.status = JobStatus.FINISHED
             subJob.message = url
         } catch (exception: Exception) {

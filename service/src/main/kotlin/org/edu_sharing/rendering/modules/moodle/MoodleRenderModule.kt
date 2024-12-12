@@ -3,18 +3,28 @@ package org.edu_sharing.rendering.modules.moodle
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
+import java.time.Duration
 
 @Component
 class MoodleRenderModule(
     @Value("\${app.session.moodle.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
-    private val moodleJobService: MoodleJobService
-) : RenderModule {
+    private val moodleJobService: MoodleJobService,
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+) : RenderModule, ThirdPartyModule {
+
+    companion object {
+        private val requiredCredentialKeys = setOf("baseurl", "user", "token", "timeout", "categoryid")
+    }
+
     override fun module() = "MOODLE"
     override fun isOptionalModule() = true
 
@@ -33,4 +43,50 @@ class MoodleRenderModule(
     fun getRemoteServiceMethod() = "restore"
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
+
+    override fun validateThirdPartyCredentials(credentials: Map<String, String>) {
+        var missingKeys = mutableListOf<String>()
+        var emptyValues = mutableListOf<String>()
+        requiredCredentialKeys.forEach {
+            if (!credentials.containsKey(it)) {
+                missingKeys.add(it)
+            } else if (credentials[it].isNullOrEmpty()) {
+                emptyValues.add(it)
+            }
+        }
+        if (missingKeys.isNotEmpty() || emptyValues.isNotEmpty()) {
+            val builder = StringBuilder("Cannot register moodle service.")
+            if (missingKeys.isNotEmpty()) {
+                builder.append("The following keys are missing: ${missingKeys.joinToString(",")}.")
+            }
+            if (emptyValues.isNotEmpty()) {
+                builder.append("The following values are empty: ${emptyValues.joinToString(",")}.")
+            }
+            throw IllegalArgumentException(builder.toString())
+        }
+
+        val webClient = WebClient
+            .builder()
+            .baseUrl(credentials.getValue("baseurl"))
+            .build()
+
+        webClient.get()
+            .uri {
+                it.path("/webservice/rest/server.php")
+                    .queryParam("wsfunction", "local_edusharing_ping")
+                    .queryParam("moodlewsrestformat", "json")
+                    .queryParam("wstoken", credentials.getValue("token"))
+                    .build()
+            }
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .timeout(Duration.ofSeconds(credentials.getValue("timeout").toLong()))
+            .block()
+    }
+
+    override fun getConfig(repoId: String): Map<String, String> {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
+        return registration.module[module()]?.credentials ?: mapOf()
+    }
 }

@@ -30,7 +30,6 @@ import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageService
 import org.edu_sharing.rendering.modules.jupyter.JupyterJobService
 import org.edu_sharing.rendering.modules.jupyter.JupyterRenderModule
-import org.edu_sharing.rendering.modules.moodle.MoodleConfig
 import org.edu_sharing.rendering.modules.moodle.MoodleJobService
 import org.edu_sharing.rendering.modules.moodle.MoodleRenderModule
 import org.edu_sharing.rendering.modules.moodle.ScormRenderModule
@@ -82,7 +81,6 @@ abstract class SharedBeans {
             MinioStorageService::class,
             ModuleRegistry::class,
             MongoConfig::class,
-            MoodleConfig::class,
             MoodleRenderModule::class,
             MoodleJobService::class,
             NodePermissionSessionContextRepository::class,

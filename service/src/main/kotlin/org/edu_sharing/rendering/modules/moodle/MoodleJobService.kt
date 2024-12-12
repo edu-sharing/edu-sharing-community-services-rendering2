@@ -2,10 +2,10 @@ package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
-import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -20,12 +20,6 @@ class MoodleJobService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Value("\${app.moodle.token}")
-    lateinit var token: String
-
-    @Value("\${app.moodle.categoryid}")
-    lateinit var categoryId: String
-
     @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
@@ -33,7 +27,6 @@ class MoodleJobService(
     lateinit var jobRoutingKey: String
 
     fun createJob(request: RenderDataRequest, module: String): String? {
-        checkPrerequisites()
         if (request.userData == null) {
             log.error("Missing user data in Moodle request. Node: " + request.nodeId)
             throw IllegalArgumentException()
@@ -60,11 +53,5 @@ class MoodleJobService(
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
-    }
-
-    private fun checkPrerequisites() {
-        if (token.isBlank() || categoryId.isBlank()) {
-            throw IllegalStateException("Moodle config invalid and/or incomplete")
-        }
     }
 }

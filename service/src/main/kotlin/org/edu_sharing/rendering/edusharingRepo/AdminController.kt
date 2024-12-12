@@ -77,7 +77,6 @@ class AdminController(
             url = entity.url,
             publicKey = entity.publicKey,
             domains = entity.domains ?: emptyList()
-
         )
     }
 
