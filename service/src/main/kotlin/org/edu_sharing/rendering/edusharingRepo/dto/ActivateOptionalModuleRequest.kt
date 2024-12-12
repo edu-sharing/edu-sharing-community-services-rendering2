@@ -7,4 +7,5 @@ data class ActivateOptionalModuleRequest(
     val repoId: String,
     @NotNull
     val modules: List<String>,
+    val credentials: Map<String, String>? = null
 )
