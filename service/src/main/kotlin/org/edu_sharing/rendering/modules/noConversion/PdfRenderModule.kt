@@ -1,8 +1,6 @@
 package org.edu_sharing.rendering.modules.noConversion
 
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.ModuleTypeDefinition
-import org.edu_sharing.rendering.modules.ModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.beans.factory.annotation.Value
@@ -15,9 +13,7 @@ class PdfRenderModule(
     mapper: Mapper,
     storageService: StorageService,
     mainJobCreationService: MainJobCreationService
-    ) : BaseNoConversionModule(nodePermissionExpirationTime, mapper, storageService, mainJobCreationService), ModuleTypeMapper {
+    ) : BaseNoConversionModule(nodePermissionExpirationTime, mapper, storageService, mainJobCreationService) {
 
     override fun module() = "PDF"
-    override fun moduleTypeAssociations() =
-        listOf(ModuleTypeDefinition(mimeTypePrefix = "application", mimeTypeSuffix = "pdf") to this)
 }

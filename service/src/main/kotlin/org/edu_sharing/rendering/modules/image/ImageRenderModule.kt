@@ -25,7 +25,7 @@ class ImageRenderModule(
     private val imageService: ImageService,
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
-) : RenderModule, ModuleTypeMapper, ConversionModule {
+) : RenderModule, ConversionModule {
 
     @Value("\${app.queue.image.key}")
     lateinit var imageRoutingKey: String
@@ -66,9 +66,6 @@ class ImageRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
-    override fun moduleTypeAssociations() =
-        listOf(ModuleTypeDefinition(mimeTypePrefix = "image") to this)
 
     override fun createJob(
         renderingJob: RenderingJob,

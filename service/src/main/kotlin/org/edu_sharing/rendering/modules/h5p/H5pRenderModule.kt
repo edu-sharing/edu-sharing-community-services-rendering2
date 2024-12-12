@@ -22,7 +22,7 @@ class H5pRenderModule(
     private val h5pJobService: H5pJobService,
     private val lumiNodeInfoService: LumiNodeInfoService,
     private val appInfo: AppInfo
-): RenderModule, ModuleTypeMapper {
+): RenderModule {
 
     override fun module() = "H5P"
 
@@ -50,6 +50,4 @@ class H5pRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(type = "file-h5p") to this)
 }
