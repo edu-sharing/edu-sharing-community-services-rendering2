@@ -44,7 +44,7 @@ class MoodleRenderModule(
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
-    override fun validateThirdPartyCredentials(credentials: Map<String, String>) {
+    override fun validateThirdPartyCredentials(credentials: Map<String, String>, repoId: String) {
         var missingKeys = mutableListOf<String>()
         var emptyValues = mutableListOf<String>()
         requiredCredentialKeys.forEach {
@@ -70,18 +70,26 @@ class MoodleRenderModule(
             .baseUrl(credentials.getValue("baseurl"))
             .build()
 
-        webClient.get()
+        val testResult = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_ping")
                     .queryParam("moodlewsrestformat", "json")
                     .queryParam("wstoken", credentials.getValue("token"))
+                    .queryParam("repoId", repoId)
                     .build()
             }
             .retrieve()
-            .bodyToMono(String::class.java)
+            .bodyToMono(Int::class.java)
             .timeout(Duration.ofSeconds(credentials.getValue("timeout").toLong()))
             .block()
+
+        if (testResult == null) {
+            throw Exception("No test result returned from render Moodle.")
+        }
+        if (testResult != 1) {
+            throw Exception("Moodle responded but test was not successful. Result: $testResult")
+        }
     }
 
     override fun getConfig(repoId: String): Map<String, String> {

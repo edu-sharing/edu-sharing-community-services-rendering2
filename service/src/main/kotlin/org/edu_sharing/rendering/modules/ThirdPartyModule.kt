@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules
 
 interface ThirdPartyModule {
-    fun validateThirdPartyCredentials(credentials: Map<String, String>)
+    fun validateThirdPartyCredentials(credentials: Map<String, String>, repoId: String)
     fun getConfig(repoId: String): Map<String, String>
 }

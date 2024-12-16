@@ -210,7 +210,7 @@ class RepositoryRegistrationService(
                 throw IllegalArgumentException("${request.module} is not an optional module")
             }
             if (renderModule is ThirdPartyModule) {
-                renderModule.validateThirdPartyCredentials(request.credentials ?: emptyMap())
+                renderModule.validateThirdPartyCredentials(request.credentials ?: emptyMap(), request.repoId)
                 registration.module[request.module] = ModuleSettings(credentials = request.credentials ?: emptyMap())
             }
         } catch (_: ModuleNotRegisteredException) {
