@@ -26,7 +26,7 @@ class AudioRenderModule(
     private val audioService: AudioService,
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
-    ) : RenderModule, ModuleTypeMapper, ConversionModule {
+    ) : RenderModule, ConversionModule {
 
     @Value("\${app.queue.av.key}")
     lateinit var avRoutingKey: String
@@ -43,7 +43,6 @@ class AudioRenderModule(
         if (objectLinks !== null) {
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
-
         return RenderDataResponse(jobId = audioService.retrieveOrCreateJob(cacheObject, module()), module = module())
     }
 
@@ -54,9 +53,6 @@ class AudioRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
-    override fun moduleTypeAssociations() =
-        listOf(ModuleTypeDefinition(mimeTypePrefix = "audio") to this)
 
     override fun createJob(
         renderingJob: RenderingJob,

@@ -8,7 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
 class LumiConfig() {
-    @Value("\${app.lumi.host}${H5P_BASE_PATH}")
+    @Value("\${app.lumi.host}/${H5P_BASE_PATH}")
     lateinit var lumiBaseUrl: String
 
     @Bean

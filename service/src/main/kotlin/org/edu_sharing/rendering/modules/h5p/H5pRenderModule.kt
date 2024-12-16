@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
@@ -10,6 +11,7 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.utils.combinePath
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -18,19 +20,20 @@ class H5pRenderModule(
     @Value("\${app.session.h5p.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val h5pJobService: H5pJobService,
-    private val lumiNodeInfoService: LumiNodeInfoService
-): RenderModule, ModuleTypeMapper {
-    @Value("\${app.public.url}:\${app.public.port}")
-    lateinit var baseUrl: String
+    private val lumiNodeInfoService: LumiNodeInfoService,
+    private val appInfo: AppInfo
+): RenderModule {
 
     override fun module() = "H5P"
+
+    override fun isOptionalModule() = true
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cachedLumiContentId = lumiNodeInfoService.getContentId(request.nodeId, request.hash)
         if (cachedLumiContentId != null) {
             return RenderDataResponse(
                 module = module(),
-                objectLinks = mutableListOf(ObjectLink(link = "$baseUrl$H5P_BASE_PATH/${cachedLumiContentId}")),
+                objectLinks = mutableListOf(ObjectLink(link = appInfo.public.url.combinePath(H5P_BASE_PATH, cachedLumiContentId))),
                 jobId = null
             )
         }
@@ -47,6 +50,4 @@ class H5pRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(type = "file-h5p") to this)
 }

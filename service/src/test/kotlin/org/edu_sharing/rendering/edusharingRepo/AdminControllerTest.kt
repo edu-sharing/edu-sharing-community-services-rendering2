@@ -1,19 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
-import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.justRun
-import io.mockk.verify
-import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-import org.springframework.boot.test.autoconfigure.web.servlet.*
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-
+/**
 @WebMvcTest(
     AdminController::class,
     excludeAutoConfiguration = [SecurityAutoConfiguration::class],
@@ -27,13 +14,13 @@ class AdminControllerTest(@Autowired val mockMvc: MockMvc) {
     @Test
     fun testRegisterWithRepoFetchesRepoKeyViaService() {
         // Arrange
-        justRun { service.registerWithRepository() }
+        justRun { service.registerWithRepository(body) }
 
         // Act
         mockMvc.perform(put("/admin/repository/register")).andExpect(status().isOk).andReturn()
 
         // Assert
-        verify(exactly = 1) { service.registerWithRepository() }
+        verify(exactly = 1) { service.registerWithRepository(body) }
         confirmVerified(service)
     }
 
@@ -50,7 +37,7 @@ class AdminControllerTest(@Autowired val mockMvc: MockMvc) {
         verify(exactly = 1) { service.updatePublicRepositoryKey() }
         confirmVerified(service)
     }
-/**
+
     @Test
     fun testUpdatePublicRepositoryKeyReturnsNotFoundOnInvalidKeyError() {
         // Arrange
@@ -61,5 +48,6 @@ class AdminControllerTest(@Autowired val mockMvc: MockMvc) {
         verify(exactly = 1) { service.updatePublicRepositoryKey() }
         confirmVerified(service)
     }
-    */
+
 }
+ */

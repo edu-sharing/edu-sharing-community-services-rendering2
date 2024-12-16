@@ -1,33 +1,33 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.utils.combinePath
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
-@ConditionalOnH5p
+@ConditionalOnConverter
 @Component
 class H5pReceiver(
     private val mainJobLogic: MainJobLogic,
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val h5pUploadService: H5pUploadService,
-    private val mapper: Mapper
+    private val mapper: Mapper,
+    private val appInfo: AppInfo
 ){
     private val log = LoggerFactory.getLogger(H5pReceiver::class.java)
-
-    @Value("\${app.public.url}:\${app.public.port}")
-    lateinit var baseUrl: String
 
     @RabbitListener(
         bindings = [
@@ -55,7 +55,7 @@ class H5pReceiver(
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
             subJob.status = JobStatus.FINISHED
-            subJob.message = "$baseUrl$H5P_BASE_PATH/$contentId"
+            subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message)
             subJob.status = JobStatus.FAILED

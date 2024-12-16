@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.verifySequence
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
@@ -18,13 +19,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 class H5pRenderModuleTest {
     private val h5pJobServiceMock = mockk<H5pJobService>()
     private val lumiNodeInfoServiceMock = mockk<LumiNodeInfoService>()
+    private val appInfo = AppInfo()
 
     private lateinit var underTest: H5pRenderModule
 
     @BeforeEach
     fun setUp() {
-        underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiNodeInfoServiceMock)
-        underTest.baseUrl = "http://test.com:8000"
+        appInfo.public = AppInfo.ConnectionInfo("http", "test.com", 8000, "", "http://test.com:8000" )
+        underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiNodeInfoServiceMock, appInfo)
         clearAllMocks()
     }
 

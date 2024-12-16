@@ -19,12 +19,16 @@
   <properties>
 
     <docker.from.openjdk.21>
-      dockerio.mirror.docker.edu-sharing.com/openjdk:21-jdk
+      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jdk-alpine
     </docker.from.openjdk.21>
 
     <docker.from.eclipse-temurin.21>
-      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21
+      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jre-alpine
     </docker.from.eclipse-temurin.21>
+
+    <docker.from.node.21>
+      dockerio.mirror.docker.edu-sharing.com/node:21-alpine
+    </docker.from.node.21>
 
     <docker.edu_sharing.community.common.redis.name>
       edu_sharing-community-common-docker-redis
@@ -49,6 +53,23 @@
     <docker.edu_sharing.community.common.redis-cluster.tag>
       6.2.7
     </docker.edu_sharing.community.common.redis-cluster.tag>
+
+
+    <docker.edu_sharing.community.common.minio.name>
+      edu_sharing-community-common-docker-minio
+    </docker.edu_sharing.community.common.minio.name>
+
+    <docker.edu_sharing.community.common.minio.tag>
+      2024.11.7
+    </docker.edu_sharing.community.common.minio.tag>
+
+    <docker.edu_sharing.community.common.rabbitmq.name>
+      edu_sharing-community-common-docker-rabbitmq
+    </docker.edu_sharing.community.common.rabbitmq.name>
+
+    <docker.edu_sharing.community.common.rabbitmq.tag>
+      4.0.4
+    </docker.edu_sharing.community.common.rabbitmq.tag>
 
   </properties>
 

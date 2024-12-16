@@ -12,9 +12,11 @@ import router from "./router";
 import User from "./User";
 import dotenv from 'dotenv';
 import * as dbImplementations from '@lumieducation/h5p-mongos3';
+import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} from "./h5p.settings";
 
 
 const start = async () => {
+    console.log("Lumi Server started");
     dotenv.config();
 
     const translationFunction = await i18next
@@ -53,12 +55,18 @@ const start = async () => {
     ).load();
 
     config.baseUrl = process.env.BASE_URL || config.baseUrl
+    config.coreApiVersion = {
+        major: h5p_core_version_minor,
+        minor: h5p_core_version_major
+    }
+    config.h5pVersion = `${h5p_core_version_major}.${h5p_core_version_major}.${h5p_core_version_patch}`
 
-    console.log("Started with config:")
+    console.log("Config loaded:")
     console.log(config)
 
     // Init mongoDB
     const mongoDb = await dbImplementations.initMongo()
+    console.log("MongoDB successfully initialized")
 
     const h5pEditor: H5P.H5PEditor = await createH5PEditor(
         config,
@@ -118,6 +126,7 @@ const start = async () => {
 
     const port = process.env.PORT || '3000';
     server.listen(port);
+    console.log(`Server started successfully on port ${port}`)
 }
 
 start()

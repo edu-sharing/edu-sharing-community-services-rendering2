@@ -4,7 +4,6 @@ import org.edu_sharing.rendering.asset.AssetController
 import org.edu_sharing.rendering.asset.AssetService
 import org.edu_sharing.rendering.core.RenderController
 import org.edu_sharing.rendering.core.RenderDataService
-import org.edu_sharing.rendering.edusharingRepo.MetadataController
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ModuleInfoController
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyController
@@ -38,7 +37,6 @@ class ControllerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
             LumiProxyService::class,
             JobInfoController::class,
             JobInfoService::class,
-            MetadataController::class,
         )
     }
 

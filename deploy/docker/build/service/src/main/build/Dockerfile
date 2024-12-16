@@ -8,10 +8,21 @@ RUN if [[ -z "$(ls -A ./snapshot-dependencies)" ]] ; then touch ./snapshot-depen
 
 FROM ${docker.from.eclipse-temurin.21}
 
+RUN set -eux \
+    && apk update  \
+    && apk add --no-cache netcat-openbsd curl
+
+
 VOLUME /tmp
 WORKDIR application
 
+ENV PATH /application/bin:$PATH
+
+
+COPY assets/entrypoint.sh bin/entrypoint.sh
+
 RUN set -eux \
+	  && find bin -type f -name '*.sh' -exec chmod +x {} \; \
     && adduser --uid=1002 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
     && chown -RL worker:worker . \
     && chown -RL worker:worker /tmp
@@ -35,7 +46,7 @@ COPY --chown=worker:worker assets/profiler profiler/
 ########################################################################################################################
 
 EXPOSE 8080
-ENTRYPOINT ["sh" ,"-c", "exec java ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["entrypoint.sh", "exec java ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
 
 ########################################################################################################################
 

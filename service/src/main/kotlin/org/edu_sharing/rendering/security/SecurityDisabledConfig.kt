@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.security
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -10,17 +9,13 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 
 @Configuration
 @EnableMethodSecurity
 @ConditionalOnProperty(name = ["app.security.enabled"], havingValue = "false")
-class SecurityDisabledConfig(
-    @Value("\${app.security.allowedOrigins}") var allowedOrigins: List<String>,
-) {
+class SecurityDisabledConfig {
     @Bean
     fun permissionEvaluator(): PermissionEvaluator {
         return AllowAllPermissionEvaluator()
@@ -36,13 +31,14 @@ class SecurityDisabledConfig(
     @Bean
     fun filterChain(
         httpSecurity: HttpSecurity,
+        corsConfigurationSource:CorsConfigurationSource
     ): SecurityFilterChain {
         return httpSecurity
             .securityMatcher("/**")
             .csrf {
                 it.disable()
             }.cors {
-                it.configurationSource(corsConfigurationSource())
+                it.configurationSource(corsConfigurationSource)
             }.authorizeHttpRequests {
                 it.requestMatchers(
                     "/**"
@@ -50,20 +46,5 @@ class SecurityDisabledConfig(
                 it.anyRequest().authenticated()
             }
             .build()
-    }
-
-    @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
-        val config = CorsConfiguration()
-        config.allowCredentials = true
-        config.setAllowedOriginPatterns(allowedOrigins)
-        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization")
-        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
-        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
-        config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
-        config.addExposedHeader("Access-Control-Allow-Origin")
-        val source = UrlBasedCorsConfigurationSource()
-        source.registerCorsConfiguration("/**", config)
-        return source
     }
 }

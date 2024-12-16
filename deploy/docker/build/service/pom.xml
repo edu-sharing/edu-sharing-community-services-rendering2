@@ -58,7 +58,7 @@
         <configuration>
           <images>
             <image>
-              <name>${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}</name>
+              <name>${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}</name>
             </image>
           </images>
         </configuration>

@@ -1,11 +1,11 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService
 import org.edu_sharing.rendering.modules.av.AvFileHelper
+import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -14,7 +14,7 @@ import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.AudioAttributes
 import ws.schild.jave.encode.EncodingAttributes
 
-@ConditionalOnConverter
+@ConditionalOnAvConverter
 @Service
 class AudioConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,

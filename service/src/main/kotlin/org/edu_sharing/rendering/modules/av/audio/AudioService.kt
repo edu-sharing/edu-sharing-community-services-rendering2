@@ -11,16 +11,18 @@ import org.springframework.stereotype.Service
 @Service
 class AudioService(
     private val storageImplementation: StorageService,
-    private val mainJobCreationService: MainJobCreationService
-) {
+    private val mainJobCreationService: MainJobCreationService,
+    @Value("\${app.converter.audio.bitrate}")
+    private val bitrate: Int,
     @Value("\${app.converter.audio.mimeTypes}")
-    lateinit var convertedAudioMimeTypes: List<String>
-
+    private val convertedAudioMimeTypes: List<String>
+) {
     fun isConversionObject(cacheObject: CacheObject) = convertedAudioMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject): List<ObjectLink>? {
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "audio/mpeg"
+        lookUpObject.quality = bitrate
 
         return try {
             listOf(storageImplementation.getObjectLink(
@@ -36,6 +38,8 @@ class AudioService(
             ?: mainJobCreationService.createMainJob(
                 cacheObject = cacheObject,
                 module = module,
-                isConversionType = isConversionObject(cacheObject))
+                isConversionType = isConversionObject(cacheObject),
+                missingQualities = listOf(bitrate)
+            )
     }
 }

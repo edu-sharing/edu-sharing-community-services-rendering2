@@ -3,7 +3,9 @@ version: '3.7'
 
 services:
   rendering2-service:
-    entrypoint: "/bin/sh -c \"java --enable-preview -Dspring.profiles.active=docker $${JAVA_OPTS:-} -jar /application/app.jar\""
+    entrypoint:
+      - "entrypoint.sh"
+      - "/bin/sh -c \"java --enable-preview -Dspring.profiles.active=docker $${JAVA_OPTS:-} -jar /application/app.jar\""
     volumes:
       - "${GIT_ROOT}/services-rendering-service2/service/target/edu_sharing-community-services-rendering2-service-${org.edu_sharing:edu_sharing-community-services-rendering2-service:jar.version}.jar:/application/app.jar"
 

@@ -1,27 +1,16 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import org.springframework.beans.factory.annotation.Value
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
+import java.time.Duration
 
 @Service
-@ConditionalOnMoodle
-class MoodleUploadService (
-    private val moodleWebClient: WebClient
-) {
-
-    @Value("\${app.moodle.host}")
-    lateinit var moodleBaseUrl: String
-
-    @Value("\${app.moodle.token}")
-    lateinit var token: String
-
-    @Value("\${app.moodle.categoryid}")
-    lateinit var categoryId: String
-
+@ConditionalOnConverter
+class MoodleUploadService () {
     /**
      * Constructs the URL to the moodle course following these steps:
      *
@@ -33,39 +22,57 @@ class MoodleUploadService (
      * @param module the Moodle render module
      * @return the constructed URL
      */
-    fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule): String {
-        val courseId = uploadCourse(moodleJobMessage, module)
-        val token = getUserToken(moodleJobMessage, courseId)
-        return buildForwardUrl(token)
+    fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): String {
+        val config = module.getConfig(repoId)
+        val webClient = getWebClient(config)
+        val courseId = uploadCourse(
+            moodleJobMessage = moodleJobMessage,
+            module = module,
+            config = config,
+            webClient = webClient
+        )
+        val userToken = getUserToken(
+            moodleJobMessage = moodleJobMessage,
+            courseId = courseId,
+            config = config,
+            webClient = webClient
+        )
+        return buildForwardUrl(userToken, config)
     }
 
-    private fun buildForwardUrl(token: String): String {
+    private fun buildForwardUrl(userToken: String, config: Map<String, String>): String {
         return UriComponentsBuilder
-            .fromHttpUrl(moodleBaseUrl)
+            .fromHttpUrl(config["baseurl"] ?: "")
             .path("/local/edusharing_webservice/forwardUser.php")
-            .queryParam("token", token)
+            .queryParam("token", userToken)
             .build()
             .encode()
             .toUriString()
     }
 
-    private fun uploadCourse(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule): Int {
+    private fun uploadCourse(
+        moodleJobMessage: MoodleJobMessage,
+        module: MoodleRenderModule,
+        config: Map<String, String>,
+        webClient: WebClient
+    ): Int {
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("nodeid", moodleJobMessage.nodeId)
-        postParams.add("category", categoryId)
+        postParams.add("category", config["categoryid"] ?: "1")
         postParams.add("title", moodleJobMessage.title)
         val method = module.getRemoteServiceMethod()
-        val courseIdRaw = moodleWebClient.post()
+        val courseIdRaw = webClient.post()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_$method")
                     .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", token)
+                    .queryParam("wstoken", config["token"] ?: "")
                     .build()
             }
             .body(BodyInserters.fromFormData(postParams))
             .retrieve()
             .bodyToMono(String::class.java)
+            .timeout(Duration.ofSeconds(config["timeout"]?.toLong() ?: 30))
             .block()
         val courseId = courseIdRaw?.toIntOrNull()
         if (courseId === null) {
@@ -74,7 +81,12 @@ class MoodleUploadService (
         return courseId
     }
 
-    private fun getUserToken(moodleJobMessage: MoodleJobMessage, courseId: Int): String {
+    private fun getUserToken(
+        moodleJobMessage: MoodleJobMessage,
+        courseId: Int,
+        config: Map<String, String>,
+        webClient: WebClient
+    ): String {
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("user_name", moodleJobMessage.authorityName)
         postParams.add("user_givenname", moodleJobMessage.userGivenName)
@@ -82,12 +94,12 @@ class MoodleUploadService (
         postParams.add("user_email", moodleJobMessage.userEmail)
         postParams.add("courseid", courseId.toString())
         postParams.add("role", "student")
-        val token = moodleWebClient.post()
+        val token = webClient.post()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_handleuser")
                     .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", token)
+                    .queryParam("wstoken", config["token"] ?: "")
                     .build()
             }
             .body(BodyInserters.fromFormData(postParams))
@@ -98,5 +110,12 @@ class MoodleUploadService (
             throw Exception("Error getting user token from moodle")
         }
         return token
+    }
+
+    private fun getWebClient(config: Map<String, String>): WebClient {
+        return WebClient
+            .builder()
+            .baseUrl(config["baseurl"] ?: "")
+            .build()
     }
 }

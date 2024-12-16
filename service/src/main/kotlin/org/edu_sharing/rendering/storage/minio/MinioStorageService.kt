@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PA
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.CachedObjectDetails
 import org.edu_sharing.rendering.core.dto.ObjectLink
@@ -18,6 +19,7 @@ import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.storage.StorageInfo
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.storage.minio.bucket.BucketPerCustomerStrategy
 import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -32,17 +34,11 @@ class MinioStorageService(
     private val eduMinioAdminClient: MinioAdminClientProvider,
     @Suppress("SpringJavaInjectionPointsAutowiringInspection")
     private val bucketStrategy: BucketStrategy,
-    private val trackingService: TrackingService
+    private val trackingService: TrackingService,
+    private val appInfo: AppInfo
 ) : StorageService, StaticStorageService {
 
     val defaultChunkSize = 10485760L
-
-    @Value("\${app.public.url}")
-    lateinit var publicUrl: String
-
-    @Value("\${app.public.port}")
-    lateinit var port: String
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
@@ -93,9 +89,9 @@ class MinioStorageService(
         val mapper = ObjectMapper()
         val base = Base64().encode(mapper.writeValueAsString(params).toByteArray())
         val url = UriComponentsBuilder.newInstance()
-            .scheme(publicUrl.substringBefore("://"))
-            .host(publicUrl.substringAfter("://"))
-            .port(port)
+            .scheme(appInfo.public.protocol)
+            .host(appInfo.public.host)
+            .port(appInfo.public.port.toInt())
             .path("/public/asset")
             .queryParam("assetParams", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
             .build()
@@ -123,9 +119,9 @@ class MinioStorageService(
      */
     override fun getObjectLink(cacheObject: CacheObject, path: String): ObjectLink {
         val url = UriComponentsBuilder.newInstance()
-            .scheme(publicUrl.substringBefore("://"))
-            .host(publicUrl.substringAfter("://"))
-            .port(port)
+            .scheme(appInfo.public.protocol)
+            .host(appInfo.public.host)
+            .port(appInfo.public.port.toInt())
             .path("${ROOT_REQUEST_PATH}${STATIC_ASSET_PATH}${bucketStrategy.prefixStaticPath(cacheObject, path)}")
             .build()
             .toUriString()
@@ -377,6 +373,10 @@ class MinioStorageService(
             log.warn("Error deleting object " + error.objectName() + "; " + error.message())
         }
         trackingService.deleteAllTrackedObjects(trackingEntriesToDelete)
+    }
+
+    override fun isStoringByRepoId(): Boolean {
+        return bucketStrategy is BucketPerCustomerStrategy
     }
 
     override fun objectExists(cacheObject: CacheObject): Boolean {

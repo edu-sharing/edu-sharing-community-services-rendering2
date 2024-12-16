@@ -33,7 +33,7 @@ class MoodleUploadServiceTest {
             .baseUrl(mockWebServer.url("/").toString())
             .build()
 
-        underTest = MoodleUploadService(webClient)
+        underTest = MoodleUploadService(webClient, 90)
         underTest.token = "token"
         underTest.moodleBaseUrl = "http://moodlelocal.de"
         underTest.categoryId = "1"

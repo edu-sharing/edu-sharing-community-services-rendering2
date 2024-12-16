@@ -2,22 +2,20 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
-import org.edu_sharing.rendering.modules.av.AvConfig
-import org.edu_sharing.rendering.modules.av.AvConversionListener
-import org.edu_sharing.rendering.modules.av.AvFileHelperFactory
-import org.edu_sharing.rendering.modules.av.AvReceiver
-import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
-import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.edu_sharing.rendering.modules.document.DocumentConversionService
 import org.edu_sharing.rendering.modules.document.DocumentConverterConfig
 import org.edu_sharing.rendering.modules.document.DocumentReceiver
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
+import org.edu_sharing.rendering.modules.h5p.H5pReceiver
+import org.edu_sharing.rendering.modules.h5p.H5pUploadService
 import org.edu_sharing.rendering.modules.image.ImageConversionService
 import org.edu_sharing.rendering.modules.image.ImageReceiver
 import org.edu_sharing.rendering.modules.jupyter.JupyterConversionService
 import org.edu_sharing.rendering.modules.jupyter.JupyterConverterConfig
 import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
+import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
+import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -36,13 +34,7 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractInt
     
     companion object {
         private val roleSpecificClassBeans = setOf(
-            AvConversionListener::class,
-            AvConfig::class,
-            AvFileHelperFactory::class,
-            AvReceiver::class,
-            AudioConversionService::class,
             ConverterWebServiceCaller::class,
-            VideoConversionService::class,
             DocumentConversionService::class,
             DocumentConverterConfig::class,
             DocumentReceiver::class,
@@ -53,17 +45,17 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractInt
             JupyterReceiver::class,
             JupyterConversionService::class,
             JupyterConverterConfig::class,
-        )
-
-        private val roleSpecificFunctionalBeans = setOf(
-            "createAvFileHelper"
+            H5pReceiver::class,
+            H5pUploadService::class,
+            MoodleReceiver::class,
+            MoodleUploadService::class
         )
     }
 
     @Test
     fun testBeanConfiguration() {
         val roleSpecificBeans = roleSpecificClassBeans
-            .map {ClassUtils.getShortNameAsProperty(it.java)} union roleSpecificFunctionalBeans
+            .map {ClassUtils.getShortNameAsProperty(it.java)}
 
         val expectedBeans = roleSpecificBeans union SharedBeans.all
 

@@ -27,7 +27,7 @@ class VideoRenderModule (
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate,
     private val configuredResolutions: VideoConverterConfig
-): RenderModule, ModuleTypeMapper, ConversionModule {
+): RenderModule, ConversionModule {
 
     @Value("\${app.queue.av.key}")
     lateinit var avRoutingKey: String
@@ -71,8 +71,6 @@ class VideoRenderModule (
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
-    override fun moduleTypeAssociations() =
-        listOf(ModuleTypeDefinition(mimeTypePrefix =  "video") to this)
 
     override fun createJob(
         renderingJob: RenderingJob,

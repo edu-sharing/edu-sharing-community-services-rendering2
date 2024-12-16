@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConfigurationProperties("app.converter.video")
-class VideoConverterConfig() {
+class VideoConverterConfig {
 
     lateinit var resolutions: Map<String, VideoResolutionItemConfig>
 

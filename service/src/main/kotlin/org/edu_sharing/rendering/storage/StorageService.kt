@@ -16,4 +16,5 @@ interface StorageService {
     fun getStorageInfo(): List<StorageInfo>
     fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float)
     fun objectExists(cacheObject: CacheObject): Boolean
+    fun isStoringByRepoId(): Boolean
 }

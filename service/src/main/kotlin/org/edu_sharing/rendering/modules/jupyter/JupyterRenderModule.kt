@@ -25,7 +25,7 @@ class JupyterRenderModule(
     private val jupyterJobService: JupyterJobService,
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
-) : RenderModule, ModuleTypeMapper, ConversionModule {
+) : RenderModule, ConversionModule {
 
     @Value("\${app.queue.jupyter.key}")
     lateinit var jupyterKey: String
@@ -34,6 +34,8 @@ class JupyterRenderModule(
     lateinit var topicExchangeName: String
 
     override fun module() = "JUPYTER"
+
+    override fun isOptionalModule() = true
 
     override fun handle(request: RenderDataRequest): RenderDataResponse {
         val cacheObject = mapper.renderDataRequestToCacheObject(request)
@@ -47,8 +49,6 @@ class JupyterRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(type = "file-jupyter") to this)
 
     override fun createJob(
         renderingJob: RenderingJob,

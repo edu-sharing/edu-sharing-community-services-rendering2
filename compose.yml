@@ -3,40 +3,51 @@ version: '3.8'
 services:
 
   minio:
-    image: bitnami/minio:latest
+    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-minio:2024.11.7
     ports:
-      - "9110:9000"
+      - "9101:9000"
       - "9111:9001"
     environment:
-      - MINIO_ROOT_USER=adminuser
-      - MINIO_ROOT_PASSWORD=adminpassword
-      - MINIO_DEFAULT_BUCKETS=contentbucket,tempbucket,libbucket
-    volumes:
-      - "minio-data-volume:/bitnami/minio/data"
+      MINIO_ROOT_USER: "rendering2"
+      MINIO_ROOT_PASSWORD: "rendering2"
+      MINIO_DEFAULT_BUCKETS: contentbucket,tempbucket,libbucket
+#    volumes:
+#      - "minio-data-volume:/bitnami/minio/data"
 
   repository-cache:
     image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:6.2.7
     environment:
       ALLOW_EMPTY_PASSWORD: "yes"
     ports:
-      - "6379:6379"
+      - "9109:6379"
 
   rabbitmq:
     image: rabbitmq:management
+    environment:
+      RABBITMQ_DEFAULT_USER: "rendering"
+      RABBITMQ_DEFAULT_PASS: "rendering"
+      RABBITMQ_SECURE_PASSWORD: true
+      RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
     ports:
-      - "5672:5672"
+      - "9104:5672"
       - "15672:15672"
 
   mongo:
-    image: mongo
+    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:7.0.15"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGODB_ROOT_USER: admin
+      MONGODB_ROOT_PASSWORD: admin
+      MONGODB_EXTRA_RENDERING2_DATABASE: "rendering"
+      MONGODB_EXTRA_RENDERING2_USERNAME: "rendering"
+      MONGODB_EXTRA_RENDERING2_PASSWORD: "rendering"
+      MONGODB_EXTRA_LUMI_DATABASE: "lumi"
+      MONGODB_EXTRA_LUMI_USERNAME: "lumi"
+      MONGODB_EXTRA_LUMI_PASSWORD: "lumi"
     ports:
-      - "27017:27017"
+      - "9106:27017"
 
   rendering2-document-converter:
-    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:develop-SNAPSHOT"
+    image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:maven-fixes-10.0-SNAPSHOT"
     command:
       - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
       - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
@@ -48,16 +59,19 @@ services:
       - "8081:8080"
 
   rendering2-lumi:
-    image: "community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:develop-SNAPSHOT"
+    image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:maven-fixes-10.0-SNAPSHOT"
     environment:
-      AWS_ACCESS_KEY_ID: adminuser
-      AWS_SECRET_ACCESS_KEY: adminpassword
-      AWS_S3_ENDPOINT: http://minio:9000
+      AWS_ACCESS_KEY_ID: rendering
+      AWS_SECRET_ACCESS_KEY: rendering
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
-      MONGODB_URL: mongodb://mongo:27017
-      MONGODB_DB: lumi
-      MONGODB_USER: admin
-      MONGODB_PASSWORD: admin
+      MONGODB_HOST: mongo
+      MONGODB_PORT: 27017
+      MONGODB_AUTH_DB: "lumi"
+      MONGODB_DB: "lumi"
+      MONGODB_USER: "lumi"
+      MONGODB_PASSWORD: "lumi"
       CONTENT_AWS_S3_BUCKET: contentbucket
       CONTENT_MONGO_COLLECTION: h5p
       TEMPORARY_AWS_S3_BUCKET: tempbucket
@@ -66,10 +80,10 @@ services:
       USERDATA_MONGO_COLLECTION: userdata
       FINISHED_MONGO_COLLECTION: finisheddata
       EDUSHARING_MONGO_COLLECTION: edusharing
-      CACHE: in-memory
       BASE_URL: /public/h5p
+      CACHE: in-memory
     ports:
       - "3000:3000"
 
-volumes:
-  minio-data-volume:
+#volumes:
+#  minio-data-volume:

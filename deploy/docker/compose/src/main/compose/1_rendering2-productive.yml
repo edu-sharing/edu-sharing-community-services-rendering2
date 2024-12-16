@@ -4,13 +4,7 @@ services:
   rendering2-blob-storage:
     restart: unless-stopped
 
-  rendering2-cache:
-    restart: unless-stopped
-
   rendering2-message-queue:
-    restart: unless-stopped
-
-  rendering2-database:
     restart: unless-stopped
 
   rendering2-service:

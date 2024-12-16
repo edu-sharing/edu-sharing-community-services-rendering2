@@ -1,0 +1,16 @@
+package org.edu_sharing.rendering.config
+
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.stereotype.Component
+
+@Component
+@ConfigurationProperties("app")
+class AppInfo {
+    lateinit var appId: String
+    lateinit var appCaption: String
+    lateinit var public: ConnectionInfo
+    lateinit var internal: ConnectionInfo
+
+    data class ConnectionInfo(var protocol: String, var host: String, var port: Short, var path: String, var url: String)
+}
+

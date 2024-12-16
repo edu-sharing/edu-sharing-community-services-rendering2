@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.moodle
 
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
@@ -13,7 +14,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
 
 @Component
-@ConditionalOnMoodle
+@ConditionalOnConverter
 class MoodleReceiver (
     private val moodleService: MoodleUploadService,
     private val renderingJobRepository: RenderingJobRepository,
@@ -45,7 +46,11 @@ class MoodleReceiver (
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         try {
-            val url = moodleService.getUrl(message, moduleRegistry.getRenderModule(jobEntry.module))
+            val url = moodleService.getUrl(
+                moodleJobMessage = message,
+                module = moduleRegistry.getRenderModule(jobEntry.module),
+                repoId = jobEntry.repoId
+            )
             subJob.status = JobStatus.FINISHED
             subJob.message = url
         } catch (exception: Exception) {

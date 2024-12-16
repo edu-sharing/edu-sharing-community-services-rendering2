@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import io.mockk.*
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
@@ -26,6 +27,7 @@ class H5PReceiverTest {
     private val h5pUploadService = mockk<H5pUploadService>()
     private val jobDataProvider = JobDataProvider()
     private val mapper = Mapper()
+    private val appInfo = AppInfo()
 
     // The class under test
     private val underTest = H5pReceiver(
@@ -33,12 +35,13 @@ class H5PReceiverTest {
         renderingJobRepository,
         subJobRepository,
         h5pUploadService,
-        mapper
+        mapper,
+        appInfo
     )
 
     @BeforeEach
     fun setUp() {
-        underTest.baseUrl = "http://localhost"
+        appInfo.public = AppInfo.ConnectionInfo("http", "localhost", 80, "", "http://localhost:80", )
     }
 
     @Test

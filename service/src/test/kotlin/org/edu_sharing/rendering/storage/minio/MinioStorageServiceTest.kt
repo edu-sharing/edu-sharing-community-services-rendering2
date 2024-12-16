@@ -10,6 +10,7 @@ import okhttp3.Response
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
@@ -30,14 +31,14 @@ class MinioStorageServiceTest {
     private val trackingService = mockk<TrackingService>()
     private val adminClient = mockk<MinioAdminClientProvider>()
     private val bucketStrategy = mockk<BucketStrategy>()
+    private val appInfo = AppInfo()
 
     lateinit var underTest: MinioStorageService
 
     @BeforeEach
     fun setup() {
-        underTest = MinioStorageService(client, adminClient, bucketStrategy, trackingService)
-        underTest.publicUrl = "http://public"
-        underTest.port = "8909"
+        appInfo.public = AppInfo.ConnectionInfo("http", "public", 8909, "", "http://public:8909" )
+        underTest = MinioStorageService(client, adminClient, bucketStrategy, trackingService, appInfo)
     }
 
     @AfterEach

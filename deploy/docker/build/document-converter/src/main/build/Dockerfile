@@ -12,12 +12,13 @@ FROM ${docker.from.eclipse-temurin.21}
 VOLUME /tmp
 WORKDIR application
 
-RUN set -eux \
-    && apt update -y \
-    && apt install -y --no-install-recommends  \
-      libreoffice \
-    && apt clean \
-    && rm -r /var/lib/apt/lists/*
+# Enable community repository, update package list, and install LibreOffice
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    apk update && \
+    apk add --no-cache libreoffice
+
+# Verify installation
+RUN libreoffice --version
 
 RUN set -eux \
     && adduser --uid=1001 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
