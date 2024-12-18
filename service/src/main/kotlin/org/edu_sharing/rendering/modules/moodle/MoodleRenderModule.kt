@@ -22,7 +22,7 @@ class MoodleRenderModule(
 ) : RenderModule, ThirdPartyModule {
 
     companion object {
-        private val requiredCredentialKeys = setOf("baseurl", "user", "token", "timeout", "categoryid")
+        private val requiredCredentialKeys = setOf("baseurl", "user", "password", "timeout", "categoryid")
     }
 
     override fun module() = "MOODLE"
@@ -70,12 +70,14 @@ class MoodleRenderModule(
             .baseUrl(credentials.getValue("baseurl"))
             .build()
 
+        val token = getToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
+
         val testResult = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_ping")
                     .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", credentials.getValue("token"))
+                    .queryParam("wstoken", token)
                     .queryParam("repoId", repoId)
                     .build()
             }
@@ -96,5 +98,21 @@ class MoodleRenderModule(
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
         return registration.module[module()]?.credentials ?: mapOf()
+    }
+
+    fun getToken(webClient: WebClient, user: String, password: String): String {
+        val tokenResponse = webClient.get()
+            .uri {
+                it.path("/login/token.php")
+                    .queryParam("username", user)
+                    .queryParam("password", password)
+                    .queryParam("service", "es-webservice")
+                    .build()
+            }
+            .retrieve()
+            .bodyToMono(MoodleTokenReply::class.java)
+            .block()
+
+        return tokenResponse?.token ?: throw Exception("Token could not be retrieved from Moodle.")
     }
 }

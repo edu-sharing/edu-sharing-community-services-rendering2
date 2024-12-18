@@ -25,11 +25,13 @@ class MoodleUploadService () {
     fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): String {
         val config = module.getConfig(repoId)
         val webClient = getWebClient(config)
+        val webserviceToken = module.getToken(webClient, config["user"] ?: "", config["password"] ?: "")
         val courseId = uploadCourse(
             moodleJobMessage = moodleJobMessage,
             module = module,
             config = config,
-            webClient = webClient
+            webClient = webClient,
+            webserviceToken = webserviceToken
         )
         val userToken = getUserToken(
             moodleJobMessage = moodleJobMessage,
@@ -54,7 +56,8 @@ class MoodleUploadService () {
         moodleJobMessage: MoodleJobMessage,
         module: MoodleRenderModule,
         config: Map<String, String>,
-        webClient: WebClient
+        webClient: WebClient,
+        webserviceToken: String
     ): Int {
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("nodeid", moodleJobMessage.nodeId)
@@ -66,7 +69,7 @@ class MoodleUploadService () {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_$method")
                     .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", config["token"] ?: "")
+                    .queryParam("wstoken", webserviceToken)
                     .build()
             }
             .body(BodyInserters.fromFormData(postParams))
