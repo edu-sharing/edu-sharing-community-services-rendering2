@@ -25,7 +25,7 @@ class MoodleUploadService () {
     fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): String {
         val config = module.getConfig(repoId)
         val webClient = getWebClient(config)
-        val webserviceToken = module.getToken(webClient, config["user"] ?: "", config["password"] ?: "")
+        val webserviceToken = module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "")
         val courseId = uploadCourse(
             moodleJobMessage = moodleJobMessage,
             module = module,

@@ -70,14 +70,14 @@ class MoodleRenderModule(
             .baseUrl(credentials.getValue("baseurl"))
             .build()
 
-        val token = getToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
+        val webserviceToken = getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
 
         val testResult = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_ping")
                     .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", token)
+                    .queryParam("wstoken", webserviceToken)
                     .queryParam("repoId", repoId)
                     .build()
             }
@@ -100,7 +100,7 @@ class MoodleRenderModule(
         return registration.module[module()]?.credentials ?: mapOf()
     }
 
-    fun getToken(webClient: WebClient, user: String, password: String): String {
+    fun getWebserviceToken(webClient: WebClient, user: String, password: String): String {
         val tokenResponse = webClient.get()
             .uri {
                 it.path("/login/token.php")
