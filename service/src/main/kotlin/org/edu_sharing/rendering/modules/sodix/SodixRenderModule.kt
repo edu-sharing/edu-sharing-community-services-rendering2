@@ -55,10 +55,19 @@ class SodixRenderModule(
             parent = job
         ))
 
+        if (request.replicationSourceFlag) {
+            subJobRepository.save(SubJob(
+                status = JobStatus.QUEUED,
+                routingKey = jobRoutingKey,
+                parent = job,
+                quality = 1
+            ))
+        }
+
         val message = SodixJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
-            identifier = request.replicationSourceId
+            identifier = request.replicationSourceId,
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 

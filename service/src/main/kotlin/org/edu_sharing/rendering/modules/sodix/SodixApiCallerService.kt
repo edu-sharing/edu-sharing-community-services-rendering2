@@ -7,7 +7,12 @@ import org.springframework.web.reactive.function.client.WebClient
 @Service
 @ConditionalOnConverter
 class SodixApiCallerService {
-    fun getContentUrl(sodixJobMessage: SodixJobMessage, module: SodixRenderModule, repoId: String): String {
+    fun getContentUrl(
+        sodixJobMessage: SodixJobMessage,
+        module: SodixRenderModule,
+        repoId: String,
+        isPaidMedia: Boolean
+    ): Pair<String, String?> {
         val config = module.getConfig(repoId)
         val webClient = WebClient
             .builder()
@@ -15,8 +20,8 @@ class SodixApiCallerService {
             .build()
         val result = webClient.get()
             .uri {
-                it.path("/playout")
-                    .queryParam("identifier", sodixJobMessage.identifier)
+                it.path(if (isPaidMedia) "render/paidmedia" else "render/playout")
+                    .queryParam("id", sodixJobMessage.identifier)
                     .build()
             }
             .retrieve()
@@ -27,6 +32,6 @@ class SodixApiCallerService {
             throw Exception("SodixApiCallerService error, no result returned for node: ${sodixJobMessage.nodeId}")
         }
 
-        return result.url
+        return Pair(result.playoutUrl, result.downloadUrl)
     }
 }

@@ -41,24 +41,46 @@ class SodixReceiver(
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
-        var subJob = jobEntry.subJobs.first()
-        subJob.status = JobStatus.PROCESSING
+        val isPaidMedia = jobEntry.subJobs.size == 2
+
         jobEntry.status = JobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
-        subJob = subJobRepository.save(subJob)
+        var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
+        var downloadUrlSubJob = jobEntry.subJobs.firstOrNull { it.quality == 1}
+
+        playoutUrlSubJob.status = JobStatus.PROCESSING
+        playoutUrlSubJob = subJobRepository.save(playoutUrlSubJob)
+        if (downloadUrlSubJob != null) {
+            downloadUrlSubJob.status = JobStatus.PROCESSING
+            downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
+        }
+
         try {
-            val url = sodixService.getContentUrl(
+            val (playoutUrl, downloadUrl) = sodixService.getContentUrl(
                 sodixJobMessage = message,
                 module = moduleRegistry.getRenderModule(jobEntry.module),
-                repoId = jobEntry.repoId
+                repoId = jobEntry.repoId,
+                isPaidMedia = isPaidMedia
             )
-            subJob.status = JobStatus.FINISHED
-            subJob.message = url
+            playoutUrlSubJob.status = JobStatus.FINISHED
+            playoutUrlSubJob.message = playoutUrl
+            subJobRepository.save(playoutUrlSubJob)
+            if (downloadUrlSubJob != null) {
+                downloadUrlSubJob.status = JobStatus.FINISHED
+                downloadUrlSubJob.message = downloadUrl
+                downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
+            }
         } catch (exception: Exception) {
-            subJob.status = JobStatus.FAILED
-            subJob.message = exception.message
+            playoutUrlSubJob.status = JobStatus.FAILED
+            playoutUrlSubJob.message = exception.message
+            subJobRepository.save(playoutUrlSubJob)
+            if (downloadUrlSubJob != null) {
+                downloadUrlSubJob.status = JobStatus.FAILED
+                downloadUrlSubJob.message = exception.message
+                subJobRepository.save(downloadUrlSubJob)
+            }
         }
-        subJobRepository.save(subJob)
+
         mainJobLogic.processMainJob(message.id)
     }
 }
