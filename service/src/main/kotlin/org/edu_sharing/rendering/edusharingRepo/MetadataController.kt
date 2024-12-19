@@ -9,6 +9,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.nio.charset.StandardCharsets
 import java.util.*
 
 @RestController
@@ -21,9 +22,6 @@ class MetadataController (
 ){
     @GetMapping(produces = [MediaType.APPLICATION_XML_VALUE])
     fun getMetadata(): String {
-        var responseBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        responseBody += "<!DOCTYPE properties SYSTEM \"http://java.sun.com/dtd/properties.dtd\">"
-
         val metadata = metadataService.getConfig()
         val outputStream = ByteArrayOutputStream()
         val props = Properties()
@@ -37,7 +35,7 @@ class MetadataController (
         props["contenturl"] = appInfo.public.url
         props["trustedclient"] = "true"
         props["public_key"] = metadata.publicKey
-        props.storeToXML(outputStream, "rendering application file for application type lms", "UTF-8")
-        return String(outputStream.toByteArray())
+        props.storeToXML(outputStream, "rendering application file for application type lms", StandardCharsets.UTF_8)
+        return outputStream.toString(StandardCharsets.UTF_8)
     }
 }

@@ -32,10 +32,6 @@ import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec
 import java.util.*
 
-interface RepositoryPublicKeyService {
-    fun getRepositoryKey(repoId: String): PublicKey
-}
-
 @Service
 class RepositoryRegistrationService(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
@@ -113,36 +109,22 @@ class RepositoryRegistrationService(
         }
 
 
-        // TODO
-        if (force) {
-            val existingEntry = repositoryRegistrationStorageService.getRegistrationByRepoId(metadata.appId)
-                .orElse(
-                    RepositoryRegistration(
-                        repoId = metadata.appId,
-                        url = url,
-                        publicKey = metadata.publicKey,
-                        domains = metadata.domain,
-                        optionalModules = mutableListOf()
-                    )
-                )
+        val registration = RepositoryRegistration(
+            repoId = metadata.appId,
+            url = url,
+            publicKey = metadata.publicKey,
+            domains = metadata.domain,
+            optionalModules = mutableListOf()
+        )
 
-            existingEntry.url = url
-            existingEntry.publicKey = metadata.publicKey
-            existingEntry.domains = metadata.domain
-            val storeRegistration = repositoryRegistrationStorageService.storeRegistration(existingEntry)
-            corsService.addOrigin(storeRegistration.domains ?: emptyList())
-            return storeRegistration
+        if (force) {
+           repositoryRegistrationStorageService.getRegistrationByRepoId(metadata.appId)
+               .ifPresent {
+                   registration.id = it.id
+               }
         }
 
-        val storeRegistration = repositoryRegistrationStorageService.storeRegistration(
-            RepositoryRegistration(
-                repoId = metadata.appId,
-                url = url,
-                publicKey = metadata.publicKey,
-                domains = metadata.domain,
-                optionalModules = mutableListOf()
-            )
-        )
+        val storeRegistration = repositoryRegistrationStorageService.storeRegistration(registration)
         corsService.addOrigin(storeRegistration.domains ?: emptyList())
         return storeRegistration
     }

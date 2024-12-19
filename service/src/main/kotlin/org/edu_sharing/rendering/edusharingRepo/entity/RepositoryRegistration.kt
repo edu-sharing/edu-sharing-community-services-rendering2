@@ -7,10 +7,10 @@ import org.springframework.data.mongodb.core.mapping.Document
 @Document
 data class RepositoryRegistration(
     @Id
-    val id: String? = null,
+    var id: String? = null,
 
     @Indexed(unique = true)
-    val repoId: String,
+    var repoId: String,
 
     var url: String,
     var publicKey: String,

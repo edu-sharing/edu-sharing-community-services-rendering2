@@ -41,8 +41,8 @@ class AdminController(
     }
 
     @PatchMapping("/repository/register")
-    fun updateRepoRegistration(@RequestBody @Valid body: RegisterRepositoryRequest) {
-        repositoryRegistrationService.registerWithRepository(body, true)
+    fun updateRepoRegistration(@RequestBody @Valid body: RegisterRepositoryRequest): RegistrationInfo {
+        return toRegistrationInfo(repositoryRegistrationService.registerWithRepository(body, true))
     }
 
     @DeleteMapping("/repository/register")
