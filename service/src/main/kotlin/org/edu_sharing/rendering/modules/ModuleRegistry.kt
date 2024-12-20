@@ -16,12 +16,15 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     private final val modulesByType: MutableMap<String, RenderModule> = mutableMapOf()
     private final val moduleByMimeType: MutableMap<String, RenderModule> = mutableMapOf()
     private final val modulesByMimeTypePrefix: MutableMap<String, RenderModule> = mutableMapOf()
+    private final val modulesByReplicationSource: MutableMap<String, RenderModule> = mutableMapOf()
 
     init {
         moduleTypeMapper.forEach { mapper ->
             mapper.moduleTypeAssociations().forEach { (typeDefinition, mapper) ->
                 if (typeDefinition.type != null) {
                     modulesByType[typeDefinition.type] = mapper
+                } else if (typeDefinition.replicationSource != null) {
+                    modulesByReplicationSource[typeDefinition.replicationSource] = mapper
                 } else if (typeDefinition.mimeTypePrefix != null) {
                     if (typeDefinition.mimeTypeSuffix != null) {
                         moduleByMimeType["${typeDefinition.mimeTypePrefix}/${typeDefinition.mimeTypeSuffix}"] =
@@ -41,8 +44,9 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : RenderModule> getRenderModule(type: String, mimeType: String): T {
+    fun <T : RenderModule> getRenderModule(type: String, mimeType: String, replicationSource: String): T {
         val result = modulesByType[type]
+            ?: modulesByReplicationSource[replicationSource]
             ?: moduleByMimeType[mimeType]
             ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]
             ?: throw ObjectTypeNotSupportedException()

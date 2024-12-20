@@ -19,5 +19,8 @@ data class RenderDataRequest(
     val repoId: String,
     val url: String?,
     val title: String?,
-    val userData: RequestUserData?
+    val userData: RequestUserData?,
+    val replicationSource: String?,
+    val replicationSourceId: String?,
+    val replicationSourceFlag: Boolean = false
 )

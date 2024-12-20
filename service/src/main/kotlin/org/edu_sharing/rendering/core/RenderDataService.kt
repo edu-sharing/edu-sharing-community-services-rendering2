@@ -18,7 +18,7 @@ class RenderDataService(
 ) {
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     fun getRenderData(request: RenderDataRequest): RenderDataResponse {
-        val renderModule: RenderModule = moduleRegistry.getRenderModule(request.type, request.mimeType)
+        val renderModule: RenderModule = moduleRegistry.getRenderModule(request.type, request.mimeType, request.replicationSource ?: "" )
 
         // todo I don't like the direct access
         if(!modulePermissionService.hasModuleAccess(renderModule)){

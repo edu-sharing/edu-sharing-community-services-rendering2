@@ -23,12 +23,13 @@ class MetadataService(
 //            .orElseThrow { throw EntryNotFoundException("No config found in database.") }
     }
 
-    fun storeConfig(rendererKeyConfig: RendererKeyConfig) {
+    private fun storeConfig(rendererKeyConfig: RendererKeyConfig) {
         repository.save(rendererKeyConfig)
     }
 
     override fun hasKeyPair() : Boolean {
-        return !getConfig().privateKey.isNullOrBlank() && !getConfig().publicKey.isNullOrBlank()
+        val config = getConfig()
+        return !config.privateKey.isNullOrBlank() && !config.publicKey.isNullOrBlank()
     }
 
 
