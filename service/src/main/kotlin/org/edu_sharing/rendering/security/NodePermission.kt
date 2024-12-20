@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.security
 
 
-import com.fasterxml.jackson.annotation.*
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import java.time.LocalDateTime
 
@@ -12,6 +12,7 @@ data class NodePermission(
     var permissions: Set<String>,
     var mimeType: String,
     var mediaType: String,
+    var replicationSource: String,
     var lastAccessDate: LocalDateTime
 ) {
 

@@ -22,7 +22,7 @@ class NodePermissionSessionContextRepository(
     private val log = LoggerFactory.getLogger(javaClass)
 
     private fun getExpirationTime(nodePermission: NodePermission) : Long {
-        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(nodePermission.mediaType, nodePermission.mimeType)
+        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(nodePermission.mediaType, nodePermission.mimeType, nodePermission.replicationSource)
         return renderModule.getNodePermissionExpirationTime() ?: nodePermissionExpirationTime
     }
 

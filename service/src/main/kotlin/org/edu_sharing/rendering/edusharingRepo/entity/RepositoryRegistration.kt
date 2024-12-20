@@ -15,6 +15,6 @@ data class RepositoryRegistration(
     var url: String,
     var publicKey: String,
     var domains: List<String>? = emptyList(),
-    var optionalModules: MutableList<String>,
+    var optionalModules: MutableList<String> = mutableListOf(),
     val module: MutableMap<String, ModuleSettings> = mutableMapOf<String, ModuleSettings>()
 )
