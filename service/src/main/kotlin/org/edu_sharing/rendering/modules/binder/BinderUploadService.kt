@@ -3,6 +3,9 @@ package org.edu_sharing.rendering.modules.binder
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.ConversionService
+import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.modules.binder.dto.BinderPhases
 import org.edu_sharing.rendering.modules.binder.dto.BinderSseEvent
 import org.edu_sharing.rendering.modules.binder.dto.ProgressEntry
@@ -22,9 +25,9 @@ import java.time.LocalDate
 
 @Service
 class BinderUploadService(
-    private val binderWebClient: WebClient,
     private val subJobRepository: SubJobRepository,
-    private val mainJobLogic: MainJobLogic
+    private val mainJobLogic: MainJobLogic,
+    private val moduleRegistry: ModuleRegistry,
 ) : ConversionService {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -32,9 +35,9 @@ class BinderUploadService(
         object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
 
     override fun process(
-        cacheObject: CacheObject,
-        renderingJob: RenderingJob
+        cacheObject: CacheObject, renderingJob: RenderingJob
     ) {
+        val binderWebClient = getWebclient(renderingJob)
         val (gitHubUser, gitHubRepo) = extractGitHubUserAndRepoFromUrl(cacheObject.externalUrl ?: "")
         if (renderingJob.subJobs.isEmpty()) {
             return
@@ -43,10 +46,7 @@ class BinderUploadService(
         subJob.status = JobStatus.PROCESSING
         subJob.message = "Initializing binder import"
         subJob = subJobRepository.save(subJob)
-        val eventStream = binderWebClient
-            .get()
-            .uri("/build/$gitHubUser/$gitHubRepo/HEAD")
-            .retrieve()
+        val eventStream = binderWebClient.get().uri("/build/$gitHubUser/$gitHubRepo/HEAD").retrieve()
             .bodyToFlux(typeReference<ServerSentEvent<BinderSseEvent>>())
 
         eventStream.subscribe({ content ->
@@ -119,14 +119,10 @@ class BinderUploadService(
         }
 
         var pushingProgress = 0
-        pushingProgress += if (layerProgress.layer1.progressObject != null)
-            getLayerPushingProgress(layerProgress.layer1.progressObject) else 15
-        pushingProgress += if (layerProgress.layer2.progressObject != null)
-            getLayerPushingProgress(layerProgress.layer2.progressObject) else 15
-        pushingProgress += if (layerProgress.layer3.progressObject != null)
-            getLayerPushingProgress(layerProgress.layer3.progressObject) else 15
-        pushingProgress += if (layerProgress.layer4.progressObject != null)
-            getLayerPushingProgress(layerProgress.layer4.progressObject) else 15
+        pushingProgress += if (layerProgress.layer1.progressObject != null) getLayerPushingProgress(layerProgress.layer1.progressObject) else 15
+        pushingProgress += if (layerProgress.layer2.progressObject != null) getLayerPushingProgress(layerProgress.layer2.progressObject) else 15
+        pushingProgress += if (layerProgress.layer3.progressObject != null) getLayerPushingProgress(layerProgress.layer3.progressObject) else 15
+        pushingProgress += if (layerProgress.layer4.progressObject != null) getLayerPushingProgress(layerProgress.layer4.progressObject) else 15
 
         return pushingProgress
     }
@@ -137,5 +133,15 @@ class BinderUploadService(
             throw IllegalArgumentException("GitHub URL for Binder import must contain user and repo")
         }
         return Pair(pathList[0], pathList[1])
+    }
+
+    private fun getWebclient(renderingJob: RenderingJob): WebClient {
+        val module = moduleRegistry.getRenderModule<RenderModule>(renderingJob.module)
+        if (module !is ThirdPartyModule) {
+            throw IllegalArgumentException("Unexpected module type: ${module::class.java}")
+        }
+        val config = module.getConfig(renderingJob.repoId)
+        val baseUrl = config["baseurl"] ?: throw IllegalArgumentException("baseurl must be provided")
+        return WebClient.builder().baseUrl(baseUrl).build()
     }
 }
