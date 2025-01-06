@@ -35,7 +35,9 @@ class H5pJobServiceTest {
         version = "dummyVersion",
         repoId = "dummyRepoId",
         title = "dummyTitle",
-        userData = null
+        userData = null,
+        replicationSource = null,
+        replicationSourceId = null,
     )
 
     @BeforeEach

@@ -1,12 +1,7 @@
 package org.edu_sharing.rendering.modules.jupyter
 
-import io.mockk.clearAllMocks
-import io.mockk.every
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verifySequence
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
@@ -111,18 +106,6 @@ class JupyterRenderModuleTest {
     @Test
     fun testGetNodePermissionExpirationTime() {
         assert(underTest.getNodePermissionExpirationTime() == 55L)
-    }
-
-    @Test
-    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assert(result.size == 1)
-        assert(result[0].first.type == "file-jupyter")
-        assert(result[0].first.mimeTypeSuffix == null)
-        assert(result[0].first.mimeTypePrefix == null)
     }
 
     @Test

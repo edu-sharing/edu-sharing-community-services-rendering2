@@ -37,7 +37,9 @@ class MapperTest {
                 firstName = "Max",
                 surName = "Mustermann",
                 userEMail = "mail@mail.de"
-            )
+            ),
+            replicationSource = null,
+            replicationSourceId = null
         )
 
         // Act
@@ -126,7 +128,9 @@ class MapperTest {
                 firstName = "Max",
                 surName = "Mustermann",
                 userEMail = "mail@mail.de"
-            )
+            ),
+            replicationSource = null,
+            replicationSourceId = null
         )
 
         // Act

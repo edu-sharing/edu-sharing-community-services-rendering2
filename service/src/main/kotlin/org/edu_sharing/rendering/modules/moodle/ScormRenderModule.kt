@@ -9,7 +9,7 @@ class ScormRenderModule(
     @Value("\${app.session.scorm.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     moodleJobService: MoodleJobService,
-    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
 ) : MoodleRenderModule(
     nodePermissionExpirationTime = nodePermissionExpirationTime,
     moodleJobService = moodleJobService,

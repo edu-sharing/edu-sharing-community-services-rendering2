@@ -10,8 +10,8 @@ import java.time.Duration
 
 @Service
 @ConditionalOnConverter
-class MoodleUploadService () {
-    /**
+class MoodleUploadService() {
+    /**categoryid
      * Constructs the URL to the moodle course following these steps:
      *
      * 1) Call upload course to obtain the course id from moodle
@@ -36,8 +36,8 @@ class MoodleUploadService () {
         val userToken = getUserToken(
             moodleJobMessage = moodleJobMessage,
             courseId = courseId,
-            config = config,
-            webClient = webClient
+            webClient = webClient,
+            webserviceToken = webserviceToken
         )
         return buildForwardUrl(userToken, config)
     }
@@ -87,8 +87,8 @@ class MoodleUploadService () {
     private fun getUserToken(
         moodleJobMessage: MoodleJobMessage,
         courseId: Int,
-        config: Map<String, String>,
-        webClient: WebClient
+        webClient: WebClient,
+        webserviceToken: String
     ): String {
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("user_name", moodleJobMessage.authorityName)
@@ -102,7 +102,7 @@ class MoodleUploadService () {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_handleuser")
                     .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", config["token"] ?: "")
+                    .queryParam("wstoken", webserviceToken)
                     .build()
             }
             .body(BodyInserters.fromFormData(postParams))

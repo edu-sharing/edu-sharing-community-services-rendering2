@@ -105,7 +105,7 @@ class MoodleReceiverTest {
             subJob
         }
         every { moduleRegistry.getRenderModule<RenderModule>(moduleName = "MOODLE") } returns module
-        every { moodleUploadService.getUrl(message, module) } throws Exception()
+        every { moodleUploadService.getUrl(message, module, job.repoId) } throws Exception()
         every { mainJobLogic.processMainJob(message.id) } returns true
 
         // Act
@@ -119,7 +119,7 @@ class MoodleReceiverTest {
         verify(exactly = 1) { renderingJobRepository.save(any()) }
         verify(exactly = 2) { subJobRepository.save(any()) }
         verify(exactly = 1) { moduleRegistry.getRenderModule<RenderModule>(moduleName = "MOODLE") }
-        verify(exactly = 1) { moodleUploadService.getUrl(message, module) }
+        verify(exactly = 1) { moodleUploadService.getUrl(message, module, job.repoId) }
         verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, moduleRegistry, moodleUploadService)
     }
@@ -162,7 +162,7 @@ class MoodleReceiverTest {
             subJob
         }
         every { moduleRegistry.getRenderModule<RenderModule>(moduleName = "MOODLE") } returns module
-        every { moodleUploadService.getUrl(message, module) } returns "myUrl"
+        every { moodleUploadService.getUrl(message, module, job.repoId) } returns "myUrl"
         every { mainJobLogic.processMainJob(message.id) } returns true
 
         // Act
@@ -177,7 +177,7 @@ class MoodleReceiverTest {
         verify(exactly = 1) { renderingJobRepository.save(any()) }
         verify(exactly = 2) { subJobRepository.save(any()) }
         verify(exactly = 1) { moduleRegistry.getRenderModule<RenderModule>(moduleName = "MOODLE") }
-        verify(exactly = 1) { moodleUploadService.getUrl(message, module) }
+        verify(exactly = 1) { moodleUploadService.getUrl(message, module, job.repoId) }
         verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, moduleRegistry, moodleUploadService)
     }

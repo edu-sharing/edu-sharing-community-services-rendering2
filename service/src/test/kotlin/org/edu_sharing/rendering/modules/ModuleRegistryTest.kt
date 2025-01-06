@@ -77,14 +77,25 @@ class ModuleRegistryTest {
     @Test
     fun testGetRenderModuleByMappingReturnsExpected() {
         // Act and assert
-        assertTrue(underTest.getRenderModule<RenderModule>(type = "file-any", mimeType = "prefix-any/suffix-any")
-                == moduleByType)
-        assertTrue(underTest.getRenderModule<RenderModule>(type = "file-nonsense", mimeType = "prefix-any/suffix-with-prefix")
-                == moduleByMimeType)
-        assertTrue(underTest.getRenderModule<RenderModule>(type = "file-nonsense", mimeType = "prefix-any/nonsense")
-                == moduleByPrefix)
+        assertTrue(underTest.getRenderModule<RenderModule>(
+            type = "file-any",
+            mimeType = "prefix-any/suffix-any",
+            replicationSource = "") == moduleByType)
+        assertTrue(underTest.getRenderModule<RenderModule>(
+            type = "file-nonsense",
+            mimeType = "prefix-any/suffix-with-prefix",
+            replicationSource = "") == moduleByMimeType)
+        assertTrue(underTest.getRenderModule<RenderModule>(
+            type = "file-nonsense",
+            mimeType = "prefix-any/nonsense",
+            replicationSource = ""
+        ) == moduleByPrefix)
         assertThrows<ObjectTypeNotSupportedException> {
-            underTest.getRenderModule<RenderModule>(type = "file-nonsense", mimeType = "prefix-nonsense/nonsense")
+            underTest.getRenderModule<RenderModule>(
+                type = "file-nonsense",
+                mimeType = "prefix-nonsense/nonsense",
+                replicationSource = ""
+            )
         }
     }
 }

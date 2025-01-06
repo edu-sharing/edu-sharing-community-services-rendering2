@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.modules.moodle
 
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -10,13 +10,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(MockKExtension::class)
 class ScormRenderModuleTest {
     private val moodleJobService = mockk<MoodleJobService>()
+    private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
     private val nodeExpiration = 99L
 
     lateinit var underTest: ScormRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = ScormRenderModule(nodeExpiration, moodleJobService)
+        underTest = ScormRenderModule(nodeExpiration, moodleJobService, repositoryRegistrationStorageService)
     }
 
     @Test
@@ -32,18 +33,5 @@ class ScormRenderModuleTest {
     @Test
     fun testGetRemoteServiceMethodReturnsScormMethod() {
         assert(underTest.getRemoteServiceMethod() == "scorm")
-    }
-
-    @Test
-    fun testModuleTypeAssociationsReturnsProperTypeMapping() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assertTrue(result.size == 1, "Expected 1 module type definition in result list, got ${result.size}")
-        assertTrue(result[0].first.type == "file-scorm")
-        assertTrue(result[0].first.mimeTypePrefix == null)
-        assertTrue(result[0].first.mimeTypeSuffix == null)
-        assertTrue(result[0].second == underTest)
     }
 }

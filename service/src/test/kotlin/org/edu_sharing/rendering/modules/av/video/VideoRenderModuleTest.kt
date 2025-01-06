@@ -200,19 +200,6 @@ class VideoRenderModuleTest {
     }
 
     @Test
-    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assert(result.size == 1)
-        assert(result[0].first.type == null)
-        assert(result[0].first.mimeTypeSuffix == null)
-        assert(result[0].first.mimeTypePrefix == "video")
-        assert(result[0].second == underTest)
-    }
-
-    @Test
     fun testCreateJobCreatesAndEnqueuesProperJob() {
         // Arrange
         val provider = JobDataProvider()

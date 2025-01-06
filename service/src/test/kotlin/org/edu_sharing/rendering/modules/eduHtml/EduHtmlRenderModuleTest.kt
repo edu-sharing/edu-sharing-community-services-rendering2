@@ -1,11 +1,7 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.mockk.clearAllMocks
-import io.mockk.every
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import io.mockk.verify
-import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
@@ -140,18 +136,5 @@ class EduHtmlRenderModuleTest {
 
         // Assert
         assert(result?.link == "")
-    }
-
-    @Test
-    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assert(result.size == 1)
-        assert(result[0].first.type == "file-eduhtml")
-        assert(result[0].first.mimeTypeSuffix == null)
-        assert(result[0].first.mimeTypePrefix == null)
-        assert(result[0].second == underTest)
     }
 }

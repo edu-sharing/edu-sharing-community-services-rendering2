@@ -5,7 +5,6 @@ import io.mockk.mockk
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.*
-import org.springframework.web.reactive.function.client.WebClient
 
 class MoodleUploadServiceTest {
 
@@ -19,25 +18,25 @@ class MoodleUploadServiceTest {
         userSurname = "dummyUserSurname"
     )
 
+    private val repoId = "repoId"
+
     private val mockModule = mockk<MoodleRenderModule>()
     private lateinit var mockWebServer: MockWebServer
-    private lateinit var webClient: WebClient
     private lateinit var underTest: MoodleUploadService
 
     @BeforeEach
     fun setUp() {
+        val config = mapOf<String, String>(
+            "baseurl" to mockWebServer.url("/").toString(),
+            "user" to "user",
+            "password" to "password",
+            "timeout" to "90",
+            "categoryid" to "1"
+        )
+        every {mockModule.getConfig(repoId)}returns config
         mockWebServer = MockWebServer()
         mockWebServer.start()
-
-        webClient = WebClient.builder()
-            .baseUrl(mockWebServer.url("/").toString())
-            .build()
-
-        underTest = MoodleUploadService(webClient, 90)
-        underTest.token = "token"
-        underTest.moodleBaseUrl = "http://moodlelocal.de"
-        underTest.categoryId = "1"
-        // replace with your actual constructor
+        underTest = MoodleUploadService()
     }
 
     @AfterEach
@@ -49,7 +48,6 @@ class MoodleUploadServiceTest {
     fun testIfGetUrlProperlyCallsPrivateFunctionsAndConstructsCorrectLink() {
         every { mockModule.getRemoteServiceMethod() } returns "restore"
 
-        // placeholder request bodies. Replace with real implementation of postParams used within getUserToken & uploadCourse
         val expectedUploadCourseBody = "nodeid=dummyNodeId&category=1&title=dummyTitle"
         val expectedGetUserTokenBody =
             "user_name=dummyAuthorityName&user_givenname=dummyUserGivenName&user_surname=dummyUserSurname&user_email=dummyUserEmail&courseid=123&role=student"
@@ -64,7 +62,7 @@ class MoodleUploadServiceTest {
         mockWebServer.enqueue(response1)
         mockWebServer.enqueue(response2)
 
-        val actualUrl = underTest.getUrl(dummyMessage, mockModule)
+        val actualUrl = underTest.getUrl(dummyMessage, mockModule, repoId)
 
         val request1 = mockWebServer.takeRequest()
         val request2 = mockWebServer.takeRequest()
@@ -88,7 +86,7 @@ class MoodleUploadServiceTest {
         every { mockModule.getRemoteServiceMethod() } returns "restore"
         val response1 = MockResponse().setBody("abc")
         mockWebServer.enqueue(response1)
-        assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule) }
+        assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule, repoId) }
     }
 
     @Test
@@ -96,7 +94,7 @@ class MoodleUploadServiceTest {
         every { mockModule.getRemoteServiceMethod() } returns "restore"
         val response1 = MockResponse().setBody("")
         mockWebServer.enqueue(response1)
-        assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule) }
+        assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule, repoId) }
     }
 
     @Test
@@ -106,6 +104,6 @@ class MoodleUploadServiceTest {
         val response2 = MockResponse().setBody("")
         mockWebServer.enqueue(response1)
         mockWebServer.enqueue(response2)
-        assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule) }
+        assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule, repoId) }
     }
 }

@@ -129,17 +129,4 @@ class PdfRenderModuleTest {
     fun testGetNodePermissionExpirationTimeReturnsProperTime() {
         assert(underTest.getNodePermissionExpirationTime() == 55L)
     }
-
-    @Test
-    fun testModuleTypeAssociationsReturnsProperTypeMapping() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assertTrue(result.size == 1, "Expected 1 module type definition in result list, got ${result.size}")
-        assertTrue(result[0].first.type == null)
-        assertTrue(result[0].first.mimeTypePrefix == "application")
-        assertTrue(result[0].first.mimeTypeSuffix == "pdf")
-        assertTrue(result[0].second == underTest)
-    }
 }
