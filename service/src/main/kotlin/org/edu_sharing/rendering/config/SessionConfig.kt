@@ -22,8 +22,6 @@ class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
 
     private lateinit var loader: ClassLoader
 
-
-
     @Bean
     fun springSessionDefaultRedisSerializer(): RedisSerializer<Any> {
         return GenericJackson2JsonRedisSerializer(objectMapper())
