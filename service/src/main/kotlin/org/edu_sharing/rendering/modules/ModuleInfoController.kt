@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 class ModuleInfoController(
     private val moduleRegistry: ModuleRegistry,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
-    ) {
+) {
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getModulesInfo(@RequestParam repoId: String): List<RenderModuleInfo> {
         val repoConfig = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
