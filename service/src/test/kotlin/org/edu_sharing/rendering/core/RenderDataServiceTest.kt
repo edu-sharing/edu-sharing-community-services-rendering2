@@ -25,7 +25,8 @@ class RenderDataServiceTest {
     fun setup() {
         underTest = RenderDataService(
             moduleRegistry = moduleRegistry,
-            modulePermissionService = modulePermissionService
+            modulePermissionService = modulePermissionService,
+            securityEnabled = true
         )
     }
 
