@@ -1,13 +1,44 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-/**
+import io.mockk.every
+import io.mockk.justRun
+import io.mockk.mockk
+import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
+import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.security.CorsService
+import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.springframework.web.reactive.function.client.WebClient
+
 class RepositoryRegistrationServiceTest {
 
     private lateinit var mockServer: MockWebServer
     private lateinit var eduSharingWebClient: WebClient
-    private var adminApi = mockk<AdminV1Api>()
-    private var privatePublicKeyService = mockk<PrivatePublicKeyService>()
-    private lateinit var service: RepositoryRegistrationService
+    private lateinit var underTest: RepositoryRegistrationService
+
+    private val registrations = listOf<RepositoryRegistration>(
+        RepositoryRegistration(
+            id = "1",
+            repoId = "repo1",
+            url = "http://repo1.url",
+            publicKey = "key1"
+        ),
+        RepositoryRegistration(
+            id = "2",
+            repoId = "repo2",
+            url = "http://repo2.url",
+            publicKey = "key2"
+        )
+    )
+
+    private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
+    private val storageService = mockk<StorageService>()
+    private val appInfo = mockk<AppInfo>()
+    private val corsService = mockk<CorsService>()
+    private val moduleRegistry = mockk<ModuleRegistry>()
 
     @BeforeEach
     fun setup() {
@@ -18,12 +49,15 @@ class RepositoryRegistrationServiceTest {
             .baseUrl(mockServer.url("/").toString())
             .build()
 
-        service = RepositoryRegistrationService(
-            privatePublicKeyService = privatePublicKeyService,
-            adminV1Api = adminApi,
-            eduSharingWebClient = eduSharingWebClient,
-            publicUrl = "http://localhost",
-            port = "1234"
+        every { repositoryRegistrationStorageService.getRegistrations() } returns registrations
+        justRun { corsService.addOrigin(any<List<String>>()) }
+
+        underTest = RepositoryRegistrationService(
+            repositoryRegistrationStorageService = repositoryRegistrationStorageService,
+            storageService = storageService,
+            appInfo = appInfo,
+            corsService = corsService,
+            moduleRegistry = moduleRegistry
         )
     }
 
@@ -32,6 +66,7 @@ class RepositoryRegistrationServiceTest {
         mockServer.shutdown()
     }
 
+    /**
     @Test
     fun testRegisterWithRepositoryCallsApiWithCorrectParamsAndStoresKey() {
         // Arrange
@@ -60,7 +95,6 @@ class RepositoryRegistrationServiceTest {
         confirmVerified(adminApi,privatePublicKeyService)
 
     }
-
     @Test
     fun testCreateRegistrationThrowsExceptionOnEmptyReturn() {
         // Arrange
@@ -85,5 +119,5 @@ class RepositoryRegistrationServiceTest {
         // Act and assert
         assertThrows<InvalidKeyException> { service.updatePublicRepositoryKey() }
     }
+    */
 }
-*/

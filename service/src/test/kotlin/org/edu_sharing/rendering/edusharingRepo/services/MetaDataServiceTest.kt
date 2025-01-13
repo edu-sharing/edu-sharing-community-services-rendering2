@@ -1,6 +1,23 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-/**
+import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
+import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.extension.ExtendWith
+import java.security.InvalidKeyException
+import java.security.KeyFactory
+import java.security.KeyPairGenerator
+import java.security.Signature
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
+import java.util.*
+
+
 @ExtendWith(MockKExtension::class)
 class MetaDataServiceTest {
     private val repository = mockk<RendererKeyConfigRepository>()
@@ -14,7 +31,7 @@ class MetaDataServiceTest {
     @Test
     fun testGetConfigReturnsAppConfigReturnedFromRepository() {
         // Arrange
-        val config = RendererKeyConfig(repoPublicKey = "testKey")
+        val config = RendererKeyConfig(publicKey = "testKey")
         every { repository.findById("0") } returns Optional.of(config)
 
         // Act
@@ -40,23 +57,9 @@ class MetaDataServiceTest {
         assert(result.publicKey == null)
         assert(result.privateKey == null)
         assert(result.version == null)
-        assert(result.repoPublicKey == null)
+        assert(result.publicKey == null)
 
         verify(exactly = 1) { repository.findById("0") }
-        confirmVerified(repository)
-    }
-
-    @Test
-    fun testStoreConfigCallsRepositorySaveMethod() {
-        // Arrange
-        val rendererKeyConfig = mockk<RendererKeyConfig>()
-        every { repository.save(rendererKeyConfig) } returns rendererKeyConfig
-
-        // Act
-        underTest.storeConfig(rendererKeyConfig)
-
-        // Assert
-        verify(exactly = 1) { repository.save(rendererKeyConfig) }
         confirmVerified(repository)
     }
 
@@ -146,7 +149,7 @@ class MetaDataServiceTest {
 
         // Assert
         assert(!result)
-        verify(exactly = 2) { repository.findById("0") }
+        verify(exactly = 1) { repository.findById("0") }
         confirmVerified(repository)
     }
 
@@ -165,7 +168,7 @@ class MetaDataServiceTest {
 
         // Assert
         assert(!result)
-        verify(exactly = 2) { repository.findById("0") }
+        verify(exactly = 1) { repository.findById("0") }
         confirmVerified(repository)
     }
 
@@ -181,54 +184,6 @@ class MetaDataServiceTest {
 
         // Act
         val result = underTest.hasKeyPair()
-
-        // Assert
-        assert(result)
-        verify(exactly = 2) { repository.findById("0") }
-        confirmVerified(repository)
-    }
-
-    @Test
-    fun testHasRepositoryKeyReturnsFalseIfRepoKeyIsNull() {
-        // Arrange
-        every { repository.findById("0") } returns Optional.of(
-            RendererKeyConfig()
-        )
-
-        // Act
-        val result = underTest.hasRepositoryKey()
-
-        // Assert
-        assert(!result)
-        verify(exactly = 1) { repository.findById("0") }
-        confirmVerified(repository)
-    }
-
-    @Test
-    fun testHasRepositoryKeyReturnsFalseIfRepoKeyIsBlank() {
-        // Arrange
-        every { repository.findById("0") } returns Optional.of(
-            RendererKeyConfig(repoPublicKey = "")
-        )
-
-        // Act
-        val result = underTest.hasRepositoryKey()
-
-        // Assert
-        assert(!result)
-        verify(exactly = 1) { repository.findById("0") }
-        confirmVerified(repository)
-    }
-
-    @Test
-    fun testHasRepositoryKeyReturnsTrueIfRepoKeyIsPresent() {
-        // Arrange
-        every { repository.findById("0") } returns Optional.of(
-            RendererKeyConfig(repoPublicKey = "111")
-        )
-
-        // Act
-        val result = underTest.hasRepositoryKey()
 
         // Assert
         assert(result)
@@ -289,6 +244,7 @@ class MetaDataServiceTest {
         }
     }
 
+    /**
     @Test
     fun testStoreRepositoryKeyAddsRepoKeyToConfig() {
         // Arrange
@@ -309,43 +265,7 @@ class MetaDataServiceTest {
             repository.save(capture(configSlot))
         }
     }
-
-    @Test
-    fun testGetRepositoryKeyThrowsExceptionIfNoKeyStored() {
-        // Arrange
-        every { repository.findById("0") } returns Optional.of(
-            RendererKeyConfig()
-        )
-
-        // Act
-        assertThrows<InvalidKeyException> { underTest.getRepositoryKey() }
-    }
-
-    @Test
-    fun testGetRepositoryKeyReturnsKeyInstanceIfKeyStored() {
-        // Arrange
-        val config = mockk<RendererKeyConfig>()
-        val repoKeyString = "-----BEGIN PUBLIC KEY-----\n" +
-                "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwxetiK0FoTxnxCPdZU2y\n" +
-                "djbvT07rgEK+Z9LfQmPdCKiIHZtVE78/Jk21EI0n6W18sbJaSpuQ8AXEgj9DJu/7\n" +
-                "wJ3bvV2PBBb0zY2cWl54jSpoas19dFU+HKX4RouXotsHduz/ZkjQ7wCzEzIcaJXr\n" +
-                "lIswfKUQ55Dl2DFwXo3Fzqb7xOUQINi1kWTLjGDgQ+EkShHYEQZIXlpuWgEiWZAT\n" +
-                "imgxnOTbcJKP7rihBD2h1HXNLsjMm2OcPQcldjP9yiBEU1ZILHk+fUgnG8hERgBM\n" +
-                "eVCdH8KaqbALseyOf/Kfaj2EZqMPoaDJIl+Y7KQfGdT8fR8kI+rnt7yC87Utktbr\n" +
-                "nwIDAQAB\n" +
-                "-----END PUBLIC KEY-----"
-        every { config.repoPublicKey } returns repoKeyString
-        every { repository.findById("0") } returns Optional.of(config)
-
-        // Act
-        assertDoesNotThrow { underTest.getRepositoryKey() }
-
-        // Assert
-        verifySequence {
-            repository.findById("0")
-            config.repoPublicKey
-        }
-    }
+    */
 
     @Test
     fun testGetPrivateKeyThrowsExceptionIfNotSetInConfig() {
@@ -377,4 +297,3 @@ class MetaDataServiceTest {
         confirmVerified(repository)
     }
 }
-*/

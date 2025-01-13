@@ -57,7 +57,7 @@ class RepositoryRegistrationService(
         )
     }
 
-    fun getWebClient(url: String): WebClient {
+    private fun getWebClient(url: String): WebClient {
         return WebClient
             .builder()
             .baseUrl(url)
@@ -93,11 +93,6 @@ class RepositoryRegistrationService(
         if (metadata == null) {
             throw InvalidKeyException("Received metadata info is null")
         }
-
-
-//        val existingEntry = repositoryRegistrationStorageService.getRegistrationByRepoId(metadata.appId)
-//        if (!existingEntry.isPresent && !storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
-//        }
 
         if (!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
             if (force) {

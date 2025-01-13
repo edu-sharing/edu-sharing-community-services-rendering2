@@ -24,11 +24,10 @@ class AvModuleTypeMapperTest {
         val result = underTest.moduleTypeAssociations()
 
         // Assert
-        assert(result.size == 1)
-        assert(result[0].first.type == null)
-        assert(result[0].first.mimeTypeSuffix == null)
-        assert(result[0].first.mimeTypePrefix == "audio")
-        assert(result[0].second == underTest)
+        val audioEntry = result.first {it.second == audioModule}
+        assert(audioEntry.first.type == null)
+        assert(audioEntry.first.mimeTypeSuffix == null)
+        assert(audioEntry.first.mimeTypePrefix == "audio")
     }
 
     @Test
@@ -37,10 +36,10 @@ class AvModuleTypeMapperTest {
         val result = underTest.moduleTypeAssociations()
 
         // Assert
-        assert(result.size == 1)
-        assert(result[0].first.type == null)
-        assert(result[0].first.mimeTypeSuffix == null)
-        assert(result[0].first.mimeTypePrefix == "video")
-        assert(result[0].second == underTest)
+
+        val videoEntry = result.first {it.second == videoModule}
+        assert(videoEntry.first.type == null)
+        assert(videoEntry.first.mimeTypeSuffix == null)
+        assert(videoEntry.first.mimeTypePrefix == "video")
     }
 }
