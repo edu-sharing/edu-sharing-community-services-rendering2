@@ -38,7 +38,7 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
                     (jws.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
                     jws.payload.get("mimeType", String::class.java),
                     jws.payload.get("mediaType", String::class.java),
-                    jws.payload.get("replicationSource", String::class.java),
+                    jws.payload.getOrElse("replicationSource") { "" }.toString(),
                     LocalDateTime.now()
                 )
             }

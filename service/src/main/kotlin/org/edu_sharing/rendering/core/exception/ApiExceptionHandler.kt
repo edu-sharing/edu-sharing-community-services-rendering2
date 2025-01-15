@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.core.exception
 
-import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.ResponseStatus
 
 @ControllerAdvice
 class ApiExceptionHandler {
+
+    private val log = LoggerFactory.getLogger(this.javaClass)
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     fun handleNotFoundException(exception: EntryNotFoundException): ResponseEntity<ErrorMessage> {
@@ -62,6 +65,7 @@ class ApiExceptionHandler {
 
     @ExceptionHandler
     fun handleGenericException(exception: Exception): ResponseEntity<ErrorMessage> {
+        log.error(exception.message, exception)
         val errorMessage = ErrorMessage(
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             "Internal server error",

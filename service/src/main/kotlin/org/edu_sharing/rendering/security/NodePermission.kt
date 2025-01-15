@@ -12,7 +12,7 @@ data class NodePermission(
     var permissions: Set<String>,
     var mimeType: String,
     var mediaType: String,
-    var replicationSource: String,
+    var replicationSource: String?,
     var lastAccessDate: LocalDateTime
 ) {
 
