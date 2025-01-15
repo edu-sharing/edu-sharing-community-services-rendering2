@@ -21,14 +21,10 @@ class RenderController (private val service: RenderDataService){
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getRenderData(
-        @RequestBody @Valid body: RenderDataRequest,
-        @RequestHeader headers: Map<String, String>
+        @RequestBody @Valid body: RenderDataRequest
     ): ResponseEntity<RenderDataResponse> {
-        log.info(headers["authorization"])
         return ResponseEntity
             .ok()
-            .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,"ES_RENDER_SSID")
-            .header("ES_RENDER_SSID", "SES123123")
-            .body(service.getRenderData(body))
+            .body(service.getRenderModule(body).handle(body))
     }
 }

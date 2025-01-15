@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 @JsonSerialize
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 data class NodePermission(
+    var repoId: String,
     var nodeId: String,
     var permissions: Set<String>,
     var mimeType: String,
