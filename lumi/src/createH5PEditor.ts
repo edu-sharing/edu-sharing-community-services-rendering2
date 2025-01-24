@@ -50,16 +50,6 @@ export default async function createH5PEditor(
     await mongoS3LibraryStorage.createIndexes();
     console.log("Initiated mongoDB library storage.")
 
-    // Init user data storage. We use mongo.
-    const userDataCollection = mongoDb.collection(process.env.USERDATA_MONGO_COLLECTION)
-    const finishedDataCollection = mongoDb.collection(process.env.FINISHED_MONGO_COLLECTION)
-    const mongoContentUserDataStorage = new dbImplementations.MongoContentUserDataStorage(
-        userDataCollection,
-        finishedDataCollection
-    );
-    await mongoContentUserDataStorage.createIndexes();
-    console.log("Initiated mongoDB user data storage.")
-
     // Instantiate H5PEditor and all the stuff it needs
     const editorCache = new H5P.cacheImplementations.CachedKeyValueStorage(
         'kvcache',
@@ -108,7 +98,7 @@ export default async function createH5PEditor(
         translationCallback,
         undefined,
         editorOptions,
-        mongoContentUserDataStorage
+        undefined
     );
 
     // Set bucket lifecycle configuration for S3 temporary storage to make

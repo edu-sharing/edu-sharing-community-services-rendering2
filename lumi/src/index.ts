@@ -83,7 +83,7 @@ const start = async () => {
         undefined,
         (key, language) => translationFunction(key, { lng: language }),
         undefined,
-        h5pEditor.contentUserDataStorage
+        undefined
     );
 
     const server = express();
@@ -91,7 +91,7 @@ const start = async () => {
     server.use(express.json())
     server.use(bodyParser.urlencoded({ extended: true }));
 
-    // A user is needed in every request. I For our purposes, a dummy is sufficient
+    // A user is needed in every request. For our purposes, a dummy is sufficient
     // (At least for the time being)
     server.use((req: IRequestWithUser, res, next) => {
         req.user = new User();
