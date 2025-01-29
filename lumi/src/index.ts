@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 
-import H5P, {fsImplementations, H5PConfig, H5PPlayer} from '@lumieducation/h5p-server';
+import H5P, {fsImplementations, H5PConfig, H5PPlayer, Logger} from '@lumieducation/h5p-server';
 import path from "path";
 import i18next from "i18next";
 import i18nextFsBackend from 'i18next-fs-backend';
@@ -13,10 +13,12 @@ import User from "./User";
 import dotenv from 'dotenv';
 import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} from "./h5p.settings";
+import eduSharingPlayer from "./eduSharingPlayer";
 
+const log = new Logger("Index")
 
 const start = async () => {
-    console.log("Lumi Server started");
+    log.info("Lumi Server started")
     dotenv.config();
 
     const translationFunction = await i18next
@@ -61,12 +63,12 @@ const start = async () => {
     }
     config.h5pVersion = `${h5p_core_version_major}.${h5p_core_version_major}.${h5p_core_version_patch}`
 
-    console.log("Config loaded:")
-    console.log(config)
+    log.info("Config loaded")
+    log.debug(JSON.stringify(config, null, 2))
 
     // Init mongoDB
     const mongoDb = await dbImplementations.initMongo()
-    console.log("MongoDB successfully initialized")
+    log.info("MongoDB successfully initialized")
 
     const h5pEditor: H5P.H5PEditor = await createH5PEditor(
         config,
@@ -85,6 +87,8 @@ const start = async () => {
         undefined,
         undefined
     );
+
+    h5pPlayer.setRenderer(eduSharingPlayer)
 
     const server = express();
 
@@ -126,7 +130,7 @@ const start = async () => {
 
     const port = process.env.PORT || '3000';
     server.listen(port);
-    console.log(`Server started successfully on port ${port}`)
+    log.info(`Server started successfully on port ${port}`)
 }
 
 start()

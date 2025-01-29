@@ -2,6 +2,9 @@ import * as H5P from '@lumieducation/h5p-server';
 import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {caching} from "cache-manager";
 import {Db} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
+import {LaissezFairePermissionSystem, Logger} from "@lumieducation/h5p-server";
+
+const log = new Logger("CreateH5PEditor")
 
 /**
  * Create a H5PEditor object.
@@ -16,7 +19,7 @@ export default async function createH5PEditor(
     mongoDb: Db,
     translationCallback?: H5P.ITranslationFunction,
 ): Promise<H5P.H5PEditor> {
-    console.log("Starting H5P editor creation.")
+    log.info("Starting H5P editor creation.")
 
     // Alternative: Redis
     let cache = caching({
@@ -24,7 +27,7 @@ export default async function createH5PEditor(
         ttl: 60 * 60 * 24,
         max: 2 ** 10
     });
-    console.log("Initiated in-memory cache.")
+    log.info("Initiated in-memory cache.")
 
     // Alternative: Redis lock (needed for cluster mode and only for editor)
     let lock = new H5P.SimpleLockProvider();
@@ -34,7 +37,7 @@ export default async function createH5PEditor(
         s3ForcePathStyle: true,
         signatureVersion: 'v4'
     })
-    console.log("Initiated S3 client.")
+    log.info("Initiated S3 client.")
 
     // Init library storage. We use mongo library storage.
     const libraryCollection = mongoDb.collection(process.env.LIBRARY_MONGO_COLLECTION)
@@ -48,7 +51,7 @@ export default async function createH5PEditor(
         libraryStorageOptions
     );
     await mongoS3LibraryStorage.createIndexes();
-    console.log("Initiated mongoDB library storage.")
+    log.info("Initiated mongoDB library storage.")
 
     // Instantiate H5PEditor and all the stuff it needs
     const editorCache = new H5P.cacheImplementations.CachedKeyValueStorage(
@@ -60,7 +63,7 @@ export default async function createH5PEditor(
         cache
     )
 
-    console.log("Initiated caches.")
+    log.info("Initiated caches.")
 
     const contentCollection = mongoDb.collection(process.env.CONTENT_MONGO_COLLECTION)
     const contentStorageOptions = {
@@ -73,7 +76,7 @@ export default async function createH5PEditor(
         contentStorageOptions
     )
 
-    console.log("Initiated S3 and mongo content storage.")
+    log.info("Initiated S3 and mongo content storage.")
     const tempFileStorageOptions = {
         s3Bucket: process.env.TEMPORARY_AWS_S3_BUCKET,
         maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
@@ -82,12 +85,13 @@ export default async function createH5PEditor(
         s3,
         tempFileStorageOptions
     )
-    console.log("Initiated S3 temp file storage.")
+    log.info("Initiated S3 temp file storage.")
 
     const editorOptions = {
         enableHubLocalization: true,
         enableLibraryNameLocalization: true,
-        lockProvider: lock
+        lockProvider: lock,
+        permissionSystem: new LaissezFairePermissionSystem()
     }
     const h5pEditor = new H5P.H5PEditor(
         editorCache,
@@ -107,6 +111,6 @@ export default async function createH5PEditor(
         await h5pEditor.temporaryStorage.setBucketLifecycleConfiguration(h5pEditor.config);
     }
 
-    console.log("Initiated H5P editor.")
+    log.info("Initiated H5P editor.")
     return h5pEditor;
 }

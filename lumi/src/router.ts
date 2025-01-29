@@ -4,6 +4,9 @@ import {IRequestWithUser } from "@lumieducation/h5p-express";
 import multer from "multer";
 import {Collection} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import EduSharingModel from "./EduSharingModel";
+import {Logger} from "@lumieducation/h5p-server";
+
+const log = new Logger("Router")
 
 const router = (
     h5pEditor: H5P.H5PEditor,
@@ -17,10 +20,10 @@ const router = (
     router.get('/edusharing/nodeid/:nodeId', async (request, response) => {
         const result = await eduCollection.findOne({nodeId: request.params.nodeId})
         if (!result || !result.contentId) {
-            console.log(`Content ID for node ${request.params.nodeId} not found. It needs to be added.`)
+            log.info(`Content ID for node ${request.params.nodeId} not found. It needs to be added.`)
             response.status(404).end();
         } else {
-            console.log(`Content ID for node ${request.params.nodeId} found: ${result.contentId}.`)
+            log.info(`Content ID for node ${request.params.nodeId} found: ${result.contentId}.`)
             response.send(JSON.stringify({ contentId: result.contentId }))
             response.status(200).end()
         }
@@ -29,10 +32,10 @@ const router = (
     router.get('/edusharing/contentid/:contentId', async (request, response) => {
         const result = await eduCollection.findOne({contentId: request.params.contentId})
         if (!result || !result.nodeId) {
-            console.log(`Node ID for content ${request.params.contentId} not found. It needs to be added.`)
+            log.info(`Node ID for content ${request.params.contentId} not found. It needs to be added.`)
             response.status(404).end();
         } else {
-            console.log(`Node ID for content ${request.params.contentId} found: ${result.nodeId}.`)
+            log.info(`Node ID for content ${request.params.contentId} found: ${result.nodeId}.`)
             response.send(JSON.stringify({ nodeId: result.nodeId }))
             response.status(200).end()
         }
@@ -41,12 +44,12 @@ const router = (
     router.post(
         '/edusharing', upload.single('file'), async (request: IRequestWithUser, response) => {
             if (!request.body.nodeId) {
-                console.log(`Missing param: nodeId. File upload aborted.`)
+                log.error(`Missing param: nodeId. File upload aborted.`)
                 response.status(400).send('Malformed request').end();
                 return;
             }
             const nodeId = request.body.nodeId
-            console.log(`Starting H5P package upload for nodeId ${request.body.nodeId}.`)
+            log.info(`Starting H5P package upload for nodeId ${request.body.nodeId}.`)
 
             try {
                 const result = await h5pEditor.uploadPackage(
@@ -55,7 +58,7 @@ const router = (
                     {onlyInstallLibraries: false}
                 )
 
-                console.log(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
+                log.info(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
 
                 const contentId = await h5pEditor.saveOrUpdateContent(
                     undefined,
@@ -64,14 +67,14 @@ const router = (
                     result.metadata.preloadedDependencies.filter(x=> result.metadata.mainLibrary == x.machineName).map(x=>`${x.machineName} ${x.majorVersion}.${x.minorVersion}`).find(x=>true),
                     request.user
                     )
-                console.log(`Lumi content Id for ES-Node ${request.body.nodeId} successfully created: ${contentId}.`)
+                log.info(`Lumi content Id for ES-Node ${request.body.nodeId} successfully created: ${contentId}.`)
                 const eduEntry = new EduSharingModel(nodeId, contentId)
                 await eduCollection.insertOne(eduEntry)
                 response.send(JSON.stringify({ contentId }));
-                console.log(`Lumi upload process for ES-Node ${request.body.nodeId} was successful.`)
+                log.info(`Lumi upload process for ES-Node ${request.body.nodeId} was successful.`)
                 response.status(200).end();
             } catch (error) {
-                console.log(`Lumi upload not successful. Error message: ${error.message}`)
+                log.error(`Lumi upload not successful. Error message: ${error.message}`)
                 response.status(500).end(error.message);
             }
         }
@@ -80,7 +83,7 @@ const router = (
     router.get(
         `/:contentId`,
         async (req: IRequestWithUser, res) => {
-            console.log(`Starting rendering of H5P Player for content ID ${req.params.contentId}`)
+            log.info(`Starting rendering of H5P Player for content ID ${req.params.contentId}`)
             try {
                 const h5pPage = await h5pPlayer.render(
                     req.params.contentId,
@@ -109,10 +112,10 @@ const router = (
                     }
                 );
                 res.send(h5pPage);
-                console.log(`Rendering successful. Content Id: ${req.params.contentId}`)
+                log.info(`Rendering successful. Content Id: ${req.params.contentId}`)
                 res.status(200).end();
             } catch (error) {
-                console.log(`Rendering not successful. Content Id: ${req.params.contentId}. Error message: ${error.message}`)
+                log.error(`Rendering not successful. Content Id: ${req.params.contentId}. Error message: ${error.message}`)
                 res.status(500).end(error.message);
             }
         }
