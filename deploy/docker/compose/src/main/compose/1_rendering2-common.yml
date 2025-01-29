@@ -134,8 +134,8 @@ services:
   rendering2-lumi:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
     environment:
-      AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering}"
-      AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering}"
+      AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
+      AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
       MINIO_HOST: rendering2-blob-storage
       MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
@@ -150,11 +150,11 @@ services:
       TEMPORARY_AWS_S3_BUCKET: tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: libbucket
-      USERDATA_MONGO_COLLECTION: userdata
-      FINISHED_MONGO_COLLECTION: finisheddata
       EDUSHARING_MONGO_COLLECTION: edusharing
       BASE_URL: /public/h5p
       CACHE: in-memory
+      LOG_SCOPE: h5p:*
+      LOG_LEVEL: info
     expose:
       - "3000"
 volumes:

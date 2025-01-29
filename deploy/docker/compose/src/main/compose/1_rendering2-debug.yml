@@ -23,10 +23,15 @@ services:
       JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_CONVERTER_DEBUG_PORT:-9107}:8000"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_CONVERTER_HTTP_PORT:-9110}:8080"
+
 
   rendering2-lumi:
     environment:
       NODE_OPTS: "--inspect"
+      LOG_SCOPE: "h5p:*"
+      LOG_LEVEL: "debug"
     ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_LUMI_PORT:-9108}:9229"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_LUMI_DEBUG_PORT:-9108}:9229"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_LUMI_HTTP_PORT:-9112}:3000"
 
