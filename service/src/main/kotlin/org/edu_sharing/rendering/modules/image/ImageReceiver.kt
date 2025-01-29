@@ -54,6 +54,7 @@ class ImageReceiver(
             }
             subJobRepository.save(subJob)
         }
+        conversionService.deleteTempFile(cacheObject)
         mainJobLogic.processMainJob(message.id)
     }
 }
