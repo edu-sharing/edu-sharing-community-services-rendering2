@@ -61,8 +61,8 @@ services:
   rendering2-lumi:
     image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:maven-fixes-10.0-SNAPSHOT"
     environment:
-      AWS_ACCESS_KEY_ID: rendering
-      AWS_SECRET_ACCESS_KEY: rendering
+      AWS_ACCESS_KEY_ID: rendering2
+      AWS_SECRET_ACCESS_KEY: rendering2
       MINIO_HOST: minio
       MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
@@ -82,8 +82,10 @@ services:
       EDUSHARING_MONGO_COLLECTION: edusharing
       BASE_URL: /public/h5p
       CACHE: in-memory
+      LOG_LEVEL: debug
+      LOG_SCOPE: h5p:*
     ports:
-      - "3000:3000"
+      - "9112:3000"
 
 #volumes:
 #  minio-data-volume:
