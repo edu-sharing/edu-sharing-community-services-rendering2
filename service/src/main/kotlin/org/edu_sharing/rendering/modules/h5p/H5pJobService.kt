@@ -32,7 +32,11 @@ class H5pJobService(
             return existingJob.id.toString()
         }
 
-        var job = mapper.renderDataRequestToRenderingJob(request, module)
+        var job = mapper.renderDataRequestToRenderingJob(
+            request = request,
+            module = module,
+            conversionType = true
+        )
         job = jobRepository.save(job)
 
         val subJob = SubJob(
