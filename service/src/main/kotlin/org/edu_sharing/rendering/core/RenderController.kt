@@ -5,8 +5,6 @@ import jakarta.validation.Valid
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.slf4j.LoggerFactory
-import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -15,8 +13,6 @@ import org.springframework.web.bind.annotation.*
 @ConditionalOnController
 @RequestMapping("/public/renderdata")
 class RenderController (private val service: RenderDataService){
-
-    private val log = LoggerFactory.getLogger(javaClass)
 
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
