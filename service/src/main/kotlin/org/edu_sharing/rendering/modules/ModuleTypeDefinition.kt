@@ -5,6 +5,7 @@ data class ModuleTypeDefinition(
     val mimeTypePrefix: String? = null,
     val mimeTypeSuffix: String? = null,
     val replicationSource: String? = null,
+    val resourceType: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -16,6 +17,7 @@ data class ModuleTypeDefinition(
         if (mimeTypePrefix != other.mimeTypePrefix) return false
         if (mimeTypeSuffix != other.mimeTypeSuffix) return false
         if (replicationSource != other.replicationSource) return false
+        if (resourceType != other.resourceType) return false
 
         return true
     }
@@ -25,6 +27,7 @@ data class ModuleTypeDefinition(
         result = 31 * result + (mimeTypePrefix?.hashCode() ?: 0)
         result = 31 * result + (mimeTypeSuffix?.hashCode() ?: 0)
         result = 31 * result + (replicationSource?.hashCode() ?: 0)
+        result = 31 * result + (resourceType?.hashCode() ?: 0)
         return result
     }
 }

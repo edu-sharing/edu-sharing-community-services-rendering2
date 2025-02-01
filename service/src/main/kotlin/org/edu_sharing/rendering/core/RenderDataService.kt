@@ -16,6 +16,11 @@ class RenderDataService(
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     @PostAuthorize("@modulePermissionService.hasModuleAccess(returnObject, #request.nodeId)")
     fun getRenderModule(request: RenderDataRequest) : RenderModule {
-        return moduleRegistry.getRenderModule(request.type, request.mimeType, request.replicationSource ?: "" )
+        return moduleRegistry.getRenderModule(
+            type = request.type,
+            mimeType = request.mimeType,
+            replicationSource = request.replicationSource ?: "",
+            resourceType = request.resourceType ?: ""
+        )
     }
 }

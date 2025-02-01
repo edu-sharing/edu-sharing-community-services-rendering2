@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
-import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
@@ -11,6 +10,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.storage.StaticStorageService
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -37,7 +37,11 @@ class EduHtmlService(
             return existingJobs[0].id.toString()
         }
 
-        var job = mapper.renderDataRequestToRenderingJob(request, module)
+        var job = mapper.renderDataRequestToRenderingJob(
+            request = request,
+            module = module,
+            conversionType = true
+        )
         job = jobRepository.save(job)
 
         val subJob = SubJob(

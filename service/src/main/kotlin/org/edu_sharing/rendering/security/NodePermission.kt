@@ -14,6 +14,7 @@ data class NodePermission(
     var mimeType: String,
     var mediaType: String,
     var replicationSource: String?,
+    var resourceType: String?,
     var lastAccessDate: LocalDateTime
 ) {
 

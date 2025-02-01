@@ -21,5 +21,6 @@ data class RenderDataRequest(
     val userData: RequestUserData?,
     val replicationSource: String?,
     val replicationSourceId: String?,
-    val replicationSourceFlag: Boolean = false
+    val replicationSourceFlag: Boolean = false,
+    val resourceType: String? = null
 )
