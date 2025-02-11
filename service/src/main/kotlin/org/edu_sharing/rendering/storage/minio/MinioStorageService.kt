@@ -16,13 +16,13 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.CachedObjectDetails
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.storage.BucketManagement
 import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.storage.StorageInfo
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.storage.minio.bucket.BucketPerCustomerStrategy
 import org.edu_sharing.rendering.storage.minio.bucket.BucketStrategy
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
@@ -36,10 +36,12 @@ class MinioStorageService(
     private val bucketStrategy: BucketStrategy,
     private val trackingService: TrackingService,
     private val appInfo: AppInfo
-) : StorageService, StaticStorageService {
+) : StorageService, StaticStorageService, BucketManagement {
 
     val defaultChunkSize = 10485760L
     private val log = LoggerFactory.getLogger(javaClass)
+
+    override fun bucketPrefix(): String = "rs2"
 
     override fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String>) {
         putObjectInternal(cacheObject, inputStream, bucketStrategy.getStoragePath(cacheObject), metadata)
@@ -312,6 +314,9 @@ class MinioStorageService(
     }
 
     override fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float) {
+        // For special cases use buckets provided by module and logic provided by module -> lumi
+
+
         val maxSize = (lowerThreshold * storageInfo.maxSize).toLong()
 
         var totalSize = 0L

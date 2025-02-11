@@ -16,7 +16,7 @@ import java.util.*
 @ConditionalOnController
 class LumiProxyController(
     val lumiProxyService: LumiProxyService,
-    val lumiNodeInfoService: LumiNodeInfoService,
+    val lumiContentManagementService: LumiContentManagementService,
     @Value("\${app.asset.static.frameAncestors}")
     private val allowedFrameAncestors: String?
 ) {
@@ -29,7 +29,7 @@ class LumiProxyController(
     ): ResponseEntity<String> {
         val result =  lumiProxyService.processProxyRequest(
             pathPrefix = H5P_BASE_PATH,
-            nodeInfo = lumiNodeInfoService.getNodeInfo(contentId),
+            nodeInfo = lumiContentManagementService.getNodeInfo(contentId),
             body = body,
             method = method,
             request = request,
@@ -57,7 +57,7 @@ class LumiProxyController(
     ): ResponseEntity<ByteArray> {
         return lumiProxyService.processProxyRequest(
             H5P_BASE_PATH,
-            lumiNodeInfoService.getNodeInfo(contentId),
+            lumiContentManagementService.getNodeInfo(contentId),
             body,
             method,
             request,

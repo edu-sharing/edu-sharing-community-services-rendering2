@@ -145,11 +145,11 @@ services:
       MONGODB_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       MONGODB_USER: "${RENDERING2_LUMI_DATABASE_USER:-lumi}"
       MONGODB_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
-      CONTENT_AWS_S3_BUCKET: contentbucket
+      CONTENT_AWS_S3_BUCKET: lumi_contentbucket
       CONTENT_MONGO_COLLECTION: h5p
-      TEMPORARY_AWS_S3_BUCKET: tempbucket
+      TEMPORARY_AWS_S3_BUCKET: lumi_tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
-      LIBRARY_AWS_S3_BUCKET: libbucket
+      LIBRARY_AWS_S3_BUCKET: lumi_libbucket
       EDUSHARING_MONGO_COLLECTION: edusharing
       BASE_URL: /public/h5p
       CACHE: in-memory

@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.cacheCleaner
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
+import org.edu_sharing.rendering.storage.StorageManagerRegistry
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component
 @ConditionalOnMaster
 class CacheCleaner (
     private val storageService: StorageService,
+    private val  storageManagerRegistry: StorageManagerRegistry,
     @Value("\${app.cache.cleaner.threshold.lower}") private val lowerThreshold: Float,
     @Value("\${app.cache.cleaner.threshold.upper}") private val upperThreshold: Float
 ){
@@ -28,8 +30,19 @@ class CacheCleaner (
             log.info( "${it.location}: ${bytesToHumanReadableSize(it.size)} of ${bytesToHumanReadableSize(it.maxSize)} (${(usedSpace * 100).toLong()}%)")
 
             if(usedSpace > upperThreshold) {
-                log.info("clean cache for ${it.location}")
-                storageService.freeStorage(it, lowerThreshold)
+
+                val bucketManagement = storageManagerRegistry.getBucketManagerByBucketName(it.location)
+                if (bucketManagement == null) {
+                    log.warn("Unmanaged storage for ${it.location}")
+                    return@loop
+                }
+
+                try {
+                    log.info("Clean cache for ${it.location}")
+                    bucketManagement.freeStorage(it, lowerThreshold)
+                } catch (e : Exception) {
+                    log.error("Error while cleaning cache for ${it.location}", e)
+                }
             }
         }
     }

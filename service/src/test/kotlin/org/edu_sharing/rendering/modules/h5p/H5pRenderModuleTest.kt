@@ -8,7 +8,7 @@ import io.mockk.verifySequence
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.junit.jupiter.api.BeforeEach
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(MockKExtension::class)
 class H5pRenderModuleTest {
     private val h5pJobServiceMock = mockk<H5pJobService>()
-    private val lumiNodeInfoServiceMock = mockk<LumiNodeInfoService>()
+    private val lumiContentManagementServiceMock = mockk<LumiContentManagementService>()
     private val appInfo = AppInfo()
 
     private lateinit var underTest: H5pRenderModule
@@ -26,7 +26,7 @@ class H5pRenderModuleTest {
     @BeforeEach
     fun setUp() {
         appInfo.public = AppInfo.ConnectionInfo("http", "test.com", 8000, "", "http://test.com:8000" )
-        underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiNodeInfoServiceMock, appInfo)
+        underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiContentManagementServiceMock, appInfo)
         clearAllMocks()
     }
 
@@ -36,7 +36,7 @@ class H5pRenderModuleTest {
         val request = mockk<RenderDataRequest>()
         every { request.nodeId } returns "node123"
         every { request.hash } returns "hash123"
-        every { lumiNodeInfoServiceMock.getContentId("node123", "hash123") } returns "lumiid123"
+        every { lumiContentManagementServiceMock.getContentId("node123", "hash123") } returns "lumiid123"
 
         // Act
         val result = underTest.handle(request)
@@ -49,7 +49,7 @@ class H5pRenderModuleTest {
         verifySequence {
             request.nodeId
             request.hash
-            lumiNodeInfoServiceMock.getContentId("node123", "hash123")
+            lumiContentManagementServiceMock.getContentId("node123", "hash123")
         }
     }
 
@@ -59,7 +59,7 @@ class H5pRenderModuleTest {
         val request = mockk<RenderDataRequest>()
         every { request.nodeId } returns "node123"
         every { request.hash } returns "hash123"
-        every { lumiNodeInfoServiceMock.getContentId("node123", "hash123") } returns null
+        every { lumiContentManagementServiceMock.getContentId("node123", "hash123") } returns null
         every { h5pJobServiceMock.createJob(request, "H5P") } returns "job123"
 
         // Act
@@ -73,7 +73,7 @@ class H5pRenderModuleTest {
         verifySequence {
             request.nodeId
             request.hash
-            lumiNodeInfoServiceMock.getContentId("node123", "hash123")
+            lumiContentManagementServiceMock.getContentId("node123", "hash123")
             h5pJobServiceMock.createJob(request, "H5P")
         }
     }

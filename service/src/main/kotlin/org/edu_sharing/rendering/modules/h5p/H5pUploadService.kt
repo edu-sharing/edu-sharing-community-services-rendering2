@@ -1,12 +1,13 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiContentResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
-import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.HttpStatus
@@ -25,7 +26,8 @@ import java.nio.file.Files
 class H5pUploadService(
     private val contentTransferService: ContentTransferService,
     private val lumiWebClient: WebClient,
-    private val lumiNodeInfoService: LumiNodeInfoService
+    private val lumiContentManagementService: LumiContentManagementService,
+    private val trackingService: TrackingService
 ) {
     private val log = LoggerFactory.getLogger(H5pUploadService::class.java)
 
@@ -36,11 +38,12 @@ class H5pUploadService(
             nodeId = cacheObject.nodeId,
             hash = cacheObject.hash
         )
-        lumiNodeInfoService.setCache(cacheEntry)
+        lumiContentManagementService.setCache(cacheEntry)
         return lumiId
     }
 
     private fun getLumiId(cacheObject: CacheObject): String {
+        trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket())
         try {
             return getCachedContentId(cacheObject.nodeId, cacheObject.hash)
         } catch (exception: WebClientResponseException) {

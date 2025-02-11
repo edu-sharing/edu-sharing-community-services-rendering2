@@ -9,7 +9,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -34,7 +34,7 @@ class H5pUploadServiceTest {
 
     // Mock the dependencies
     private val mockContentTransferService = mockk<ContentTransferService>()
-    private val mockLumiNodeInfoService = mockk<LumiNodeInfoService>()
+    private val mockLumiContentManagementService = mockk<LumiContentManagementService>()
 
     @BeforeEach
     fun setup() {
@@ -46,7 +46,7 @@ class H5pUploadServiceTest {
             .build()
 
         // Initialize your service with mocked dependencies
-        underTest = H5pUploadService(mockContentTransferService, webClient, mockLumiNodeInfoService)
+        underTest = H5pUploadService(mockContentTransferService, webClient, mockLumiContentManagementService)
     }
 
     @AfterEach
@@ -63,7 +63,7 @@ class H5pUploadServiceTest {
             hash = dummyCacheObject.hash
         )
 
-        every { mockLumiNodeInfoService.setCache(nodeInfo) } returns nodeInfo
+        every { mockLumiContentManagementService.setCache(nodeInfo) } returns nodeInfo
 
         val expectedContentId = "expectedContentId"
         val mockResponse = MockResponse()
@@ -96,7 +96,7 @@ class H5pUploadServiceTest {
 
         every { mockContentTransferService.getAsInputStream(dummyCacheObject) } returns testFileContent.toByteArray()
             .inputStream()
-        every { mockLumiNodeInfoService.setCache(nodeInfo) } returns nodeInfo
+        every { mockLumiContentManagementService.setCache(nodeInfo) } returns nodeInfo
 
         val expectedContentId = "expectedContentId"
         val getCachedContentIdResponse = MockResponse().setResponseCode(404)
@@ -124,8 +124,8 @@ class H5pUploadServiceTest {
         assertThat(returnedId).isEqualTo(expectedContentId)
 
         verify(exactly = 1) { mockContentTransferService.getAsInputStream(dummyCacheObject) }
-        verify(exactly = 1) { mockLumiNodeInfoService.setCache(nodeInfo) }
-        confirmVerified(mockLumiNodeInfoService, mockContentTransferService)
+        verify(exactly = 1) { mockLumiContentManagementService.setCache(nodeInfo) }
+        confirmVerified(mockLumiContentManagementService, mockContentTransferService)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules
 
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
 import org.springframework.lang.Nullable
@@ -55,6 +56,15 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]
             ?: throw ObjectTypeNotSupportedException()
         return result as T
+    }
+
+    fun <T: RenderModule> getRenderModule(cacheObject: CacheObject): T {
+        return getRenderModule(
+            type = cacheObject.type,
+            mimeType = cacheObject.mimeType,
+            replicationSource = null,
+            resourceType = null
+        )
     }
 
     fun getModuleTypeMapperList() = moduleTypeMapper

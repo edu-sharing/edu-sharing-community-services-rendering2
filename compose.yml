@@ -72,11 +72,11 @@ services:
       MONGODB_DB: "lumi"
       MONGODB_USER: "lumi"
       MONGODB_PASSWORD: "lumi"
-      CONTENT_AWS_S3_BUCKET: contentbucket
+      CONTENT_AWS_S3_BUCKET: lumi_contentbucket
       CONTENT_MONGO_COLLECTION: h5p
-      TEMPORARY_AWS_S3_BUCKET: tempbucket
+      TEMPORARY_AWS_S3_BUCKET: lumi_tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
-      LIBRARY_AWS_S3_BUCKET: libbucket
+      LIBRARY_AWS_S3_BUCKET: lumi_libbucket
       USERDATA_MONGO_COLLECTION: userdata
       FINISHED_MONGO_COLLECTION: finisheddata
       EDUSHARING_MONGO_COLLECTION: edusharing
