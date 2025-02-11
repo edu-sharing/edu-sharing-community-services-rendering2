@@ -4,7 +4,7 @@ import {IRequestWithUser } from "@lumieducation/h5p-express";
 import multer from "multer";
 import {Collection} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import EduSharingModel from "./EduSharingModel";
-import {Logger} from "@lumieducation/h5p-server";
+import {H5pError, Logger} from "@lumieducation/h5p-server";
 
 const log = new Logger("Router")
 
@@ -120,6 +120,35 @@ const router = (
             }
         }
     );
+
+    router.delete("/edusharing/:nodeHash", async (request: IRequestWithUser, response) => {
+        const result = await eduCollection.findOne({nodeId: request.params.nodeHash})
+        if (!result || !result.contentId) {
+            log.warn(`Requested node for deletion not found: ${request.params.nodeHash}`)
+            response.status(404).end()
+            return
+        }
+        try {
+            await h5pEditor.deleteContent(result.contentId, request.user)
+            await eduCollection.deleteOne({nodeId: request.params.nodeHash})
+            response.status(204).end()
+        } catch (error: any) {
+            if (error instanceof H5pError) {
+                log.warn(`Deletion failed with H5PError: ${error.message}`)
+                response.status(error.httpStatusCode).end()
+            } else {
+                response.status(500).end()
+            }
+        }
+    })
+
+    router.get("/edusharing/buckets", async (_req, res) => {
+        const buckets = {
+            contentBucket: process.env.CONTENT_AWS_S3_BUCKET
+        }
+        res.send(JSON.stringify(buckets))
+        res.status(200).end()
+    })
 
     return router
 }
