@@ -330,6 +330,11 @@
       <version>1.6.4</version>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-test</artifactId>
+          <scope>test</scope>
+      </dependency>
 
 
   </dependencies>

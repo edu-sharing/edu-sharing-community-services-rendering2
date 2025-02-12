@@ -10,5 +10,5 @@ class EduHtmlRenderModuleTypeMapper(
 ) : ModuleTypeMapper {
 
     override fun moduleTypeAssociations() =
-        listOf(ModuleTypeDefinition(type = "file-eduhtml") to eduHtmlRenderModule)
+        listOf(ModuleTypeDefinition(resourceType = "eduhtml") to eduHtmlRenderModule)
 }

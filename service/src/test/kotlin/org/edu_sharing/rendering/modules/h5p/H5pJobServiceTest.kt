@@ -36,6 +36,8 @@ class H5pJobServiceTest {
         repoId = "dummyRepoId",
         title = "dummyTitle",
         userData = null,
+        replicationSource = null,
+        replicationSourceId = null,
         url = null
     )
 

@@ -27,6 +27,7 @@ done
 # we need to wait, because mongodb sometimes need some more time...
 sleep 2
 
+export DEBUG="${LOG_SCOPE:-h5p:*}"
 export AWS_S3_ENDPOINT="http://${minio_host}:${minio_port}"
 export MONGODB_URL="mongodb://${mongodb_username}:${mongodb_password}@${mongodb_host}:${mongodb_port}/?authSource=${mongodb_authdb}"
 sh -c "$*"

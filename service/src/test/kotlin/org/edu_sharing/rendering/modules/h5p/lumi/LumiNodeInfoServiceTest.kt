@@ -18,7 +18,7 @@ class LumiNodeInfoServiceTest {
 
     private lateinit var mockServer: MockWebServer
     private lateinit var webClient: WebClient
-    private lateinit var underTest: LumiNodeInfoService
+    private lateinit var underTest: LumiContentManagementService
 
     @BeforeEach
     fun setup() {
@@ -27,7 +27,7 @@ class LumiNodeInfoServiceTest {
         webClient = WebClient.builder()
             .baseUrl(mockServer.url("/").toString())
             .build()
-        underTest = LumiNodeInfoService(webClient, cacheRepository)
+        underTest = LumiContentManagementService(webClient, cacheRepository)
     }
 
     @AfterEach

@@ -18,34 +18,46 @@ import org.springframework.stereotype.Service
 
 @ConditionalOnController
 @Service
-class JobInfoService (
+class JobInfoService(
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val moduleRegistry: ModuleRegistry
-    ){
+) {
 
     // we can't call this inside getJobInfo because we need to check permissions which is done by the surrounding proxy
-    fun getRenderingJob(jobId: String) : RenderingJob {
-         return jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
+    fun getRenderingJob(jobId: String): RenderingJob {
+        return jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
     }
 
     @PreAuthorize("hasPermission(#job.esObjectId, 'Read')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
         if (isMainJobQueuedOrCopying(job)) {
             return JobInfoReply(
-                jobs = mutableListOf(JobProgressInfo(status = job.status)),
-                status = job.status,
-                module = job.module
+                jobs = mutableListOf(JobProgressInfo(status = job.status)), status = job.status, module = job.module
             )
         }
         val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
+
+        if (!job.conversionType) {
+            return getJobInfoForNonConversionObject(renderingJob = job, renderModule = renderModule)
+        }
+
         val infoList: MutableList<JobProgressInfo> = mutableListOf()
         job.subJobs.forEach {
             val jobInfo = JobProgressInfo(quality = it.quality, status = it.status)
             when (it.status) {
-                JobStatus.QUEUED -> { jobInfo.progress = getQueuePosition(it) }
-                JobStatus.PROCESSING -> { jobInfo.progress = it.progress.toLong() }
-                JobStatus.FINISHED -> { jobInfo.objectLink = renderModule.getObjectLinkFromJobData(it, job) }
+                JobStatus.QUEUED -> {
+                    jobInfo.progress = getQueuePosition(it)
+                }
+
+                JobStatus.PROCESSING -> {
+                    jobInfo.progress = it.progress.toLong()
+                }
+
+                JobStatus.FINISHED -> {
+                    jobInfo.objectLink = renderModule.getObjectLinkFromJobData(it, job)
+                }
+
                 JobStatus.FAILED -> {}
             }
             infoList.add(jobInfo)
@@ -54,7 +66,7 @@ class JobInfoService (
     }
 
     private fun getQueuePosition(subJob: SubJob): Long {
-        if(subJob.createdDate == null){
+        if (subJob.createdDate == null) {
             throw IllegalArgumentException("createDate not set")
         }
 
@@ -63,12 +75,32 @@ class JobInfoService (
             status = subJob.status,
             routingKey = subJob.routingKey,
             priority = subJob.priority
-        )
+        ) ?: -1
     }
 
     private fun isMainJobQueuedOrCopying(job: RenderingJob): Boolean {
         val isQueued = job.status == JobStatus.QUEUED
         val isCopying = job.status == JobStatus.PROCESSING && job.subJobs.isEmpty()
         return isQueued || isCopying
+    }
+
+    private fun getJobInfoForNonConversionObject(renderingJob: RenderingJob, renderModule: RenderModule): JobInfoReply {
+        val placeHolderSubJob = SubJob(
+            routingKey = "",
+            parent = renderingJob,
+            status = renderingJob.status,
+        )
+        val objectLink = renderModule.getObjectLinkFromJobData(
+            subJob = placeHolderSubJob,
+            renderingJob = renderingJob
+        )
+        return JobInfoReply(
+            status = renderingJob.status, module = renderingJob.module, jobs = mutableListOf(
+                JobProgressInfo(
+                    status = renderingJob.status,
+                    objectLink = objectLink
+                )
+            )
+        )
     }
 }

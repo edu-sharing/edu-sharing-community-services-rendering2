@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.modules.image
 
-import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.awt.Image
@@ -55,5 +55,9 @@ class ImageConversionService (
             val sourceImage = ImageIO.read(fileInputStream)
             return sourceImage
         }
+    }
+
+    fun deleteTempFile(cacheObject: CacheObject) {
+        storageImplementation.removeObject(cacheObject, true)
     }
 }

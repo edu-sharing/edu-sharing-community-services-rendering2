@@ -37,8 +37,8 @@ class DocumentConversionService(
                 moduleRegistry.getRenderModule(renderingJob.module)
             )
             subJob.status = JobStatus.FINISHED
-        } catch (_: Exception) {
-            log.error("Document conversion failed for object ${renderingJob.esObjectId}")
+        } catch (e: Exception) {
+            log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${e.message}")
             subJob.status = JobStatus.FAILED
             subJob.message = PUBLIC_FAILURE_MESSAGE
         }

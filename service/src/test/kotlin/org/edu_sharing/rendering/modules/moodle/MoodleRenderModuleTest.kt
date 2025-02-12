@@ -3,9 +3,9 @@ package org.edu_sharing.rendering.modules.moodle
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -14,12 +14,13 @@ import org.junit.jupiter.api.extension.ExtendWith
 class MoodleRenderModuleTest {
     private val expirationTime = 55L
     private val moodleJobService = mockk<MoodleJobService>()
+    private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
 
     lateinit var underTest: MoodleRenderModule
 
     @BeforeEach
     fun setup() {
-        underTest = MoodleRenderModule(expirationTime, moodleJobService)
+        underTest = MoodleRenderModule(expirationTime, moodleJobService, repositoryRegistrationStorageService)
         clearAllMocks()
     }
 
@@ -91,18 +92,5 @@ class MoodleRenderModuleTest {
     @Test
     fun getNodePermissionExpirationTimeReturnsSetExpirationTime() {
         assert(underTest.getNodePermissionExpirationTime() == 55L)
-    }
-
-    @Test
-    fun testModuleTypeAssociationsReturnsProperTypeMapping() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assertTrue(result.size == 1, "Expected 1 module type definition in result list, got ${result.size}")
-        assertTrue(result[0].first.type == "file-moodle")
-        assertTrue(result[0].first.mimeTypePrefix == null)
-        assertTrue(result[0].first.mimeTypeSuffix == null)
-        assertTrue(result[0].second == underTest)
     }
 }

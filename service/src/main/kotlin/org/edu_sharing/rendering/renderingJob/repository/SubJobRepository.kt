@@ -14,5 +14,5 @@ interface SubJobRepository: MongoRepository<SubJob, ObjectId> {
         "{ \$match: {status: ?2, routingKey: ?3, \$or: [ {priority: { \$gt: ?1 } }, { \$and: [ { priority: ?1 }, { createdDate: { \$lte: ?0 } } ] } ] } }",
         "{ \$count: 'queuePosition' }"
     )
-    fun getQueuePosition(createDate: Date?, priority: Int, status: JobStatus, routingKey: String): Long
+    fun getQueuePosition(createDate: Date?, priority: Int, status: JobStatus, routingKey: String): Long?
 }

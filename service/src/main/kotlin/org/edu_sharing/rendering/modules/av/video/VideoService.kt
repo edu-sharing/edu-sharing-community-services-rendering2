@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -14,6 +15,8 @@ class VideoService(
     private val mainJobCreationService: MainJobCreationService,
     private val targetVideoResolutions: VideoConverterConfig
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Value("\${app.converter.video.format}")
     lateinit var targetVideoFormat: String
@@ -56,8 +59,14 @@ class VideoService(
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>): String {
+        log.info("Creating main job for: ${cacheObject.nodeId}")
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
-        if (existingJobId != null) return existingJobId
-        return mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject))
+        if (existingJobId != null) {
+            log.info("Existing job found: $existingJobId")
+            return existingJobId
+        }
+        val newJobId = mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject))
+        log.info("Created main job: $newJobId")
+        return newJobId
     }
 }

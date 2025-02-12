@@ -43,6 +43,8 @@ class EduHtmlServiceTest {
         repoId = "dummyRepoId",
         title = "dummyTitle",
         userData = null,
+        replicationSource = null,
+        replicationSourceId = null,
         url = null
     )
 

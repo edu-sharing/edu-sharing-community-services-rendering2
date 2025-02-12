@@ -25,7 +25,7 @@ import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.modules.h5p.H5pJobService
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiConfig
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiNodeInfoService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageService
 import org.edu_sharing.rendering.modules.jupyter.JupyterJobService
@@ -72,7 +72,7 @@ abstract class SharedBeans {
             JupyterRenderModule::class,
             JwtUtils::class,
             LumiConfig::class,
-            LumiNodeInfoService::class,
+            LumiContentManagementService::class,
             MainJobLogic::class,
             MainJobCreationService::class,
             Mapper::class,

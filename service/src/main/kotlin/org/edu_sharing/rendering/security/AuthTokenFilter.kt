@@ -32,7 +32,7 @@ class AuthTokenFilter(
         try {
             val jwt: String? = parseJwt(request)
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                val  userDetails = jwtUtils.getUserDetailsFromJwt(jwt)
+                val userDetails = jwtUtils.getUserDetailsFromJwt(jwt)
                 val authentication = UsernamePasswordAuthenticationToken(
                     userDetails,
                     null,
@@ -41,7 +41,6 @@ class AuthTokenFilter(
                 authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
                 SecurityContextHolder.getContext().authentication = authentication
                 securityContextRepository.saveContext(SecurityContextHolder.getContext(), request, response)
-
                 val nodePermission = jwtUtils.getNodePermissions(jwt)
                 nodePermissionSessionContextRepository.saveNodePermission(nodePermission)
             }

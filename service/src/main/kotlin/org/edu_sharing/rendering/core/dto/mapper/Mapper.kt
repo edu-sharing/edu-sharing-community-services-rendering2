@@ -34,7 +34,7 @@ class Mapper {
         )
     }
 
-    fun renderDataRequestToRenderingJob(request: RenderDataRequest, module: String): RenderingJob {
+    fun renderDataRequestToRenderingJob(request: RenderDataRequest, module: String, conversionType: Boolean = false): RenderingJob {
         return RenderingJob(
             esObjectId = request.nodeId,
             esObjectType = request.type,
@@ -44,6 +44,7 @@ class Mapper {
             nodeVersion = request.version,
             size = request.size,
             module = module,
+            conversionType = conversionType,
             externalUrl = request.url
         )
     }

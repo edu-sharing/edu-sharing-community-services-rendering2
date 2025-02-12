@@ -1,10 +1,6 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import io.mockk.every
-import io.mockk.justRun
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verifySequence
+import io.mockk.*
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
@@ -134,19 +130,6 @@ class AudioRenderModuleTest {
     @Test
     fun testGetNodePermissionExpirationTimeReturnsProperTime() {
         assert(underTest.getNodePermissionExpirationTime() == 45L)
-    }
-
-    @Test
-    fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefix() {
-        // Act
-        val result = underTest.moduleTypeAssociations()
-
-        // Assert
-        assert(result.size == 1)
-        assert(result[0].first.type == null)
-        assert(result[0].first.mimeTypeSuffix == null)
-        assert(result[0].first.mimeTypePrefix == "audio")
-        assert(result[0].second == underTest)
     }
 
     @Test

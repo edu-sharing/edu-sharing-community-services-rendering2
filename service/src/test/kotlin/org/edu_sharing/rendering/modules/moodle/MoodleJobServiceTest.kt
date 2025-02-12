@@ -34,8 +34,6 @@ class MoodleJobServiceTest {
             subJobRepository = subJobRepository,
             amqpTemplate = amqpTemplate,
         )
-        underTest.token = "token1"
-        underTest.categoryId = "1"
         underTest.topicExchangeName = "topicExchange1"
         underTest.jobRoutingKey = "jobRoutingKey1"
         clearAllMocks()
@@ -44,7 +42,6 @@ class MoodleJobServiceTest {
     @Test
     fun testCreateJobThrowsExceptionIfTokenMissing() {
         // Arrange
-        underTest.token = ""
         val request = mockk<RenderDataRequest>()
 
         // Act
@@ -54,7 +51,6 @@ class MoodleJobServiceTest {
     @Test
     fun testCreateJobThrowsExceptionIfCategoryIdIsMissing() {
         // Arrange
-        underTest.categoryId = ""
         val request = mockk<RenderDataRequest>()
 
         // Act

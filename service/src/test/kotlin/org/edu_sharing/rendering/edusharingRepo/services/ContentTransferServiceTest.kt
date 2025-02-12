@@ -1,10 +1,26 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-/**
+import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.core.io.Resource
+import org.springframework.core.io.ResourceLoader
+import org.springframework.web.reactive.function.client.WebClient
+import java.security.KeyPairGenerator
+import java.security.Signature
+import java.util.*
+
 @ExtendWith(MockKExtension::class)
 class ContentTransferServiceTest {
     private val privatePublicKeyService = mockk<PrivatePublicKeyService>()
     private val resourceLoader = mockk<ResourceLoader>()
+    private val repositoryRegistrationService = mockk<RepositoryRegistrationService>()
     private lateinit var eduSharingWebClient: WebClient
     private lateinit var mockServer: MockWebServer
 
@@ -19,7 +35,7 @@ class ContentTransferServiceTest {
             .build()
         underTest = ContentTransferService(
             resourceLoader = resourceLoader,
-            eduSharingWebClient = eduSharingWebClient,
+            repoRegistrationService = repositoryRegistrationService,
             privatePublicKeyService = privatePublicKeyService
         )
         underTest.appId = "renderer2"
@@ -72,12 +88,14 @@ class ContentTransferServiceTest {
         every { cacheObject.nodeId } returns "node1"
         every { cacheObject.repoId } returns "repo1"
         every { cacheObject.version } returns "1.2"
+        every { repositoryRegistrationService.getWebClientByRepoId("repo1") } returns eduSharingWebClient
         every { privatePublicKeyService.getPrivateKey() } returns keyPair.private
 
         excludeRecords {
             cacheObject.nodeId
             cacheObject.version
-            cacheObject.version
+            cacheObject.repoId
+            cacheObject.repoId
         }
 
         // Web Server
@@ -117,8 +135,11 @@ class ContentTransferServiceTest {
             assert(requestUrl.queryParameter("version") == "1.2")
         }
 
-        verify(exactly = 1) {privatePublicKeyService.getPrivateKey()}
-        confirmVerified(privatePublicKeyService, resourceLoader)
+        verifySequence {
+            privatePublicKeyService.getPrivateKey()
+            repositoryRegistrationService.getWebClientByRepoId("repo1")
+        }
+        confirmVerified(privatePublicKeyService, resourceLoader, repositoryRegistrationService)
     }
 
     @Test
@@ -136,11 +157,13 @@ class ContentTransferServiceTest {
         every { cacheObject.repoId } returns "repo123"
         every { cacheObject.version } returns null
         every { privatePublicKeyService.getPrivateKey() } returns keyPair.private
+        every { repositoryRegistrationService.getWebClientByRepoId("repo123") } returns eduSharingWebClient
 
         excludeRecords {
             cacheObject.nodeId
             cacheObject.version
             cacheObject.version
+            cacheObject.repoId
         }
 
         // Web Server
@@ -167,8 +190,10 @@ class ContentTransferServiceTest {
             assert(requestUrl.queryParameter("version") == "")
         }
 
-        verify(exactly = 1) {privatePublicKeyService.getPrivateKey()}
-        confirmVerified(privatePublicKeyService, resourceLoader)
+        verifySequence {
+            privatePublicKeyService.getPrivateKey()
+            repositoryRegistrationService.getWebClientByRepoId("repo123")
+        }
+        confirmVerified(privatePublicKeyService, resourceLoader, repositoryRegistrationService)
     }
 }
-*/

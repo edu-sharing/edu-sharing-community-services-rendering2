@@ -29,7 +29,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
     lateinit var lumiProxyService: LumiProxyService
 
     @MockkBean
-    lateinit var lumiNodeInfoService: LumiNodeInfoService
+    lateinit var lumiContentManagementService: LumiContentManagementService
 
     @Test
     fun testGetContentCallsServiceWithCorrectParamsAndReturnsResponse() {
@@ -49,7 +49,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         val responseEntity = ResponseEntity("mycontent", multiValueMap, HttpStatus.OK)
 
-        every { lumiNodeInfoService.getNodeInfo(contentId) } returns nodeInfo
+        every { lumiContentManagementService.getNodeInfo(contentId) } returns nodeInfo
         every {
             lumiProxyService.processProxyRequest(
                 H5P_BASE_PATH,
@@ -81,7 +81,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(result.response.getHeaderValue("Content-Security-Policy") == "frame-ancestors test")
 
         verifySequence {
-            lumiNodeInfoService.getNodeInfo(contentId)
+            lumiContentManagementService.getNodeInfo(contentId)
             lumiProxyService.processProxyRequest(
                 H5P_BASE_PATH,
                 nodeInfo,
@@ -112,7 +112,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         val responseEntity = ResponseEntity("mycontent".toByteArray(), multiValueMap, HttpStatus.OK)
 
-        every { lumiNodeInfoService.getNodeInfo(contentId) } returns nodeInfo
+        every { lumiContentManagementService.getNodeInfo(contentId) } returns nodeInfo
         every {
             lumiProxyService.processProxyRequest(
                 H5P_BASE_PATH,
@@ -143,7 +143,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(result.response.getHeaderValue("Content-Type") == "text/html")
 
         verifySequence {
-            lumiNodeInfoService.getNodeInfo(contentId)
+            lumiContentManagementService.getNodeInfo(contentId)
             lumiProxyService.processProxyRequest(
                 H5P_BASE_PATH,
                 nodeInfo,
@@ -209,6 +209,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
             )
         }
 
-        confirmVerified(lumiProxyService, lumiNodeInfoService)
+        confirmVerified(lumiProxyService, lumiContentManagementService)
     }
 }
