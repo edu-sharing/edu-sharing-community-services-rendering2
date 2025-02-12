@@ -99,15 +99,17 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
+      app.repository.registration.id.local.optional-modules: H5P,JUPYTER,EDUHTML
+      app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
+      app.repository.registration.id.local.module.MOODLE.credentials.user: user
+      app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
+      app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
+      app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
       app.security.adminPassword: admin
       spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.password: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
-      app.moodle.host: "${RENDERING2_MOODLE_URL:-}"
-      app.moodle.token: "${RENDERING2_MOODLE_TOKEN:-}"
-      app.moodle.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
-      app.moodle.timeout-seconds: "${RENDERING2_MOODLE_TIMEOUT:-90}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
     expose:
