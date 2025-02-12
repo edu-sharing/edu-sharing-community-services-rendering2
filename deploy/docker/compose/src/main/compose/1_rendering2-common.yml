@@ -7,7 +7,7 @@ services:
     environment:
       MINIO_ROOT_USER: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       MINIO_ROOT_PASSWORD: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
-      MINIO_DEFAULT_BUCKETS: contentbucket,tempbucket,libbucket
+      MINIO_DEFAULT_BUCKETS: lumi_contentbucket,lumi_tempbucket,lumi_libbucket
     volumes:
       - "rendering2-blob-storage-volume-data:/bitnami/minio/data"
     expose:
