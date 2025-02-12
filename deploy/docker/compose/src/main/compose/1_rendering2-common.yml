@@ -138,9 +138,9 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
+      AWS_S3_MAX_FILE_LENGTH: "${RENDERING2_LUMI_MAX_FILE_SIZE:-1000}"
       MINIO_HOST: rendering2-blob-storage
       MINIO_PORT: 9000
-      AWS_S3_MAX_FILE_LENGTH: 1000
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
       MONGODB_AUTH_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
@@ -152,12 +152,13 @@ services:
       TEMPORARY_AWS_S3_BUCKET: lumi_tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: lumi_libbucket
-      EDUSHARING_MONGO_COLLECTION: edusharing
+      EDUSHARING_MONGO_COLLECTION: lumiedusharing
       BASE_URL: /public/h5p
       CACHE: in-memory
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
     expose:
       - "3000"
+
 volumes:
   rendering2-blob-storage-volume-data:
