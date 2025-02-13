@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.modules.document.DocumentReceiver.Companion.PUB
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -22,7 +23,8 @@ class DocumentConversionService(
     private val subJobRepository: SubJobRepository,
     private val moduleRegistry: ModuleRegistry,
     private val serviceCaller: ConverterWebServiceCaller,
-    private val spreadsheetRenderModule: SpreadsheetRenderModule?
+    private val spreadsheetRenderModule: SpreadsheetRenderModule?,
+    private val storageService: StorageService
 ) : ConversionService {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
@@ -41,6 +43,8 @@ class DocumentConversionService(
             log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${e.message}")
             subJob.status = JobStatus.FAILED
             subJob.message = PUBLIC_FAILURE_MESSAGE
+        } finally {
+            storageService.removeObject(cacheObject = cacheObject, isTemp =  true)
         }
         subJobRepository.save(subJob)
     }
