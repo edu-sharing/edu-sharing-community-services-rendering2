@@ -7,7 +7,7 @@ services:
     environment:
       MINIO_ROOT_USER: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       MINIO_ROOT_PASSWORD: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
-      MINIO_DEFAULT_BUCKETS: contentbucket,tempbucket,libbucket
+      MINIO_DEFAULT_BUCKETS: lumi_contentbucket,lumi_tempbucket,lumi_libbucket
     volumes:
       - "rendering2-blob-storage-volume-data:/bitnami/minio/data"
     expose:
@@ -90,8 +90,8 @@ services:
       app.converter.audio.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis}"
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-6000000}"
-      app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.9}"
-      app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.7}"
+      app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
+      app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
       app.minio.user: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       app.minio.password: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
@@ -99,15 +99,17 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.security.adminPassword: admin
+      app.repository.registration.id.local.optional-modules: H5P,JUPYTER,EDUHTML,MOODLE
+      app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
+      app.repository.registration.id.local.module.MOODLE.credentials.user: user
+      app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
+      app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
+      app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
+      app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.password: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
-      app.moodle.host: "${RENDERING2_MOODLE_URL:-}"
-      app.moodle.token: "${RENDERING2_MOODLE_TOKEN:-}"
-      app.moodle.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
-      app.moodle.timeout-seconds: "${RENDERING2_MOODLE_TIMEOUT:-90}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
     expose:
@@ -136,9 +138,9 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
+      AWS_S3_MAX_FILE_LENGTH: "${RENDERING2_LUMI_MAX_FILE_SIZE:-1000}"
       MINIO_HOST: rendering2-blob-storage
       MINIO_PORT: 9000
-      AWS_S3_MAX_FILE_LENGTH: 1000
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
       MONGODB_AUTH_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
@@ -150,12 +152,13 @@ services:
       TEMPORARY_AWS_S3_BUCKET: lumi_tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: lumi_libbucket
-      EDUSHARING_MONGO_COLLECTION: edusharing
+      EDUSHARING_MONGO_COLLECTION: lumiedusharing
       BASE_URL: /public/h5p
       CACHE: in-memory
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
     expose:
       - "3000"
+
 volumes:
   rendering2-blob-storage-volume-data:
