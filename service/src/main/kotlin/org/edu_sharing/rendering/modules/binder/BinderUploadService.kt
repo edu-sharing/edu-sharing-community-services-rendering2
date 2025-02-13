@@ -20,8 +20,10 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
-import java.net.URI
-import java.time.LocalDate
+import java.time.LocalTime
+import java.util.function.Consumer
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 @Service
 class BinderUploadService(
@@ -29,16 +31,19 @@ class BinderUploadService(
     private val mainJobLogic: MainJobLogic,
     private val moduleRegistry: ModuleRegistry,
 ) : ConversionService {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
-    private inline fun <reified T> typeReference() =
-        object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
+    private data class GitDetails(
+        val user: String,
+        val repo: String,
+        val branch: String,
+    )
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun process(
         cacheObject: CacheObject, renderingJob: RenderingJob
     ) {
-        val binderWebClient = getWebclient(renderingJob)
-        val (gitHubUser, gitHubRepo) = extractGitHubUserAndRepoFromUrl(cacheObject.externalUrl ?: "")
+        val gitDetails = getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
         if (renderingJob.subJobs.isEmpty()) {
             return
         }
@@ -46,27 +51,42 @@ class BinderUploadService(
         subJob.status = JobStatus.PROCESSING
         subJob.message = "Initializing binder import"
         subJob = subJobRepository.save(subJob)
-        val eventStream = binderWebClient.get().uri("/build/$gitHubUser/$gitHubRepo/HEAD").retrieve()
-            .bodyToFlux(typeReference<ServerSentEvent<BinderSseEvent>>())
 
-        eventStream.subscribe({ content ->
-            {
-                logger.info("Time: ${LocalDate.now()} - event: name[${content.event()}], id [${content.id()}], content[${content.data()}] ")
-                if (content.data() != null) {
-                    updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), subJob.id)
-                }
+        val type
+                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?> =
+            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?>() {}
+
+        val binderWebClient = getWebclient(renderingJob)
+
+        val eventStream = binderWebClient.get()
+            .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")
+            .retrieve()
+            .bodyToFlux<ServerSentEvent<BinderSseEvent?>?>(type)
+
+
+        eventStream.subscribe(
+            Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
+                logger.info(
+                    "Time: {} - event: name[{}], id [{}], content[{}] ",
+                    LocalTime.now(), content!!.event(), content.id(), content.data()
+                )
+                updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), subJob.id)
+            },
+            Consumer {
+                error: Throwable? ->
+                logger.error("Error receiving SSE: ", error)
+                subJob.status = JobStatus.FAILED
+                subJob.message = "Error receiving SSE " +  error?.message
+                subJob = subJobRepository.save(subJob)
+             },
+            Runnable {
+                logger.info("SSE Server emitted completion event.")
             }
-        }, { error ->
-            {
-                logger.error("Error receiving SSE: $error")
-            }
-        }, {
-            logger.info("Completed!")
-        })
+        )
     }
 
     private fun updateSubJob(eventData: BinderSseEvent, subJobId: ObjectId) {
-        var subJob = subJobRepository.findByIdOrNull(subJobId) ?: return
+        var subJob = subJobRepository.findByIdOrNull(subJobId) ?: throw IllegalStateException("SubJob $subJobId does not exist")
         var hasBeenFinished = false
         when (eventData.phase) {
             BinderPhases.WAITING.event -> {
@@ -98,12 +118,14 @@ class BinderUploadService(
             BinderPhases.READY.event -> {
                 subJob.progress = 100
                 subJob.status = JobStatus.FINISHED
-                subJob.message = eventData.url
+                subJob.message = "${eventData.url}?token=${eventData.token}"
                 hasBeenFinished = true
             }
 
             BinderPhases.FAILED.event -> {
                 subJob.progress = 100
+                subJob.status = JobStatus.FAILED
+                subJob.message = eventData.message
                 hasBeenFinished = true
             }
         }
@@ -127,12 +149,24 @@ class BinderUploadService(
         return pushingProgress
     }
 
-    private fun extractGitHubUserAndRepoFromUrl(gitHubUrl: String): Pair<String, String> {
-        val pathList = URI(gitHubUrl).path.trim('/').split('/')
-        if (pathList.size < 2) {
+    private fun getGitDetailsFromUrl(gitHubUrl: String): GitDetails {
+        val pattern: Pattern = Pattern.compile("https://github\\.com/([^/]+)/([^/]+)(?:/tree/([^/]+))?")
+        val matcher: Matcher = pattern.matcher(gitHubUrl)
+
+        if (!matcher.find()) {
             throw IllegalArgumentException("GitHub URL for Binder import must contain user and repo")
         }
-        return Pair(pathList[0], pathList[1])
+
+        val user = matcher.group(1) ?: throw IllegalArgumentException("GitHub URL for Binder must contain user")
+        val repository =
+            matcher.group(2) ?: throw IllegalArgumentException("GitHub URL for Binder must contain repository")
+        val branch = if (matcher.group(3) != null) matcher.group(3) else "main"
+
+        return GitDetails(
+            user = user,
+            repo = repository,
+            branch = branch
+        )
     }
 
     private fun getWebclient(renderingJob: RenderingJob): WebClient {

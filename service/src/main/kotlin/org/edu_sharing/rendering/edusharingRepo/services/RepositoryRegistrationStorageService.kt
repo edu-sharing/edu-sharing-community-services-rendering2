@@ -1,7 +1,9 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RepositoryRegistrationRepository
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable
@@ -10,7 +12,10 @@ import java.util.*
 
 @Service
 class RepositoryRegistrationStorageService(
-    private val repoRegistrationRepository: RepositoryRegistrationRepository
+    private val repoRegistrationRepository: RepositoryRegistrationRepository,
+    private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
+    @Value("\${app.security.enabled}")
+    private val securityEnabled: Boolean
 ) {
 
     companion object {
@@ -19,12 +24,14 @@ class RepositoryRegistrationStorageService(
 
     @Cacheable("registrations", key = "#repoId")
     fun getRegistrationByRepoId(repoId: String): Optional<RepositoryRegistration> {
-        if (repoId.startsWith(TEST_PREFIX)) {
+        if (!securityEnabled && repoId.startsWith(TEST_PREFIX)) {
+            val localConfig = repositoryRegistrationConfig.id["local"]
             val registration = RepositoryRegistration(
                 repoId = repoId,
                 url = "",
                 publicKey = UUID.randomUUID().toString(),
-                optionalModules = mutableListOf("H5P", "JUPYTER", "EDUHTML")
+                optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
+                module = localConfig?.module?.toMutableMap() ?: mutableMapOf()
             )
             return Optional.of<RepositoryRegistration>(registration)
         }

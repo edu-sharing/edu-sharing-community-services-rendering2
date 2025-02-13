@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.springframework.amqp.core.AmqpTemplate
@@ -32,7 +33,7 @@ class BinderJobService(
             routingKey = jobRoutingKey
         )
         subJobRepository.save(subJob)
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, job)
+        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, RenderingJobMessage(id = job.id.toString()))
 
         return job.id.toString()
     }
