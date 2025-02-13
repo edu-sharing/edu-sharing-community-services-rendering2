@@ -314,18 +314,13 @@ class MinioStorageService(
     }
 
     override fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float) {
-        // For special cases use buckets provided by module and logic provided by module -> lumi
-
-
         val maxSize = (lowerThreshold * storageInfo.maxSize).toLong()
-
         var totalSize = 0L
         val trackingIterator = trackingService.getTrackedObjectsByBucket(storageInfo.location)
         val minioObjectsToDelete = mutableListOf<DeleteObject>()
         val trackingEntriesToDelete = mutableListOf<TrackingEntry>()
 
         do {
-            // TODO handle h5p caches in lumi
             for (entry in trackingIterator.getNext()) {
                 if (totalSize >= maxSize) {
                     break

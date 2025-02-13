@@ -21,5 +21,5 @@ class StorageManagerRegistry(@Nullable private val bucketManagers: List<BucketMa
      * @param bucketName The name of the bucket.
      * @return The corresponding {@link BucketManagement} instance, or {@code null} if no manager is found.
      */
-    fun getBucketManagerByBucketName(bucketName:  String): BucketManagement? = registeredManager[bucketName.substringBefore("_")]
+    fun getBucketManagerByBucketName(bucketName:  String): BucketManagement? = registeredManager[bucketName.substringBefore("-")]
 }

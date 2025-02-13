@@ -7,7 +7,7 @@ services:
     environment:
       MINIO_ROOT_USER: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       MINIO_ROOT_PASSWORD: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
-      MINIO_DEFAULT_BUCKETS: lumi_contentbucket,lumi_tempbucket,lumi_libbucket
+      MINIO_DEFAULT_BUCKETS: lumi-contentbucket,lumi-tempbucket,lumi-libbucket
     volumes:
       - "rendering2-blob-storage-volume-data:/bitnami/minio/data"
     expose:
@@ -147,11 +147,11 @@ services:
       MONGODB_DB: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       MONGODB_USER: "${RENDERING2_LUMI_DATABASE_USER:-lumi}"
       MONGODB_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
-      CONTENT_AWS_S3_BUCKET: lumi_contentbucket
+      CONTENT_AWS_S3_BUCKET: lumi-contentbucket
       CONTENT_MONGO_COLLECTION: h5p
-      TEMPORARY_AWS_S3_BUCKET: lumi_tempbucket
+      TEMPORARY_AWS_S3_BUCKET: lumi-tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
-      LIBRARY_AWS_S3_BUCKET: lumi_libbucket
+      LIBRARY_AWS_S3_BUCKET: lumi-libbucket
       EDUSHARING_MONGO_COLLECTION: lumiedusharing
       BASE_URL: /public/h5p
       CACHE: in-memory

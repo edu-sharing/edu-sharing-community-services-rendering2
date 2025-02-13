@@ -12,7 +12,7 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return "rs2_${cacheObject.repoId}"
+        return "rs2-${cacheObject.repoId}"
     }
 
     override fun prefixStaticPath(

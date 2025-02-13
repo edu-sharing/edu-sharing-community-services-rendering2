@@ -10,7 +10,7 @@ services:
     environment:
       MINIO_ROOT_USER: "rendering2"
       MINIO_ROOT_PASSWORD: "rendering2"
-      MINIO_DEFAULT_BUCKETS: contentbucket,tempbucket,libbucket
+      MINIO_DEFAULT_BUCKETS: lumi-contentbucket,lumi-tempbucket,lumi-libbucket
 #    volumes:
 #      - "minio-data-volume:/bitnami/minio/data"
 
@@ -72,11 +72,11 @@ services:
       MONGODB_DB: "lumi"
       MONGODB_USER: "lumi"
       MONGODB_PASSWORD: "lumi"
-      CONTENT_AWS_S3_BUCKET: lumi_contentbucket
+      CONTENT_AWS_S3_BUCKET: lumi-contentbucket
       CONTENT_MONGO_COLLECTION: h5p
-      TEMPORARY_AWS_S3_BUCKET: lumi_tempbucket
+      TEMPORARY_AWS_S3_BUCKET: lumi-tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
-      LIBRARY_AWS_S3_BUCKET: lumi_libbucket
+      LIBRARY_AWS_S3_BUCKET: lumi-libbucket
       USERDATA_MONGO_COLLECTION: userdata
       FINISHED_MONGO_COLLECTION: finisheddata
       EDUSHARING_MONGO_COLLECTION: edusharing

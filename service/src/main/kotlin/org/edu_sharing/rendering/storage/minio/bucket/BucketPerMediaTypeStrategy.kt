@@ -11,7 +11,7 @@ class BucketPerMediaTypeStrategy() : BaseBucketStrategy() {
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return "rs2_${cacheObject.type}"
+        return "rs2-${cacheObject.type}"
     }
 
     override fun prefixStaticPath(
