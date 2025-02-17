@@ -37,7 +37,7 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
                     jws.payload.get("repoId", String::class.java),
                     jws.payload.get("node", String::class.java),
                     (jws.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
-                    jws.payload.get("mimeType", String::class.java),
+                    jws.payload.getOrElse("mimeType") { "text/x-uri" }.toString(),
                     jws.payload.get("mediaType", String::class.java),
                     jws.payload.getOrElse("replicationSource") { "" }.toString(),
                     jws.payload.getOrElse("resourceType") { "" }.toString(),

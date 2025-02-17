@@ -24,7 +24,7 @@ class NodePermissionSessionContextRepository(
     private fun getExpirationTime(nodePermission: NodePermission): Long {
         val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(
             nodePermission.mediaType,
-            nodePermission.mimeType,
+            nodePermission.mimeType ?: "",
             nodePermission.replicationSource,
             nodePermission.resourceType
         )

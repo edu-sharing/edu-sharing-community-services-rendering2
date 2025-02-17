@@ -25,7 +25,7 @@ class BinderJobService(
     lateinit var jobRoutingKey: String
 
     fun createJob(request: RenderDataRequest, module: String): String {
-        val job = mapper.renderDataRequestToRenderingJob(request, module)
+        val job = mapper.renderDataRequestToRenderingJob(request, module, true)
         jobRepository.save(job)
         val subJob = SubJob(
             status = JobStatus.QUEUED,

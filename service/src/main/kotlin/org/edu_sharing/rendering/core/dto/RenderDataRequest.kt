@@ -9,10 +9,8 @@ data class RenderDataRequest(
     val size: Long,
     @NotNull
     val type: String,
-    @NotNull
-    val hash: String,
-    @NotNull
-    val mimeType: String,
+    val hash: String?,
+    val mimeType: String?,
     @NotNull
     val version: String,
     @NotNull

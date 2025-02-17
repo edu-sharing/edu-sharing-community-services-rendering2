@@ -12,9 +12,9 @@ class Mapper {
         return CacheObject(
             nodeId = request.nodeId,
             type = request.type,
-            hash = request.hash,
+            hash = request.hash ?: "",
             size = request.size,
-            mimeType = request.mimeType,
+            mimeType = request.mimeType ?: "",
             version = request.version,
             repoId = request.repoId
         )
@@ -38,8 +38,8 @@ class Mapper {
         return RenderingJob(
             esObjectId = request.nodeId,
             esObjectType = request.type,
-            esHash = request.hash,
-            mimeType = request.mimeType,
+            esHash = request.hash ?: "",
+            mimeType = request.mimeType ?: "",
             repoId = request.repoId,
             nodeVersion = request.version,
             size = request.size,

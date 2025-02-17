@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.AbstractReceiver
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -16,11 +17,13 @@ import org.springframework.stereotype.Component
 class JupyterReceiver(
     val mainJobLogic: MainJobLogic,
     val mapper: Mapper,
-    val jupyterConversionService: JupyterConversionService
+    val jupyterConversionService: JupyterConversionService,
+    val renderingJobRepository: RenderingJobRepository
 ): AbstractReceiver(
     mainJobLogic = mainJobLogic,
     mapper = mapper,
-    conversionService = jupyterConversionService
+    conversionService = jupyterConversionService,
+    renderingJobRepository = renderingJobRepository
 ) {
     @RabbitListener(
         bindings = [

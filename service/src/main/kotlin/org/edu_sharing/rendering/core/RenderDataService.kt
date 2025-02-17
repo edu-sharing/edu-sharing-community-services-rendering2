@@ -18,7 +18,7 @@ class RenderDataService(
     fun getRenderModule(request: RenderDataRequest) : RenderModule {
         return moduleRegistry.getRenderModule(
             type = request.type,
-            mimeType = request.mimeType,
+            mimeType = request.mimeType ?: "",
             replicationSource = request.replicationSource ?: "",
             resourceType = request.resourceType ?: ""
         )
