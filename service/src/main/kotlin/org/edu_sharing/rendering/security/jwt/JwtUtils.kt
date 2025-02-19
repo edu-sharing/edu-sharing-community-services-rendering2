@@ -31,17 +31,14 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
 
     private class JWTNodePermissionResolver : SupportedJwtVisitor<NodePermission>() {
 
+        @Suppress("UNCHECKED_CAST")
         override fun onVerifiedClaims(jws: Jws<Claims>?): NodePermission? {
             if (jws != null) {
                 return NodePermission(
-                    jws.payload.get("repoId", String::class.java),
-                    jws.payload.get("node", String::class.java),
-                    (jws.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
-                    jws.payload.getOrElse("mimeType") { "text/x-uri" }.toString(),
-                    jws.payload.get("mediaType", String::class.java),
-                    jws.payload.getOrElse("replicationSource") { "" }.toString(),
-                    jws.payload.getOrElse("resourceType") { "" }.toString(),
-                    LocalDateTime.now()
+                    repoId = jws.payload.get("repoId", String::class.java),
+                    nodeId = jws.payload.get("node", String::class.java),
+                    permissions = (jws.payload.get("permissions", List::class.java) as Collection<String>).toSet(),
+                    lastAccessDate = LocalDateTime.now()
                 )
             }
             return null;

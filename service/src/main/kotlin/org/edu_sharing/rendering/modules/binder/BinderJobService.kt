@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.binder
 
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -24,8 +24,8 @@ class BinderJobService(
     @Value("\${app.queue.binder.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(request: RenderDataRequest, module: String): String {
-        val job = mapper.renderDataRequestToRenderingJob(request, module, true)
+    fun createJob(node: Node, module: String): String {
+        val job = mapper.nodeToRenderingJob(node, module, true)
         jobRepository.save(job)
         val subJob = SubJob(
             status = JobStatus.QUEUED,

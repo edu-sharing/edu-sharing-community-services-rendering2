@@ -1,12 +1,10 @@
 package org.edu_sharing.rendering.modules.av.audio
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.ConversionModule
-import org.edu_sharing.rendering.modules.ModuleTypeDefinition
-import org.edu_sharing.rendering.modules.ModuleTypeMapper
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -36,8 +34,8 @@ class AudioRenderModule(
 
     override fun module() = "AUDIO"
 
-    override fun handle(request: RenderDataRequest): RenderDataResponse {
-        val cacheObject = mapper.renderDataRequestToCacheObject(request)
+    override fun handle(node: Node): RenderDataResponse {
+        val cacheObject = mapper.nodeToCacheObject(node)
         val objectLinks = audioService.getObjectLinks(cacheObject)
 
         if (objectLinks !== null) {

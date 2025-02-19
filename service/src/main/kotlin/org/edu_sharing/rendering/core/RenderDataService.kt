@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.core
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.ModuleRegistry
@@ -15,12 +16,7 @@ class RenderDataService(
 ) {
     @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
     @PostAuthorize("@modulePermissionService.hasModuleAccess(returnObject, #request.nodeId)")
-    fun getRenderModule(request: RenderDataRequest) : RenderModule {
-        return moduleRegistry.getRenderModule(
-            type = request.type,
-            mimeType = request.mimeType ?: "",
-            replicationSource = request.replicationSource ?: "",
-            resourceType = request.resourceType ?: ""
-        )
+    fun getRenderModule(request: RenderDataRequest, node: Node) : RenderModule {
+        return moduleRegistry.getRenderModule(node)
     }
 }

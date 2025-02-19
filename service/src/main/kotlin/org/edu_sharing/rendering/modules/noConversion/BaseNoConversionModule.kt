@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.noConversion
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
@@ -18,8 +18,8 @@ abstract class BaseNoConversionModule(
     private val storageService: StorageService,
     private val mainJobCreationService: MainJobCreationService
 ) : RenderModule {
-    override fun handle(request: RenderDataRequest): RenderDataResponse {
-        val cacheObject = mapper.renderDataRequestToCacheObject(request)
+    override fun handle(node: Node): RenderDataResponse {
+        val cacheObject = mapper.nodeToCacheObject(node)
         val link = try {
             storageService.getObjectLink(cacheObject)
         } catch (_: ResourceNotFoundException) {

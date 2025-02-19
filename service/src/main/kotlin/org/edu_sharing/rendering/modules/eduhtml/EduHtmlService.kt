@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
@@ -29,18 +29,18 @@ class EduHtmlService(
     @Value("\${app.queue.eduHtml.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(request: RenderDataRequest, module: String): String {
-        val existingJobs = jobRepository.findAllByEsObjectId(request.nodeId)
+    fun createJob(node: Node, module: String): String {
+        val existingJobs = jobRepository.findAllByEsObjectId(node.ref.id)
             .filter { it.status <= JobStatus.PROCESSING }
 
         if (existingJobs.isNotEmpty()) {
             return existingJobs[0].id.toString()
         }
 
-        var job = mapper.renderDataRequestToRenderingJob(
-            request = request,
+        var job = mapper.nodeToRenderingJob(
+            node = node,
             module = module,
-            conversionType = true
+            isConversionType = true
         )
         job = jobRepository.save(job)
 

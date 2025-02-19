@@ -1,22 +1,37 @@
 package org.edu_sharing.rendering.core.dto.mapper
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.springframework.stereotype.Component
 
 @Component
 class Mapper {
-    fun renderDataRequestToCacheObject(request: RenderDataRequest): CacheObject {
+    fun nodeToCacheObject(node: Node): CacheObject {
         return CacheObject(
-            nodeId = request.nodeId,
-            type = request.type,
-            hash = request.hash ?: "",
-            size = request.size,
-            mimeType = request.mimeType ?: "",
-            version = request.version,
-            repoId = request.repoId
+            nodeId = node.ref.id,
+            type = node.mediatype,
+            hash = node.content.hash,
+            size = node.size.toLong(),
+            mimeType = node.mimetype,
+            version = node.content.version,
+            repoId = node.ref.repo
+        )
+    }
+
+    fun nodeToRenderingJob(node: Node, module: String, isConversionType: Boolean = false): RenderingJob {
+        return RenderingJob(
+            esObjectId = node.ref.id,
+            esObjectType = node.mediatype,
+            esHash = node.content.hash,
+            mimeType = node.mimetype,
+            repoId = node.ref.repo,
+            nodeVersion = node.content.version,
+            size = node.size.toLong(),
+            module = module,
+            conversionType = isConversionType,
+            externalUrl = node.properties.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]
         )
     }
 
@@ -31,21 +46,6 @@ class Mapper {
             size = cacheObject.size,
             module = module,
             conversionType = isConversionType
-        )
-    }
-
-    fun renderDataRequestToRenderingJob(request: RenderDataRequest, module: String, conversionType: Boolean = false): RenderingJob {
-        return RenderingJob(
-            esObjectId = request.nodeId,
-            esObjectType = request.type,
-            esHash = request.hash ?: "",
-            mimeType = request.mimeType ?: "",
-            repoId = request.repoId,
-            nodeVersion = request.version,
-            size = request.size,
-            module = module,
-            conversionType = conversionType,
-            externalUrl = request.url
         )
     }
 

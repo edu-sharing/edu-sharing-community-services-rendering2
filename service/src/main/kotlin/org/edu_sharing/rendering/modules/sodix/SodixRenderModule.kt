@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.sodix
 
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
@@ -41,12 +41,14 @@ class SodixRenderModule(
     override fun module() = "SODIX"
     override fun isOptionalModule() = true
 
-    override fun handle(request: RenderDataRequest): RenderDataResponse {
-        if (request.replicationSource.isNullOrBlank() || request.replicationSourceId.isNullOrBlank()) {
-            log.error("Missing replication source data in request. Node: " + request.nodeId)
+    override fun handle(node: Node): RenderDataResponse {
+        val replicationSource = node.properties.getOrDefault("ccm:replicationsource", mutableListOf(""))[0]
+        val replicationSourceId = node.properties.getOrDefault("ccm:replicationsourceid", mutableListOf(""))[0]
+        if (replicationSource.isNullOrBlank() || replicationSourceId.isNullOrBlank()) {
+            log.error("Missing replication source data in request. Node: " + node.ref.id)
             throw IllegalArgumentException()
         }
-        val job = mapper.renderDataRequestToRenderingJob(request, module())
+        val job = mapper.nodeToRenderingJob(node, module())
         jobRepository.save(job)
 
         subJobRepository.save(SubJob(
@@ -55,7 +57,9 @@ class SodixRenderModule(
             parent = job
         ))
 
-        if (request.replicationSourceFlag) {
+        val isPaidMedia = node.properties.getOrDefault("ccm:editorial_state", mutableListOf(""))[0] == "restricted_mz"
+
+        if (isPaidMedia) {
             subJobRepository.save(SubJob(
                 status = JobStatus.QUEUED,
                 routingKey = jobRoutingKey,
@@ -67,7 +71,7 @@ class SodixRenderModule(
         val message = SodixJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
-            identifier = request.replicationSourceId,
+            identifier = replicationSourceId,
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 

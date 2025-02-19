@@ -16,18 +16,15 @@ private const val PERMISSIONS = "permissions"
 class NodePermissionSessionContextRepository(
     @Value("\${app.session.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long,
-    private val renderModuleRegistry: ModuleRegistry
+    private val renderModuleRegistry: ModuleRegistry,
+    private val nodeSessionContextRepository: NodeSessionContextRepository
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
     private fun getExpirationTime(nodePermission: NodePermission): Long {
-        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(
-            nodePermission.mediaType,
-            nodePermission.mimeType ?: "",
-            nodePermission.replicationSource,
-            nodePermission.resourceType
-        )
+        val node = nodeSessionContextRepository.getNode(nodePermission.nodeId) ?: return nodePermissionExpirationTime
+        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(node)
         return renderModule.getNodePermissionExpirationTime() ?: nodePermissionExpirationTime
     }
 
@@ -60,7 +57,9 @@ class NodePermissionSessionContextRepository(
         val session = getSession(false) ?: return
         val nodePermissions = readNodePermissionsFromSession(session) ?: return
         val now = LocalDateTime.now()
-        nodePermissions.removeAll { now.isAfter(it.lastAccessDate.plusSeconds(getExpirationTime(it))) }
+        val allExpiredNodeIds = nodePermissions.filter { now.isAfter(it.lastAccessDate.plusSeconds(getExpirationTime(it))) }.map { it.nodeId }
+        nodePermissions.removeAll { it.nodeId in allExpiredNodeIds }
+        nodeSessionContextRepository.removeAll(allExpiredNodeIds)
         if (nodePermissions.isEmpty()) {
             session.removeAttribute(PERMISSIONS)
         } else {

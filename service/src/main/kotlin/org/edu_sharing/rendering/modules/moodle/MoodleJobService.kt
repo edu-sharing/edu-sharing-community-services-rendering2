@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -26,13 +26,8 @@ class MoodleJobService(
     @Value("\${app.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(request: RenderDataRequest, module: String): String? {
-        if (request.userData == null) {
-            log.error("Missing user data in Moodle request. Node: " + request.nodeId)
-            throw IllegalArgumentException()
-        }
-
-        val job = mapper.renderDataRequestToRenderingJob(request, module)
+    fun createJob(node: Node, module: String): String? {
+        val job = mapper.nodeToRenderingJob(node, module)
         jobRepository.save(job)
 
         val subJob = SubJob(
@@ -45,11 +40,11 @@ class MoodleJobService(
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
-            title = request.title ?: "",
-            authorityName = request.userData.authorityName,
-            userEmail = request.userData.userEMail,
-            userGivenName = request.userData.firstName,
-            userSurname = request.userData.surName
+            title = node.title,
+            authorityName = "",
+            userEmail = "request.userData.userEMail",
+            userGivenName = "request.userData.firstName",
+            userSurname = "request.userData.surName"
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()

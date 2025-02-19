@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.document
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.ConversionModule
@@ -35,8 +35,8 @@ class DocumentRenderModule(
     override fun module() = "DOCUMENT"
     fun getTargetMimetype() = MediaType.APPLICATION_PDF_VALUE
 
-    override fun handle(request: RenderDataRequest): RenderDataResponse {
-        val cacheObject = mapper.renderDataRequestToCacheObject(request)
+    override fun handle(node: Node): RenderDataResponse {
+        val cacheObject = mapper.nodeToCacheObject(node)
         val objectLinks = documentService.getObjectLinks(cacheObject, this)
 
         if (objectLinks !== null) {

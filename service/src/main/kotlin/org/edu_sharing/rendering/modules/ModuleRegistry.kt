@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
@@ -48,7 +49,7 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : RenderModule> getRenderModule(type: String, mimeType: String, replicationSource: String?, resourceType: String?): T {
+    private fun <T : RenderModule> getRenderModule(type: String, mimeType: String, replicationSource: String?, resourceType: String?): T {
         val result = modulesByType[type]
             ?: modulesByReplicationSource[replicationSource ?: ""]
             ?: modulesByResourceType[resourceType ?: ""]
@@ -64,6 +65,15 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             mimeType = cacheObject.mimeType,
             replicationSource = null,
             resourceType = null
+        )
+    }
+
+    fun <T: RenderModule> getRenderModule(node: Node): T {
+        return getRenderModule(
+            type = node.mediatype,
+            mimeType = node.mimetype,
+            replicationSource = node.properties.getOrDefault("ccm:replicationSource", mutableListOf(""))[0],
+            resourceType = node.properties.getOrDefault("ccm:ccressourcetype", mutableListOf(""))[0]
         )
     }
 

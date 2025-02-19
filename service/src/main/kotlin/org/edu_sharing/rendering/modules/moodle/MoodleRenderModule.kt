@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.modules.moodle
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
@@ -28,11 +28,11 @@ class MoodleRenderModule(
     override fun module() = "MOODLE"
     override fun isOptionalModule() = true
 
-    override fun handle(request: RenderDataRequest): RenderDataResponse {
+    override fun handle(node: Node): RenderDataResponse {
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),
-            jobId = moodleJobService.createJob(request, module())
+            jobId = moodleJobService.createJob(node, module())
         )
     }
 

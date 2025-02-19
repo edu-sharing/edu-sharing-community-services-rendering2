@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -24,18 +24,18 @@ class H5pJobService(
     @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    fun createJob(request: RenderDataRequest, module: String): String {
-        val existingJob = jobRepository.findAllByEsObjectId(request.nodeId)
+    fun createJob(node: Node, module: String): String {
+        val existingJob = jobRepository.findAllByEsObjectId(node.ref.id)
             .firstOrNull { it.status <= JobStatus.PROCESSING }
 
         if (existingJob != null) {
             return existingJob.id.toString()
         }
 
-        var job = mapper.renderDataRequestToRenderingJob(
-            request = request,
+        var job = mapper.nodeToRenderingJob(
+            node = node,
             module = module,
-            conversionType = true
+            isConversionType = true
         )
         job = jobRepository.save(job)
 
