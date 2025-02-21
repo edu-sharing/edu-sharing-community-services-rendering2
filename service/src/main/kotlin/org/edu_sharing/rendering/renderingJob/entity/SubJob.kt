@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
-import java.util.Date
+import java.util.*
 
 @Document
 @CompoundIndexes(
@@ -30,5 +30,6 @@ data class SubJob(
     var parent: RenderingJob,
     @Version
     val version: Int? = null,
-    val priority: Int = 0
+    val priority: Int = 0,
+    var additionalData: Map<String, String>? = null
 )

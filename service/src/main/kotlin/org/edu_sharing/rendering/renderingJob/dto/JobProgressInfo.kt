@@ -12,5 +12,7 @@ data class JobProgressInfo(
     @JsonProperty("objectLink")
     var objectLink: ObjectLink? = null,
     @JsonProperty("status")
-    var status: JobStatus
+    var status: JobStatus,
+    @JsonProperty("additionalData")
+    var additionalData: Map<String, String>? = null
 )

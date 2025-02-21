@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -24,6 +25,8 @@ class RenderController (
     private val service: RenderDataService,
     private val repositoryPublicKeyService: RepositoryPublicKeyService,
     private val nodeSessionContextRepository: NodeSessionContextRepository,
+    @Value("\${app.security.enabled}")
+    private val securityEnabled: Boolean
 ){
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -32,7 +35,9 @@ class RenderController (
     ): ResponseEntity<RenderDataResponse> {
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
-        verifySignedNode(decodedNode, decodedSignature, body.repoId)
+        if (securityEnabled) {
+            verifySignedNode(decodedNode, decodedSignature, body.repoId)
+        }
         val node = Node.fromJson(decodedNode.toString(Charsets.UTF_8))
         nodeSessionContextRepository.saveNode(node)
 

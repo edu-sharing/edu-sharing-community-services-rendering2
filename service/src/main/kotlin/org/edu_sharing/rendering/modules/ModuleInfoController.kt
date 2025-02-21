@@ -22,8 +22,7 @@ class ModuleInfoController(
         return moduleRegistry.getModuleTypeMapperList()
             .flatMap { it.moduleTypeAssociations() }
             .filter {
-                !(it.first.type == null && it.first.mimeTypeSuffix == null && it.first.mimeTypePrefix == null && it.first.replicationSource == null && it.first.resourceType == null) &&
-                        (! it.second.isOptionalModule() || repoConfig.optionalModules.contains(it.second.module()))
+                !(it.first.isAllNulls()) && (! it.second.isOptionalModule() || repoConfig.optionalModules.contains(it.second.module()))
             }
             .map {
                 RenderModuleInfo(

@@ -23,12 +23,12 @@ class Mapper {
     fun nodeToRenderingJob(node: Node, module: String, isConversionType: Boolean = false): RenderingJob {
         return RenderingJob(
             esObjectId = node.ref.id,
-            esObjectType = node.mediatype,
-            esHash = node.content.hash,
-            mimeType = node.mimetype,
+            esObjectType = node.mediatype ?: "",
+            esHash = node.content.hash ?: "",
+            mimeType = node.mimetype ?: "",
             repoId = node.ref.repo,
             nodeVersion = node.content.version,
-            size = node.size.toLong(),
+            size = if (node.size.isNullOrEmpty()) 0 else node.size.toLong(),
             module = module,
             conversionType = isConversionType,
             externalUrl = node.properties.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]

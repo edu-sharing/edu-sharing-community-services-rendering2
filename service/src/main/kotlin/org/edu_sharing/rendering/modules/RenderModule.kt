@@ -10,6 +10,7 @@ interface RenderModule {
     fun module(): String
     fun handle(node: Node): RenderDataResponse
     fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? = null
-    fun getNodePermissionExpirationTime(): Long?
+    fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? = null
+    fun getNodePermissionExpirationTime(): Long? = null
     fun isOptionalModule(): Boolean = false
 }

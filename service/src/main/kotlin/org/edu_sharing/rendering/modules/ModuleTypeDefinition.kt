@@ -6,6 +6,7 @@ data class ModuleTypeDefinition(
     val mimeTypeSuffix: String? = null,
     val replicationSource: String? = null,
     val resourceType: String? = null,
+    val remoteRepositoryType: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -18,6 +19,7 @@ data class ModuleTypeDefinition(
         if (mimeTypeSuffix != other.mimeTypeSuffix) return false
         if (replicationSource != other.replicationSource) return false
         if (resourceType != other.resourceType) return false
+        if (remoteRepositoryType != other.remoteRepositoryType) return false
 
         return true
     }
@@ -28,6 +30,13 @@ data class ModuleTypeDefinition(
         result = 31 * result + (mimeTypeSuffix?.hashCode() ?: 0)
         result = 31 * result + (replicationSource?.hashCode() ?: 0)
         result = 31 * result + (resourceType?.hashCode() ?: 0)
+        result = 31 * result + (remoteRepositoryType?.hashCode() ?: 0)
         return result
+    }
+
+    fun isAllNulls(): Boolean {
+        return this::class.members
+            .filterIsInstance<kotlin.reflect.KProperty1<ModuleTypeDefinition, *>>()
+            .all { it.get(this) == null }
     }
 }
