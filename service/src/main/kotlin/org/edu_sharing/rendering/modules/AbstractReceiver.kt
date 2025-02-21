@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules
 
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.slf4j.LoggerFactory
@@ -27,6 +28,7 @@ abstract class AbstractReceiver(
             )
             return
         }
+        jobEntry.status = JobStatus.PROCESSING
         jobEntry = renderingJobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         conversionService.process(cacheObject, jobEntry)
