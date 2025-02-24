@@ -1,10 +1,13 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
+import org.apache.commons.io.output.ByteArrayOutputStream
+import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
+import java.nio.charset.StandardCharsets
 import java.security.InvalidKeyException
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
@@ -14,7 +17,8 @@ import java.util.*
 
 @Service
 class MetadataService(
-    private val repository: RendererKeyConfigRepository
+    private val repository: RendererKeyConfigRepository,
+    private val appInfo: AppInfo
 ) : PrivatePublicKeyService {
 
     fun getConfig(): RendererKeyConfig {
@@ -76,5 +80,23 @@ class MetadataService(
             config.privateKey ?: throw InvalidKeyException("No private key available. Please set up your service first")
         val keySpec = PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey))
         return KeyFactory.getInstance("RSA").generatePrivate(keySpec)
+    }
+
+    fun getMetadata(): String{
+        val metadata = getConfig()
+        val outputStream = ByteArrayOutputStream()
+        val props = Properties()
+
+        props["appid"] = appInfo.appId
+        props["appcaption"] = appInfo.appCaption
+        props["type"] = "RENDERINGSERVICE_2"
+        props["protocol"] = appInfo.public.protocol
+        props["host"] = appInfo.public.host
+        props["port"] = appInfo.public.port.toString()
+        props["contenturl"] = appInfo.public.url
+        props["trustedclient"] = "true"
+        props["public_key"] = metadata.publicKey
+        props.storeToXML(outputStream, "rendering application file for application type lms", StandardCharsets.UTF_8)
+        return outputStream.toString(StandardCharsets.UTF_8)
     }
 }

@@ -17,7 +17,6 @@ import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.cleanUrl
-import org.edu_sharing.rendering.utils.combinePath
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable
@@ -38,7 +37,8 @@ class RepositoryRegistrationService(
     private val storageService: StorageService,
     private val appInfo: AppInfo,
     private val corsService: CorsService,
-    private val moduleRegistry: ModuleRegistry
+    private val moduleRegistry: ModuleRegistry,
+    private val metadataService: MetadataService,
 ) : RepositoryPublicKeyService {
 
     init {
@@ -131,10 +131,12 @@ class RepositoryRegistrationService(
         val registrationEntity = createRegistration(request.url, force)
 
         val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
-        adminV1Api.addApplication1(appInfo.internal.url.combinePath("public/metadata"))
+        adminV1Api.addApplication(metadataService.getMetadata())
 
         return registrationEntity
     }
+
+
 
     private fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
         val apiClient: ApiClient = ApiClientFixes()
