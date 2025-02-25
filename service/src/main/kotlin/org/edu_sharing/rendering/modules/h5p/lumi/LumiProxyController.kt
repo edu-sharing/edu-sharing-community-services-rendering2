@@ -42,7 +42,7 @@ class LumiProxyController(
             headers.add("Content-Security-Policy", "frame-ancestors $allowedFrameAncestors" )
             return ResponseEntity
                 .status(HttpStatus.OK)
-                .headers(headers)
+                .headers { target -> headers.forEach { source -> target[source.key] = source.value } }
                 .body(result.body)
         }
         return result
