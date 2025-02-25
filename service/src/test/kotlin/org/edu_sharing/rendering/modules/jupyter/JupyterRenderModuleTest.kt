@@ -109,7 +109,7 @@ class JupyterRenderModuleTest {
     }
 
     @Test
-    fun testCreateJobCreatesAndEnqueuesJob() {
+    fun testCreateJobCreatesAndEnqueuesConversionSubJobs() {
         // Arrange
         val renderingJob = mockk<RenderingJob>()
         val message = mockk<RenderingJobMessage>()
@@ -125,7 +125,7 @@ class JupyterRenderModuleTest {
         justRun { amqpTemplate.convertAndSend("topicExchangeName", "jupKey", capture(subJobMessageSlot)) }
 
         // Act
-        underTest.createJob(renderingJob, message)
+        underTest.createConversionSubJobs(renderingJob, message)
 
         // Assert
         assert(savedSubJobSlot.isCaptured)

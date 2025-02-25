@@ -159,7 +159,7 @@ class DocumentRenderModuleTest {
         justRun { amqpTemplate.convertAndSend("myExchange", "myRoutingKey", capture(messageSlot)) }
 
         // Act
-        underTest.createJob(renderingJob, message)
+        underTest.createConversionSubJobs(renderingJob, message)
 
         // Assert
         assert(subJobSlot.isCaptured)

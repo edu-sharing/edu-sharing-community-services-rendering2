@@ -11,5 +11,5 @@ import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
  * to the respective queue.
  */
 interface ConversionModule {
-    fun createJob(renderingJob: RenderingJob, message: RenderingJobMessage)
+    fun createConversionSubJobs(renderingJob: RenderingJob, message: RenderingJobMessage)
 }

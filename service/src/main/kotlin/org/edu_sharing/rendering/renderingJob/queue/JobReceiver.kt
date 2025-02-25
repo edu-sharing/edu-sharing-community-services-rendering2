@@ -60,7 +60,7 @@ class JobReceiver(
         }
         val renderModule = moduleRegistry.getRenderModule<RenderModule>(jobEntry.module)
         if (renderModule is ConversionModule) {
-            renderModule.createJob(jobEntry, message)
+            renderModule.createConversionSubJobs(jobEntry, message)
         } else {
             jobEntry.status = JobStatus.FAILED
             jobRepository.save(jobEntry)

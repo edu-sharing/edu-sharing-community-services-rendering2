@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
@@ -26,7 +27,7 @@ class DdbRenderModule(
 
     override fun module() = "DDB"
 
-    override fun handle(node: Node): RenderDataResponse {
+    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
         val jobId = jobService.createJob(node, module())
         return RenderDataResponse(jobId = jobId, module = module())
     }

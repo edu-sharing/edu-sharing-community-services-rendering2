@@ -77,7 +77,7 @@ class JobReceiverTest {
         justRun { storageService.putTempFile(cacheObject, contentInputStream) }
         every { jobRepository.save(capture(savedJobSlot)) } returns job
         every { moduleRegistry.getRenderModule<RenderModule>("IMAGE")} returns conversionModule
-        justRun { conversionModule.createJob(capture(submittedJobSlot), message) }
+        justRun { conversionModule.createConversionSubJobs(capture(submittedJobSlot), message) }
 
         // Act
         underTest.receiveMessage(message)
@@ -97,7 +97,7 @@ class JobReceiverTest {
             contentTransferService.getAsInputStream(cacheObject)
             storageService.putTempFile(cacheObject, contentInputStream)
             moduleRegistry.getRenderModule<RenderModule>("IMAGE")
-            conversionModule.createJob(capture(submittedJobSlot), message)
+            conversionModule.createConversionSubJobs(capture(submittedJobSlot), message)
         }
 
         confirmVerified(

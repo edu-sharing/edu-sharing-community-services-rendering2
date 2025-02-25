@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
+import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -26,7 +27,7 @@ class MoodleJobService(
     @Value("\${app.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(node: Node, module: String): String? {
+    fun createJob(node: Node, userData: RequestUserData, module: String): String? {
         val job = mapper.nodeToRenderingJob(node, module)
         jobRepository.save(job)
 
@@ -41,10 +42,10 @@ class MoodleJobService(
             id = job.id.toString(),
             nodeId = job.esObjectId,
             title = node.title,
-            authorityName = "",
-            userEmail = "request.userData.userEMail",
-            userGivenName = "request.userData.firstName",
-            userSurname = "request.userData.surName"
+            authorityName = userData.authorityName,
+            userEmail = userData.userEMail,
+            userGivenName = userData.firstName,
+            userSurname = userData.surName
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()

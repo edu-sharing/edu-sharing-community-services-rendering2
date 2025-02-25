@@ -79,7 +79,7 @@ class NodePermissionSessionContextRepository(
         val session = getSession(false) ?: return false
         val nodePermissions = readNodePermissionsFromSession(session) ?: return false
 
-        return nodePermissions.firstOrNull { it.nodeId == nodeId }?.hasPermission(permission) ?: false
+        return nodePermissions.firstOrNull { it.nodeId == nodeId }?.hasPermission(permission) == true
     }
 
     fun getNodePermission(nodeId: String): NodePermission? {

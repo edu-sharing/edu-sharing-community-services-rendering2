@@ -224,7 +224,7 @@ class VideoRenderModuleTest {
             capture(postProcessorSlot))}
 
         // Act
-        underTest.createJob(job, renderingMessage)
+        underTest.createConversionSubJobs(job, renderingMessage)
 
         // Assert
         assert(subJobList.size == 2)

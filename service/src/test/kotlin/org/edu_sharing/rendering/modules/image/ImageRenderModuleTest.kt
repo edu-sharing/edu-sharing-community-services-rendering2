@@ -268,7 +268,7 @@ class ImageRenderModuleTest {
         justRun { amqpTemplate.convertAndSend("topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString())) }
 
         // Act
-        underTest.createJob(renderingJob = job, message = message)
+        underTest.createConversionSubJobs(renderingJob = job, message = message)
 
         assertTrue(subJobList.size == 2, "Expected two subJobs to be created and inserted, got ${subJobList.size}.")
         assertTrue(subJobList[0].routingKey == "imageRoutingKey", "Expected first job's routing key to be imageRoutingKey, got ${subJobList[0].routingKey}")

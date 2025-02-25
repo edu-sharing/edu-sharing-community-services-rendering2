@@ -160,7 +160,7 @@ class AudioRenderModuleTest {
         }
 
         // Act
-        underTest.createJob(job, renderingMessage)
+        underTest.createConversionSubJobs(job, renderingMessage)
 
         // Assert
         assert(postProcessorSlot.isCaptured)
