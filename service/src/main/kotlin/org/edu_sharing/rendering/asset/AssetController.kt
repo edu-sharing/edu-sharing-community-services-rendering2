@@ -6,6 +6,7 @@ import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.storage.StaticStorageService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ByteArrayResource
@@ -23,6 +24,7 @@ import java.net.URLDecoder
 class AssetController(
     private val assetService: AssetService,
     private val storageService: StaticStorageService,
+    private val nodePermissionSessionContextRepository: NodePermissionSessionContextRepository,
     @Value("\${app.asset.static.frameAncestors}")
     private val allowedFrameAncestors: String?
 ) {
@@ -37,10 +39,13 @@ class AssetController(
         @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
         @RequestParam assetParams: String
     ): ResponseEntity<Resource> {
-        val doEncodeData = false
         val decoded = Base64().decode(URLDecoder.decode(assetParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
         val asset = assetService.getAsset(assetLinkParams, range)
+        var doEncodeData = false
+        if (asset.mimeType == "application/pdf") {
+            doEncodeData = !nodePermissionSessionContextRepository.hasPermission(assetLinkParams.nodeId, "DownloadContent")
+        }
         val headers: MutableMap<String, String> = mutableMapOf()
         if (! allowedFrameAncestors.isNullOrBlank()) {
             headers.put("Content-Security-Policy", "frame-ancestors $allowedFrameAncestors" )
@@ -65,7 +70,8 @@ class AssetController(
     private fun prepareResponse(
         asset: ReadableAsset,
         additionalHeaders: Map<String, String>,
-        doEncodeData: Boolean = false): ResponseEntity<Resource> {
+        doEncodeData: Boolean = false
+    ): ResponseEntity<Resource> {
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
