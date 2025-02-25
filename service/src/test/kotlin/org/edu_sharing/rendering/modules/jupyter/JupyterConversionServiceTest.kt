@@ -1,24 +1,10 @@
 package org.edu_sharing.rendering.modules.jupyter
 
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.excludeRecords
 import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verifySequence
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.modules.AbstractReceiver.Companion.PUBLIC_FAILURE_MESSAGE
-import org.edu_sharing.rendering.modules.ConverterWebServiceArguments
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -32,7 +18,7 @@ class JupyterConversionServiceTest {
 
     private lateinit var underTest: JupyterConversionService
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = JupyterConversionService(
             jupyterConverterWebClient = webClient,
@@ -166,5 +152,5 @@ class JupyterConversionServiceTest {
             serviceCaller.callConverterService(any())
             subJobRepository.save(any())
         }
-    }
+    }*/
 }

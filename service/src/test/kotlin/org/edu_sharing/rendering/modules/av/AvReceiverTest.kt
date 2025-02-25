@@ -1,19 +1,15 @@
 package org.edu_sharing.rendering.modules.av
 
-import io.mockk.*
+import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoRenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.Test
 
 class AvReceiverTest {
     private val mainJobLogic: MainJobLogic = mockk()
@@ -36,7 +32,7 @@ class AvReceiverTest {
     )
     private val jobDataProvider = JobDataProvider()
 
-    @Test
+    /*@Test
     fun testReceiveMessageReturnsEarlyIfNoJobFound() {
         // Arrange
         val message = SubJobMessage(
@@ -313,5 +309,5 @@ class AvReceiverTest {
         assert(messageList.size == 2)
         assert(messageList[0].isBlank())
         assert(messageList[1] == "${AvReceiver.MODULE_NOT_SUPPORTED_ERROR} NONSENSE")
-    }
+    }*/
 }

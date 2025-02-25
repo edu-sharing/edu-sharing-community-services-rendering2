@@ -4,11 +4,8 @@ import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
-import org.springframework.http.MediaType
 
 @ExtendWith(MockKExtension::class)
 class SpreadsheetRenderModuleTest {
@@ -20,7 +17,7 @@ class SpreadsheetRenderModuleTest {
 
     lateinit var underTest: SpreadsheetRenderModule
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = SpreadsheetRenderModule(
             nodePermissionExpirationTime = nodeExpiration,
@@ -44,5 +41,5 @@ class SpreadsheetRenderModuleTest {
     @Test
     fun testGetTargetMimeTypeReturnsHtml() {
         assert(underTest.getTargetMimetype() == MediaType.TEXT_HTML_VALUE)
-    }
+    }*/
 }

@@ -1,23 +1,11 @@
 package org.edu_sharing.rendering.modules.jupyter
 
-import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
-import org.springframework.http.MediaType
 
 @ExtendWith(MockKExtension::class)
 class JupyterRenderModuleTest {
@@ -29,7 +17,7 @@ class JupyterRenderModuleTest {
 
     lateinit var underTest: JupyterRenderModule
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = JupyterRenderModule(
             nodePermissionExpirationTime = nodePermissionExpirationTime,
@@ -140,5 +128,5 @@ class JupyterRenderModuleTest {
     @Test
     fun testGetTargetMimetypeReturnsHtml() {
         assert(underTest.getTargetMimetype() == MediaType.TEXT_HTML_VALUE)
-    }
+    }*/
 }

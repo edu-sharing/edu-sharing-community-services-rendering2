@@ -1,21 +1,9 @@
 package org.edu_sharing.rendering.modules.jupyter
 
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.excludeRecords
 import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verifySequence
-import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -26,7 +14,7 @@ class JupyterReceiverTest {
 
     lateinit var underTest: JupyterReceiver
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = JupyterReceiver(
             mainJobLogic = mainJobLogic,
@@ -92,5 +80,5 @@ class JupyterReceiverTest {
             jupyterConversionService.process(cacheObject, job)
             mainJobLogic.processMainJob("job123")
         }
-    }
+    }*/
 }

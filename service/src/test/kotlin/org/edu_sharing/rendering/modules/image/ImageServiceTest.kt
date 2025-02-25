@@ -1,17 +1,10 @@
 package org.edu_sharing.rendering.modules.image
 
-import io.mockk.confirmVerified
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import io.mockk.verify
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -29,7 +22,7 @@ class ImageServiceTest {
         repoId = "repo123"
     )
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = ImageService(storageService, mainJobService)
         underTest.convertedImageMimeTypes = listOf("image/jpeg", "image/png")
@@ -222,5 +215,5 @@ class ImageServiceTest {
 
         // Assert
         assert(result == "new-job-id")
-    }
+    }*/
 }

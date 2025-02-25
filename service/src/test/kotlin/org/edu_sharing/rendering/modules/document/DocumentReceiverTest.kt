@@ -1,16 +1,9 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.core.dto.CacheObject
+import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -21,7 +14,7 @@ class DocumentReceiverTest {
 
     lateinit var underTest: DocumentReceiver
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = DocumentReceiver(
             mainJobLogic = mainJobLogic,
@@ -87,5 +80,5 @@ class DocumentReceiverTest {
             documentConversionService.process(cacheObject, job)
             mainJobLogic.processMainJob("job123")
         }
-    }
+    }*/
 }

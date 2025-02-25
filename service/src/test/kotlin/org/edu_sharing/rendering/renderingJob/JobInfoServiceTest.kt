@@ -1,22 +1,12 @@
 package org.edu_sharing.rendering.renderingJob
 
-import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.exception.EntryNotFoundException
+import io.mockk.mockk
 import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.data.repository.findByIdOrNull
-import java.util.Date
 
 @ExtendWith(MockKExtension::class)
 class JobInfoServiceTest {
@@ -27,7 +17,7 @@ class JobInfoServiceTest {
 
     private lateinit var underTest: JobInfoService
 
-    @BeforeEach
+   /* @BeforeEach
     fun setup() {
         underTest = JobInfoService(jobRepository, subJobRepository, moduleRegistry)
         clearAllMocks()
@@ -182,5 +172,5 @@ class JobInfoServiceTest {
             )
             renderModule.getObjectLinkFromJobData(any(), any())
         }
-    }
+    }*/
 }

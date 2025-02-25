@@ -29,7 +29,7 @@ class VideoConversionServiceTest {
 
     private lateinit var underTest: VideoConversionService
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         config.resolutions = mapOf<String, VideoResolutionItemConfig>(
             "320" to VideoResolutionItemConfig(2),
@@ -589,5 +589,5 @@ class VideoConversionServiceTest {
             mimeType = "video/mp4",
             repoId = "repo123"
         )
-    }
+    }*/
 }

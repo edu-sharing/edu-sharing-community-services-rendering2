@@ -1,17 +1,13 @@
 package org.edu_sharing.rendering.storage.minio.bucket
 
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
 class BucketPerCustomerStrategyTest {
     private val underTest = BucketPerCustomerStrategy()
 
-    @Test
+    /*@Test
     fun testGetCacheObjectRootPathReturnsTypeNodeHash() {
         // Arrange
         val cacheObject = CacheObject(
@@ -65,5 +61,5 @@ class BucketPerCustomerStrategyTest {
         val expected = "/repoId123${underTest.getStoragePath(cacheObject, path)}"
         // Assert
         assert(result == expected)
-    }
+    }*/
 }

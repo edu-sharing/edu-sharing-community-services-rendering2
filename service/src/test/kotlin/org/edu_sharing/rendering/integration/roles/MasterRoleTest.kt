@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
 import org.edu_sharing.rendering.edusharingRepo.AdminController
-import org.edu_sharing.rendering.edusharingRepo.MetadataController
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,7 +26,6 @@ class MasterRoleTest(@Autowired val context: ApplicationContext): AbstractIntegr
         private val roleSpecificBeans = setOf(
             CacheCleaner::class,
             AdminController::class,
-            MetadataController::class
         )
     }
 

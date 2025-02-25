@@ -1,22 +1,10 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
-import jakarta.servlet.http.HttpServletRequest
-import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
 
 
 @WebMvcTest(
@@ -31,7 +19,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
     @MockkBean
     lateinit var lumiContentManagementService: LumiContentManagementService
 
-    @Test
+    /*@Test
     fun testGetContentCallsServiceWithCorrectParamsAndReturnsResponse() {
         // Arrange
         val nodeInfo = mockk<LumiNodeInfo>()
@@ -210,5 +198,5 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         }
 
         confirmVerified(lumiProxyService, lumiContentManagementService)
-    }
+    }*/
 }

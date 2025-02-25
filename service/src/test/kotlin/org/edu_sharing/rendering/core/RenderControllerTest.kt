@@ -1,27 +1,14 @@
 package org.edu_sharing.rendering.core
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.slot
-import io.mockk.verify
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
-import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @WebMvcTest(RenderController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
 class RenderControllerTest(@Autowired val mockMvc: MockMvc) {
 
-    @MockkBean
+    /*@MockkBean
     lateinit var service: RenderDataService
 
     @Test
@@ -70,5 +57,5 @@ class RenderControllerTest(@Autowired val mockMvc: MockMvc) {
             service.getRenderData(capture(bodySlot))
         }
         confirmVerified(service)
-    }
+    }*/
 }

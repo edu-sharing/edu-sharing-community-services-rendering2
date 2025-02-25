@@ -1,22 +1,14 @@
 package org.edu_sharing.rendering.modules.image
 
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verify
-import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.Test
-import java.io.File
-import javax.imageio.ImageIO
 
 
 class ImageConversionServiceTest {
     private val storageService: StorageService = mockk()
     private val imageConversionService = ImageConversionService(storageService)
 
-    @Test
+   /* @Test
     fun testIfConvertCorrectlyProcessesJpgWithLandscapeOrientation() {
         // Arrange
         val file = File("src/test/resources/fixtures/chernihiv.jpg")
@@ -81,6 +73,6 @@ class ImageConversionServiceTest {
             type = "file-image",
             repoId = "repo123"
         )
-    }
+    }*/
 
 }

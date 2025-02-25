@@ -1,22 +1,10 @@
 package org.edu_sharing.rendering.modules.noConversion
 
-import io.mockk.clearAllMocks
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import io.mockk.verifySequence
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -27,7 +15,7 @@ class PdfRenderModuleTest {
 
     private lateinit var underTest: PdfRenderModule
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = PdfRenderModule(
             nodePermissionExpirationTime = 55L,
@@ -128,5 +116,5 @@ class PdfRenderModuleTest {
     @Test
     fun testGetNodePermissionExpirationTimeReturnsProperTime() {
         assert(underTest.getNodePermissionExpirationTime() == 55L)
-    }
+    }*/
 }

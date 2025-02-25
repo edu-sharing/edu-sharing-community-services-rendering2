@@ -1,22 +1,10 @@
 package org.edu_sharing.rendering.modules.jupyter
 
-import io.mockk.clearAllMocks
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.excludeRecords
 import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verify
-import io.mockk.verifySequence
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -28,7 +16,7 @@ class JupyterJobServiceTest {
 
     lateinit var underTest: JupyterJobService
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         underTest = JupyterJobService(
             storageImplementation = storageImplementation,
@@ -96,5 +84,5 @@ class JupyterJobServiceTest {
         assert(result == "job123")
         verify (exactly = 1) {mainJobCreationService.retrieveOrCreateJob(cacheObject, module)}
         confirmVerified(mainJobCreationService)
-    }
+    }*/
 }

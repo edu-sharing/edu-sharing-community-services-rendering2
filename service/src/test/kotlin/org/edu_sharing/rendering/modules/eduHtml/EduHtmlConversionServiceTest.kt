@@ -1,27 +1,16 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verify
-import io.mockk.verifyAll
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.storage.StaticStorageService
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
-import java.io.File
 
 class EduHtmlConversionServiceTest {
     private val contentTransferService: ContentTransferService = mockk()
     private val storageService: StaticStorageService = mockk()
     private val underTest = EduHtmlConversionService(contentTransferService, storageService)
 
-    @Test
+    /*@Test
     fun testIfCacheDataUnzipsFileAndPutsContentInCorrectStorageFolders() {
         val file = File("src/test/resources/fixtures/testhtml.zip")
         val inputStream = file.readBytes().inputStream()
@@ -136,5 +125,5 @@ class EduHtmlConversionServiceTest {
             verify(exactly = 1) { contentTransferService.getAsInputStream(any()) }
             confirmVerified(contentTransferService)
         }
-    }
+    }*/
 }

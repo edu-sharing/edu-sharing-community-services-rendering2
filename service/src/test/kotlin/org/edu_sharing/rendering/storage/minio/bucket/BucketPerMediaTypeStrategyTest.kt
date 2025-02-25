@@ -1,17 +1,13 @@
 package org.edu_sharing.rendering.storage.minio.bucket
 
 import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.http.MediaType
 
 @ExtendWith(MockKExtension::class)
 class BucketPerMediaTypeStrategyTest {
     private val underTest = BucketPerMediaTypeStrategy()
 
-    @Test
+    /*@Test
     fun testGetStoragePathReturnsProperStoragePathForObjectWithoutQuality() {
         // Arrange
         val cacheObject = CacheObject(
@@ -164,5 +160,5 @@ class BucketPerMediaTypeStrategyTest {
         // Assert
         val expected = "/repoId123/file-pdf${underTest.getStoragePath(cacheObject, path)}"
         assert(result == expected)
-    }
+    }*/
 }

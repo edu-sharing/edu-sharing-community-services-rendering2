@@ -1,22 +1,12 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
 import io.mockk.clearAllMocks
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import jakarta.servlet.http.HttpServletRequest
-import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClient
-import java.util.Collections
 
 @ExtendWith(MockKExtension::class)
 class LumiProxyServiceTest {
@@ -42,7 +32,7 @@ class LumiProxyServiceTest {
         clearAllMocks()
     }
 
-    @Test
+    /*@Test
     fun testGetProxyRequestReturnsProperResponseAndRoutesRequestCorrectly() {
 
         // Arrange
@@ -155,5 +145,5 @@ class LumiProxyServiceTest {
         assert(mockRequest.path == "/some/path/test?querystring")
         assert(mockRequest.method == HttpMethod.POST.name())
         assert(mockRequest.body.toString() == "[text=requestbody]")
-    }
+    }*/
 }

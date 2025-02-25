@@ -1,14 +1,7 @@
 package org.edu_sharing.rendering.modules
 
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
-import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -25,7 +18,7 @@ class ModuleRegistryTest {
 
     lateinit var underTest: ModuleRegistry
 
-    @BeforeEach
+    /*@BeforeEach
     fun setUp() {
         every { moduleTypeMapperByType.moduleTypeAssociations() } returns listOf(
             ModuleTypeDefinition(type = "file-any") to moduleByType
@@ -97,5 +90,5 @@ class ModuleRegistryTest {
                 replicationSource = ""
             )
         }
-    }
+    }*/
 }

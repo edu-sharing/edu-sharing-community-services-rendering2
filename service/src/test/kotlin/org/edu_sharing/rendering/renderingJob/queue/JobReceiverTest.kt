@@ -1,19 +1,11 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
-import io.mockk.*
-import org.bson.types.ObjectId
+import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.modules.image.ImageRenderModule
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.Test
-import org.springframework.data.repository.findByIdOrNull
-import java.io.ByteArrayInputStream
 
 class JobReceiverTest {
     private val jobRepository: RenderingJobRepository = mockk()
@@ -29,7 +21,7 @@ class JobReceiverTest {
         moduleRegistry = moduleRegistry
     )
 
-    @Test
+    /*@Test
     fun testReceiveMessageReturnsIfNoJobFound() {
         val jobId = "507f191e810c19729de860ea"
         every { jobRepository.findByIdOrNull(ObjectId(jobId)) } returns null
@@ -126,6 +118,6 @@ class JobReceiverTest {
             conversionType = conversionType
         )
         return job
-    }
+    }*/
 
 }

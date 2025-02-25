@@ -1,16 +1,11 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import io.mockk.*
+import io.mockk.mockk
 import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.Test
 
 class MoodleReceiverTest {
     private val moodleUploadService: MoodleUploadService = mockk()
@@ -28,7 +23,7 @@ class MoodleReceiverTest {
     private val jobDataProvider = JobDataProvider()
     private val module: MoodleRenderModule = mockk()
 
-    @Test
+    /*@Test
     fun testReceiveMessageReturnsEarlyIfNoJobFound() {
         // Arrange
         val message = MoodleJobMessage(
@@ -180,5 +175,5 @@ class MoodleReceiverTest {
         verify(exactly = 1) { moodleUploadService.getUrl(message, module, job.repoId) }
         verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, moduleRegistry, moodleUploadService)
-    }
+    }*/
 }

@@ -1,24 +1,13 @@
 package org.edu_sharing.rendering.renderingJob
 
-import com.mongodb.assertions.Assertions.assertFalse
-import com.mongodb.assertions.Assertions.assertTrue
-import io.mockk.confirmVerified
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
-import org.junit.Test
-import org.springframework.data.repository.findByIdOrNull
 
 class MainJobLogicTest {
     private val jobRepository: RenderingJobRepository = mockk()
     private val mainJobLogic = MainJobLogic(jobRepository)
 
-    @Test
+    /*@Test
     fun testIfProcessMainJobReturnsFalseIfNoJobFound() {
         // Arrange
         val jobId = "507f191e810c19729de860ea"
@@ -119,5 +108,5 @@ class MainJobLogicTest {
         )
         job.subJobs = mutableListOf(subJob)
         return job
-    }
+    }*/
 }

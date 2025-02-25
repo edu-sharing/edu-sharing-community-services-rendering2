@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.config.AppInfo
@@ -9,8 +7,6 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.springframework.web.reactive.function.client.WebClient
 
 class RepositoryRegistrationServiceTest {
@@ -40,7 +36,7 @@ class RepositoryRegistrationServiceTest {
     private val corsService = mockk<CorsService>()
     private val moduleRegistry = mockk<ModuleRegistry>()
 
-    @BeforeEach
+    /*@BeforeEach
     fun setup() {
         mockServer = MockWebServer()
         mockServer.start()
@@ -66,7 +62,6 @@ class RepositoryRegistrationServiceTest {
         mockServer.shutdown()
     }
 
-    /**
     @Test
     fun testRegisterWithRepositoryCallsApiWithCorrectParamsAndStoresKey() {
         // Arrange

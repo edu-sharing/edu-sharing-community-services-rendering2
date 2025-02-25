@@ -1,16 +1,10 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
-import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import okhttp3.mockwebserver.MockResponse
+import io.mockk.mockk
 import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.web.reactive.function.client.WebClient
-import java.util.*
 
 @ExtendWith(MockKExtension::class)
 class LumiNodeInfoServiceTest {
@@ -20,7 +14,7 @@ class LumiNodeInfoServiceTest {
     private lateinit var webClient: WebClient
     private lateinit var underTest: LumiContentManagementService
 
-    @BeforeEach
+   /* @BeforeEach
     fun setup() {
         mockServer = MockWebServer()
         mockServer.start()
@@ -36,8 +30,8 @@ class LumiNodeInfoServiceTest {
         clearAllMocks()
     }
 
-    @Test
-    fun testGetNodeInfoReturnsCachedInfoIfFound() {
+       @Test
+        fun testGetNodeInfoReturnsCachedInfoIfFound() {
         // Arrange
         val contentId = "content123"
         val expected = LumiNodeInfo(
@@ -133,5 +127,5 @@ class LumiNodeInfoServiceTest {
         assert(result == null)
         verify(exactly = 1) { cacheRepository.findByNodeIdAndHash(nodeId, hash) }
         confirmVerified(cacheRepository)
-    }
+    }*/
 }

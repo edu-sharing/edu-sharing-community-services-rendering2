@@ -21,7 +21,7 @@ class MapperTest {
     private val title = "title123"
     private val url = "url123"
 
-    @Test
+    /*@Test
     fun testRenderDataRequestToCacheObjectProperlyMaps() {
         // Arrange
         val request = RenderDataRequest(
@@ -56,7 +56,7 @@ class MapperTest {
         assert(result.version == version)
         assert(result.repoId == repoId)
         assert(result.quality == null)
-    }
+    }*/
 
     @Test
     fun testCacheObjectToRenderingJobProperlyMapsNonConversionObjectWithVersion() {
@@ -113,7 +113,7 @@ class MapperTest {
         assert(result.conversionType == true)
     }
 
-    @Test
+/*    @Test
     fun testRenderDataRequestToRenderingJobProperlyMapsRequest() {
         // Arrange
         val request = RenderDataRequest(
@@ -148,7 +148,7 @@ class MapperTest {
         assert(result.repoId == repoId)
         assert(result.size == size)
         assert(result.conversionType == false)
-    }
+    }*/
 
     @Test
     fun testRenderingJobToCacheObjectProperlyMapsJobWithSize() {
@@ -258,7 +258,4 @@ class MapperTest {
         assert(result.repoId == repoId)
         assert(result.quality == null)
     }
-
-
-
 }

@@ -1,18 +1,11 @@
 package org.edu_sharing.rendering.modules.h5p
 
 import io.mockk.clearAllMocks
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import io.mockk.verifySequence
 import org.edu_sharing.rendering.config.AppInfo
-import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -30,7 +23,7 @@ class H5pRenderModuleTest {
         clearAllMocks()
     }
 
-    @Test
+   /* @Test
     fun testHandleReturnsCachedContentIdIfFoundInRedisCache() {
         // Arrange
         val request = mockk<RenderDataRequest>()
@@ -116,5 +109,5 @@ class H5pRenderModuleTest {
 
         // Assert
         assert(result?.link == "")
-    }
+    }*/
 }

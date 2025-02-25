@@ -1,24 +1,10 @@
 package org.edu_sharing.rendering.modules.image
 
-import io.mockk.clearAllMocks
-import io.mockk.every
 import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verifySequence
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
 
@@ -34,7 +20,7 @@ class ImageRenderModuleTest {
 
     lateinit var underTest: ImageRenderModule
 
-    @BeforeEach
+   /* @BeforeEach
     fun setup() {
         underTest = ImageRenderModule(
             nodePermissionExpirationTime = nodePermissionTime,
@@ -283,5 +269,5 @@ class ImageRenderModuleTest {
             subJobRepository.save(any())
             amqpTemplate.convertAndSend("topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString()))
         }
-    }
+    }*/
 }

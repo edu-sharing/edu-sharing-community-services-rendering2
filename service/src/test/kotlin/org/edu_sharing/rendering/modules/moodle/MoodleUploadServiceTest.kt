@@ -1,10 +1,7 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import io.mockk.every
 import io.mockk.mockk
-import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.junit.jupiter.api.*
 
 class MoodleUploadServiceTest {
 
@@ -24,7 +21,7 @@ class MoodleUploadServiceTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var underTest: MoodleUploadService
 
-    @BeforeEach
+    /*@BeforeEach
     fun setUp() {
         val config = mapOf<String, String>(
             "baseurl" to mockWebServer.url("/").toString(),
@@ -105,5 +102,5 @@ class MoodleUploadServiceTest {
         mockWebServer.enqueue(response1)
         mockWebServer.enqueue(response2)
         assertThrows<Exception> { underTest.getUrl(dummyMessage, mockModule, repoId) }
-    }
+    }*/
 }

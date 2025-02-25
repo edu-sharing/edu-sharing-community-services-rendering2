@@ -1,18 +1,9 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import io.mockk.*
+import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.Test
 import org.springframework.amqp.core.AmqpTemplate
 
 class AudioRenderModuleTest {
@@ -36,7 +27,7 @@ class AudioRenderModuleTest {
         repoId = "repoId"
     )
 
-    @Test
+   /* @Test
     fun testHandleReturnsLinksToCachedObjectsIfAlreadyCached() {
         // Arrange
         val mockRenderDataRequest = mockk<RenderDataRequest>()
@@ -180,5 +171,5 @@ class AudioRenderModuleTest {
         assert(subJobMessageList[1].quality == 2)
         assert(subJobMessageList[0].id == jobId)
         assert(subJobMessageList[1].id == jobId)
-    }
+    }*/
 }

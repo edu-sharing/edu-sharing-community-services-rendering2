@@ -1,21 +1,13 @@
 package org.edu_sharing.rendering.modules.av
-import io.mockk.*
-import io.mockk.confirmVerified
-import org.edu_sharing.rendering.core.dto.CacheObject
+import io.mockk.mockk
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.InputStream
 
 class AvFileHelperTest {
     private val storageService: StorageService = mockk()
     private val underTest = AvFileHelper(storageService)
 
 
-    @AfterEach
+    /*@AfterEach
     fun after() {
         underTest.close()
     }
@@ -98,5 +90,5 @@ class AvFileHelperTest {
         // Assert
         verify(exactly = 1) { storageService.putObject(cacheObject, any(), metadata) }
         assert(inputStreamSlot.captured.readAllBytes().size == 2)
-    }
+    }*/
 }

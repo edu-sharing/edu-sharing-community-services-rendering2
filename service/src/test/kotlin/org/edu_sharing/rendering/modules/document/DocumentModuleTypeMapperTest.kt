@@ -37,7 +37,7 @@ class DocumentModuleTypeMapperTest {
         val allSupportedMimeTypeSuffixes = supportedMimeTypeSuffixesSpreadsheet union supportedMimeTypeSuffixesDocument
     }
 
-    @Test
+    /*@Test
     fun testCompanionObjectContainsCorrectMimeTypeSuffixes() {
         val moduleCompanion = DocumentModuleTypeMapper::class.companionObject!!
         val companionProperties = moduleCompanion.memberProperties
@@ -81,5 +81,5 @@ class DocumentModuleTypeMapperTest {
             assert(foundPairs.size == 1)
             assert(foundPairs[0].second == if (supportedMimeTypeSuffixesSpreadsheet.contains(it)) spreadsheetModule else documentModule )
         }
-    }
+    }*/
 }

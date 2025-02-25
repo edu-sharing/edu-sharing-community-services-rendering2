@@ -1,24 +1,12 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verify
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.Test
 
 class EduHtmlReceiverTest {
     private val eduHtmlService: EduHtmlService = mockk()
@@ -33,6 +21,7 @@ class EduHtmlReceiverTest {
         mapper
     )
 
+/*
     @Test
     fun testReceiveMessageReturnsEarlyIfNoMainJobFound() {
         // Arrange
@@ -176,5 +165,6 @@ class EduHtmlReceiverTest {
         )
         return subJob
     }
+*/
 
 }

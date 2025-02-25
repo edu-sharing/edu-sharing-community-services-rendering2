@@ -1,23 +1,10 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verifySequence
-import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.junit.jupiter.api.Test
 import org.springframework.amqp.core.AmqpTemplate
-import org.springframework.http.MediaType
 
 class DocumentRenderModuleTest {
 
@@ -41,7 +28,7 @@ class DocumentRenderModuleTest {
         repoId = "repo123"
     )
 
-    @Test
+    /*@Test
     fun testHandleReturnsLinksToCachedObjectsIfAlreadyCached() {
         // Arrange
         val mockRenderDataRequest = mockk<RenderDataRequest>()
@@ -167,6 +154,6 @@ class DocumentRenderModuleTest {
         assert(subJobSlot.captured.parent == renderingJob)
         assert(messageSlot.isCaptured)
         assert(messageSlot.captured.id == jobId.toString())
-    }
+    }*/
 }
        

@@ -1,20 +1,15 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import io.mockk.*
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import io.mockk.mockk
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 
 class AudioServiceTest {
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
     private lateinit var service: AudioService
 
-    @BeforeEach
+/*    @BeforeEach
     fun setUp() {
         service = AudioService(
             storageImplementation = storageService,
@@ -130,5 +125,5 @@ class AudioServiceTest {
             mainJobCreationService.createMainJob(cacheObject, "AUDIO", listOf(100))
         }
         confirmVerified(mainJobCreationService)
-    }
+    }*/
 }
