@@ -49,8 +49,8 @@ rm -rf "$h5p/tmp"
 
 IFS='.' read -r major minor patch <<< "$core_version"
 src="$(dirname $0)/src"
-sed -i "s|h5p_core_version_major=.*|h5p_core_version_major=${major}|g" "${src}/h5p.settings.ts"
-sed -i "s|h5p_core_version_minor=.*|h5p_core_version_minor=${minor}|g" "${src}/h5p.settings.ts"
-sed -i "s|h5p_core_version_patch=.*|h5p_core_version_patch=${patch}|g" "${src}/h5p.settings.ts"
+sed -i -r "s|h5p_core_version_major=.*|h5p_core_version_major=${major}|g" "${src}/h5p.settings.ts"
+sed -i -r "s|h5p_core_version_minor=.*|h5p_core_version_minor=${minor}|g" "${src}/h5p.settings.ts"
+sed -i -r "s|h5p_core_version_patch=.*|h5p_core_version_patch=${patch}|g" "${src}/h5p.settings.ts"
 
 

@@ -14,7 +14,7 @@
   <version>git</version>
   <packaging>pom</packaging>
 
-  <name>services-rendering-service2</name>
+  <name>edu_sharing-community-services-rendering2</name>
 
   <properties>
     <java.version>21</java.version>

@@ -13,8 +13,7 @@ VOLUME /tmp
 WORKDIR application
 
 # Enable community repository, update package list, and install LibreOffice
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
-    apk update && \
+RUN apk update && \
     apk add --no-cache libreoffice
 
 # Verify installation
