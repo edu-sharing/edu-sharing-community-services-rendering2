@@ -75,6 +75,12 @@
 
       <dependency>
         <groupId>org.edu_sharing</groupId>
+        <artifactId>edu_sharing-community-common-deployment-onxy-compose</artifactId>
+        <version>12.2.0.1-0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.edu_sharing</groupId>
         <artifactId>edu_sharing-community-common-deployment-redis-cluster-compose</artifactId>
         <version>6.2-1</version>
       </dependency>
