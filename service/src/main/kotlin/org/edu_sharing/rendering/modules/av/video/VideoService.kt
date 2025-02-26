@@ -24,10 +24,22 @@ class VideoService(
     @Value("\${app.converter.video.mimeTypes}")
     lateinit var convertedVideoMimeTypes: List<String>
 
-    fun isConversionObject(cacheObject: CacheObject) = convertedVideoMimeTypes.contains(cacheObject.mimeType)
+    /**
+     * Function isConversionObject
+     *
+     * Determines whether a given node is subject to conversion. This is the case if its mimetype
+     * is in the predefined list (app.converter.video.mimeTypes) or its original height (resolution)
+     * is in the interval [x,y] ∀ x,y ∈ app.converter.video.resolutions. Videos with resolutions
+     * lower than the smallest defined resolution are not converted and cached as is.
+     */
+    fun isConversionObject(cacheObject: CacheObject, originalHeight: Int?): Boolean {
+        return convertedVideoMimeTypes.contains(cacheObject.mimeType)
+                && targetVideoResolutions.getMinResolution() <= (originalHeight ?: Int.MAX_VALUE)
+    }
 
-    fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
-        if (!isConversionObject(cacheObject)) {
+    fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null, originalHeight: Int? = null): List<ObjectLink>? {
+        // For objects not subject to conversion we simply return the link (if present, null otherwise)
+        if (!isConversionObject(cacheObject, originalHeight)) {
             return try {
                 listOf(storageImplementation.getObjectLink(cacheObject))
             } catch (_: ResourceNotFoundException) {
@@ -38,7 +50,8 @@ class VideoService(
         val lookUpObject = cacheObject.copy()
         lookUpObject.mimeType = "video/$targetVideoFormat"
 
-        val requestedResolutions = if (resolution == null) targetVideoResolutions.getResolutions() else listOf(resolution)
+        val requestedResolutions = if (resolution == null)
+            targetVideoResolutions.getPossibleResolutions(originalHeight) else listOf(resolution)
         return requestedResolutions.mapNotNull {
             lookUpObject.quality = it
             try {
@@ -49,23 +62,21 @@ class VideoService(
         }.toList().ifEmpty { null }
     }
 
-    fun getMissingQualities(availableLinks: List<ObjectLink>?): Collection<Int> {
-        if (availableLinks === null) return targetVideoResolutions.getResolutions()
-        var highestDeterminedQuality = availableLinks.firstOrNull { it.isHighestQuality }?.height
-        if (highestDeterminedQuality == null) highestDeterminedQuality = Int.MAX_VALUE
-        return targetVideoResolutions.getResolutions().filter {
-            it < highestDeterminedQuality && !availableLinks.map { link -> link.height }.contains(it)
+    fun getMissingQualities(availableLinks: List<ObjectLink>?, originalHeight: Int): Collection<Int> {
+        if (availableLinks === null) return targetVideoResolutions.getPossibleResolutions(originalHeight)
+        return targetVideoResolutions.getPossibleResolutions(originalHeight).filterNot {
+            availableLinks.map { link -> link.height }.contains(it)
         }
     }
 
-    fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>): String {
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>, originalHeight: Int?): String {
         log.info("Creating main job for: ${cacheObject.nodeId}")
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
         if (existingJobId != null) {
             log.info("Existing job found: $existingJobId")
             return existingJobId
         }
-        val newJobId = mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject))
+        val newJobId = mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject, originalHeight))
         log.info("Created main job: $newJobId")
         return newJobId
     }

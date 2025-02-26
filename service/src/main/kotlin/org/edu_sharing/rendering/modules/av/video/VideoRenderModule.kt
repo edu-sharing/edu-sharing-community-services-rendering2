@@ -39,9 +39,19 @@ class VideoRenderModule (
 
     override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
-        val objectLinks = videoService.getObjectLinks(cacheObject)
 
-        val isConversionType = videoService.isConversionObject(cacheObject)
+        val originalHeightProperty = node.properties.getOrDefault("ccm:height", listOf(""))[0]
+        var originalHeight: Int? = null
+        if (originalHeightProperty.isNotBlank()) {
+            originalHeight = originalHeightProperty.toFloat().toInt()
+        }
+
+        val objectLinks = videoService.getObjectLinks(
+            cacheObject = cacheObject,
+            originalHeight = originalHeight
+        )
+
+        val isConversionType = videoService.isConversionObject(cacheObject, originalHeight)
 
         // Non-conversion type and already in cache
         if (!isConversionType && objectLinks != null ) {
@@ -51,14 +61,19 @@ class VideoRenderModule (
         // Missing qualities only apply to  conversion objects
         var missingQualities: Collection<Int> = emptyList()
         if (isConversionType) {
-            missingQualities = videoService.getMissingQualities(objectLinks)
+            missingQualities = videoService.getMissingQualities(objectLinks, originalHeight ?: Int.MAX_VALUE)
             if (missingQualities.isEmpty()) {
                 // None missing, so no further action is needed
                 return RenderDataResponse(objectLinks = objectLinks, module = module())
             }
         }
 
-        val jobId = videoService.retrieveOrCreateJob(cacheObject, module(), missingQualities)
+        val jobId = videoService.retrieveOrCreateJob(
+            cacheObject = cacheObject,
+            module = module(),
+            missingQualities = missingQualities,
+            originalHeight = originalHeight
+        )
         return RenderDataResponse(objectLinks = objectLinks, jobId = jobId, module = module())
     }
 

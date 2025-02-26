@@ -61,7 +61,9 @@ class JobInfoService(
 
                 JobStatus.FAILED -> {}
             }
-            infoList.add(jobInfo)
+            if (it.status != JobStatus.FAILED) {
+                infoList.add(jobInfo)
+            }
         }
         return JobInfoReply(infoList, status = job.status, module = job.module)
     }

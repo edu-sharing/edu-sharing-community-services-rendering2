@@ -107,9 +107,6 @@ class MinioStorageService(
             if (metadata["height"] != null) {
                 objectLink.height = metadata["height"]!!.toIntOrNull() ?: 0
             }
-            if (metadata.containsKey("isHighestResolution") && metadata["isHighestResolution"].toBoolean()) {
-                objectLink.isHighestQuality = true
-            }
         } catch (_: ErrorResponseException) {
             throw ResourceNotFoundException("Resource invalid or not yet cached.")
         }

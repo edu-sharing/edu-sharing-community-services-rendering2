@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.av
 
 import org.apache.commons.lang3.NotImplementedException
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
@@ -80,8 +81,16 @@ class AvReceiver(
                 subJob = subJob
             )
         } catch (exception: Exception) {
-            logger.error(exception.message)
-            subJob.message = exception.message
+            val failedSubJob = subJobRepository.findByIdOrNull(subJob.id)
+            if (exception is ConversionException) {
+                logger.warn(exception.message)
+            } else {
+                logger.error(exception.message)
+            }
+            if (failedSubJob != null) {
+                failedSubJob.message = exception.message
+                subJobRepository.save(failedSubJob)
+            }
             success = false
         } finally {
             val finishedSubJob = subJobRepository.findByIdOrNull(subJob.id)
@@ -95,7 +104,7 @@ class AvReceiver(
                 subJobRepository.save(finishedSubJob)
             }
         }
-        if (mainJobLogic.processMainJob(message.id)) {
+        if (mainJobLogic.processMainJob(message.id, true)) {
             storageImplementation.removeObject(cacheObject, true)
         }
     }

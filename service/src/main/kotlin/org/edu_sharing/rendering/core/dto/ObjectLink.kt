@@ -8,7 +8,5 @@ data class ObjectLink (
     @JsonProperty("height")
     var height: Int = 0,
     @JsonProperty("link")
-    val link: String,
-    @JsonProperty("isHighestQuality")
-    var isHighestQuality: Boolean = false,
+    val link: String
 )

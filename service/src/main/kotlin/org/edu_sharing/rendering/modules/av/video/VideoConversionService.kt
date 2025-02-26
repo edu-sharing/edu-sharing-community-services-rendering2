@@ -23,7 +23,6 @@ class VideoConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,
     private val encoder: Encoder,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
-    private val videoResolutions: VideoConverterConfig
 ) : AvConversionService {
 
     @Value("\${app.converter.video.format}")
@@ -35,7 +34,6 @@ class VideoConversionService(
         const val VIDEO_CODEC = "libx264"
         const val VIDEO_CRF = 24
     }
-
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
         val listener = listenerFactory.`object`
@@ -50,11 +48,13 @@ class VideoConversionService(
             val encodingAttributes = initEncodingAttributes(targetWidth, targetHeight)
             encoder.encode(multiMediaObject, fileHelper.outputFile, encodingAttributes, listener)
             val outputCacheObject = cacheObject.deepCopy()
-            val metadata = metaData(multiMediaObject.info.video.size.height, targetWidth, targetHeight)
             outputCacheObject.quality = subJob.quality
             outputCacheObject.size = fileHelper.outputFile.length()
             outputCacheObject.mimeType = "video/$videoFormat"
-            fileHelper.uploadToCache(outputCacheObject, metadata)
+            fileHelper.uploadToCache(outputCacheObject, mapOf(
+                "height" to targetHeight.toString(),
+                "width" to targetWidth.toString()
+            ))
         }
     }
 
@@ -68,7 +68,7 @@ class VideoConversionService(
     ): Pair<Int, Int> {
         val originalHeight = multiMediaObject.info.video.size.height
         if (originalHeight < targetResolution) {
-            throw ConversionException("No Upscaling from $originalHeight to $targetResolution")
+            throw ConversionException("No Upscaling from $originalHeight to $targetResolution.")
         }
         val originalWidth = multiMediaObject.info.video.size.width
         val ratio = originalWidth.toFloat() / originalHeight
@@ -89,34 +89,5 @@ class VideoConversionService(
         attrs.setAudioAttributes(audio)
         attrs.setVideoAttributes(video)
         return attrs
-    }
-
-    /**
-     * We need to tag the rendered video with the highest resolution in order to
-     * prevent that a new job for a potentially impossible resolution is created all
-     * over again.
-     *
-     * This method checks if the currently rendered video has the highest possible resolution.
-     */
-    private fun checkIsHighestResolution(targetHeight: Int, originalHeight: Int): Boolean {
-        if (videoResolutions.isEmpty()) {
-            throw ConversionException("Video target resolutions are not set")
-        }
-        val maxResolution = videoResolutions.getMaxResolution()
-        if (targetHeight == maxResolution) {
-            return true
-        }
-        if (originalHeight < maxResolution) {
-            return targetHeight == videoResolutions.getResolutions().sorted().last { it <= originalHeight }
-        }
-        return false
-    }
-
-    private fun metaData(originalHeight: Int, targetWidth: Int, targetHeight: Int): Map<String, String> {
-        return mapOf(
-            "isHighestResolution" to checkIsHighestResolution(targetHeight, originalHeight).toString(),
-            "height" to targetHeight.toString(),
-            "width" to targetWidth.toString()
-        )
     }
 }
