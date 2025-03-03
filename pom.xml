@@ -75,7 +75,7 @@
 
       <dependency>
         <groupId>org.edu_sharing</groupId>
-        <artifactId>edu_sharing-community-common-deployment-onxy-compose</artifactId>
+        <artifactId>edu_sharing-community-common-deployment-onyx-compose</artifactId>
         <version>12.2.0.1-0</version>
       </dependency>
 
