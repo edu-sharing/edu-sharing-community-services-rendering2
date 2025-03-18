@@ -150,6 +150,10 @@ const router = (
         res.status(200).end()
     })
 
+    router.get("/edusharing/ping", async (_req, res) => {
+        res.status(200).end()
+    })
+
     return router
 }
 
