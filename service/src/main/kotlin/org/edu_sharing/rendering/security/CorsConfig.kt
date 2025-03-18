@@ -24,7 +24,8 @@ class CorsConfig(
     private final fun init(){
         addAllowedOrigin(appInfo.public.url.cleanUrl())
         addAllowedOrigin(appInfo.internal.url.cleanUrl())
-        // addAllowedOrigin("http://localhost:4200")
+        //addAllowedOrigin("http://localhost:4200")
+        //addAllowedOrigin("http://localhost:11111")
     }
 
     @Bean
@@ -32,9 +33,10 @@ class CorsConfig(
         val config = CorsConfiguration()
         config.allowedOrigins = if (securityEnabled) allowedOrigins else listOf("http://localhost:4200")
         config.allowCredentials = true
-        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization")
+        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info")
         config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
         config.addExposedHeader("Access-Control-Allow-Origin")
+        config.addExposedHeader("Authentication-Info")
         if (securityEnabled) {
             config.addExposedHeader("Access-Control-Allow-Credentials")
         }
