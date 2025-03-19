@@ -6,10 +6,13 @@ import org.edu_sharing.edusharingcommunityservicesdocumentconverter.exception.Fo
 import org.jodconverter.core.document.DefaultDocumentFormatRegistry
 import org.jodconverter.core.document.DocumentFormat
 import org.jodconverter.local.LocalConverter
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import kotlin.io.path.name
 
@@ -33,6 +36,10 @@ class ConversionService (
             .`as`(targetFormat)
             .execute()
 
+        if (targetFormat.name.lowercase() == "html") {
+            return getStyledHtml(outputStream)
+        }
+
         return outputStream
     }
 
@@ -53,5 +60,24 @@ class ConversionService (
     fun getFileName(inputFile: MultipartFile): String {
         val originalName = inputFile.originalFilename ?: throw BadRequestException("File name must not be null.")
         return Paths.get(originalName).name
+    }
+
+    private fun getStyledHtml(outputStream: ByteArrayOutputStream): ByteArrayOutputStream {
+        val htmlString = outputStream.toString(StandardCharsets.UTF_8.name())
+        val document: Document = Jsoup.parse(htmlString)
+        val styleTag = document.head().appendElement("style")
+        styleTag.attr("type", "text/css")
+        styleTag.attr("data-added-by", "Edu-Sharing Document Converter Service")
+        styleTag.append("""
+            table { border-collapse: collapse; }
+            td { border-right: dotted 1px lightslategrey; border-left: dotted 1px lightslategrey; padding: .5em; }
+            td:hover { background-color: lightsalmon; }
+            tr { border: none; }
+            tr:nth-child(odd) { background-color: lightsteelblue; }
+        """.trimIndent())
+        val modifiedOutputStream = ByteArrayOutputStream()
+        modifiedOutputStream.write(document.html().toByteArray(StandardCharsets.UTF_8))
+
+        return modifiedOutputStream
     }
 }
