@@ -51,7 +51,7 @@ class VideoRenderModule (
             originalHeight = originalHeight
         )
 
-        val isConversionType = videoService.isConversionObject(cacheObject, originalHeight)
+        val isConversionType = videoService.isConversionObject(cacheObject)
 
         // Non-conversion type and already in cache
         if (!isConversionType && objectLinks != null ) {
@@ -71,8 +71,7 @@ class VideoRenderModule (
         val jobId = videoService.retrieveOrCreateJob(
             cacheObject = cacheObject,
             module = module(),
-            missingQualities = missingQualities,
-            originalHeight = originalHeight
+            missingQualities = missingQualities
         )
         return RenderDataResponse(objectLinks = objectLinks, jobId = jobId, module = module())
     }

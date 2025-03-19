@@ -15,5 +15,10 @@ class VideoConverterConfig {
     fun isEmpty(): Boolean = resolutions.isEmpty()
     fun getMaxResolution() = getResolutions().max()
     fun getMinResolution() = getResolutions().min()
-    fun getPossibleResolutions(originalHeight: Int?) = getResolutions().filter { it <= (originalHeight ?: Int.MAX_VALUE) }
+    fun getPossibleResolutions(originalHeight: Int?): List<Int> {
+        if (originalHeight != null && originalHeight < getMinResolution()) {
+            return listOf(originalHeight)
+        }
+        return getResolutions().filter { it <= (originalHeight ?: Int.MAX_VALUE) }
+    }
 }

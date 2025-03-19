@@ -32,14 +32,13 @@ class VideoService(
      * is in the interval [x,y] ∀ x,y ∈ app.converter.video.resolutions. Videos with resolutions
      * lower than the smallest defined resolution are not converted and cached as is.
      */
-    fun isConversionObject(cacheObject: CacheObject, originalHeight: Int?): Boolean {
+    fun isConversionObject(cacheObject: CacheObject): Boolean {
         return convertedVideoMimeTypes.contains(cacheObject.mimeType)
-                && targetVideoResolutions.getMinResolution() <= (originalHeight ?: Int.MAX_VALUE)
     }
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null, originalHeight: Int? = null): List<ObjectLink>? {
         // For objects not subject to conversion we simply return the link (if present, null otherwise)
-        if (!isConversionObject(cacheObject, originalHeight)) {
+        if (!isConversionObject(cacheObject)) {
             return try {
                 listOf(storageImplementation.getObjectLink(cacheObject))
             } catch (_: ResourceNotFoundException) {
@@ -69,14 +68,14 @@ class VideoService(
         }
     }
 
-    fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>, originalHeight: Int?): String {
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>): String {
         log.info("Creating main job for: ${cacheObject.nodeId}")
         val existingJobId = mainJobCreationService.getExistingJobId(cacheObject)
         if (existingJobId != null) {
             log.info("Existing job found: $existingJobId")
             return existingJobId
         }
-        val newJobId = mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject, originalHeight))
+        val newJobId = mainJobCreationService.createMainJob(cacheObject, module, missingQualities, isConversionObject(cacheObject))
         log.info("Created main job: $newJobId")
         return newJobId
     }
