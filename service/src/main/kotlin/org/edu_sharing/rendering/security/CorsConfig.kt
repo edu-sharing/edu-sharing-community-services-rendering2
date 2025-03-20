@@ -24,7 +24,7 @@ class CorsConfig(
     private final fun init(){
         addAllowedOrigin(appInfo.public.url.cleanUrl())
         addAllowedOrigin(appInfo.internal.url.cleanUrl())
-        //addAllowedOrigin("http://localhost:4200")
+        addAllowedOrigin("http://localhost:4200")
         //addAllowedOrigin("http://localhost:11111")
     }
 

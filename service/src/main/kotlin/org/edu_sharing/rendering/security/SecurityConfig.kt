@@ -74,7 +74,7 @@ class SecurityConfig(
                 it.configurationSource(corsConfigurationSource)
             }.authorizeHttpRequests {
                 it.requestMatchers(
-                    "/public/metadata", "/public/modules"
+                    "/public/ping", "/public/modules"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }.addFilterBefore(authenticationJwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
