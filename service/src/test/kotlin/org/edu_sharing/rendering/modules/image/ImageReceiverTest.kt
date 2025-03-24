@@ -1,25 +1,47 @@
 package org.edu_sharing.rendering.modules.image
 
-import io.mockk.mockk
+import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import java.awt.image.BufferedImage
 
+@ExtendWith(MockKExtension::class)
 class ImageReceiverTest {
     private val mainJobLogic: MainJobLogic = mockk()
     private val subJobRepository: SubJobRepository = mockk()
     private val conversionService: ImageConversionService = mockk()
     private val mapper = Mapper()
-    private val imageReceiver = ImageReceiver(mainJobLogic, subJobRepository, conversionService, mapper)
 
-    /*@Test
+    private lateinit var underTest: ImageReceiver
+
+    @BeforeEach
+    fun setup() {
+        underTest = ImageReceiver(
+            mainJobLogic = mainJobLogic,
+            subJobRepository = subJobRepository,
+            conversionService = conversionService,
+            mapper = mapper
+        )
+    }
+
+    @Test
     fun testReceiveMessageReturnsEarlyIfNoMainJobFound() {
         // Arrange
         val id = "507f191e810c19729de860ea"
         val subJobMessage = SubJobMessage(id = id)
         every { mainJobLogic.getMainJobEntry(id) } returns null
         // Act
-        imageReceiver.receiveMessage(subJobMessage)
+        underTest.receiveMessage(subJobMessage)
         // Assert
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
         confirmVerified(mainJobLogic)
@@ -41,8 +63,9 @@ class ImageReceiverTest {
         every { conversionService.convert(any(), job.subJobs[0].quality, bufferedImage) } throws Exception()
         justRun { conversionService.convert(any(), job.subJobs[1].quality, bufferedImage) }
         every { mainJobLogic.processMainJob(id) } returns true
+        justRun { conversionService.deleteTempFile(any()) }
         // Act
-        imageReceiver.receiveMessage(subJobMessage)
+        underTest.receiveMessage(subJobMessage)
         // Assert
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
         verify(exactly = 1) { conversionService.fetchSourceImage(any()) }
@@ -50,6 +73,7 @@ class ImageReceiverTest {
         verify(exactly = 1) { conversionService.convert(any(), job.subJobs[0].quality, bufferedImage) }
         verify(exactly = 1) { conversionService.convert(any(), job.subJobs[1].quality, bufferedImage) }
         verify(exactly = 1) { mainJobLogic.processMainJob(id) }
+        verify(exactly = 1) { conversionService.deleteTempFile(any()) }
         assert(job.subJobs[0].status == JobStatus.FAILED)
         assert(job.subJobs[1].status == JobStatus.FINISHED)
         confirmVerified(mainJobLogic, subJobRepository, conversionService)
@@ -94,5 +118,5 @@ class ImageReceiverTest {
         job.subJobs.add(subJob1)
         job.subJobs.add(subJob2)
         return job
-    }*/
+    }
 }

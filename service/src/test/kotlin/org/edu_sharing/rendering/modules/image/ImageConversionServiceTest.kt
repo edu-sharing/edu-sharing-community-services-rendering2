@@ -1,23 +1,35 @@
 package org.edu_sharing.rendering.modules.image
 
-import io.mockk.mockk
+import io.mockk.*
+import io.mockk.junit5.MockKExtension
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import java.io.File
+import javax.imageio.ImageIO
 
-
+@ExtendWith(MockKExtension::class)
 class ImageConversionServiceTest {
     private val storageService: StorageService = mockk()
-    private val imageConversionService = ImageConversionService(storageService)
+    private lateinit var underTest: ImageConversionService
 
-   /* @Test
+    @BeforeEach
+    fun setup() {
+        underTest = ImageConversionService(storageService)
+    }
+
+    @Test
     fun testIfConvertCorrectlyProcessesJpgWithLandscapeOrientation() {
         // Arrange
         val file = File("src/test/resources/fixtures/chernihiv.jpg")
         val sourceImage = ImageIO.read(file)
         val cacheObject = prepareCacheObject()
         justRun {storageService.putObject(cacheObject = any(), inputStream = any(), metadata = any())}
-        imageConversionService.imageFormat = "jpeg"
+        underTest.imageFormat = "jpeg"
         // Act
-        imageConversionService.convert(cacheObject, 100, sourceImage)
+        underTest.convert(cacheObject, 100, sourceImage)
         // Assert
         verify(exactly = 1) {storageService.putObject(
             cacheObject = any(),
@@ -35,9 +47,9 @@ class ImageConversionServiceTest {
         val sourceImage = ImageIO.read(file)
         val cacheObject = prepareCacheObject()
         justRun {storageService.putObject(cacheObject = any(), inputStream = any(), metadata = any())}
-        imageConversionService.imageFormat = "jpeg"
+        underTest.imageFormat = "jpeg"
         // Act
-        imageConversionService.convert(cacheObject, 100, sourceImage)
+        underTest.convert(cacheObject, 100, sourceImage)
         // Assert
         verify(exactly = 1) {storageService.putObject(
             cacheObject = any(),
@@ -49,7 +61,6 @@ class ImageConversionServiceTest {
         confirmVerified(storageService)
     }
 
-
     @Test
     fun testIfFetchSourceImageReturnsImageFetchedByStorageMethod() {
         // Arrange
@@ -58,7 +69,7 @@ class ImageConversionServiceTest {
         val inputStream = file.readBytes().inputStream()
         every { storageService.getObjectStream(cacheObject, true) } returns inputStream
         // Act
-        val result = imageConversionService.fetchSourceImage(cacheObject)
+        val result = underTest.fetchSourceImage(cacheObject)
         // Assert
         assert(result.width == 275)
         assert(result.height == 183)
@@ -73,6 +84,6 @@ class ImageConversionServiceTest {
             type = "file-image",
             repoId = "repo123"
         )
-    }*/
+    }
 
 }

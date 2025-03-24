@@ -1,10 +1,17 @@
 package org.edu_sharing.rendering.modules.image
 
+import io.mockk.confirmVerified
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
+import io.mockk.verify
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -22,7 +29,7 @@ class ImageServiceTest {
         repoId = "repo123"
     )
 
-    /*@BeforeEach
+    @BeforeEach
     fun setup() {
         underTest = ImageService(storageService, mainJobService)
         underTest.convertedImageMimeTypes = listOf("image/jpeg", "image/png")
@@ -66,7 +73,6 @@ class ImageServiceTest {
         assert(underTest.getObjectLinks(cacheObject) == null)
         verify(exactly = 1) { storageService.getObjectLink(cacheObject) }
         confirmVerified(storageService)
-
     }
 
     @Test
@@ -87,61 +93,61 @@ class ImageServiceTest {
         confirmVerified(storageService)
     }
 
-    @Test
-    fun testGetObjectLinksReturnsLinksForAlreadyCachedLinksWithDefaultResolutionsIfNotProvidedOtherwise() {
-        // Arrange
+        @Test
+        fun testGetObjectLinksReturnsLinksForAlreadyCachedLinksWithDefaultResolutionsIfNotProvidedOtherwise() {
+            // Arrange
 
-        val lookupObject1 = cacheObject.copy()
-        val lookupObject2 = cacheObject.copy()
+            val lookupObject1 = cacheObject.copy()
+            val lookupObject2 = cacheObject.copy()
 
-        lookupObject1.mimeType = "image/jpeg"
-        lookupObject1.quality = 100
+            lookupObject1.mimeType = "image/jpeg"
+            lookupObject1.quality = 100
 
-        lookupObject2.mimeType = "image/jpeg"
-        lookupObject2.quality = 200
+            lookupObject2.mimeType = "image/jpeg"
+            lookupObject2.quality = 200
 
-        val objectLink1 = ObjectLink(link = "link1")
+            val objectLink1 = ObjectLink(link = "link1")
 
-        every { storageService.getObjectLink(lookupObject1) } returns objectLink1
-        every { storageService.getObjectLink(lookupObject2) } throws ResourceNotFoundException("")
+            every { storageService.getObjectLink(lookupObject1) } returns objectLink1
+            every { storageService.getObjectLink(lookupObject2) } throws ResourceNotFoundException("")
 
-        // Act
-        val result = underTest.getObjectLinks(cacheObject)
+            // Act
+            val result = underTest.getObjectLinks(cacheObject)
 
-        // Assert
-        assert(result?.size == 1)
-        assert(result?.first() == objectLink1)
+            // Assert
+            assert(result?.size == 1)
+            assert(result?.first() == objectLink1)
 
-        verify(exactly = 2) {
-            storageService.getObjectLink(any<CacheObject>())
+            verify(exactly = 2) {
+                storageService.getObjectLink(any<CacheObject>())
+            }
+            confirmVerified(storageService)
         }
-        confirmVerified(storageService)
-    }
 
-    @Test
-    fun testGetObjectLinksReturnsLinksForProvidedResolution() {
-        // Arrange
-        val lookupObject1 = cacheObject.copy()
+        @Test
+        fun testGetObjectLinksReturnsLinksForProvidedResolution() {
+            // Arrange
+            val lookupObject1 = cacheObject.copy()
 
-        lookupObject1.mimeType = "image/jpeg"
-        lookupObject1.quality = 233
+            lookupObject1.mimeType = "image/jpeg"
+            lookupObject1.quality = 233
 
-        val objectLink1 = ObjectLink(link = "link1")
+            val objectLink1 = ObjectLink(link = "link1")
 
-        every { storageService.getObjectLink(lookupObject1) } returns objectLink1
+            every { storageService.getObjectLink(lookupObject1) } returns objectLink1
 
-        // Act
-        val result = underTest.getObjectLinks(cacheObject, 233)
+            // Act
+            val result = underTest.getObjectLinks(cacheObject, 233)
 
-        // Assert
-        assert(result?.size == 1)
-        assert(result?.first() == objectLink1)
+            // Assert
+            assert(result?.size == 1)
+            assert(result?.first() == objectLink1)
 
-        verify(exactly = 1) {
-            storageService.getObjectLink(any<CacheObject>())
+            verify(exactly = 1) {
+                storageService.getObjectLink(any<CacheObject>())
+            }
+            confirmVerified(storageService)
         }
-        confirmVerified(storageService)
-    }
 
     @Test
     fun testGetObjectLinksReturnsNullIfNoLinksAreFound() {
@@ -215,5 +221,5 @@ class ImageServiceTest {
 
         // Assert
         assert(result == "new-job-id")
-    }*/
+    }
 }
