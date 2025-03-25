@@ -41,7 +41,7 @@ class LumiContentManagementService(
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
-                    .path("contentBucketInfo/edusharing/contentid/$contentId")
+                    .path("edusharing/contentid/$contentId")
                     .build(true)
                     .toUri()
                 uri

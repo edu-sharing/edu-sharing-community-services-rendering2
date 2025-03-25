@@ -1,12 +1,27 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import io.mockk.every
+import io.mockk.junit5.MockKExtension
+import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.verifySequence
+import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
+import java.util.*
 
+@ExtendWith(MockKExtension::class)
 class H5pUploadServiceTest {
 
     private lateinit var underTest: H5pUploadService
@@ -22,9 +37,10 @@ class H5pUploadServiceTest {
 
     // Mock the dependencies
     private val mockContentTransferService = mockk<ContentTransferService>()
-    private val mockLumiContentManagementService = mockk<LumiContentManagementService>()
+    private val lumiContentManagementService = mockk<LumiContentManagementService>()
+    private val trackingService = mockk<TrackingService>()
 
-    /*@BeforeEach
+    @BeforeEach
     fun setup() {
         mockWebServer = MockWebServer()
         mockWebServer.start()
@@ -34,7 +50,8 @@ class H5pUploadServiceTest {
             .build()
 
         // Initialize your service with mocked dependencies
-        underTest = H5pUploadService(mockContentTransferService, webClient, mockLumiContentManagementService)
+        underTest =
+            H5pUploadService(mockContentTransferService, webClient, lumiContentManagementService, trackingService)
     }
 
     @AfterEach
@@ -51,7 +68,9 @@ class H5pUploadServiceTest {
             hash = dummyCacheObject.hash
         )
 
-        every { mockLumiContentManagementService.setCache(nodeInfo) } returns nodeInfo
+        every { lumiContentManagementService.setCache(nodeInfo) } returns nodeInfo
+        every { lumiContentManagementService.getContentBucket() } returns "contentBucket123"
+        justRun { trackingService.trackCacheObject(dummyCacheObject, "contentBucket123") }
 
         val expectedContentId = "expectedContentId"
         val mockResponse = MockResponse()
@@ -65,10 +84,9 @@ class H5pUploadServiceTest {
 
         // Assert
         val request = mockWebServer.takeRequest()
-        assertThat(request.path).isEqualTo("/edusharing/nodeid/${dummyCacheObject.nodeId}_${dummyCacheObject.hash}")
-        assertThat(request.method).isEqualTo("GET")
-
-        assertThat(returnedId).isEqualTo(expectedContentId)
+        assert(request.path == "/edusharing/nodeid/${dummyCacheObject.nodeId}_${dummyCacheObject.hash}")
+        assert(request.method == "GET")
+        assert(returnedId == expectedContentId)
     }
 
     @Test
@@ -84,7 +102,9 @@ class H5pUploadServiceTest {
 
         every { mockContentTransferService.getAsInputStream(dummyCacheObject) } returns testFileContent.toByteArray()
             .inputStream()
-        every { mockLumiContentManagementService.setCache(nodeInfo) } returns nodeInfo
+        every { lumiContentManagementService.setCache(nodeInfo) } returns nodeInfo
+        every { lumiContentManagementService.getContentBucket() } returns "contentBucket123"
+        justRun { trackingService.trackCacheObject(dummyCacheObject, "contentBucket123") }
 
         val expectedContentId = "expectedContentId"
         val getCachedContentIdResponse = MockResponse().setResponseCode(404)
@@ -105,25 +125,35 @@ class H5pUploadServiceTest {
         mockWebServer.takeRequest()
         val request = mockWebServer.takeRequest()
         val body = request.body.readUtf8()
-        assertThat(body).contains("name=\"file\"; filename=\"${dummyCacheObject.nodeId}_${dummyCacheObject.hash}.h5p\"")
-        assertThat(body).contains(testFileContent)
-        assertThat(body).contains("name=\"nodeId\"")
-        assertThat(body).contains("${dummyCacheObject.nodeId}_${dummyCacheObject.hash}")
-        assertThat(returnedId).isEqualTo(expectedContentId)
+        assert(body.contains("name=\"file\"; filename=\"${dummyCacheObject.nodeId}_${dummyCacheObject.hash}.h5p\""))
+        assert(body.contains(testFileContent))
+        assert(body.contains("name=\"nodeId\""))
+        assert(body.contains("${dummyCacheObject.nodeId}_${dummyCacheObject.hash}"))
+        assert(returnedId == expectedContentId)
 
-        verify(exactly = 1) { mockContentTransferService.getAsInputStream(dummyCacheObject) }
-        verify(exactly = 1) { mockLumiContentManagementService.setCache(nodeInfo) }
-        confirmVerified(mockLumiContentManagementService, mockContentTransferService)
+        verifySequence {
+            lumiContentManagementService.getContentBucket()
+            trackingService.trackCacheObject(dummyCacheObject, "contentBucket123")
+            mockContentTransferService.getAsInputStream(dummyCacheObject)
+            lumiContentManagementService.setCache(nodeInfo)
+        }
     }
 
     @Test
     fun testGetContentIdThrowsExceptionIfGetCachedIdThrowsException() {
         // Arrange
+        every { lumiContentManagementService.getContentBucket() } returns "contentBucket123"
+        justRun { trackingService.trackCacheObject(dummyCacheObject, "contentBucket123") }
         val mockResponse = MockResponse().setResponseCode(500)
         mockWebServer.enqueue(mockResponse)
 
         // Act and assert
         assertThrows<Exception> { underTest.getContentId(dummyCacheObject) }
+
+        verifySequence {
+            lumiContentManagementService.getContentBucket()
+            trackingService.trackCacheObject(dummyCacheObject, "contentBucket123")
+        }
     }
 
     @Test
@@ -133,6 +163,8 @@ class H5pUploadServiceTest {
 
         every { mockContentTransferService.getAsInputStream(dummyCacheObject) } returns testFileContent.toByteArray()
             .inputStream()
+        every { lumiContentManagementService.getContentBucket() } returns "contentBucket123"
+        justRun { trackingService.trackCacheObject(dummyCacheObject, "contentBucket123") }
 
         val getCachedContentIdResponse = MockResponse().setResponseCode(404)
         val uploadContentResponse: MockResponse = MockResponse().setResponseCode(400)
@@ -142,5 +174,11 @@ class H5pUploadServiceTest {
 
         // Act and assert
         assertThrows<Exception> { underTest.getContentId(dummyCacheObject) }
-    }*/
+
+        verifySequence {
+            lumiContentManagementService.getContentBucket()
+            trackingService.trackCacheObject(dummyCacheObject, "contentBucket123")
+            mockContentTransferService.getAsInputStream(dummyCacheObject)
+        }
+    }
 }

@@ -1,13 +1,21 @@
 package org.edu_sharing.rendering.modules.h5p
 
-import io.mockk.mockk
+import io.mockk.*
 import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.config.H5P_BASE_PATH
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 
 class H5PReceiverTest {
@@ -36,7 +44,7 @@ class H5PReceiverTest {
         appInfo.public = AppInfo.ConnectionInfo("http", "localhost", 80, "", "http://localhost:80", )
     }
 
-    /*@Test
+    @Test
     fun testReceiveMessageSetsSubJobToFinishedIfUploadSucceeds() {
 
         // Arrange
@@ -79,7 +87,7 @@ class H5PReceiverTest {
         val expectedStatusSequence = mutableListOf(JobStatus.PROCESSING, JobStatus.FINISHED)
         assert(statusList == expectedStatusSequence)
 
-        assert(subJob.message == "http://localhost$H5P_BASE_PATH/contentId")
+        assert(subJob.message == "http://localhost:80$H5P_BASE_PATH/contentId")
 
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         verify(exactly = 1) { renderingJobRepository.save(any()) }
@@ -104,6 +112,7 @@ class H5PReceiverTest {
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         confirmVerified(mainJobLogic)
     }
+
 
     @Test
     fun testReceiveMessageJustReturnsIfMainJobHasNoSubJobs() {
@@ -173,5 +182,5 @@ class H5PReceiverTest {
         verify(exactly = 1) { h5pUploadService.getContentId(any()) }
         verify(exactly = 1) { mainJobLogic.processMainJob(any()) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, h5pUploadService)
-    }*/
+    }
 }

@@ -1,20 +1,27 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
 
 @ExtendWith(MockKExtension::class)
 class H5pJobServiceTest {
-    private val jobRepoMock = mockk<RenderingJobRepository>()
-    private val subJobRepoMock = mockk<SubJobRepository>()
-    private val mapperMock = mockk<Mapper>()
-    private val amqpTemplateMock = mockk<AmqpTemplate>()
+    private val jobRepository = mockk<RenderingJobRepository>()
+    private val subJobRepository = mockk<SubJobRepository>()
+    private val mapper = mockk<Mapper>()
+    private val amqpTemplate = mockk<AmqpTemplate>()
     private val jobDataProvider = JobDataProvider()
 
     private lateinit var underTest: H5pJobService
@@ -33,14 +40,15 @@ class H5pJobServiceTest {
         replicationSourceId = null,
         url = null
     )
+    */
 
     @BeforeEach
     fun setup() {
         underTest = H5pJobService(
-            mapper = mapperMock,
-            jobRepository = jobRepoMock,
-            subJobRepository = subJobRepoMock,
-            amqpTemplate = amqpTemplateMock
+            mapper = mapper,
+            jobRepository = jobRepository,
+            subJobRepository = subJobRepository,
+            amqpTemplate = amqpTemplate,
         )
         underTest.jobRoutingKey = "routingkey"
         underTest.topicExchangeName = "exchange"
@@ -51,32 +59,42 @@ class H5pJobServiceTest {
     fun testCreateJobReturnsExistingJobIfFound() {
         // Arrange
         val renderingJob = jobDataProvider.getJobWithoutSubJobs("EDUHTML")
-        every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns listOf(renderingJob)
+        val node = mockk<Node>()
+
+        every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns listOf(renderingJob)
+        every { node.ref.id } returns "dummyNodeId"
 
         // Act
-        val result = underTest.createJob(request, "EDUHTML")
+        val result = underTest.createJob(node, "EDUHTML")
 
         // Assert
         assert(result == JobDataProvider.DUMMY_JOB_ID)
 
-        verify(exactly = 1) { jobRepoMock.findAllByEsObjectId("dummyNodeId") }
-        confirmVerified(jobRepoMock)
+        verify(exactly = 1) { jobRepository.findAllByEsObjectId("dummyNodeId") }
+        confirmVerified(jobRepository)
     }
 
     @Test
     fun testCreateJobCreatesJobAndReturnsJobIdIfNoExistingJobFound() {
         // Arrange
         val dummyJob = jobDataProvider.getJobWithoutSubJobs()
-        every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns emptyList()
-        every { mapperMock.renderDataRequestToRenderingJob(request, "H5P") } returns dummyJob
-        every { jobRepoMock.save(dummyJob) } returns dummyJob
+        val node = mockk<Node>()
+
+        every { node.ref.id } returns "dummyNodeId"
+        every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns emptyList()
+        every { mapper.nodeToRenderingJob(node, "H5P", true) } returns dummyJob
+        every { jobRepository.save(dummyJob) } returns dummyJob
         val subJobSlot = slot<SubJob>()
-        every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
+        every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
+        justRun { amqpTemplate.convertAndSend("exchange", "routingkey", message) }
+
+        excludeRecords {
+            node.ref.id
+        }
 
         // Act
-        val result = underTest.createJob(request, "H5P")
+        val result = underTest.createJob(node, "H5P")
 
         // Assert
         assert(subJobSlot.captured.routingKey == "routingkey")
@@ -86,11 +104,11 @@ class H5pJobServiceTest {
         assert(result == dummyJob.id.toString())
 
         verifySequence {
-            jobRepoMock.findAllByEsObjectId("dummyNodeId")
-            mapperMock.renderDataRequestToRenderingJob(request, "H5P")
-            jobRepoMock.save(dummyJob)
-            subJobRepoMock.save(any())
-            amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
+            jobRepository.findAllByEsObjectId("dummyNodeId")
+            mapper.nodeToRenderingJob(node, "H5P", true)
+            jobRepository.save(dummyJob)
+            subJobRepository.save(any())
+            amqpTemplate.convertAndSend("exchange", "routingkey", message)
         }
     }
 
@@ -99,21 +117,24 @@ class H5pJobServiceTest {
         // Arrange
         val finishedJob = mockk<RenderingJob>()
         val dummyJob = jobDataProvider.getJobWithoutSubJobs()
+        val node = mockk<Node>()
+
+        every { node.ref.id } returns "dummyNodeId"
         every { finishedJob.status } returns JobStatus.FINISHED
-        every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
-        every { mapperMock.renderDataRequestToRenderingJob(request, "H5P") } returns dummyJob
-        every { jobRepoMock.save(dummyJob) } returns dummyJob
+        every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
+        every { mapper.nodeToRenderingJob(node, "H5P", true) } returns dummyJob
+        every { jobRepository.save(dummyJob) } returns dummyJob
         val subJobSlot = slot<SubJob>()
-        every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
+        every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
+        justRun { amqpTemplate.convertAndSend("exchange", "routingkey", message) }
 
         excludeRecords {
             finishedJob.status
         }
 
         // Act
-        val result = underTest.createJob(request, "H5P")
+        val result = underTest.createJob(node, "H5P")
 
         // Assert
         assert(subJobSlot.captured.routingKey == "routingkey")
@@ -122,11 +143,11 @@ class H5pJobServiceTest {
         assert(result == dummyJob.id.toString())
 
         verifySequence {
-            jobRepoMock.findAllByEsObjectId("dummyNodeId")
-            mapperMock.renderDataRequestToRenderingJob(request, "H5P")
-            jobRepoMock.save(dummyJob)
-            subJobRepoMock.save(any())
-            amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
+            jobRepository.findAllByEsObjectId("dummyNodeId")
+            mapper.nodeToRenderingJob(node, "H5P", true)
+            jobRepository.save(dummyJob)
+            subJobRepository.save(any())
+            amqpTemplate.convertAndSend("exchange", "routingkey", message)
         }
-    }*/
+    }
 }
