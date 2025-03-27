@@ -60,6 +60,23 @@ class SecurityConfig(
 
 
     @Bean
+    @Order(0)
+    fun probeFilterChain(
+        httpSecurity: HttpSecurity
+    ): SecurityFilterChain {
+        return httpSecurity
+            .csrf {
+                it.disable()
+            }.authorizeHttpRequests {
+                it.requestMatchers(
+                    "/actuator/health/*", "/actuator/prometheus", "/ping"
+                ).permitAll()
+                it.anyRequest().authenticated()
+            }
+            .build()
+    }
+
+    @Bean
     @Order(1)
     fun publicAPIFilterChain(
         httpSecurity: HttpSecurity,
@@ -74,7 +91,7 @@ class SecurityConfig(
                 it.configurationSource(corsConfigurationSource)
             }.authorizeHttpRequests {
                 it.requestMatchers(
-                    "/public/ping", "/public/modules"
+                    "/public/modules"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }.addFilterBefore(authenticationJwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
