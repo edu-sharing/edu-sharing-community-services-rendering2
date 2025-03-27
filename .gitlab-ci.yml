@@ -52,6 +52,9 @@ build-jupyter-converter:
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^maven\/release\/.*/ && $CI_PIPELINE_SOURCE == "pipeline"
     - if: $CI_COMMIT_BRANCH !~ /^maven\/release\/.*/ && $CI_COMMIT_TAG == null
+  before_script:
+    - apt-get update -y
+    - apt-get install -y unzip
   script:
     - cd ./jupyter-converter
     - docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
