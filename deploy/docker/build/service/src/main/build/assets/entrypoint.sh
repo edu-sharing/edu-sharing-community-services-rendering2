@@ -46,4 +46,4 @@ for var in $(env | grep 'app.repository.registration.id.*.url' | cut -d'=' -f2);
   done
 done
 
-sh -c "$*"
+exec sh -c "$@"

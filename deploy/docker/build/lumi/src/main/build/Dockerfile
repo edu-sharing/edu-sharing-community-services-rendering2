@@ -18,6 +18,6 @@ USER node
 #TODO aktivate profiling...
 
 COPY --chown=node:node artifacts ./
-ENTRYPOINT ["entrypoint.sh", "exec node ${NODE_OPTS} dist/index.js"]
+ENTRYPOINT ["entrypoint.sh", "node ${NODE_OPTS} dist/index.js"]
 
 EXPOSE 3000
