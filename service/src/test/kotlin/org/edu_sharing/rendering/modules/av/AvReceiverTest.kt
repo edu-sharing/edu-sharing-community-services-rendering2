@@ -1,22 +1,29 @@
 package org.edu_sharing.rendering.modules.av
 
-import io.mockk.mockk
+import io.mockk.*
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoRenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Test
+import org.springframework.data.repository.findByIdOrNull
 
 class AvReceiverTest {
     private val mainJobLogic: MainJobLogic = mockk()
     private val subJobRepository: SubJobRepository = mockk()
     private val audioConversionService: AudioConversionService = mockk()
     private val videoConversionService: VideoConversionService = mockk()
-    private val mapper = Mapper()
+    private val mapper = mockk<Mapper>()
     private val storageService: StorageService = mockk()
     private val audioModule: AudioRenderModule = mockk()
     private val videoModule: VideoRenderModule = mockk()
@@ -32,7 +39,7 @@ class AvReceiverTest {
     )
     private val jobDataProvider = JobDataProvider()
 
-    /*@Test
+    @Test
     fun testReceiveMessageReturnsEarlyIfNoJobFound() {
         // Arrange
         val message = SubJobMessage(
@@ -73,8 +80,7 @@ class AvReceiverTest {
     fun testReceiveMessageReturnsEarlyIfMatchingSubJobNotInMainJob() {
         // Arrange
         val message = SubJobMessage(
-            id = JobDataProvider.DUMMY_JOB_ID,
-            quality = 720
+            id = JobDataProvider.DUMMY_JOB_ID, quality = 720
         )
         val job = jobDataProvider.getJobWithoutSubJobs()
         val notMatchingSubJob = jobDataProvider.getDummySubJob(
@@ -103,8 +109,7 @@ class AvReceiverTest {
     fun testReceiveMessageSetsSubJobToFailedIfConversionFails() {
         //Arrange
         val message = SubJobMessage(
-            id = JobDataProvider.DUMMY_JOB_ID,
-            quality = 720
+            id = JobDataProvider.DUMMY_JOB_ID, quality = 720
         )
         val job = jobDataProvider.getJobWithoutSubJobs("VIDEO")
         val matchingSubJob = jobDataProvider.getDummySubJob(
@@ -122,9 +127,11 @@ class AvReceiverTest {
             status = JobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob, notMatchingSubJob)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
+        val cacheObject = mockk<CacheObject>()
 
         every { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { cacheObject.deepCopy() } returns cacheObject
         val subJobSlot = slot<SubJob>()
         val statusList = mutableListOf<JobStatus>()
         val qualityList = mutableListOf<Int>()
@@ -138,41 +145,46 @@ class AvReceiverTest {
         }
         every {
             videoConversionService.convert(
-                cacheObject,
-                any()
+                cacheObject, any()
             )
         } throws Exception()
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns false
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
+        every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
 
         //Act
         underTest.receiveMessage(message)
 
         //Assert
-        assert(statusList.size == 2)
+        assert(statusList.size == 3)
         assert(statusList[0] == JobStatus.PROCESSING)
-        assert(statusList[1] == JobStatus.FAILED)
-        assert(qualityList[0] == 720)
-        assert(qualityList[1] == 720)
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) }
-        verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) {
-            videoConversionService.convert(
-                any(),
-                any()
-            )
+        assert(statusList[1] == JobStatus.PROCESSING)
+        assert(statusList[2] == JobStatus.FAILED)
+        assert(qualityList.size == 3)
+        assert(qualityList.none { it != 720 })
+
+        verifySequence {
+            mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID)
+            mapper.renderingJobToCacheObject(job)
+            subJobRepository.save(any())
+            audioModule.module()
+            videoModule.module()
+            cacheObject.deepCopy()
+            videoConversionService.convert(any(), any())
+            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
+            subJobRepository.save(any())
+            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
+            subJobRepository.save(any())
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
         }
-        verify(exactly = 1) { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) }
-        confirmVerified(mainJobLogic, subJobRepository, videoConversionService)
     }
 
     @Test
     fun testReceiveMessageSetsSubJobToFinishedIfConversionSucceeds() {
         //Arrange
         val message = SubJobMessage(
-            id = JobDataProvider.DUMMY_JOB_ID,
-            quality = 720
+            id = JobDataProvider.DUMMY_JOB_ID, quality = 720
         )
         val job = jobDataProvider.getJobWithoutSubJobs("VIDEO")
         val matchingSubJob = jobDataProvider.getDummySubJob(
@@ -190,9 +202,11 @@ class AvReceiverTest {
             status = JobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob, notMatchingSubJob)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-
+        val cacheObject = mockk<CacheObject>()
         every { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { cacheObject.deepCopy() } returns cacheObject
+
         val subJobSlot = slot<SubJob>()
         val statusList = mutableListOf<JobStatus>()
         val subIdSet = mutableSetOf<String>()
@@ -203,9 +217,11 @@ class AvReceiverTest {
             matchingSubJob
         }
         justRun { videoConversionService.convert(cacheObject, matchingSubJob) }
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns false
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
+        every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
+
 
         //Act
         underTest.receiveMessage(message)
@@ -215,54 +231,86 @@ class AvReceiverTest {
 
         assert(statusList == expectedStatusSequence)
         assert(subIdSet.size == 1)
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) }
-        verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) {
-            videoConversionService.convert(
-                cacheObject,
-                matchingSubJob
-            )
+
+        verifySequence {
+            mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID)
+            mapper.renderingJobToCacheObject(job)
+            subJobRepository.save(any())
+            audioModule.module()
+            videoModule.module()
+            cacheObject.deepCopy()
+            videoConversionService.convert(any(), any())
+            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
+            subJobRepository.save(any())
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
         }
-        verify(exactly = 1) { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) }
-        confirmVerified(mainJobLogic, subJobRepository, videoConversionService)
     }
 
     @Test
     fun testReceiveMessageRemovesTempObjectFromBucketIfProcessMainJobReturnsTrue() {
         //Arrange
         val message = SubJobMessage(
-            id = JobDataProvider.DUMMY_JOB_ID,
-            quality = 0
+            id = JobDataProvider.DUMMY_JOB_ID, quality = 720
         )
-        val job = jobDataProvider.getJobWithoutSubJobs("AUDIO")
+        val job = jobDataProvider.getJobWithoutSubJobs("VIDEO")
         val matchingSubJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_1,
-            mimeType = "audio/ogg",
-            module = "AUDIO",
-            quality = 0,
+            mimeType = "video/mp4",
+            module = "VIDEO",
+            quality = 720,
             status = JobStatus.QUEUED
         )
-        job.subJobs = mutableListOf(matchingSubJob)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
+        val notMatchingSubJob = jobDataProvider.getDummySubJob(
+            subId = JobDataProvider.SUB_ID_2,
+            mimeType = "video/mp4",
+            module = "VIDEO",
+            quality = 1080,
+            status = JobStatus.QUEUED
+        )
+        job.subJobs = mutableListOf(matchingSubJob, notMatchingSubJob)
+        val cacheObject = mockk<CacheObject>()
+        every { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { cacheObject.deepCopy() } returns cacheObject
 
-        every { mainJobLogic.getMainJobEntry(any()) } returns job
-        every { subJobRepository.save(any()) } returns matchingSubJob
-        justRun { audioConversionService.convert(any(), any()) }
-        every { mainJobLogic.processMainJob(any()) } returns true
-        justRun { storageService.removeObject(cacheObject, true) }
+        val subJobSlot = slot<SubJob>()
+        val statusList = mutableListOf<JobStatus>()
+        val subIdSet = mutableSetOf<String>()
+        every { subJobRepository.save(capture(subJobSlot)) } answers {
+            statusList.add(subJobSlot.captured.status)
+            subIdSet.add(subJobSlot.captured.id.toString())
+
+            matchingSubJob
+        }
+        justRun { videoConversionService.convert(cacheObject, matchingSubJob) }
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns true
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
+        every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
+        justRun { storageService.removeObject(cacheObject, true) }
 
         //Act
         underTest.receiveMessage(message)
 
         //Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(any()) }
-        verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 1) { audioConversionService.convert(any(), any()) }
-        verify(exactly = 1) { mainJobLogic.processMainJob(any()) }
-        verify(exactly = 1) { storageService.removeObject(cacheObject, true) }
-        confirmVerified(mainJobLogic, subJobRepository, audioConversionService, storageService)
+        val expectedStatusSequence = mutableListOf(JobStatus.PROCESSING, JobStatus.FINISHED)
+
+        assert(statusList == expectedStatusSequence)
+        assert(subIdSet.size == 1)
+
+        verifySequence {
+            mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID)
+            mapper.renderingJobToCacheObject(job)
+            subJobRepository.save(any())
+            audioModule.module()
+            videoModule.module()
+            cacheObject.deepCopy()
+            videoConversionService.convert(any(), any())
+            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
+            subJobRepository.save(any())
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
+            storageService.removeObject(cacheObject, true)
+        }
     }
 
     @Test
@@ -281,9 +329,11 @@ class AvReceiverTest {
             status = JobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-
+        val cacheObject = mockk<CacheObject>()
         every { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { cacheObject.deepCopy() } returns cacheObject
+
         val subJobSlot = slot<SubJob>()
         val statusList = mutableListOf<JobStatus>()
         val messageList = mutableListOf<String>()
@@ -293,21 +343,37 @@ class AvReceiverTest {
 
             matchingSubJob
         }
-
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
-
+        every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns false
 
         //Act
         underTest.receiveMessage(message)
 
         // Assert
-        assert(statusList.size == 2)
+        assert(statusList.size == 3)
         assert(statusList[0] == JobStatus.PROCESSING)
-        assert(statusList[0] == JobStatus.PROCESSING)
-        assert(messageList.size == 2)
+        assert(statusList[1] == JobStatus.PROCESSING)
+        assert(statusList[2] == JobStatus.FAILED)
+
+        assert(messageList.size == 3)
         assert(messageList[0].isBlank())
         assert(messageList[1] == "${AvReceiver.MODULE_NOT_SUPPORTED_ERROR} NONSENSE")
-    }*/
+        assert(messageList[2] == "${AvReceiver.MODULE_NOT_SUPPORTED_ERROR} NONSENSE")
+
+        verifySequence {
+            mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID)
+            mapper.renderingJobToCacheObject(job)
+            subJobRepository.save(any())
+            audioModule.module()
+            videoModule.module()
+            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
+            subJobRepository.save(any())
+            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
+            subJobRepository.save(any())
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
+        }
+
+    }
 }

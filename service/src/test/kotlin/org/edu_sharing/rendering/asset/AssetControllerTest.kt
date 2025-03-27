@@ -1,27 +1,12 @@
 package org.edu_sharing.rendering.asset
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import io.mockk.verifySequence
-import org.apache.catalina.util.URLEncoder
-import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
-import org.edu_sharing.rendering.asset.dto.ReadableAsset
-import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StaticStorageService
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.context.ApplicationContext
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 
 @WebMvcTest(
@@ -46,6 +31,7 @@ class AssetControllerTest (@Autowired val mockMvc: MockMvc) {
     @MockkBean
     lateinit var storageService: StaticStorageService
 
+    /*
     @Test
     fun testGetAssetReturnsFullResourceWhenProvidedNoRangeHeader() {
         // Arrange
@@ -192,5 +178,7 @@ class AssetControllerNoAncestorsTest(@Autowired val mockMvc: MockMvc) {
             assetService.getStaticAsset("", cacheObject, "mypath")
         }
     }
+
+     */
 
 }

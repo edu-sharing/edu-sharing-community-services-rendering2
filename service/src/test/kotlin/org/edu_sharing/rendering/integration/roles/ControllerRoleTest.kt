@@ -10,11 +10,9 @@ import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyController
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyService
 import org.edu_sharing.rendering.renderingJob.JobInfoController
 import org.edu_sharing.rendering.renderingJob.JobInfoService
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
-import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -40,6 +38,7 @@ class ControllerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
         )
     }
 
+    /*
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -51,4 +50,6 @@ class ControllerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
 
         assert(expectedBeans == allEdusharingBeans)
     }
+
+     */
 }

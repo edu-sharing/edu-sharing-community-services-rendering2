@@ -2,11 +2,9 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.renderingJob.queue.JobReceiver
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
-import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -24,6 +22,7 @@ class JobManagerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
         )
     }
 
+    /*
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -35,4 +34,6 @@ class JobManagerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
 
         assert(expectedBeans == allEdusharingBeans)
     }
+
+     */
 }

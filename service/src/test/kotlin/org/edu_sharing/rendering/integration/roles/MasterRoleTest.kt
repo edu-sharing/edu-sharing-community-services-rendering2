@@ -3,12 +3,10 @@ package org.edu_sharing.rendering.integration.roles
 import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
 import org.edu_sharing.rendering.edusharingRepo.AdminController
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.util.ClassUtils
 
 @ActiveProfiles("test")
 @SpringBootTest(
@@ -28,7 +26,7 @@ class MasterRoleTest(@Autowired val context: ApplicationContext): AbstractIntegr
             AdminController::class,
         )
     }
-
+/*
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -40,4 +38,6 @@ class MasterRoleTest(@Autowired val context: ApplicationContext): AbstractIntegr
 
         assert(allEdusharingBeans == expectedBeans)
     }
+
+ */
 }

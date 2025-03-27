@@ -1,15 +1,20 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import io.mockk.mockk
+import io.mockk.*
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class AudioServiceTest {
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
     private lateinit var service: AudioService
 
-/*    @BeforeEach
+    @BeforeEach
     fun setUp() {
         service = AudioService(
             storageImplementation = storageService,
@@ -36,7 +41,8 @@ class AudioServiceTest {
     @Test
     fun testGetObjectLinksReturnsLinkIfAlreadyCached() {
         // Arrange
-        val cacheObject = CacheObject(nodeId = "123", type = "audio", hash = "abc123", mimeType = "audio/wav", repoId = "repo123")
+        val cacheObject =
+            CacheObject(nodeId = "123", type = "audio", hash = "abc123", mimeType = "audio/wav", repoId = "repo123")
         val objectLink = ObjectLink(link = "mylink")
         val lookupObject = cacheObject.copy()
         lookupObject.mimeType = "audio/mpeg"
@@ -50,7 +56,7 @@ class AudioServiceTest {
         // Assert
         assert(result == mutableListOf(objectLink))
 
-        verify (exactly = 1) { storageService.getObjectLink(lookupObject) }
+        verify(exactly = 1) { storageService.getObjectLink(lookupObject) }
 
         confirmVerified(storageService)
     }
@@ -58,7 +64,8 @@ class AudioServiceTest {
     @Test
     fun testGetObjectLinksReturnsLinkIfAlreadyCachedAndNotConversionObject() {
         // Arrange
-        val cacheObject = CacheObject(nodeId = "123", type = "audio", hash = "abc123", mimeType = "audio/mpeg", repoId = "repo123")
+        val cacheObject =
+            CacheObject(nodeId = "123", type = "audio", hash = "abc123", mimeType = "audio/mpeg", repoId = "repo123")
         val objectLink = ObjectLink(link = "mylink")
         val objectLinkList = listOf(objectLink)
 
@@ -70,7 +77,7 @@ class AudioServiceTest {
         // Assert
         assert(result == objectLinkList)
 
-        verify (exactly = 1) { storageService.getObjectLink(cacheObject = cacheObject) }
+        verify(exactly = 1) { storageService.getObjectLink(cacheObject = cacheObject) }
 
         confirmVerified(storageService)
     }
@@ -78,7 +85,8 @@ class AudioServiceTest {
     @Test
     fun testGetObjectLinksReturnsNullIfNotCachedAndConversionObject() {
         // Arrange
-        val cacheObject = CacheObject(nodeId = "123", type = "audio", hash = "abc123", mimeType = "audio/wav", repoId = "repo123")
+        val cacheObject =
+            CacheObject(nodeId = "123", type = "audio", hash = "abc123", mimeType = "audio/wav", repoId = "repo123")
         val lookupObject = cacheObject.copy()
         lookupObject.mimeType = "audio/mpeg"
         lookupObject.quality = 100
@@ -94,20 +102,21 @@ class AudioServiceTest {
         verify(exactly = 1) { storageService.getObjectLink(lookupObject) }
         confirmVerified(storageService)
     }
-   @Test
-   fun testRetrieveOrCreateJobReturnsExistingJobIdIfFound() {
-       // Arrange
-       val cacheObject = CacheObject(nodeId = "123", type = "audio", hash = "abc123", repoId = "repo123")
-       every { mainJobCreationService.getExistingJobId(cacheObject) } returns "job123"
-       // Act
-       val result = service.retrieveOrCreateJob(cacheObject, "AUDIO")
-       // Assert
-       assert(result == "job123")
-       verify (exactly = 1) { mainJobCreationService.getExistingJobId(cacheObject) }
-       confirmVerified(mainJobCreationService)
-   }
 
-   @Test
+    @Test
+    fun testRetrieveOrCreateJobReturnsExistingJobIdIfFound() {
+        // Arrange
+        val cacheObject = CacheObject(nodeId = "123", type = "audio", hash = "abc123", repoId = "repo123")
+        every { mainJobCreationService.getExistingJobId(cacheObject) } returns "job123"
+        // Act
+        val result = service.retrieveOrCreateJob(cacheObject, "AUDIO")
+        // Assert
+        assert(result == "job123")
+        verify(exactly = 1) { mainJobCreationService.getExistingJobId(cacheObject) }
+        confirmVerified(mainJobCreationService)
+    }
+
+    @Test
     fun testRetrieveOrCreateJobCreatesJobIfNoneExisting() {
         // Arrange
         val cacheObject = CacheObject(nodeId = "123", type = "audio", hash = "abc123", repoId = "repo123")
@@ -125,5 +134,5 @@ class AudioServiceTest {
             mainJobCreationService.createMainJob(cacheObject, "AUDIO", listOf(100))
         }
         confirmVerified(mainJobCreationService)
-    }*/
+    }
 }

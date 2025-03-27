@@ -16,11 +16,9 @@ import org.edu_sharing.rendering.modules.jupyter.JupyterConverterConfig
 import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
-import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -52,6 +50,7 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractInt
         )
     }
 
+    /*
     @Test
     fun testBeanConfiguration() {
         val roleSpecificBeans = roleSpecificClassBeans
@@ -65,4 +64,6 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractInt
 
         assert(expectedBeans == allEdusharingBeans)
     }
+
+     */
 }

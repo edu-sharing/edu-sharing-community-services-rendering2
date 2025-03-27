@@ -4,6 +4,7 @@ import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoRenderModule
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -17,13 +18,13 @@ class AvModuleTypeMapperTest {
         videoRenderModule = videoModule
     )
 
-    /*@Test
+    @Test
     fun testModuleTypeAssociationsReturnsDefinitionWithMimetypePrefixForAudio() {
         // Act
         val result = underTest.moduleTypeAssociations()
 
         // Assert
-        val audioEntry = result.first {it.second == audioModule}
+        val audioEntry = result.first { it.second == audioModule }
         assert(audioEntry.first.type == null)
         assert(audioEntry.first.mimeTypeSuffix == null)
         assert(audioEntry.first.mimeTypePrefix == "audio")
@@ -35,10 +36,9 @@ class AvModuleTypeMapperTest {
         val result = underTest.moduleTypeAssociations()
 
         // Assert
-
-        val videoEntry = result.first {it.second == videoModule}
+        val videoEntry = result.first { it.second == videoModule }
         assert(videoEntry.first.type == null)
         assert(videoEntry.first.mimeTypeSuffix == null)
         assert(videoEntry.first.mimeTypePrefix == "video")
-    }*/
+    }
 }

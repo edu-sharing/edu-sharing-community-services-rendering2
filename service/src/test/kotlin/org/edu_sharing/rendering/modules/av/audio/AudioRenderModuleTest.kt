@@ -1,21 +1,30 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import io.mockk.mockk
+import io.mockk.*
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Test
 import org.springframework.amqp.core.AmqpTemplate
 
 class AudioRenderModuleTest {
-    private val mockAudioService = mockk<AudioService>()
-    private val mockMapper = mockk<Mapper>()
+    private val audioService = mockk<AudioService>()
+    private val mapper = mockk<Mapper>()
     private val subJobRepository = mockk<SubJobRepository>()
     private val amqpTemplate = mockk<AmqpTemplate>()
 
     private val underTest = AudioRenderModule(
         nodePermissionExpirationTime = 45L,
-        mapper = mockMapper,
-        audioService = mockAudioService,
+        mapper = mapper,
+        audioService = audioService,
         subJobRepository = subJobRepository,
         amqpTemplate = amqpTemplate,
         )
@@ -27,17 +36,20 @@ class AudioRenderModuleTest {
         repoId = "repoId"
     )
 
-   /* @Test
+    @Test
     fun testHandleReturnsLinksToCachedObjectsIfAlreadyCached() {
         // Arrange
-        val mockRenderDataRequest = mockk<RenderDataRequest>()
+        val node = mockk<Node>()
         val linkList = listOf(ObjectLink(link = "mylink"))
 
-        every { mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest) } returns cacheObject
-        every { mockAudioService.getObjectLinks(cacheObject) } returns linkList
+        every { mapper.nodeToCacheObject(node) } returns cacheObject
+        every { audioService.getObjectLinks(cacheObject) } returns linkList
 
         // Act
-        val result = underTest.handle(mockRenderDataRequest)
+        val result = underTest.handle(
+            node = node,
+            requestUserData = mockk()
+        )
 
         // Assert
         assert(result.module == "AUDIO")
@@ -45,22 +57,25 @@ class AudioRenderModuleTest {
         assert(result.objectLinks == linkList)
 
         verifySequence {
-            mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest)
-            mockAudioService.getObjectLinks(cacheObject)
+            mapper.nodeToCacheObject(node)
+            audioService.getObjectLinks(cacheObject)
         }
     }
 
     @Test
     fun testHandleReturnsCreatedJobIdIfCreated() {
         // Arrange
-        val mockRenderDataRequest = mockk<RenderDataRequest>()
+        val node = mockk<Node>()
 
-        every { mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest) } returns cacheObject
-        every { mockAudioService.getObjectLinks(cacheObject) } returns null
-        every { mockAudioService.retrieveOrCreateJob(cacheObject, "AUDIO") } returns "newJob123"
+        every { mapper.nodeToCacheObject(node) } returns cacheObject
+        every { audioService.getObjectLinks(cacheObject) } returns null
+        every { audioService.retrieveOrCreateJob(cacheObject, "AUDIO") } returns "newJob123"
 
         // Act
-        val result = underTest.handle(mockRenderDataRequest)
+        val result = underTest.handle(
+            node = node,
+            requestUserData = mockk()
+        )
 
         // Assert
         assert(result.module == "AUDIO")
@@ -68,12 +83,11 @@ class AudioRenderModuleTest {
         assert(result.objectLinks == null)
 
         verifySequence {
-            mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest)
-            mockAudioService.getObjectLinks(cacheObject)
-            mockAudioService.retrieveOrCreateJob(cacheObject, "AUDIO")
+            mapper.nodeToCacheObject(node)
+            audioService.getObjectLinks(cacheObject)
+            audioService.retrieveOrCreateJob(cacheObject, "AUDIO")
         }
     }
-
 
     @Test
     fun testGetObjectLinkFromJobDataReturnsObjectLinkReturnedFromService() {
@@ -82,8 +96,8 @@ class AudioRenderModuleTest {
         val mockRenderingJob = mockk<RenderingJob>()
         val subJobMock = mockk<SubJob>()
 
-        every { mockMapper.renderingJobToCacheObject(mockRenderingJob) } returns cacheObject
-        every { mockAudioService.getObjectLinks(cacheObject) } returns linkList
+        every { mapper.renderingJobToCacheObject(mockRenderingJob) } returns cacheObject
+        every { audioService.getObjectLinks(cacheObject) } returns linkList
 
         // Act
         val result = underTest.getObjectLinkFromJobData(subJobMock, mockRenderingJob)
@@ -92,8 +106,8 @@ class AudioRenderModuleTest {
         assert(result?.link == "mylink")
 
         verifySequence {
-            mockMapper.renderingJobToCacheObject(mockRenderingJob)
-            mockAudioService.getObjectLinks(cacheObject)
+            mapper.renderingJobToCacheObject(mockRenderingJob)
+            audioService.getObjectLinks(cacheObject)
         }
     }
 
@@ -103,8 +117,8 @@ class AudioRenderModuleTest {
         val mockRenderingJob = mockk<RenderingJob>()
         val subJobMock = mockk<SubJob>()
 
-        every { mockMapper.renderingJobToCacheObject(mockRenderingJob) } returns cacheObject
-        every { mockAudioService.getObjectLinks(cacheObject) } returns null
+        every { mapper.renderingJobToCacheObject(mockRenderingJob) } returns cacheObject
+        every { audioService.getObjectLinks(cacheObject) } returns null
 
         // Act
         val result = underTest.getObjectLinkFromJobData(subJobMock, mockRenderingJob)
@@ -113,10 +127,11 @@ class AudioRenderModuleTest {
         assert(result == null)
 
         verifySequence {
-            mockMapper.renderingJobToCacheObject(mockRenderingJob)
-            mockAudioService.getObjectLinks(cacheObject)
+            mapper.renderingJobToCacheObject(mockRenderingJob)
+            audioService.getObjectLinks(cacheObject)
         }
     }
+
 
     @Test
     fun testGetNodePermissionExpirationTimeReturnsProperTime() {
@@ -171,5 +186,5 @@ class AudioRenderModuleTest {
         assert(subJobMessageList[1].quality == 2)
         assert(subJobMessageList[0].id == jobId)
         assert(subJobMessageList[1].id == jobId)
-    }*/
+    }
 }

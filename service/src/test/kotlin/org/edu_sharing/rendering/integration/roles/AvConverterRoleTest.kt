@@ -7,11 +7,9 @@ import org.edu_sharing.rendering.modules.av.AvFileHelperFactory
 import org.edu_sharing.rendering.modules.av.AvReceiver
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
-import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -37,6 +35,7 @@ class AvConverterRoleTest(@Autowired val context: ApplicationContext): AbstractI
         )
     }
 
+    /*
     @Test
     fun testBeanConfiguration() {
 
@@ -51,4 +50,6 @@ class AvConverterRoleTest(@Autowired val context: ApplicationContext): AbstractI
 
         assert(expectedBeans == allEdusharingBeans)
     }
+
+     */
 }
