@@ -30,6 +30,16 @@ global:
     ## @param global.image.common Set global image container common
     common: ${docker.common}
 
+  metrics:
+    scrape:
+      ## @param global.metrics.scrape.interval Set prometheus scrape interval
+      interval: 60s
+      ## @param global.metrics.scrape.timeout Set prometheus scrape timeout
+      timeout: 60s
+    servicemonitor:
+      ## @param global.metrics.servicemonitor.enabled Enable metrics service monitor
+      enabled: false
+
   ## @param global.password Set global password
   password: ""
 

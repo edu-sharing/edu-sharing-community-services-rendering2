@@ -90,14 +90,27 @@ const start = async () => {
 
     h5pPlayer.setRenderer(eduSharingPlayer)
 
-    const server = express();
+    const app = express();
 
-    server.use(express.json())
-    server.use(bodyParser.urlencoded({ extended: true }));
+    const promBundle = require("express-prom-bundle");
+    const metricsMiddleware = promBundle({
+        includeMethod: true,
+        includePath: true,
+        includeStatusCode: true,
+        includeUp: true,
+        promClient: {
+            collectDefaultMetrics: {},
+        },
+    });
+
+    app.use(metricsMiddleware);
+
+    app.use(express.json())
+    app.use(bodyParser.urlencoded({ extended: true }));
 
     // A user is needed in every request. For our purposes, a dummy is sufficient
     // (At least for the time being)
-    server.use((req: IRequestWithUser, res, next) => {
+    app.use((req: IRequestWithUser, res, next) => {
         req.user = new User();
         next();
     });
@@ -105,9 +118,9 @@ const start = async () => {
     // The i18nextExpressMiddleware injects the function t(...) into the req
     // object. This function must be there for the Express adapter
     // (H5P.adapters.express) to function properly.
-    server.use(i18nextHttpMiddleware.handle(i18next));
+    app.use(i18nextHttpMiddleware.handle(i18next));
 
-    server.use(
+    app.use(
         h5pEditor.config.baseUrl,
         h5pAjaxExpressRouter(
             h5pEditor,
@@ -123,14 +136,33 @@ const start = async () => {
     const eduCollection = mongoDb.collection(process.env.EDUSHARING_MONGO_COLLECTION)
     await eduCollection.createIndexes([{key: { 'nodeId': 1}}])
 
-    server.use(
+    app.use(
         h5pEditor.config.baseUrl,
         router(h5pEditor, h5pPlayer, 'auto', eduCollection),
     );
 
     const port = process.env.PORT || '3000';
-    server.listen(port);
+    const server = app.listen(port);
     log.info(`Server started successfully on port ${port}`)
+
+    // Graceful Shutdown Handler
+    const shutdown = () => {
+        console.log("Shutting down gracefully...");
+
+        server.close(() => {
+            console.log("Server closed.");
+            process.exit(0);
+        });
+
+        setTimeout(() => {
+            console.error("Forcefully shutting down...");
+            process.exit(1);
+        }, 10000); // Force exit after 10s
+    };
+
+    // Handle termination signals
+    process.on("SIGINT", shutdown);  // Ctrl+C
+    process.on("SIGTERM", shutdown); // Kubernetes/Docker stop
 }
 
 start()
