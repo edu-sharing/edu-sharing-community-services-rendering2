@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "edusharing_common_lib.names.name" . }}-env
+  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+data:
+  AWS_S3_MAX_FILE_LENGTH: {{ .Values.config.files.maxsize | quote }}
+  BASE_URL: {{ .Values.config.base | quote }}
+  CACHE: {{ .Values.config.cache.type | quote }}
+  CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}
+  CONTENT_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.content | quote }}
+  EDUSHARING_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.edusharing | quote }}
+  LIBRARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.library | quote }}
+  LIBRARY_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.library | quote }}
+  LOG_LEVEL: {{ .Values.config.log.level | quote }}
+  LOG_SCOPE: {{ .Values.config.log.scope | quote }}
+  MINIO_HOST: {{ .Values.config.s3.host | quote }}
+  MINIO_PORT: {{ .Values.config.s3.port | quote }}
+  MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
+  MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
+  TEMPORARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.temporary | quote }}

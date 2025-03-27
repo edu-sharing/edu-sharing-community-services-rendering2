@@ -1,0 +1,366 @@
+########################################################################################################################
+# LOCAL
+########################################################################################################################
+
+## @section Local parameters
+## @param nameOverride Override name
+nameOverride: edusharing-services-rendering2
+
+########################################################################################################################
+# DEPENDENCY
+########################################################################################################################
+
+edusharing_services_rendering2_minio:
+
+  ## @param edusharing_services_rendering2_minio.enabled Enable minio
+  enabled: true
+
+  ## @param edusharing_services_rendering2_minio.nameOverride Override minio name
+  nameOverride: &minioNameOverride edusharing-services-rendering2-minio
+
+  image:
+    ## @param edusharing_services_rendering2_minio.image.name Set minio image name
+    name: ${docker.edu_sharing.community.common.minio.name}
+    ## @param edusharing_services_rendering2_minio.image.tag Set minio image tag
+    tag: ${docker.edu_sharing.community.common.minio.tag}
+
+  service:
+
+    port:
+      ## @param edusharing_services_rendering2_minio.service.port.api Set minio service api port
+      api: &minioServicePortApi 9000
+
+  config:
+
+    buckets:
+      ## @param edusharing_services_rendering2_minio.config.buckets[0].name Set minio bucket
+      - name: &minioConfigBucketContent lumi-contentbucket
+      ## @param edusharing_services_rendering2_minio.config.buckets[1].name Set minio bucket
+      - name: &minioConfigBucketLib lumi-libbucket
+      ## @param edusharing_services_rendering2_minio.config.buckets[2].name Set minio bucket
+      - name: &minioConfigBucketTemp lumi-tempbucket
+
+    ## @param edusharing_services_rendering2_minio.config.username Set minio username
+    username: &minioConfigUsername rendering2
+
+  init:
+
+    permission:
+
+      image:
+        ## @param edusharing_services_rendering2_minio.init.permission.image.name Set minio init permission image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_minio.init.permission.image.tag Set minio init permission image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+  job:
+
+    provisioning:
+
+      init:
+
+        wait:
+
+          image:
+            ## @param edusharing_services_rendering2_minio.job.provisioning.init.wait.image.name Set wait container image name
+            name: ${docker.edu_sharing.community.common.minideb.name}
+            ## @param edusharing_services_rendering2_minio.job.provisioning.init.wait.image.tag Set wait container image tag
+            tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+      image:
+        ## @param edusharing_services_rendering2_minio.job.provisioning.image.name Set job image name
+        name: ${docker.edu_sharing.community.common.minio.name}
+        ## @param edusharing_services_rendering2_minio.job.provisioning.image.tag Set job image tag
+        tag: ${docker.edu_sharing.community.common.minio.tag}
+
+########################################################################################################################
+
+edusharing_services_rendering2_mongodb:
+
+  ## @param edusharing_services_rendering2_mongodb.enabled Enable mongodb
+  enabled: true
+
+  ## @param edusharing_services_rendering2_mongodb.nameOverride Override mongodb name
+  nameOverride: &mongoNameOverride edusharing-services-rendering2-mongodb
+
+  image:
+    ## @param edusharing_services_rendering2_mongodb.image.name Set mongodb image name
+    name: ${docker.edu_sharing.community.common.mongodb.name}
+    ## @param edusharing_services_rendering2_mongodb.image.tag Set mongodb image tag
+    tag: ${docker.edu_sharing.community.common.mongodb.tag}
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_mongodb.service.port.api Set mongodb service api port
+      api: &mongoServicePortApi 27017
+
+  config:
+    ## @param edusharing_services_rendering2_mongodb.config.database Set mongodb database
+    database: &mongoConfigDatabase rendering2
+    ## @param edusharing_services_rendering2_mongodb.config.username Set mongodb username
+    username: &mongoConfigUsername rendering2
+
+  init:
+
+    permission:
+
+      image:
+        ## @param edusharing_services_rendering2_mongodb.init.permission.image.name Set mongodb init permission image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_mongodb.init.permission.image.tag Set mongodb init permission image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+  job:
+
+    dump:
+
+      image:
+        ## @param edusharing_services_rendering2_mongodb.job.dump.image.name Set mongodb dump job image name
+        name: ${docker.edu_sharing.community.common.mongodb.name}
+        ## @param edusharing_services_rendering2_mongodb.job.dump.image.tag Set mongodb dump job image tag
+        tag: ${docker.edu_sharing.community.common.mongodb.tag}
+
+  sidecar:
+
+    metrics:
+
+      image:
+        ## @param edusharing_services_rendering2_mongodb.sidecar.metrics.image.name Set metrics sidecar image name
+        name: ${docker.edu_sharing.community.common.mongodb.exporter.name}
+        ## @param edusharing_services_rendering2_mongodb.sidecar.metrics.image.tag Set metrics sidecar image tag
+        tag: ${docker.edu_sharing.community.common.mongodb.exporter.tag}
+
+########################################################################################################################
+
+edusharing_services_rendering2_mongodb_lumi:
+
+  ## @param edusharing_services_rendering2_mongodb_lumi.enabled Enable mongodb
+  enabled: true
+
+  ## @param edusharing_services_rendering2_mongodb_lumi.nameOverride Override mongodb name
+  nameOverride: &mongoLumiNameOverride edusharing-services-rendering2-mongodb-lumi
+
+  image:
+    ## @param edusharing_services_rendering2_mongodb_lumi.image.name Set mongodb image name
+    name: ${docker.edu_sharing.community.common.mongodb.name}
+    ## @param edusharing_services_rendering2_mongodb_lumi.image.tag Set mongodb image tag
+    tag: ${docker.edu_sharing.community.common.mongodb.tag}
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_mongodb_lumi.service.port.api Set mongodb service api port
+      api: &mongoLumiServicePortApi 27017
+
+  config:
+    ## @param edusharing_services_rendering2_mongodb_lumi.config.database Set mongodb database
+    database: &mongoLumiConfigDatabase lumi
+    ## @param edusharing_services_rendering2_mongodb_lumi.config.username Set mongodb username
+    username: &mongoLumiConfigUsername lumi
+
+  init:
+
+    permission:
+
+      image:
+        ## @param edusharing_services_rendering2_mongodb_lumi.init.permission.image.name Set mongodb init permission image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_mongodb_lumi.init.permission.image.tag Set mongodb init permission image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+  job:
+
+    dump:
+
+      image:
+        ## @param edusharing_services_rendering2_mongodb_lumi.job.dump.image.name Set mongodb dump job image name
+        name: ${docker.edu_sharing.community.common.mongodb.name}
+        ## @param edusharing_services_rendering2_mongodb_lumi.job.dump.image.tag Set mongodb dump job image tag
+        tag: ${docker.edu_sharing.community.common.mongodb.tag}
+
+  sidecar:
+
+    metrics:
+
+      image:
+        ## @param edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.name Set metrics sidecar image name
+        name: ${docker.edu_sharing.community.common.mongodb.exporter.name}
+        ## @param edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.tag Set metrics sidecar image tag
+        tag: ${docker.edu_sharing.community.common.mongodb.exporter.tag}
+
+########################################################################################################################
+
+edusharing_services_rendering2_rabbitmq:
+
+  ## @param edusharing_services_rendering2_rabbitmq.enabled Enable rabbitmq
+  enabled: true
+
+  image:
+    ## @param edusharing_services_rendering2_rabbitmq.image.name Set rabbitmq image name
+    name: ${docker.edu_sharing.community.common.rabbitmq.name}
+    ## @param edusharing_services_rendering2_rabbitmq.image.tag Set rabbitmq image tag
+    tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
+
+  ## @param edusharing_services_rendering2_rabbitmq.nameOverride Override rabbitmq name
+  nameOverride: &rabbitmqNameOverride edusharing-services-rendering2-rabbitmq
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_rabbitmq.service.port.amqp Set rabbitmq service amqp port
+      amqp: &rabbitmqServicePortAmqp 5672
+
+  config:
+    ## @param edusharing_services_rendering2_rabbitmq.config.username Set mongodb username
+    username: &rabbitmqConfigUsername rendering2
+
+  init:
+
+    permission:
+
+      image:
+        ## @param edusharing_services_rendering2_rabbitmq.init.permission.image.name Set rabbitmq init permission image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_rabbitmq.init.permission.image.tag Set rabbitmq init permission image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+    plugins:
+
+      image:
+        ## @param edusharing_services_rendering2_rabbitmq.init.plugins.image.name Set rabbitmq init plugins image name
+        name: ${docker.edu_sharing.community.common.rabbitmq.name}
+        ## @param edusharing_services_rendering2_rabbitmq.init.plugins.image.tag Set rabbitmq init plugins image tag
+        tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
+
+########################################################################################################################
+
+edusharing_services_rendering2_rediscluster:
+
+  ## @param edusharing_services_rendering2_rediscluster.enabled Enable rediscluster
+  enabled: true
+
+  image:
+    ## @param edusharing_services_rendering2_rediscluster.image.name Set rediscluster image name
+    name: ${docker.edu_sharing.community.common.redis-cluster.name}
+    ## @param edusharing_services_rendering2_rediscluster.image.tag Set rediscluster image tag
+    tag: ${docker.edu_sharing.community.common.redis-cluster.tag}
+
+  ## @param edusharing_services_rendering2_rediscluster.nameOverride Override rediscluster name
+  nameOverride: &redisclusterNameOverride edusharing-services-rendering2-rediscluster
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_rediscluster.service.port.api Set rediscluster service api port
+      api: &redisclusterServicePortApi 6379
+
+  init:
+
+    permission:
+
+      image:
+        ## @param edusharing_services_rendering2_rediscluster.init.permission.image.name Set rediscluster init permission image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_rediscluster.init.permission.image.tag Set rediscluster init permission image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+    sysctl:
+
+      image:
+        ## @param edusharing_services_rendering2_rediscluster.init.sysctl.image.name Set rediscluster init sysctl image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_rediscluster.init.sysctl.image.tag Set rediscluster init sysctl image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+  sidecar:
+
+    metrics:
+
+      image:
+        ## @param edusharing_services_rendering2_rediscluster.sidecar.metrics.image.name Set rediscluster sidecar metrics image name
+        name: ${docker.edu_sharing.community.common.redis.exporter.name}
+        ## @param edusharing_services_rendering2_rediscluster.sidecar.metrics.image.tag Set rediscluster sidecar metrics image tag
+        tag: ${docker.edu_sharing.community.common.redis.exporter.tag}
+
+########################################################################################################################
+
+edusharing_services_rendering2_document_converter:
+
+  ## @param edusharing_services_rendering2_document_converter.enabled Enable rendering2 document converter
+  enabled: true
+
+########################################################################################################################
+
+edusharing_services_rendering2_lumi:
+
+  ## @param edusharing_services_rendering2_lumi.enabled Enable rendering2 lumi
+  enabled: true
+
+  config:
+
+    mongodb:
+      ## @param edusharing_services_rendering2_lumi.config.mongodb.host Set mongodb host
+      host: *mongoLumiNameOverride
+      ## @param edusharing_services_rendering2_lumi.config.mongodb.port Set mongodb port
+      port: *mongoLumiServicePortApi
+      ## @param edusharing_services_rendering2_lumi.config.mongodb.username Set mongodb username
+      username: *mongoLumiConfigUsername
+      ## @param edusharing_services_rendering2_lumi.config.mongodb.database Set mongodb database
+      database: *mongoLumiConfigDatabase
+
+
+    s3:
+      ## @param edusharing_services_rendering2_lumi.config.s3.host Set S3 host
+      host: *minioNameOverride
+      ## @param edusharing_services_rendering2_lumi.config.s3.port Set S3 port
+      port: *minioServicePortApi
+      ## @param edusharing_services_rendering2_lumi.config.s3.username Set S3 username
+      username: *minioConfigUsername
+
+      buckets:
+        ## @param edusharing_services_rendering2_lumi.config.s3.buckets.content Set S3 bucket for content
+        content: *minioConfigBucketContent
+        ## @param edusharing_services_rendering2_lumi.config.s3.buckets.library Set S3 bucket for library
+        library: *minioConfigBucketLib
+        ## @param edusharing_services_rendering2_lumi.config.s3.buckets.temporary Set S3 bucket for temporary
+        temporary: *minioConfigBucketTemp
+
+########################################################################################################################
+
+edusharing_services_rendering2_service:
+
+  ## @param edusharing_services_rendering2_service.enabled Enable rendering2 service
+  enabled: true
+
+  config:
+
+    mongodb:
+      ## @param edusharing_services_rendering2_service.config.mongodb.host Set mongodb host
+      host: *mongoNameOverride
+      ## @param edusharing_services_rendering2_service.config.mongodb.port Set mongodb port
+      port: *mongoServicePortApi
+      ## @param edusharing_services_rendering2_service.config.mongodb.username Set mongodb username
+      username: *mongoConfigUsername
+      ## @param edusharing_services_rendering2_service.config.mongodb.database Set mongodb database
+      database: *mongoConfigDatabase
+
+    rabbitmq:
+      ## @param edusharing_services_rendering2_service.config.rabbitmq.host Set rabbitmq host
+      host: *rabbitmqNameOverride
+      ## @param edusharing_services_rendering2_service.config.rabbitmq.port Set rabbitmq port
+      port: *rabbitmqServicePortAmqp
+      ## @param edusharing_services_rendering2_service.config.rabbitmq.username Set rabbitmq username
+      username: *rabbitmqConfigUsername
+
+    redis:
+      ## @param edusharing_services_rendering2_service.config.redis.host Set redis host
+      host: *redisclusterNameOverride
+      ## @param edusharing_services_rendering2_service.config.redis.port Set redis port
+      port: *redisclusterServicePortApi
+
+    s3:
+      ## @param edusharing_services_rendering2_service.config.s3.host Set S3 host
+      host: *minioNameOverride
+      ## @param edusharing_services_rendering2_service.config.s3.port Set S3 port
+      port: *minioServicePortApi
+      ## @param edusharing_services_rendering2_service.config.s3.username Set S3 username
+      username: *minioConfigUsername
+
+########################################################################################################################

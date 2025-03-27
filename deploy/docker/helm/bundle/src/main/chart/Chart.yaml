@@ -1,0 +1,61 @@
+apiVersion: v2
+
+name: ${helm.prefix}
+description: ${helm.prefix}
+
+icon: ${helm.chart.icon}
+
+version: ${helm.chart.version}
+appVersion: ${docker.tag}
+kubeVersion: "${helm.kube.version}"
+
+dependencies:
+
+  - name: edu_sharing-community-common-lib
+    repository: ${helm.deploy.url}
+    version: 1.x.x
+
+  - name: edu_sharing-community-common-minio
+    repository: ${helm.deploy.url}
+    version: 1.x.x
+    alias: edusharing_services_rendering2_minio
+    condition: edusharing_services_rendering2_minio.enabled
+
+  - name: edu_sharing-community-common-mongodb
+    repository: ${helm.deploy.url}
+    version: 7.x.x
+    alias: edusharing_services_rendering2_mongodb
+    condition: edusharing_services_rendering2_mongodb.enabled
+
+  - name: edu_sharing-community-common-mongodb
+    repository: ${helm.deploy.url}
+    version: 7.x.x
+    alias: edusharing_services_rendering2_mongodb_lumi
+    condition: edusharing_services_rendering2_mongodb_lumi.enabled
+
+  - name: edu_sharing-community-common-rabbitmq
+    repository: ${helm.deploy.url}
+    version: 1.x.x
+    alias: edusharing_services_rendering2_rabbitmq
+    condition: edusharing_services_rendering2_rabbitmq.enabled
+
+  - name: edu_sharing-community-common-rediscluster
+    repository: ${helm.deploy.url}
+    version: 1.x.x
+    alias: edusharing_services_rendering2_rediscluster
+    condition: edusharing_services_rendering2_rediscluster.enabled
+
+  - name: ${helm.prefix}-document-converter
+    version: ${helm.chart.version}
+    alias: edusharing_services_rendering2_document_converter
+    condition: edusharing_services_rendering2_document_converter.enabled
+
+  - name: ${helm.prefix}-lumi
+    version: ${helm.chart.version}
+    alias: edusharing_services_rendering2_lumi
+    condition: edusharing_services_rendering2_lumi.enabled
+
+  - name: ${helm.prefix}-service
+    version: ${helm.chart.version}
+    alias: edusharing_services_rendering2_service
+    condition: edusharing_services_rendering2_service.enabled

@@ -41,8 +41,8 @@ services:
   rendering2-service:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
     command:
-      - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
-      - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
+      - -Xms${RENDERING2_SERVICE_JAVA_XMS:-512m}
+      - -Xmx${RENDERING2_SERVICE_JAVA_XMX:-512m}
       - -Dcom.sun.management.jmxremote
       - -Dcom.sun.management.jmxremote.authenticate=false
       - -Dcom.sun.management.jmxremote.port=7199
@@ -124,8 +124,8 @@ services:
   rendering2-document-converter:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
-      - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
-      - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
+      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
+      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
       - -Dcom.sun.management.jmxremote
       - -Dcom.sun.management.jmxremote.authenticate=false
       - -Dcom.sun.management.jmxremote.port=7199

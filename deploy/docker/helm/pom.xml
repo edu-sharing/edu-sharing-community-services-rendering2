@@ -69,8 +69,10 @@
   </build>
 
   <modules>
-<!--    <module>bundle</module>-->
-<!--    <module>service</module>-->
+    <module>bundle</module>
+    <module>document-converter</module>
+    <module>lumi</module>
+    <module>service</module>
   </modules>
 
 </project>

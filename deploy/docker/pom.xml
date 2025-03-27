@@ -35,7 +35,7 @@
     </docker.edu_sharing.community.common.redis.name>
 
     <docker.edu_sharing.community.common.redis.tag>
-      6.2.7
+      7.4.1
     </docker.edu_sharing.community.common.redis.tag>
 
     <docker.edu_sharing.community.common.redis.exporter.name>
@@ -43,7 +43,7 @@
     </docker.edu_sharing.community.common.redis.exporter.name>
 
     <docker.edu_sharing.community.common.redis.exporter.tag>
-      1.45.0
+      1.65.0
     </docker.edu_sharing.community.common.redis.exporter.tag>
 
     <docker.edu_sharing.community.common.redis-cluster.name>
@@ -51,7 +51,7 @@
     </docker.edu_sharing.community.common.redis-cluster.name>
 
     <docker.edu_sharing.community.common.redis-cluster.tag>
-      6.2.7
+      7.4.1
     </docker.edu_sharing.community.common.redis-cluster.tag>
 
 
@@ -60,7 +60,7 @@
     </docker.edu_sharing.community.common.minio.name>
 
     <docker.edu_sharing.community.common.minio.tag>
-      2024.11.7
+      2025.2.28
     </docker.edu_sharing.community.common.minio.tag>
 
     <docker.edu_sharing.community.common.rabbitmq.name>
@@ -68,8 +68,32 @@
     </docker.edu_sharing.community.common.rabbitmq.name>
 
     <docker.edu_sharing.community.common.rabbitmq.tag>
-      4.0.4
+      4.0.7
     </docker.edu_sharing.community.common.rabbitmq.tag>
+
+    <docker.edu_sharing.community.common.mongodb.name>
+      edu_sharing-community-common-docker-mongodb
+    </docker.edu_sharing.community.common.mongodb.name>
+
+    <docker.edu_sharing.community.common.mongodb.tag>
+      7.0.15
+    </docker.edu_sharing.community.common.mongodb.tag>
+
+    <docker.edu_sharing.community.common.mongodb.exporter.name>
+      edu_sharing-community-common-docker-mongodb-exporter
+    </docker.edu_sharing.community.common.mongodb.exporter.name>
+
+    <docker.edu_sharing.community.common.mongodb.exporter.tag>
+      0.30.0
+    </docker.edu_sharing.community.common.mongodb.exporter.tag>
+
+    <docker.edu_sharing.community.common.minideb.name>
+      edu_sharing-community-common-docker-minideb
+    </docker.edu_sharing.community.common.minideb.name>
+
+    <docker.edu_sharing.community.common.minideb.tag>
+      12
+    </docker.edu_sharing.community.common.minideb.tag>
 
   </properties>
 

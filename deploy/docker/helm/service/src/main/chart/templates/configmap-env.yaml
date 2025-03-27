@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "edusharing_common_lib.names.name" . }}-env
+  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+data:
+  JAVA_OPTS: >-
+    {{- with .Values.config.jvm.ram.minPercentage }}
+    -XX:InitialRAMPercentage={{ . }}
+    {{- end }}
+    {{- with .Values.config.jvm.ram.maxPercentage }}
+    -XX:MaxRAMPercentage={{ . }}
+    {{- end }}
+    -Dcom.sun.management.jmxremote
+    -Dcom.sun.management.jmxremote.authenticate=false
+    -Dcom.sun.management.jmxremote.port=7199
+    -Dcom.sun.management.jmxremote.ssl=false
+    {{- if default .Values.global.debug .Values.debug }}
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005
+    {{- end }}
+  SPRING_APPLICATION_JSON: {{ .Values.config.override | quote }}
+  MINIO_HOST: {{ .Values.config.s3.host | quote }}
+  MINIO_PORT: {{ .Values.config.s3.port | quote }}
+  RABBITMQ_HOST: {{ .Values.config.rabbitmq.host | quote }}
+  RABBITMQ_PORT: {{ .Values.config.rabbitmq.port | quote }}
+  REDIS_HOST: {{ .Values.config.redis.host | quote }}
+  REDIS_PORT: {{ .Values.config.redis.port | quote }}
+  MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
+  MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
+  VIRTUAL_HOST: {{ .Values.ingress.hosts | first | quote }}
+  VIRTUAL_PATH: {{ .Values.ingress.paths | first | quote }}
+  VIRTUAL_PORT: {{ .Values.service.port.api | quote }}
+  "server.servlet.context-path": {{ .Values.ingress.paths | first | quote }}
+  "app.appId": {{ .Values.config.home.appid | quote }}
+  "app.public.protocol": {{ ternary "http" "https" (empty .Values.ingress.tls) | quote }}
+  "app.public.host": {{ .Values.ingress.hosts | first | quote }}
+  "app.public.port": {{ ternary "80" "443" (empty .Values.ingress.tls) | quote }}
+  "app.public.path": {{ .Values.ingress.paths | first | quote }}
+  "app.internal.protocol": http
+  "app.internal.host": {{ include "edusharing_common_lib.names.name" . }}
+  "app.internal.path": {{ .Values.ingress.paths | first | quote }}
+  "app.internal.port": "8080"
+  "app.session.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.default | quote }}
+  "app.session.image.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.image | quote }}
+  "app.session.audio.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.audio | quote }}
+  "app.session.video.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.video | quote }}
+  "app.session.pdf.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.pdf | quote }}
+  "app.session.moodle.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.moodle | quote }}
+  "app.session.scorm.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.scorm | quote }}
+  "app.session.eduHtml.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.eduhtml | quote }}
+  "app.session.document.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.document | quote }}
+  "app.session.spreadsheet.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.spreadsheet | quote }}
+  "app.session.html.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.html | quote }}
+  "app.session.h5p.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.h5p | quote }}
+  "app.converter.image.format": {{ .Values.config.converter.image.format | quote }}
+  "app.converter.image.mimeTypes": {{ .Values.config.converter.image.mimetypes | quote }}
+  "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
+  "app.converter.video.format": {{ .Values.config.converter.video.format | quote }}
+  "app.converter.video.mimeTypes": {{ .Values.config.converter.video.mimetypes | quote }}
+  "app.converter.video.resolutions": {{ .Values.config.converter.video.resolutions | quote }}
+  "app.converter.audio.mimeTypes": {{ .Values.config.converter.audio.mimetypes | quote }}
+  "app.converter.audio.bitrate": {{ .Values.config.converter.audio.bitrate | quote }}
+  "app.cache.cleaner.schedule": {{ .Values.config.cache.cleaner.schedule | quote }}
+  "app.cache.cleaner.threshold.lower": {{ .Values.config.cache.cleaner.threshold.lower | quote }}
+  "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}
+  "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
+  "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
+  "spring.redis.cluster.nodes": {{ (printf "%s:%d" .Values.config.redis.host (.Values.config.redis.port | int)) | quote }}
+  "spring.redis.cluster.maxRedirects": "5"
