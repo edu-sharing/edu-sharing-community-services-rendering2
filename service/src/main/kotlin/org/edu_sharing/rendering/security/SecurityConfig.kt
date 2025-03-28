@@ -58,24 +58,6 @@ class SecurityConfig(
         return AuthTokenFilter(jwtUtils, securityContextRepository, nodePermissionSessionContextRepository)
     }
 
-
-    @Bean
-    @Order(0)
-    fun probeFilterChain(
-        httpSecurity: HttpSecurity
-    ): SecurityFilterChain {
-        return httpSecurity
-            .csrf {
-                it.disable()
-            }.authorizeHttpRequests {
-                it.requestMatchers(
-                    "/actuator/health/*", "/actuator/prometheus", "/ping"
-                ).permitAll()
-                it.anyRequest().authenticated()
-            }
-            .build()
-    }
-
     @Bean
     @Order(1)
     fun publicAPIFilterChain(
@@ -114,6 +96,9 @@ class SecurityConfig(
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**",
+                    "/actuator/health/*",
+                    "/actuator/prometheus",
+                    "/ping"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }.httpBasic(Customizer.withDefaults())
