@@ -264,6 +264,10 @@ config:
     ## @param config.lumi.port Set lumi port
     port: 3000
 
+  metrics:
+    ## @param config.metrics.relabelings Define relabelings for metrics
+    relabelings: []
+
   mongodb:
     ## @param config.mongodb.host Set mongodb host
     host: edusharing-rendering2-mongodb

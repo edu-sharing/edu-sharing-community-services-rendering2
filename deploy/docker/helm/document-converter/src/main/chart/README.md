@@ -31,7 +31,6 @@
 | `service.port.management`                  | Set port for service management              | `8081`                                                    |
 | `config.jvm.ram.minPercentage`             | Set minimum memory in percentages            | `90.0`                                                    |
 | `config.jvm.ram.maxPercentage`             | Set maximum memory in percentages            | `90.0`                                                    |
-| `config.metrics.enabled`                   | Enable metrics                               | `true`                                                    |
 | `config.metrics.relabelings`               | Define relabelings for metrics               | `[]`                                                      |
 | `config.override`                          | Configure overrides                          | `""`                                                      |
 | `debug`                                    | Enable debugging                             | `false`                                                   |

@@ -12,7 +12,7 @@ spec:
     port: http-api
     interval: {{ .Values.global.metrics.scrape.interval }}
     scrapeTimeout: {{ .Values.global.metrics.scrape.timeout }}
-    {{- with .Values.sidecar.metrics.relabelings }}
+    {{- with .Values.config.metrics.relabelings }}
     metricRelabelings: {{ toYaml . | nindent 6 }}
     {{- end }}
   selector:

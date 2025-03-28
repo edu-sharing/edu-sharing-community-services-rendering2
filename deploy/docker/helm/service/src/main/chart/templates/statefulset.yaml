@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: {{ include "edusharing_common_lib.names.name" . }}
-        image: {{ include "edusharing_common_lib.images.image" . }}{{ $.Values.image.name }}:{{ $.Values.image.tag }}
+        image: {{ include "edusharing_common_lib.images.image" . }}{{ .Values.image.name }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
         envFrom:
         - configMapRef:
@@ -39,6 +39,10 @@ spec:
           containerPort: 8080
         - name: management
           containerPort: 9080
+        {{- if default .Values.global.debug .Values.debug }}
+        - name: jpda
+          containerPort: 5005
+        {{- end }}
         {{- with .Values.startupProbe }}
         startupProbe:
           httpGet:
@@ -47,7 +51,6 @@ spec:
           failureThreshold: {{ .failureThreshold }}
           initialDelaySeconds: {{ .initialDelaySeconds }}
           periodSeconds: {{ .periodSeconds }}
-          successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
         {{- with .Values.livenessProbe }}

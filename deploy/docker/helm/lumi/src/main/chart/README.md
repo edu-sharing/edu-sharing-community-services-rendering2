@@ -32,6 +32,7 @@
 | `config.files.maxsize`                     | Set files max size                           | `1000`                                      |
 | `config.log.level`                         | Set log level                                | `info`                                      |
 | `config.log.scope`                         | Set log scope                                | `h5p:*`                                     |
+| `config.metrics.relabelings`               | Define relabelings for metrics               | `[]`                                        |
 | `config.mongodb.database`                  | Set mongodb database                         | `lumi`                                      |
 | `config.mongodb.host`                      | Set mongodb host                             | `edusharing-rendering2-mongodb`             |
 | `config.mongodb.port`                      | Set mongodb port                             | `27017`                                     |

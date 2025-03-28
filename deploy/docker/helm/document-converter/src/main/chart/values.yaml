@@ -90,8 +90,6 @@ config:
       maxPercentage: "90.0"
 
   metrics:
-    ## @param config.metrics.enabled Enable metrics
-    enabled: true
     ## @param config.metrics.relabelings Define relabelings for metrics
     relabelings: []
 

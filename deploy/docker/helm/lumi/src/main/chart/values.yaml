@@ -94,6 +94,10 @@ config:
     ## @param config.log.scope Set log scope
     scope: h5p:*
 
+  metrics:
+    ## @param config.metrics.relabelings Define relabelings for metrics
+    relabelings: []
+
   mongodb:
     ## @param config.mongodb.database Set mongodb database
     database: lumi

@@ -1,15 +1,11 @@
 {{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}
 {{- if .Values.global.metrics.servicemonitor.enabled }}
-{{- if .Values.config.metrics.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "edusharing_common_lib.names.name" . }}
   labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
     app.kubernetes.io/component: "metrics"
-    {{- if .Values.multistage.enabled }}
-    app.kubernetes.io/stage: ""
-    {{- end }}
 spec:
   endpoints:
   - path: "/actuator/prometheus"
@@ -22,12 +18,8 @@ spec:
   selector:
     matchLabels: {{ include "edusharing_common_lib.labels.app" . | nindent 6 }}
       app.kubernetes.io/component: "metrics"
-      {{- if .Values.multistage.enabled }}
-      app.kubernetes.io/stage: ""
-      {{- end }}
   namespaceSelector:
     matchNames:
     - {{ .Release.Namespace }}
-{{- end }}
 {{- end }}
 {{- end }}

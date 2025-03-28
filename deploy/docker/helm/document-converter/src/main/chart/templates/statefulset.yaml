@@ -16,7 +16,7 @@ spec:
         {{- if not .Values.global.metrics.servicemonitor.enabled }}
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "8081"
-        prometheus.io/scrape: {{ .Values.config.metrics.enabled | quote }}
+        prometheus.io/scrape: "true"
         {{- end }}
         sidecar.istio.io/inject: {{ .Values.global.cluster.istio.enabled | quote }}
         {{- with merge .Values.podAnnotations .Values.global.annotations }}
