@@ -1,12 +1,14 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import org.apache.commons.io.output.ByteArrayOutputStream
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
+import org.edu_sharing.rendering.edusharingRepo.dom.MetadataFile
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
+import java.io.File
+import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.security.InvalidKeyException
 import java.security.KeyFactory
@@ -31,7 +33,7 @@ class MetadataService(
         repository.save(rendererKeyConfig)
     }
 
-    override fun hasKeyPair() : Boolean {
+    override fun hasKeyPair(): Boolean {
         val config = getConfig()
         return !config.privateKey.isNullOrBlank() && !config.publicKey.isNullOrBlank()
     }
@@ -82,21 +84,28 @@ class MetadataService(
         return KeyFactory.getInstance("RSA").generatePrivate(keySpec)
     }
 
-    fun getMetadata(): String{
-        val metadata = getConfig()
-        val outputStream = ByteArrayOutputStream()
-        val props = Properties()
+    fun generateMetadataFile(): MetadataFile {
+        val file = File.createTempFile("metadata", ".xml")
 
-        props["appid"] = appInfo.appId
-        props["appcaption"] = appInfo.appCaption
-        props["type"] = "RENDERINGSERVICE_2"
-        props["protocol"] = appInfo.public.protocol
-        props["host"] = appInfo.public.host
-        props["port"] = appInfo.public.port.toString()
-        props["contenturl"] = appInfo.public.url
-        props["trustedclient"] = "true"
-        props["public_key"] = metadata.publicKey
-        props.storeToXML(outputStream, "rendering application file for application type lms", StandardCharsets.UTF_8)
-        return outputStream.toString(StandardCharsets.UTF_8)
+        FileOutputStream(file).use { outputStream ->
+            val metadata = getConfig()
+            val props = Properties()
+
+            props["appid"] = appInfo.appId
+            props["appcaption"] = appInfo.appCaption
+            props["type"] = "RENDERINGSERVICE_2"
+            props["protocol"] = appInfo.public.protocol
+            props["host"] = appInfo.public.host
+            props["port"] = appInfo.public.port.toString()
+            props["contenturl"] = appInfo.public.url
+            props["trustedclient"] = "true"
+            props["public_key"] = metadata.publicKey
+            props.storeToXML(
+                outputStream,
+                "rendering application file for application type lms",
+                StandardCharsets.UTF_8
+            )
+        }
+        return MetadataFile(file)
     }
 }

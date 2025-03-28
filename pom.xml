@@ -23,6 +23,11 @@
     <maven.compiler.target>21</maven.compiler.target>
     <docker.image.name>enterprise/edu_sharing-community-services-rendering2</docker.image.name>
     <docker.registry>docker.edu-sharing.com</docker.registry>
+
+
+    <!-- release-2 -->
+    <bom.repository.version>${project.version}</bom.repository.version>
+
   </properties>
 
   <scm>
@@ -53,8 +58,46 @@
     </profile>
   </profiles>
 
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>com.github.tommyk-gears</groupId>
+        <artifactId>bom-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>community-repository</id>
+            <goals>
+              <goal>import-properties</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <artifacts>
+                <dependency>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>edu_sharing-community-repository</artifactId>
+                  <!--suppress UnresolvedMavenProperty -->
+                  <version>${bom.repository.version}</version>
+                  <type>pom</type>
+                </dependency>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>
+
   <dependencyManagement>
     <dependencies>
+      
+      <dependency>
+        <groupId>org.edu_sharing</groupId>
+        <artifactId>edu_sharing-community-repository-backend-services-rest-client-java</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>edu_sharing-community-services-rendering2-service</artifactId>

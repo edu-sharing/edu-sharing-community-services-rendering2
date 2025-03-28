@@ -184,7 +184,6 @@
     <dependency>
       <groupId>org.edu_sharing</groupId>
       <artifactId>edu_sharing-community-repository-backend-services-rest-client-java</artifactId>
-      <version>maven-fixes-9.0-SNAPSHOT</version> <!-- TODO edu-sharing versioning -->
     </dependency>
 
     <!-- SPRING -->

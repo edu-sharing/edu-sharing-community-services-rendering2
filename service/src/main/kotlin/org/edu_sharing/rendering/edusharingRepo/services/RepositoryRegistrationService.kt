@@ -57,7 +57,8 @@ class RepositoryRegistrationService(
         )
     }
 
-    private fun getWebClient(url: String): WebClient {
+    private fun getWebClient
+                (url: String): WebClient {
         return WebClient
             .builder()
             .baseUrl(url)
@@ -131,12 +132,11 @@ class RepositoryRegistrationService(
         val registrationEntity = createRegistration(request.url, force)
 
         val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
-        adminV1Api.addApplication(metadataService.getMetadata())
-
+        metadataService.generateMetadataFile().use {
+            adminV1Api.addApplication(it.file)
+        }
         return registrationEntity
     }
-
-
 
     private fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
         val apiClient: ApiClient = ApiClientFixes()
