@@ -1,3 +1,4 @@
+#!/bin/bash
 # Call this script with the version of the H5P core as the first argument
 # (= version tag of h5p-php-library) and the H5P editor as the second argument
 # (= version tag of h5p-editor-php-library).
@@ -5,7 +6,8 @@
 
 # This script is based on the download-core.sh script provided by the lumi project.
 # In order to facilitate easier H5P core updates it has been modified by metaVentis GmbH
-set -x
+
+set -eux
 
 core_version=$1
 if [ ! -z "$2" ]

@@ -36,7 +36,7 @@ deploy:
     - apt-get update -y
     - apt-get install -y unzip
   script:
-    - bash -c 'mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy'
+    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy
   artifacts:
     paths:
       - service/target/surefire-reports
