@@ -5,6 +5,7 @@
 
 # This script is based on the download-core.sh script provided by the lumi project.
 # In order to facilitate easier H5P core updates it has been modified by metaVentis GmbH
+set -x
 
 core_version=$1
 if [ ! -z "$2" ]
