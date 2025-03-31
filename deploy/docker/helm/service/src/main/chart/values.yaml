@@ -190,7 +190,7 @@ config:
       bitrate: 160
     document:
       ## @param config.converter.document.host Set document-converter host
-      host: edusharing-rendering2-document-converter
+      host: edusharing-services-rendering2-document-converter
       ## @param config.converter.document.port Set document-converter port
       port: 8080
     image:
@@ -260,7 +260,7 @@ config:
 
   lumi:
     ## @param config.lumi.host Set lumi host
-    host: edusharing-rendering2-lumi
+    host: edusharing-services-rendering2-lumi
     ## @param config.lumi.port Set lumi port
     port: 3000
 
@@ -270,7 +270,7 @@ config:
 
   mongodb:
     ## @param config.mongodb.host Set mongodb host
-    host: edusharing-rendering2-mongodb
+    host: edusharing-services-rendering2-mongodb
     ## @param config.mongodb.port Set mongodb port
     port: 27017
     ## @param config.mongodb.username Set mongodb username
@@ -285,7 +285,7 @@ config:
 
   rabbitmq:
     ## @param config.rabbitmq.host Set rabbitmq host
-    host: edusharing-rendering2-rabbitmq
+    host: edusharing-services-rendering2-rabbitmq
     ## @param config.rabbitmq.port Set rabbitmq port
     port: 5672
     ## @param config.rabbitmq.username Set rabbitmq username
@@ -295,13 +295,13 @@ config:
 
   redis:
     ## @param config.redis.host Set redis host
-    host: edusharing-rendering2-rediscluster
+    host: edusharing-services-rendering2-rediscluster
     ## @param config.redis.port Set redis port
     port: 6379
 
   s3:
     ## @param config.s3.host Set S3 host
-    host: edusharing-rendering2-minio
+    host: edusharing-services-rendering2-minio
     ## @param config.s3.port Set S3 port
     port: 9000
     ## @param config.s3.username Set S3 username

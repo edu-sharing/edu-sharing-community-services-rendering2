@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
-import java.nio.file.Files
 
 @ConditionalOnConverter
 @Component
@@ -24,13 +23,15 @@ class ConverterWebServiceCaller(
             "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}",
             arguments.originalFileExtension
         )
-        inputStream.use {
-            Files.copy(inputStream, originalFile.toPath())
-        }
-        val builder = MultipartBodyBuilder()
-        builder.part("file", FileSystemResource(originalFile))
-        arguments.urlParams.forEach { builder.part(it.key, it.value) }
         try {
+            inputStream.use {
+                originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
+            }
+
+            val builder = MultipartBodyBuilder()
+            builder.part("file", FileSystemResource(originalFile))
+            arguments.urlParams.forEach { builder.part(it.key, it.value) }
+
             val returnedData = arguments.client.post()
                 .uri {
                     UriComponentsBuilder.fromUri(it.build()).path(arguments.externalServiceMethodPath).build(true)

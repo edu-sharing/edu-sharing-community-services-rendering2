@@ -2,27 +2,24 @@ package org.edu_sharing.rendering.modules.av
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
-import org.springframework.beans.factory.annotation.Value
-import java.io.Closeable
 import java.io.File
-import java.nio.file.Files
 import java.util.*
 
 class AvFileHelper(
     private val storageImplementation: StorageService,
-): Closeable {
+): AutoCloseable {
     lateinit var outputFile: File
     lateinit var originalFile: File
 
     fun initOutputTempFile(extension: String) {
-        outputFile = File.createTempFile(UUID.randomUUID().toString(), extension)
+        outputFile = File.createTempFile(UUID.randomUUID().toString(), ".$extension")
     }
 
     fun fetchOriginalTempFile(cacheObject: CacheObject) {
-        originalFile = File.createTempFile(UUID.randomUUID().toString(), cacheObject.mimeType.substringAfter('/'))
+        originalFile = File.createTempFile(UUID.randomUUID().toString(), ".${cacheObject.mimeType.substringAfter('/')}")
         val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
         fileInputStream.use {
-            Files.copy(fileInputStream, originalFile.toPath())
+            originalFile.outputStream().use { fileOutputStream -> fileInputStream.copyTo(fileOutputStream) }
         }
     }
 
@@ -30,6 +27,7 @@ class AvFileHelper(
         if (!::outputFile.isInitialized) {
             throw Exception("Output file not initialized")
         }
+
         storageImplementation.putObject(cacheObject, outputFile.readBytes().inputStream(), metaData)
     }
 
