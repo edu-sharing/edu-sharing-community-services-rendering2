@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
-import java.nio.file.Files
 
 @ConditionalOnConverter
 @Component
@@ -26,7 +25,7 @@ class ConverterWebServiceCaller(
         )
         try {
             inputStream.use {
-                Files.copy(inputStream, originalFile.toPath())
+                originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
             }
 
             val builder = MultipartBodyBuilder()
