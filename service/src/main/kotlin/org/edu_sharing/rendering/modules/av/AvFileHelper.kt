@@ -10,12 +10,12 @@ import java.util.*
 
 class AvFileHelper(
     private val storageImplementation: StorageService,
-): Closeable {
+): AutoCloseable {
     lateinit var outputFile: File
     lateinit var originalFile: File
 
     fun initOutputTempFile(extension: String) {
-        outputFile = File.createTempFile(UUID.randomUUID().toString(), extension)
+        outputFile = File.createTempFile(UUID.randomUUID().toString(), ".$extension")
     }
 
     fun fetchOriginalTempFile(cacheObject: CacheObject) {
