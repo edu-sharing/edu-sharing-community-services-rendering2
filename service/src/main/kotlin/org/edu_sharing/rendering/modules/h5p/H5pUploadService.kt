@@ -19,7 +19,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
-import java.nio.file.Files
 
 @Service
 @ConditionalOnConverter
@@ -77,7 +76,7 @@ class H5pUploadService(
             ".h5p"
         )
         inputStream.use {
-            Files.copy(inputStream, originalFile.toPath())
+            originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
         }
         val builder = MultipartBodyBuilder()
         builder.part("file", FileSystemResource(originalFile))
