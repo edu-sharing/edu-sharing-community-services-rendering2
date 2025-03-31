@@ -14,7 +14,8 @@ WORKDIR application
 
 # Enable community repository, update package list, and install LibreOffice
 RUN apk update && \
-    apk add --no-cache libreoffice
+    apk add --no-cache libreoffice fontconfig ttf-dejavu msttcorefonts-installer && \
+    update-ms-fonts
 
 # Verify installation
 RUN libreoffice --version
