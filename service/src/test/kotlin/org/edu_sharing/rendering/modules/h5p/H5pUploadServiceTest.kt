@@ -125,7 +125,7 @@ class H5pUploadServiceTest {
         mockWebServer.takeRequest()
         val request = mockWebServer.takeRequest()
         val body = request.body.readUtf8()
-        assert(body.contains("name=\"file\"; filename=\"${dummyCacheObject.nodeId}_${dummyCacheObject.hash}.h5p\""))
+        assert(body.contains("name=\"file\"; filename=\"${dummyCacheObject.nodeId}_${dummyCacheObject.hash}_"))
         assert(body.contains(testFileContent))
         assert(body.contains("name=\"nodeId\""))
         assert(body.contains("${dummyCacheObject.nodeId}_${dummyCacheObject.hash}"))
