@@ -4,7 +4,6 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClie
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
-import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
@@ -139,7 +138,7 @@ class RepositoryRegistrationService(
     }
 
     private fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
-        val apiClient: ApiClient = ApiClientFixes()
+        val apiClient = ApiClient()
         apiClient.setBasePath("${url}/rest")
         apiClient.setUsername(username)
         apiClient.setPassword(password)

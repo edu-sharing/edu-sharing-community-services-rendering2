@@ -6,7 +6,6 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.edusharingRepo.api.ApiClientFixes
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.springframework.beans.factory.annotation.Value
@@ -38,8 +37,6 @@ class RenderController (
         val decodedSignature = Base64.getDecoder().decode(body.signature)
         if (securityEnabled) {
             verifySignedNode(decodedNode, decodedSignature, body.repoId)
-        } else {
-            ApiClientFixes()
         }
         val node = Node.fromJson(decodedNode.toString(Charsets.UTF_8))
         nodeSessionContextRepository.saveNode(node)
