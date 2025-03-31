@@ -20,8 +20,9 @@ class ConverterWebServiceCaller(
 ) {
     fun callConverterService(arguments: ConverterWebServiceArguments) {
         val inputStream = contentTransferService.getAsInputStream(arguments.cacheObject)
-        val originalFile = File(
-            "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}${arguments.originalFileExtension}"
+        val originalFile = File.createTempFile(
+            "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}",
+            arguments.originalFileExtension
         )
         inputStream.use {
             Files.copy(inputStream, originalFile.toPath())
@@ -32,7 +33,8 @@ class ConverterWebServiceCaller(
         try {
             val returnedData = arguments.client.post()
                 .uri {
-                    UriComponentsBuilder.fromUri(it.build()).path(arguments.externalServiceMethodPath).build(true).toUri()
+                    UriComponentsBuilder.fromUri(it.build()).path(arguments.externalServiceMethodPath).build(true)
+                        .toUri()
                 }.contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
