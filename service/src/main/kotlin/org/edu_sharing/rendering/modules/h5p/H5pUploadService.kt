@@ -72,7 +72,10 @@ class H5pUploadService(
 
     private fun uploadPackage(cacheObject: CacheObject): String {
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
-        val originalFile = File("${cacheObject.nodeId}_${cacheObject.hash}.h5p")
+        val originalFile = File.createTempFile(
+            "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}",
+            ".h5p"
+        )
         inputStream.use {
             Files.copy(inputStream, originalFile.toPath())
         }
