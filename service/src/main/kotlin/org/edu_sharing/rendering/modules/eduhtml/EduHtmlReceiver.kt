@@ -51,7 +51,7 @@ class EduHtmlReceiver (
             eduHtmlConversionService.cacheData(cacheObject)
             subJob.message = eduHtmlService.getObjectLink(cacheObject).link
         } catch (exception: Exception) {
-            log.error("Job id ${message.id} failed with exception: ${exception.message}")
+            log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             success = false
         } finally {
             subJob.status = if (success) JobStatus.FINISHED else JobStatus.FAILED

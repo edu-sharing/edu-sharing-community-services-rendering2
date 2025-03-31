@@ -38,7 +38,7 @@ class BinderUploadService(
         val branch: String,
     )
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun process(
         cacheObject: CacheObject, renderingJob: RenderingJob
@@ -66,7 +66,7 @@ class BinderUploadService(
 
         eventStream.subscribe(
             Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
-                logger.info(
+                log.info(
                     "Time: {} - event: name[{}], id [{}], content[{}] ",
                     LocalTime.now(), content!!.event(), content.id(), content.data()
                 )
@@ -74,13 +74,13 @@ class BinderUploadService(
             },
             Consumer {
                 error: Throwable? ->
-                logger.error("Error receiving SSE: ", error)
+                log.error("Error receiving SSE: ", error)
                 subJob.status = JobStatus.FAILED
                 subJob.message = "Error receiving SSE " +  error?.message
                 subJob = subJobRepository.save(subJob)
              },
             Runnable {
-                logger.info("SSE Server emitted completion event.")
+                log.info("SSE Server emitted completion event.")
             }
         )
     }

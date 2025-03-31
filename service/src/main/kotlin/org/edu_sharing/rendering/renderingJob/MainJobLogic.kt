@@ -13,7 +13,7 @@ class MainJobLogic (
     private val jobRepository: RenderingJobRepository,
     ) {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     fun getMainJobEntry(jobId: String): RenderingJob? {
         return jobRepository.findByIdOrNull(ObjectId(jobId))
@@ -22,11 +22,11 @@ class MainJobLogic (
     fun processMainJob(jobId: String, setToFinishedIfOneOrMoreSubJobsFinished: Boolean = false): Boolean {
         val job = getMainJobEntry(jobId)
         if (job == null) {
-            logger.error("Expected main job not found, job id: $jobId")
+            log.error("Expected main job not found, job id: $jobId")
             return true
         }
         if (job.subJobs.isEmpty()) {
-            logger.error("No sub jobs found, job id: $jobId")
+            log.error("No sub jobs found, job id: $jobId")
             job.status = JobStatus.FAILED
             jobRepository.save(job)
             return true

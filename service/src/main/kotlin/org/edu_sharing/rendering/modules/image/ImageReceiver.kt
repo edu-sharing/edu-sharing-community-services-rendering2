@@ -21,7 +21,7 @@ class ImageReceiver(
     private val conversionService: ImageConversionService,
     private val mapper: Mapper
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
         bindings = [
@@ -36,7 +36,7 @@ class ImageReceiver(
     fun receiveMessage(message: SubJobMessage) {
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null) {
-            logger.warn("Expected main job not found: " + message.id)
+            log.warn("Expected main job not found: " + message.id)
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
@@ -49,7 +49,7 @@ class ImageReceiver(
                 conversionService.convert(cacheObject, subJob.quality, sourceImage)
                 subJob.status = JobStatus.FINISHED
             } catch (exception: Exception) {
-                logger.warn(exception.message)
+                log.warn(exception.message)
                 subJob.status = JobStatus.FAILED
             }
             subJobRepository.save(subJob)

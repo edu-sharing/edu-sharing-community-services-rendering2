@@ -28,7 +28,7 @@ class JobReceiver(
     private val contentTransferService: ContentTransferService,
     private val moduleRegistry: ModuleRegistry
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
         bindings = [
@@ -64,7 +64,7 @@ class JobReceiver(
         } else {
             jobEntry.status = JobStatus.FAILED
             jobRepository.save(jobEntry)
-            logger.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
+            log.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
         }
     }
 }

@@ -87,7 +87,7 @@ class ApiExceptionHandler {
 
     @ExceptionHandler
     fun handleForbiddenException(exception: Forbidden): ResponseEntity<Void> {
-        log.error(exception.message)
+        log.error(exception.message, exception)
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
     }
 }

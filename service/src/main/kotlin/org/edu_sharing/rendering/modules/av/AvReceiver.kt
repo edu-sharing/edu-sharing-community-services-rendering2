@@ -34,7 +34,7 @@ class AvReceiver(
         const val MODULE_NOT_SUPPORTED_ERROR = "Module not supported for AV conversion:"
     }
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @RabbitListener(
         bindings = [
@@ -57,12 +57,12 @@ class AvReceiver(
     fun receiveMessage(message: SubJobMessage) {
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null) {
-            logger.warn("Expected main job not found: " + message.id)
+            log.warn("Expected main job not found: " + message.id)
             return
         }
         var subJob = jobEntry.subJobs.firstOrNull { it.quality == message.quality }
         if (subJob == null) {
-            logger.error("Expected sub job not found for message: {}", message)
+            log.error("Expected sub job not found for message: {}", message)
             mainJobLogic.processMainJob(message.id)
             return
         }
@@ -83,9 +83,9 @@ class AvReceiver(
         } catch (exception: Exception) {
             val failedSubJob = subJobRepository.findByIdOrNull(subJob.id)
             if (exception is ConversionException) {
-                logger.warn(exception.message)
+                log.warn(exception.message, exception)
             } else {
-                logger.error(exception.message)
+                log.error(exception.message, exception)
             }
             if (failedSubJob != null) {
                 failedSubJob.message = exception.message

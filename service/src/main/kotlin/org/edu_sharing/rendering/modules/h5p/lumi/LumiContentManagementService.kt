@@ -94,10 +94,10 @@ class LumiContentManagementService(
                         log.warn("Orphaned lumi tracking entry detected. It will be deleted.")
                         trackingEntryRepository.delete(entry)
                     } else {
-                        log.error("Lumi object cannot be removed: ${exception.statusCode}")
+                        log.error("Lumi object cannot be removed: ${exception.statusCode}", exception)
                     }
                 } catch (exception: Exception) {
-                    log.error("Lumi object cannot be removed: ${exception.message}")
+                    log.error("Lumi object cannot be removed: ${exception.message}", exception)
                 }
             }
 

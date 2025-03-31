@@ -269,7 +269,7 @@ class MinioStorageService(
                 mimeType = statObject.contentType()
             )
         } catch (exception: Exception) {
-            log.error(exception.toString())
+            log.error(exception.toString(), exception)
             throw ResourceNotFoundException("File properties for cached object not found.")
         }
     }
@@ -285,7 +285,7 @@ class MinioStorageService(
                 mimeType = statObject.contentType()
             )
         } catch (exception: Exception) {
-            log.error(exception.toString())
+            log.error(exception.toString(), exception)
             throw ResourceNotFoundException("File properties for cached object not found.")
         }
     }
@@ -304,7 +304,7 @@ class MinioStorageService(
                 infoList.add(storageInfo)
             }
         } catch (exception: Exception) {
-            log.error(exception.toString())
+            log.error(exception.toString(), exception)
         }
         return infoList
 

@@ -68,15 +68,15 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
             jwtParser.parse(jwt)
             return true
         } catch (e: MalformedJwtException) {
-            log.error("Invalid JWT token: {}", e.message)
+            log.error("Invalid JWT token: {}", e.message, e)
         } catch (e: ExpiredJwtException) {
-            log.error("JWT token is expired: {}", e.message)
+            log.error("JWT token is expired: {}", e.message, e)
         } catch (e: UnsupportedJwtException) {
-            log.error("JWT token is unsupported: {}", e.message)
+            log.error("JWT token is unsupported: {}", e.message, e)
         } catch (e: IllegalArgumentException) {
-            log.error("JWT claims string is empty: {}", e.message)
+            log.error("JWT claims string is empty: {}", e.message, e)
         } catch (e: InvalidKeyException) {
-            log.error("JWT parser has no valid public key: {}", e.message)
+            log.error("JWT parser has no valid public key: {}", e.message, e)
         }
         return false
     }

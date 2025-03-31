@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.runApplication
 import org.springframework.core.env.ConfigurableEnvironment
-import org.springframework.core.env.Environment
 import org.springframework.core.env.MapPropertySource
 import org.springframework.stereotype.Component
 
@@ -22,7 +21,7 @@ fun main(args: Array<String>) {
 @ConditionalOnProperty(name = ["debugging.env.enabled"])
 class EnvironmentPropertiesPrinter(private val env: ConfigurableEnvironment) {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @PostConstruct
     fun logApplicationProperties() {
@@ -32,6 +31,6 @@ class EnvironmentPropertiesPrinter(private val env: ConfigurableEnvironment) {
             .flatMap { obj: Collection<*> -> obj.stream() }
             .distinct()
             .sorted()
-            .forEach { key -> logger.info("{}={}", key, env.getProperty(key.toString())) }
+            .forEach { key -> log.info("{}={}", key, env.getProperty(key.toString())) }
     }
 }

@@ -49,7 +49,7 @@ class DdbApiService(
             )
             subJob.status = JobStatus.FINISHED
         } catch (exception: Exception) {
-            log.error("Error while processing DDB communication: ${exception.message}")
+            log.error("Error while processing DDB communication: ${exception.message}", exception)
             subJob.message = exception.message
             subJob.status = JobStatus.FAILED
         } finally {

@@ -53,7 +53,7 @@ class RegistrationRunner(
                 throw RuntimeException("Registration failed for ${registrationRequest.url} with\n ${e.message}", e)
             } catch (e: Exception) {
                 log.error(e.message, e)
-                throw RuntimeException(e.message)
+                throw RuntimeException(e)
             }
         }
     }

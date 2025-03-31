@@ -57,7 +57,7 @@ class H5pReceiver(
             subJob.status = JobStatus.FINISHED
             subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
-            log.error("H5P retrieval or upload failed with error: {}", exception.message)
+            log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
             subJob.status = JobStatus.FAILED
             subJob.message = exception.message
         }

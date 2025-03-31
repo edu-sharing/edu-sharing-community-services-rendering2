@@ -17,10 +17,10 @@ class AvConversionListener(
 ) : EncoderProgressListener {
 
     lateinit var subJob: SubJob
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun sourceInfo(p0: MultimediaInfo?) {
-        logger.info(p0.toString())
+        log.info(p0.toString())
     }
 
     override fun progress(p0: Int) {
@@ -31,6 +31,6 @@ class AvConversionListener(
     }
 
     override fun message(p0: String?) {
-        logger.info(p0)
+        log.info(p0)
     }
 }

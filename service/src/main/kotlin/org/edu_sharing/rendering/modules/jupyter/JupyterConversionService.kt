@@ -35,7 +35,7 @@ class JupyterConversionService(
             convertAndMoveToCache(cacheObject)
             subJob.status = JobStatus.FINISHED
         } catch (e: Exception) {
-            log.error("Jupyter conversion failed for object ${renderingJob.esObjectId} with exception ${e.message}")
+            log.error("Jupyter conversion failed for object ${renderingJob.esObjectId} with exception ${e.message}", e)
             subJob.status = JobStatus.FAILED
             subJob.message = PUBLIC_FAILURE_MESSAGE
         }

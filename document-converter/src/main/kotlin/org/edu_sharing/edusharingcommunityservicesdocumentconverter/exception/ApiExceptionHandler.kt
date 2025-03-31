@@ -37,7 +37,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     fun handleInternalException(exception: Exception): ResponseEntity<ErrorMessage> {
-        log.error("Conversion failed with exception message ${exception.message}")
+        log.error("Conversion failed with exception message ${exception.message}", exception)
         val errorMessage = ErrorMessage(
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             "Internal server error"
