@@ -42,6 +42,7 @@
   <modules>
     <module>service</module>
     <module>document-converter</module>
+    <module>jupyter-converter</module>
     <module>lumi</module>
   </modules>
 </project>

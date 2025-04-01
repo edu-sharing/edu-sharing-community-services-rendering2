@@ -8,5 +8,8 @@ services:
   rendering2-document-converter:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
 
+  rendering2-jupyter-converter:
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-jupyter-converter:${docker.tag}"
+
   rendering2-lumi:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"

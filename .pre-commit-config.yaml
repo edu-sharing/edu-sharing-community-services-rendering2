@@ -13,6 +13,10 @@ repos:
     - id: helm-readme-generator
       pass_filenames: false
       always_run: true
+      args: [--readme=deploy/docker/helm/jupyter-converter/src/main/chart/README.md, --values=deploy/docker/helm/jupyter-converter/src/main/chart/values.yaml]
+    - id: helm-readme-generator
+      pass_filenames: false
+      always_run: true
       args: [--readme=deploy/docker/helm/lumi/src/main/chart/README.md, --values=deploy/docker/helm/lumi/src/main/chart/values.yaml]
     - id: helm-readme-generator
       pass_filenames: false

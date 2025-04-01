@@ -6,14 +6,16 @@ authors = ["ziegler <ziegler@edu-sharing.net>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.12.5"
 fastapi = "^0.115.2"
 uvicorn = "^0.32.0"
 nbconvert = "^7.16.4"
 python-multipart = "^0.0.12"
+prometheus-fastapi-instrumentator = "^7.1.0"
 
 [project]
 requires-python = ">=3.12.5"
+name = "jupyter-converter"
 
 [build-system]
 requires = ["poetry-core"]

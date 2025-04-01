@@ -1,33 +1,34 @@
-FROM ${docker.from.openjdk.21} as builder
-WORKDIR application
-ARG JAR_FILE=artifacts/*.jar
-COPY ${JAR_FILE} application.jar
-RUN java -Djarmode=layertools -jar application.jar extract && ls -la
-RUN if [[ -z "$(ls -A ./snapshot-dependencies)" ]] ; then touch ./snapshot-dependencies/.keep; fi
+FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-bullseye AS builder
+
+RUN pip install poetry==2.1.2
 
 
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+WORKDIR /app
+
+COPY artifacts/pyproject.toml artifacts/poetry.lock ./
+RUN touch README.md
+
+RUN poetry install --only main --no-root
+RUN rm -rf $POETRY_CACHE_DIR
 
 
+FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-slim-bullseye
 
+ARG git_branch=dev
+ARG git_commit_id=dev
+ARG project_artifactId=edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter
+ARG project_groupId=org.edu_sharing
+ARG project_version=dev
 
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
 
-FROM ${docker.from.eclipse-temurin.21}
-
-
-VOLUME /tmp
-WORKDIR application
-
-#RUN set -eux \
-#    && adduser --uid=1000 --home=/application --gecos "" --shell=/bin/bash worker \
-#    && chown -RL worker:worker . \
-#    && chown -RL worker:worker /tmp
-
-RUN set -eux \
-    && apt update -y \
-    && apt install -y --no-install-recommends  \
-      libreoffice \
-    && apt clean \
-    && rm -r /var/lib/apt/lists/*
+WORKDIR app
 
 RUN set -eux \
     && adduser --uid=1000 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
@@ -35,30 +36,14 @@ RUN set -eux \
     && chown -RL worker:worker /tmp
 
 USER worker
-COPY --from=builder application/dependencies/ ./
-COPY --from=builder application/spring-boot-loader/ ./
-COPY --from=builder application/snapshot-dependencies/ ./
-COPY --from=builder application/application/ ./
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-########################################################################################################################
+COPY artifacts/main.py ./main.py
 
-RUN set -eux \
-    && mkdir profiler \
-    && wget -qO- https://github.com/Granulate/async-profiler/releases/download/v2.0g1/async-profiler-2.0-linux-x64.tar.gz | tar xvz -C profiler
+ENTRYPOINT ["python", "-m", "main"]
 
-COPY --chown=worker:worker assets/profiler profiler/
-
-########################################################################################################################
-
-EXPOSE 8080
-ENTRYPOINT ["sh" ,"-c", "exec java ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
-
-########################################################################################################################
-
-LABEL git.branch=${git.branch} \
-git.closest.tag.name=${git.closest.tag.fixed} \
-git.commit.id=${git.commit.id} \
-git.dirty=${git.dirty} \
-mvn.project.artifactId=${project.artifactId} \
-mvn.project.groupId=${project.groupId} \
-mvn.project.version=${project.version}
+LABEL git.branch=${git_branch} \
+git.commit.id=${git_commit_id} \
+mvn.project.artifactId=${project_artifactId} \
+mvn.project.groupId=${project_groupId} \
+mvn.project.version=${project_version}
