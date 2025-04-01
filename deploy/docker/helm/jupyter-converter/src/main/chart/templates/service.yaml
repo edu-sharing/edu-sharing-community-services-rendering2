@@ -37,6 +37,6 @@ spec:
   selector: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
   ports:
     - name: http-api
-      port: {{ .Values.service.port.management }}
+      port: {{ .Values.service.port.api }}
       targetPort: api
 {{- end }}
