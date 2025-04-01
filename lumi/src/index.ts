@@ -147,15 +147,15 @@ const start = async () => {
 
     // Graceful Shutdown Handler
     const shutdown = () => {
-        console.log("Shutting down gracefully...");
+        log.info("Shutting down gracefully...");
 
         server.close(() => {
-            console.log("Server closed.");
+            log.info("Server closed.");
             process.exit(0);
         });
 
         setTimeout(() => {
-            console.error("Forcefully shutting down...");
+            log.warn("Forcefully shutting down...");
             process.exit(1);
         }, 10000); // Force exit after 10s
     };
