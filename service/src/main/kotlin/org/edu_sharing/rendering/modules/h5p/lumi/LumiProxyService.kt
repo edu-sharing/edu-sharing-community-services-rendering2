@@ -6,7 +6,6 @@ import org.apache.logging.log4j.ThreadContext
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
@@ -19,9 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder
 @ConditionalOnController
 @Service
 class LumiProxyService(
-    private val lumiWebClient: WebClient,
-    @Value("\${app.public.path}")
-    private val publicPath: String
+    private val lumiWebClient: WebClient
 ) {
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'Read')")
     fun <T> processProxyRequest(
