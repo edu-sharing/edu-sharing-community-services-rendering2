@@ -78,7 +78,7 @@ service:
 config:
 
   ## @param config.base Set base path
-  base: /public/h5p
+  base: "/rendering"
 
   cache:
     ## @param config.cache.type Set cache type
