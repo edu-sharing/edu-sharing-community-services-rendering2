@@ -27,9 +27,6 @@ data:
   REDIS_PORT: {{ .Values.config.redis.port | quote }}
   MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
   MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
-  VIRTUAL_HOST: {{ .Values.ingress.hosts | first | quote }}
-  VIRTUAL_PATH: {{ .Values.ingress.paths | first | quote }}
-  VIRTUAL_PORT: {{ .Values.service.port.api | quote }}
   "server.servlet.context-path": {{ .Values.ingress.paths | first | quote }}
   "app.appId": {{ .Values.config.home.appid | quote }}
   "app.public.protocol": {{ ternary "http" "https" (empty .Values.ingress.tls) | quote }}
@@ -65,5 +62,6 @@ data:
   "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
+  "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}
   "spring.redis.cluster.nodes": {{ (printf "%s:%d" .Values.config.redis.host (.Values.config.redis.port | int)) | quote }}
   "spring.redis.cluster.maxRedirects": "5"
