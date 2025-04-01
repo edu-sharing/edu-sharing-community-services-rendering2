@@ -26,6 +26,9 @@ spec:
       - name: {{ include "edusharing_common_lib.names.name" . }}
         image: {{ include "edusharing_common_lib.images.image" . }}{{ $.Values.image.name }}:{{ $.Values.image.tag }}
         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+        env:
+          - name: ENABLE_METRICS
+            value: "true"
         ports:
         - name: api
           containerPort: 8000
