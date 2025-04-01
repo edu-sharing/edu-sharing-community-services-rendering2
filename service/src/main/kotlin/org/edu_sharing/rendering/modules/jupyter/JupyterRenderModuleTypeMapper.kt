@@ -9,6 +9,8 @@ class JupyterRenderModuleTypeMapper(
     private val jupyterRenderModule: JupyterRenderModule ,
 ) :  ModuleTypeMapper {
 
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(type = "file-jupyter") to jupyterRenderModule)
-
+    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(
+        mimeTypePrefix = "application",
+        mimeTypeSuffix = "x-ipynb+json"
+    ) to jupyterRenderModule)
 }
