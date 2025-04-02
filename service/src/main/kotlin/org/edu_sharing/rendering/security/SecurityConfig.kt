@@ -122,20 +122,4 @@ class SecurityConfig(
             .build()
         return InMemoryUserDetailsManager(user)
     }
-
-
-//    @Bean
-//    fun corsConfigurationSource(): CorsConfigurationSource {
-//        val config = CorsConfiguration()
-//        config.allowCredentials = true
-//        config.setAllowedOriginPatterns(allowedOrigins)
-//        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization")
-//        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
-//        //config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "authorization", "x-requested-with"));
-//        config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
-//        config.addExposedHeader("Access-Control-Allow-Origin")
-//        val source = UrlBasedCorsConfigurationSource()
-//        source.registerCorsConfiguration("/**", config)
-//        return source
-//    }
 }
