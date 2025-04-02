@@ -24,8 +24,11 @@ class CorsConfig(
     private final fun init(){
         addAllowedOrigin(appInfo.public.url.cleanUrl())
         addAllowedOrigin(appInfo.internal.url.cleanUrl())
-        //addAllowedOrigin("http://localhost:4200")
-        //addAllowedOrigin("http://localhost:11111")
+        if (!securityEnabled) {
+            addAllowedOrigin("http://localhost:4200")
+            // local moodle
+            //addAllowedOrigin("http://localhost:11111")
+        }
     }
 
     @Bean

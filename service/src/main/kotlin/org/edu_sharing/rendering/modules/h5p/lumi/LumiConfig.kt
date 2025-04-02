@@ -8,11 +8,20 @@ import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
 class LumiConfig() {
-    @Value("\${app.lumi.host}/${H5P_BASE_PATH}")
-    lateinit var lumiBaseUrl: String
+    @Value("\${app.lumi.host}")
+    lateinit var lumiHost: String
+
+    @Value("\${app.public.path}")
+    lateinit var publicPath: String
 
     @Bean
     fun lumiWebClient(): WebClient {
-        return WebClient.builder().baseUrl(lumiBaseUrl).build()
+        val lumiApiUrl = getLumiBaseUrl()
+        return WebClient.builder().baseUrl(lumiApiUrl).build()
+    }
+
+    @Bean
+    fun getLumiBaseUrl(): String {
+        return "${lumiHost.removeSuffix("/")}/${publicPath.removeSuffix("/")}/$H5P_BASE_PATH"
     }
 }

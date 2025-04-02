@@ -32,7 +32,11 @@ class H5pRenderModule(
         if (cachedLumiContentId != null) {
             return RenderDataResponse(
                 module = module(),
-                objectLinks = mutableListOf(ObjectLink(link = appInfo.public.url.combinePath(H5P_BASE_PATH, cachedLumiContentId))),
+                objectLinks = mutableListOf(
+                    ObjectLink(
+                        link = appInfo.public.url.combinePath(H5P_BASE_PATH, cachedLumiContentId)
+                    )
+                ),
                 jobId = null
             )
         }
