@@ -98,6 +98,7 @@ class MinioStorageService(
             .queryParam("assetParams", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
             .build()
             .toUriString()
+        log.info("Non static getObject results in link: $url")
         val objectLink = ObjectLink(link = url)
         try {
             val metadata = getStatObject(cacheObject).userMetadata()
