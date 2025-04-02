@@ -1,7 +1,10 @@
 package org.edu_sharing.rendering.modules.binder.dto
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.junit.jupiter.api.Test
+
 class ProgressInfoDeserializerTest {
-    /*@Test
+    @Test
     fun testEventIsProperlyDeserializedWithFailedMessage() {
         // Arrange
         val json = """{"phase": "failed", "message": "Reason for failure"}"""
@@ -86,5 +89,23 @@ class ProgressInfoDeserializerTest {
         assert(result.token == "notebook-server-token")
         assert(result.progress == null)
         assert(result.url == "full-url-of-notebook-server")
-    }*/
+    }
+
+    @Test
+    fun testEventIsProperlyDeserializedWithMessageContainingOnlyMessage() {
+        // Arrange
+        val json = """{"message": "Picked Git content provider.\n"}"""
+        val objectMapper = jacksonObjectMapper()
+
+        // Act
+        val result = objectMapper.readValue(json, BinderSseEvent::class.java)
+
+        // Assert
+        assert(result.phase == null)
+        assert(result.message == "Picked Git content provider.\n")
+        assert(result.imageName == null)
+        assert(result.progress == null)
+        assert(result.token == null)
+        assert(result.url == null)
+    }
 }

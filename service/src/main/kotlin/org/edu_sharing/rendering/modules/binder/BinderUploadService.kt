@@ -86,6 +86,9 @@ class BinderUploadService(
     }
 
     private fun updateSubJob(eventData: BinderSseEvent, subJobId: ObjectId) {
+        if (eventData.phase.isNullOrBlank()) {
+            return
+        }
         var subJob = subJobRepository.findByIdOrNull(subJobId) ?: throw IllegalStateException("SubJob $subJobId does not exist")
         var hasBeenFinished = false
         when (eventData.phase) {
