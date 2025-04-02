@@ -35,7 +35,7 @@ class MinioStorageService(
     @Suppress("SpringJavaInjectionPointsAutowiringInspection")
     private val bucketStrategy: BucketStrategy,
     private val trackingService: TrackingService,
-    private val appInfo: AppInfo
+    private val appInfo: AppInfo,
 ) : StorageService, StaticStorageService, BucketManagement {
 
     val defaultChunkSize = 10485760L
@@ -94,11 +94,10 @@ class MinioStorageService(
             .scheme(appInfo.public.protocol)
             .host(appInfo.public.host)
             .port(appInfo.public.port.toInt())
-            .path("/public/asset")
+            .pathSegment(appInfo.public.path.trim('/'), "public/asset")
             .queryParam("assetParams", URLEncoder().encode(base.decodeToString(), Charsets.UTF_8))
             .build()
             .toUriString()
-        log.info("Non static getObject results in link: $url")
         val objectLink = ObjectLink(link = url)
         try {
             val metadata = getStatObject(cacheObject).userMetadata()
