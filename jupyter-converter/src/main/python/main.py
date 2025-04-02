@@ -2,8 +2,14 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, Response
 from starlette.responses import HTMLResponse
 from nbconvert import HTMLExporter
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
+instrumentator = Instrumentator().instrument(app)
+
+@app.on_event("startup")
+async def _startup():
+    instrumentator.expose(app)
 
 @app.get("/ping")
 async def ping():

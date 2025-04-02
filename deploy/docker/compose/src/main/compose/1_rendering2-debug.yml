@@ -25,6 +25,9 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_CONVERTER_DEBUG_PORT:-9107}:8000"
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_DOCUMENT_CONVERTER_HTTP_PORT:-9110}:8080"
 
+  rendering2-jupyter-converter:
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_JUPYTER_CONVERTER_HTTP_PORT:-9120}:8000"
 
   rendering2-lumi:
     environment:

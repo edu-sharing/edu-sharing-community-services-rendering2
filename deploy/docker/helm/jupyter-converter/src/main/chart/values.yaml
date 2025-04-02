@@ -52,11 +52,11 @@ global:
 
 ## @section Local parameters
 ## @param nameOverride Override name
-nameOverride: edusharing-services-rendering2-lumi
+nameOverride: edusharing-services-rendering2-jupyter-converter
 
 image:
   ## @param image.name Set image name
-  name: ${docker.prefix}-deploy-docker-build-lumi
+  name: ${docker.prefix}-deploy-docker-build-jupyter-converter
   ## @param image.tag Set image tag
   tag: ${docker.tag}
 
@@ -71,68 +71,15 @@ service:
 
   port:
     ## @param service.port.api Set port for service API
-    api: 3000
+    api: 8000
 
 ########################################################################################################################
 
 config:
 
-  ## @param config.base Set base path
-  base: "/rendering"
-
-  cache:
-    ## @param config.cache.type Set cache type
-    type: in-memory
-
-  files:
-    ## @param config.files.maxsize Set files max size
-    maxsize: 1000
-
-  log:
-    ## @param config.log.level Set log level
-    level: info
-    ## @param config.log.scope Set log scope
-    scope: h5p:*
-
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics
     relabelings: []
-
-  mongodb:
-    ## @param config.mongodb.database Set mongodb database
-    database: lumi
-    ## @param config.mongodb.host Set mongodb host
-    host: edusharing-rendering2-mongodb
-    ## @param config.mongodb.port Set mongodb port
-    port: 27017
-    ## @param config.mongodb.username Set mongodb username
-    username: rendering2
-    ## @param config.mongodb.password Set mongodb password
-    password: ""
-    collections:
-      ## @param config.mongodb.collections.content Set collection for content
-      content: h5p
-      ## @param config.mongodb.collections.edusharing Set collection for edu-sharing
-      edusharing: lumiedusharing
-      ## @param config.mongodb.collections.library Set collection for library
-      library: h5plibraries
-
-  s3:
-    ## @param config.s3.host Set S3 host
-    host: edusharing-rendering2-minio
-    ## @param config.s3.port Set S3 port
-    port: 9000
-    ## @param config.s3.username Set S3 username
-    username: rendering2
-    ## @param config.s3.password Set S3 password
-    password: ""
-    buckets:
-      ## @param config.s3.buckets.content Set S3 bucket for content
-      content: lumi-contentbucket
-      ## @param config.s3.buckets.library Set S3 bucket for library
-      library: lumi-libbucket
-      ## @param config.s3.buckets.temporary Set S3 bucket for temporary
-      temporary: lumi-tempbucket
 
 ########################################################################################################################
 

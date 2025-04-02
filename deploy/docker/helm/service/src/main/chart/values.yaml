@@ -200,6 +200,11 @@ config:
       mimetypes: image/webp,image/jpeg,image/jpg,image/png,image/bmp
       ## @param config.converter.image.sizes Set sizes for immage converter
       sizes: 400,800
+    jupyter:
+      ## @param config.converter.jupyter.host Set jupyter-converter host
+      host: edusharing-services-rendering2-jupyter-converter
+      ## @param config.converter.jupyter.port Set jupyter-converter port
+      port: 8000
     video:
       ## @param config.converter.video.format Set format for video converter
       format: mp4

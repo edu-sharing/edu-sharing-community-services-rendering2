@@ -286,6 +286,29 @@ edusharing_services_rendering2_document_converter:
   ## @param edusharing_services_rendering2_document_converter.enabled Enable rendering2 document converter
   enabled: true
 
+  ## @param edusharing_services_rendering2_document_converter.nameOverride Override rendering2 document converter name
+  nameOverride: &documentConverterNameOverride edusharing-services-rendering2-document-converter
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_document_converter.service.port.api Set rendering2 document converter service api port
+      api: &documentConverterServicePortApi 8080
+
+########################################################################################################################
+
+edusharing_services_rendering2_jupyter_converter:
+
+  ## @param edusharing_services_rendering2_jupyter_converter.enabled Enable rendering2 jupyter converter
+  enabled: true
+
+  ## @param edusharing_services_rendering2_jupyter_converter.nameOverride Override rendering2 jupyter converter name
+  nameOverride: &jupyterConverterNameOverride edusharing-services-rendering2-jupyter-converter
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_jupyter_converter.service.port.api Set rendering2 jupyter converter service api port
+      api: &jupyterConverterServicePortApi 8000
+
 ########################################################################################################################
 
 edusharing_services_rendering2_lumi:
@@ -330,6 +353,18 @@ edusharing_services_rendering2_service:
   enabled: true
 
   config:
+
+    converter:
+      document:
+        ## @param edusharing_services_rendering2_service.config.converter.document.host Set document-converter host
+        host: *documentConverterNameOverride
+        ## @param edusharing_services_rendering2_service.config.converter.document.port Set document-converter port
+        port: *documentConverterServicePortApi
+      jupyter:
+        ## @param edusharing_services_rendering2_service.config.converter.jupyter.host Set jupyter-converter host
+        host: *jupyterConverterNameOverride
+        ## @param edusharing_services_rendering2_service.config.converter.jupyter.port Set jupyter-converter port
+        port: *jupyterConverterServicePortApi
 
     mongodb:
       ## @param edusharing_services_rendering2_service.config.mongodb.host Set mongodb host

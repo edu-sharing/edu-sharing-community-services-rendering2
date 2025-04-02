@@ -50,6 +50,11 @@ dependencies:
     alias: edusharing_services_rendering2_document_converter
     condition: edusharing_services_rendering2_document_converter.enabled
 
+  - name: ${helm.prefix}-jupyter-converter
+    version: ${helm.chart.version}
+    alias: edusharing_services_rendering2_jupyter_converter
+    condition: edusharing_services_rendering2_jupyter_converter.enabled
+
   - name: ${helm.prefix}-lumi
     version: ${helm.chart.version}
     alias: edusharing_services_rendering2_lumi

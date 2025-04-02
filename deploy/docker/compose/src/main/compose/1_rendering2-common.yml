@@ -113,6 +113,7 @@ services:
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
+      app.jupyterConverter.host: http://rendering2-jupyter-converter:8000
     expose:
       - "8080"
     depends_on:
@@ -133,6 +134,13 @@ services:
       - -Dcom.sun.management.jmxremote.ssl=false
     expose:
       - "8080"
+
+  rendering2-jupyter-converter:
+    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-jupyter-converter:${docker.tag}"
+    environment:
+      ENABLE_METRICS: "true"
+    expose:
+      - "8000"
 
   rendering2-lumi:
     image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"

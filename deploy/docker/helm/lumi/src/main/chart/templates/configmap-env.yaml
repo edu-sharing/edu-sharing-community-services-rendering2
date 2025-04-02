@@ -6,7 +6,7 @@ metadata:
 data:
   AWS_S3_MAX_FILE_LENGTH: {{ .Values.config.files.maxsize | quote }}
   AWS_S3_ENDPOINT: {{ (printf "http://%s:%d" .Values.config.s3.host (.Values.config.s3.port | int)) | quote }}
-  BASE_URL: {{ .Values.config.base | quote }}
+  BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}
   CONTENT_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.content | quote }}

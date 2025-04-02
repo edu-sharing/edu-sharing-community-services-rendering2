@@ -27,7 +27,7 @@
 | `image.tag`                                | Set image tag                                | `${docker.tag}`                             |
 | `replicaCount`                             | Define amount of parallel replicas to run    | `1`                                         |
 | `service.port.api`                         | Set port for service API                     | `3000`                                      |
-| `config.base`                              | Set base path                                | `/public/h5p`                               |
+| `config.base`                              | Set base path                                | `/rendering`                                |
 | `config.cache.type`                        | Set cache type                               | `in-memory`                                 |
 | `config.files.maxsize`                     | Set files max size                           | `1000`                                      |
 | `config.log.level`                         | Set log level                                | `info`                                      |

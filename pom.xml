@@ -111,6 +111,12 @@
       </dependency>
 
       <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>edu_sharing-community-services-rendering2-jupyter-converter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.edu_sharing</groupId>
         <artifactId>edu_sharing-community-common-deployment-mongodb-compose</artifactId>
         <version>7.0.2</version>
@@ -145,6 +151,14 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>edu_sharing-community-services-rendering2-deploy-docker-helm-document-converter</artifactId>
+        <version>${project.version}</version>
+        <type>tar.gz</type>
+        <classifier>bin</classifier>
+      </dependency>
+
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>edu_sharing-community-services-rendering2-deploy-docker-helm-jupyter-converter</artifactId>
         <version>${project.version}</version>
         <type>tar.gz</type>
         <classifier>bin</classifier>
@@ -223,6 +237,7 @@
     <module>deploy</module>
     <module>service</module>
     <module>document-converter</module>
+    <module>jupyter-converter</module>
     <module>lumi</module>
   </modules>
 </project>
