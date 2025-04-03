@@ -53,6 +53,14 @@ edusharing_services_rendering2_minio:
         ## @param edusharing_services_rendering2_minio.init.permission.image.tag Set minio init permission image tag
         tag: ${docker.edu_sharing.community.common.minideb.tag}
 
+    wait:
+
+      image:
+        ## @param edusharing_services_rendering2_minio.init.wait.image.name Set minio init wait image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_minio.init.wait.image.tag Set minio init wait image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
   job:
 
     provisioning:

@@ -16,6 +16,8 @@
 | `edusharing_services_rendering2_minio.config.username`                       | Set minio username                                 | `rendering2`                                                   |
 | `edusharing_services_rendering2_minio.init.permission.image.name`            | Set minio init permission image name               | `${docker.edu_sharing.community.common.minideb.name}`          |
 | `edusharing_services_rendering2_minio.init.permission.image.tag`             | Set minio init permission image tag                | `${docker.edu_sharing.community.common.minideb.tag}`           |
+| `edusharing_services_rendering2_minio.init.wait.image.name`                  | Set minio init wait image name                     | `${docker.edu_sharing.community.common.minideb.name}`          |
+| `edusharing_services_rendering2_minio.init.wait.image.tag`                   | Set minio init wait image tag                      | `${docker.edu_sharing.community.common.minideb.tag}`           |
 | `edusharing_services_rendering2_minio.job.provisioning.init.wait.image.name` | Set wait container image name                      | `${docker.edu_sharing.community.common.minideb.name}`          |
 | `edusharing_services_rendering2_minio.job.provisioning.init.wait.image.tag`  | Set wait container image tag                       | `${docker.edu_sharing.community.common.minideb.tag}`           |
 | `edusharing_services_rendering2_minio.job.provisioning.image.name`           | Set job image name                                 | `${docker.edu_sharing.community.common.minio.name}`            |
