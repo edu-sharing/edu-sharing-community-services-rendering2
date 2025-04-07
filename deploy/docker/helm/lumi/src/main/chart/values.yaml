@@ -31,6 +31,9 @@ global:
     common: ${docker.common}
 
   metrics:
+    rules:
+      ## @param global.metrics.rules.enabled Enable metrics rules
+      enabled: false
     scrape:
       ## @param global.metrics.scrape.interval Set prometheus scrape interval
       interval: 60s
@@ -97,6 +100,17 @@ config:
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics
     relabelings: []
+
+    rules:
+
+      nodejsUp:
+        ## @param config.metrics.rules.nodejsUp.enabled Enable metric rule nodejsUp
+        enabled: true
+        ## @param config.metrics.rules.nodejsUp.for Set metric rule nodejsUp wait interval
+        for: 1m
+        labels:
+          ## @param config.metrics.rules.nodejsUp.labels.severity Set metric rule nodejsUp severity level
+          severity: critical
 
   mongodb:
     ## @param config.mongodb.database Set mongodb database
