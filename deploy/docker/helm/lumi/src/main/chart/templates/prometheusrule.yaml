@@ -13,10 +13,10 @@ spec:
         - alert: nodejsUp
           annotations:
             description: >-
-              {{ include "edusharing_common_lib.names.name" . }} isn't up since {{ .Values.config.metrics.rules.nodejsUp.for }}.
-            summary: {{ include "edusharing_common_lib.names.name" . }} isn't up.
+              {{ include "edusharing_common_lib.names.name" . }} is down since {{ .Values.config.metrics.rules.nodejsUp.for }}.
+            summary: {{ include "edusharing_common_lib.names.name" . }} is down.
           expr: >-
-            rate(up{namespace="{{ .Release.Namespace }}",pod=~"{{ include "edusharing_common_lib.names.name" . }}.*"}[5m]) < 1
+            up{namespace="{{ .Release.Namespace }}",pod=~"{{ include "edusharing_common_lib.names.name" . }}.*"} < 1
           for: {{ .Values.config.metrics.rules.nodejsUp.for }}
           labels: {{ toYaml .Values.config.metrics.rules.nodejsUp.labels | nindent 12 }}
         {{- end }}
