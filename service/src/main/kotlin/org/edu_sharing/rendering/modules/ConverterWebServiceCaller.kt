@@ -11,14 +11,13 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
 
-@ConditionalOnConverter
 @Component
 class ConverterWebServiceCaller(
     private val contentTransferService: ContentTransferService,
     private val storageImplementation: StorageService
 ) {
     fun callConverterService(arguments: ConverterWebServiceArguments) {
-        val inputStream = contentTransferService.getAsInputStream(arguments.cacheObject)
+        val inputStream = arguments.inputStream ?: contentTransferService.getAsInputStream(arguments.cacheObject)
         val originalFile = File.createTempFile(
             "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}",
             arguments.originalFileExtension

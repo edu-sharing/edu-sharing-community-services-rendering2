@@ -22,7 +22,7 @@ abstract class BaseNoConversionModule(
     override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
         val link = try {
-            storageService.getObjectLink(cacheObject)
+            storageService.getObjectLink(cacheObject).first
         } catch (_: ResourceNotFoundException) {
             null
         }
@@ -44,6 +44,6 @@ abstract class BaseNoConversionModule(
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
         if (renderingJob.status != JobStatus.FINISHED) return null
         val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
-        return storageService.getObjectLink(cacheObject)
+        return storageService.getObjectLink(cacheObject).first
     }
 }

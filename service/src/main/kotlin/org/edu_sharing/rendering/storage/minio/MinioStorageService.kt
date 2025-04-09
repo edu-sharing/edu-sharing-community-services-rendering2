@@ -79,7 +79,7 @@ class MinioStorageService(
         trackingService.trackCacheObject(cacheObject, bucket)
     }
 
-    override fun getObjectLink(cacheObject: CacheObject): ObjectLink {
+    override fun getObjectLink(cacheObject: CacheObject): Pair<ObjectLink, Long> {
         val params = AssetLinkParams(
             repoId = cacheObject.repoId,
             nodeId = cacheObject.nodeId,
@@ -99,8 +99,11 @@ class MinioStorageService(
             .build()
             .toUriString()
         val objectLink = ObjectLink(link = url)
+        var lastModified: Long = 0
         try {
-            val metadata = getStatObject(cacheObject).userMetadata()
+            val stat = getStatObject(cacheObject)
+            lastModified = stat.lastModified().toEpochSecond()
+            val metadata = stat.userMetadata()
             if (metadata["width"] != null) {
                 objectLink.width = metadata["width"]!!.toIntOrNull() ?: 0
             }
@@ -110,7 +113,7 @@ class MinioStorageService(
         } catch (_: ErrorResponseException) {
             throw ResourceNotFoundException("Resource invalid or not yet cached.")
         }
-        return objectLink
+        return Pair(objectLink, lastModified)
     }
 
     /**

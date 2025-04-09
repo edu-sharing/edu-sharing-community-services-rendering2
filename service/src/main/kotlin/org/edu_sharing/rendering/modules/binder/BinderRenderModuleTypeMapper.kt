@@ -8,5 +8,5 @@ import org.springframework.stereotype.Component
 class BinderRenderModuleTypeMapper(
     private val module: BinderRenderModule
 ): ModuleTypeMapper {
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(resourceType = "binder") to module)
+    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(resourceType = "git-binder") to module)
 }

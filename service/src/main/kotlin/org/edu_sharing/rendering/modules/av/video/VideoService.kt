@@ -40,7 +40,7 @@ class VideoService(
         // For objects not subject to conversion we simply return the link (if present, null otherwise)
         if (!isConversionObject(cacheObject)) {
             return try {
-                listOf(storageImplementation.getObjectLink(cacheObject))
+                listOf(storageImplementation.getObjectLink(cacheObject).first)
             } catch (_: ResourceNotFoundException) {
                 null
             }
@@ -54,7 +54,7 @@ class VideoService(
         return requestedResolutions.mapNotNull {
             lookUpObject.quality = it
             try {
-                storageImplementation.getObjectLink(lookUpObject)
+                storageImplementation.getObjectLink(lookUpObject).first
             } catch (_: ResourceNotFoundException) {
                 null
             }

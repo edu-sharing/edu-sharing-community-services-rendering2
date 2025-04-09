@@ -28,7 +28,7 @@ class ImageService(
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
         if (!isConversionObject(cacheObject)) {
             return try {
-                listOf(storageImplementation.getObjectLink(cacheObject))
+                listOf(storageImplementation.getObjectLink(cacheObject).first)
             } catch (_: ResourceNotFoundException) {
                 null
             }
@@ -41,7 +41,7 @@ class ImageService(
         return requestedResolutions.mapNotNull {
             lookUpObject.quality = it
             try {
-                storageImplementation.getObjectLink(lookUpObject)
+                storageImplementation.getObjectLink(lookUpObject).first
             } catch (_: ResourceNotFoundException) {
                 null
             }

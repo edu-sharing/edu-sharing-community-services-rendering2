@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.jupyter
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
+import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
@@ -45,6 +46,16 @@ class JupyterRenderModule(
         }
 
         return RenderDataResponse(jobId = jupyterJobService.retrieveOrCreateJob(cacheObject, this), module = module())
+    }
+
+    override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
+        val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
+        val links = jupyterJobService.getObjectLinks(cacheObject, this)
+        return links?.get(0)
+    }
+
+    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+        return subJob.additionalData
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime

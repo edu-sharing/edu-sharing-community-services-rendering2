@@ -81,7 +81,7 @@ class ImageServiceTest {
         val cacheObjectWithNonConversion = cacheObject.copy()
         cacheObjectWithNonConversion.mimeType = "image/ogg"
 
-        every { storageService.getObjectLink(cacheObjectWithNonConversion) } returns ObjectLink(link = "mylink")
+        every { storageService.getObjectLink(cacheObjectWithNonConversion) } returns Pair(ObjectLink(link = "mylink"), 0)
 
         // Act
         val result = underTest.getObjectLinks(cacheObjectWithNonConversion)
@@ -108,7 +108,7 @@ class ImageServiceTest {
 
             val objectLink1 = ObjectLink(link = "link1")
 
-            every { storageService.getObjectLink(lookupObject1) } returns objectLink1
+            every { storageService.getObjectLink(lookupObject1) } returns Pair(objectLink1, 0)
             every { storageService.getObjectLink(lookupObject2) } throws ResourceNotFoundException("")
 
             // Act
@@ -134,7 +134,7 @@ class ImageServiceTest {
 
             val objectLink1 = ObjectLink(link = "link1")
 
-            every { storageService.getObjectLink(lookupObject1) } returns objectLink1
+            every { storageService.getObjectLink(lookupObject1) } returns Pair(objectLink1, 0)
 
             // Act
             val result = underTest.getObjectLinks(cacheObject, 233)

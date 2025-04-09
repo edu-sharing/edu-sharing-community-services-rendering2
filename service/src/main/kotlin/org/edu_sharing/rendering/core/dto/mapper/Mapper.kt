@@ -11,11 +11,11 @@ class Mapper {
     fun nodeToCacheObject(node: Node): CacheObject {
         return CacheObject(
             nodeId = node.ref.id,
-            type = node.mediatype,
-            hash = node.content.hash,
-            size = node.size.toLong(),
-            mimeType = node.mimetype,
-            version = node.content.version,
+            type = node.mediatype ?: "",
+            hash = node.content.hash ?: "nohash",
+            size = node.size?.toLong() ?: 0,
+            mimeType = node.mimetype ?: "",
+            version = node.content.version ?: "",
             repoId = node.ref.repo
         )
     }
@@ -24,7 +24,7 @@ class Mapper {
         return RenderingJob(
             esObjectId = node.ref.id,
             esObjectType = node.mediatype ?: "",
-            esHash = node.content.hash ?: "",
+            esHash = node.content.hash ?: "nohash",
             mimeType = node.mimetype ?: "",
             repoId = node.ref.repo,
             nodeVersion = node.content.version,

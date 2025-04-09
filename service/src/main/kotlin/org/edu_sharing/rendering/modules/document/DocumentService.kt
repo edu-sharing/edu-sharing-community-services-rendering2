@@ -17,7 +17,7 @@ class DocumentService(
         lookUpObject.mimeType = module.getTargetMimetype()
 
         return try {
-            listOf(storageImplementation.getObjectLink(lookUpObject))
+            listOf(storageImplementation.getObjectLink(lookUpObject).first)
         } catch (_: ResourceNotFoundException) {
             null
         }

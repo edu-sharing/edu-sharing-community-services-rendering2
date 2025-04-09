@@ -4,31 +4,40 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.RequestUserData
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 
 @Component
 class BinderRenderModule(
-    private val jobService: BinderJobService,
+    private val jobService: BinderService,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    private val mapper: Mapper,
+    private val storageService: StorageService,
     @Value("\${app.session.moodle.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     ): RenderModule, ThirdPartyModule {
 
     companion object {
         private val requiredCredentialKeys = setOf("baseurl")
+        private val optionalCredentialKeys = setOf("githubtoken")
     }
 
     override fun module() = "BINDER"
 
     override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
-        val jobId = jobService.createJob(node, module())
-        return RenderDataResponse(jobId = jobId, module = module())
+        val jobId = jobService.createJobs(node, this)
+        return RenderDataResponse(
+            jobId = jobId,
+            module = module()
+        )
     }
 
     override fun isOptionalModule() = true
@@ -41,7 +50,7 @@ class BinderRenderModule(
     ) {
         validateCredentials(
             credentials = credentials,
-            requiredCredentialKeys = requiredCredentialKeys,
+            requiredCredentialKeys = requiredCredentialKeys.filterNot { optionalCredentialKeys.contains(it) }.toSet(),
             moduleName = module()
         )
     }
@@ -53,6 +62,19 @@ class BinderRenderModule(
     }
 
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
-        return ObjectLink(link = subJob.message ?: "")
+        if (subJob.additionalData == null) {
+            return ObjectLink(link = subJob.message ?: "")
+        }
+        val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
+        cacheObject.mimeType = MediaType.TEXT_HTML_VALUE
+        return try {
+            storageService.getObjectLink(cacheObject).first
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+        return subJob.additionalData
     }
 }

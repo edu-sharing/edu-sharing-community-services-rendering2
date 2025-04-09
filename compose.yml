@@ -58,6 +58,11 @@ services:
     ports:
       - "8081:8080"
 
+  rendering2-jupyter-converter:
+    image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter:maven-fixes-10.0-SNAPSHOT"
+    ports:
+      - "9120:8000"
+
   rendering2-lumi:
     image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:maven-fixes-10.0-SNAPSHOT"
     environment:
