@@ -35,7 +35,7 @@
 | `config.log.scope`                              | Set log scope                                | `h5p:*`                                     |
 | `config.metrics.relabelings`                    | Define relabelings for metrics               | `[]`                                        |
 | `config.metrics.rules.nodejsUp.enabled`         | Enable metric rule nodejsUp                  | `true`                                      |
-| `config.metrics.rules.nodejsUp.for`             | Set metric rule nodejsUp wait interval       | `1m`                                        |
+| `config.metrics.rules.nodejsUp.for`             | Set metric rule nodejsUp wait interval       | `5m`                                        |
 | `config.metrics.rules.nodejsUp.labels.severity` | Set metric rule nodejsUp severity level      | `critical`                                  |
 | `config.mongodb.database`                       | Set mongodb database                         | `lumi`                                      |
 | `config.mongodb.host`                           | Set mongodb host                             | `edusharing-rendering2-mongodb`             |
