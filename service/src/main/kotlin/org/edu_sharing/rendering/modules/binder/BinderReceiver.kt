@@ -1,27 +1,24 @@
 package org.edu_sharing.rendering.modules.binder
 
+import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.AbstractReceiver
-import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
+import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
 class BinderReceiver(
-    val mainJobLogic: MainJobLogic,
-    val mapper: Mapper,
-    val binderUploadService: BinderUploadService,
-    val renderingJobRepository: RenderingJobRepository
-): AbstractReceiver(
-    mainJobLogic = mainJobLogic,
-    mapper = mapper,
-    conversionService = binderUploadService,
-    renderingJobRepository = renderingJobRepository
+    private val uploadService: BinderUploadService,
+    private val subJobRepository: SubJobRepository,
+    private val jobRepository: RenderingJobRepository,
+    private val mapper: Mapper
 ) {
     @RabbitListener(
         bindings = [
@@ -32,7 +29,16 @@ class BinderReceiver(
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
-    fun receiveMessage(message: RenderingJobMessage) {
-        super.processMessage(message, true)
+    fun receiveMessage(message: BinderSubJobMessage) {
+        var uploadSubJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
+        var mainJob = jobRepository.findByIdOrNull(uploadSubJob.parent.id) ?: return
+
+        mainJob.status = JobStatus.PROCESSING
+        mainJob = jobRepository.save(mainJob)
+        uploadService.process(
+            cacheObject = mapper.renderingJobToCacheObject(mainJob),
+            uploadSubJob = uploadSubJob,
+            module = mainJob.module
+        )
     }
 }

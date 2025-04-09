@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.modules.ConversionService
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
@@ -10,9 +9,9 @@ import org.edu_sharing.rendering.modules.binder.dto.BinderPhases
 import org.edu_sharing.rendering.modules.binder.dto.BinderSseEvent
 import org.edu_sharing.rendering.modules.binder.dto.ProgressEntry
 import org.edu_sharing.rendering.modules.binder.dto.ProgressInfoObject
-import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.modules.binder.git.GitServiceRegistry
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.core.ParameterizedTypeReference
@@ -22,74 +21,72 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import java.time.LocalTime
 import java.util.function.Consumer
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 @Service
 class BinderUploadService(
     private val subJobRepository: SubJobRepository,
-    private val mainJobLogic: MainJobLogic,
+    private val mainJobLogic: BinderMainJobLogic,
     private val moduleRegistry: ModuleRegistry,
-) : ConversionService {
-
-    private data class GitDetails(
-        val user: String,
-        val repo: String,
-        val branch: String,
-    )
-
+    private val gitServiceRegistry: GitServiceRegistry,
+) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun process(
-        cacheObject: CacheObject, renderingJob: RenderingJob
+    fun process(
+        cacheObject: CacheObject, uploadSubJob: SubJob, module: String
     ) {
-        val gitDetails = getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
-        if (renderingJob.subJobs.isEmpty()) {
-            return
-        }
-        var subJob = renderingJob.subJobs.first()
-        subJob.status = JobStatus.PROCESSING
-        subJob.message = "Initializing binder import"
-        subJob = subJobRepository.save(subJob)
+        var binderUploadSubJob = uploadSubJob
+        val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
+            ?: throw IllegalStateException("Git service for url not found: ${cacheObject.externalUrl ?: ""}. This should NOT happen at this point")
+        val gitDetails = gitService.getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
+        binderUploadSubJob.status = JobStatus.PROCESSING
+        binderUploadSubJob.message = "Initializing binder import"
+        binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
 
         val type
                 : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?> =
             object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?>() {}
 
-        val binderWebClient = getWebclient(renderingJob)
+        try {
+            val binderWebClient = getWebclient(module = module, repoId = cacheObject.repoId)
 
-        val eventStream = binderWebClient.get()
-            .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")
-            .retrieve()
-            .bodyToFlux<ServerSentEvent<BinderSseEvent?>?>(type)
+            val eventStream = binderWebClient.get()
+                .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")
+                .retrieve()
+                .bodyToFlux<ServerSentEvent<BinderSseEvent?>?>(type)
 
-
-        eventStream.subscribe(
-            Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
-                log.info(
-                    "Time: {} - event: name[{}], id [{}], content[{}] ",
-                    LocalTime.now(), content!!.event(), content.id(), content.data()
-                )
-                updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), subJob.id)
-            },
-            Consumer {
-                error: Throwable? ->
-                log.error("Error receiving SSE: ", error)
-                subJob.status = JobStatus.FAILED
-                subJob.message = "Error receiving SSE " +  error?.message
-                subJob = subJobRepository.save(subJob)
-             },
-            Runnable {
-                log.info("SSE Server emitted completion event.")
-            }
-        )
+            eventStream.subscribe(
+                Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
+                    log.info(
+                        "Time: {} - event: name[{}], id [{}], content[{}] ",
+                        LocalTime.now(), content!!.event(), content.id(), content.data()
+                    )
+                    updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), binderUploadSubJob.id)
+                },
+                Consumer { error: Throwable? ->
+                    log.error("Error receiving SSE: ", error)
+                    binderUploadSubJob.status = JobStatus.FAILED
+                    binderUploadSubJob.message = "Error receiving SSE " + error?.message
+                    binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
+                },
+                Runnable {
+                    log.info("SSE Server emitted completion event.")
+                }
+            )
+        } catch (exception: Exception) {
+            log.error("Error creating jupyterHub URL: ", exception)
+            binderUploadSubJob.status = JobStatus.FAILED
+            binderUploadSubJob.message = "Error creating jupyterHub URL: " + exception.message
+            binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
+            mainJobLogic.processMainJob(binderUploadSubJob.parent.id.toString())
+        }
     }
 
     private fun updateSubJob(eventData: BinderSseEvent, subJobId: ObjectId) {
         if (eventData.phase.isNullOrBlank()) {
             return
         }
-        var subJob = subJobRepository.findByIdOrNull(subJobId) ?: throw IllegalStateException("SubJob $subJobId does not exist")
+        var subJob =
+            subJobRepository.findByIdOrNull(subJobId) ?: throw IllegalStateException("SubJob $subJobId does not exist")
         var hasBeenFinished = false
         when (eventData.phase) {
             BinderPhases.WAITING.event -> {
@@ -152,32 +149,12 @@ class BinderUploadService(
         return pushingProgress
     }
 
-    private fun getGitDetailsFromUrl(gitHubUrl: String): GitDetails {
-        val pattern: Pattern = Pattern.compile("https://github\\.com/([^/]+)/([^/]+)(?:/tree/([^/]+))?")
-        val matcher: Matcher = pattern.matcher(gitHubUrl)
-
-        if (!matcher.find()) {
-            throw IllegalArgumentException("GitHub URL for Binder import must contain user and repo")
-        }
-
-        val user = matcher.group(1) ?: throw IllegalArgumentException("GitHub URL for Binder must contain user")
-        val repository =
-            matcher.group(2) ?: throw IllegalArgumentException("GitHub URL for Binder must contain repository")
-        val branch = if (matcher.group(3) != null) matcher.group(3) else "main"
-
-        return GitDetails(
-            user = user,
-            repo = repository,
-            branch = branch
-        )
-    }
-
-    private fun getWebclient(renderingJob: RenderingJob): WebClient {
-        val module = moduleRegistry.getRenderModule<RenderModule>(renderingJob.module)
+    private fun getWebclient(module: String, repoId: String): WebClient {
+        val module = moduleRegistry.getRenderModule<RenderModule>(module)
         if (module !is ThirdPartyModule) {
             throw IllegalArgumentException("Unexpected module type: ${module::class.java}")
         }
-        val config = module.getConfig(renderingJob.repoId)
+        val config = module.getConfig(repoId)
         val baseUrl = config["baseurl"] ?: throw IllegalArgumentException("baseurl must be provided")
         return WebClient.builder().baseUrl(baseUrl).build()
     }

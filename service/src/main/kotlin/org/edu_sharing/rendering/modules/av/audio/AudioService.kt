@@ -26,7 +26,7 @@ class AudioService(
 
         return try {
             listOf(storageImplementation.getObjectLink(
-                if (isConversionObject(cacheObject)) lookUpObject else cacheObject)
+                if (isConversionObject(cacheObject)) lookUpObject else cacheObject).first
             )
         } catch (_: ResourceNotFoundException) {
             null

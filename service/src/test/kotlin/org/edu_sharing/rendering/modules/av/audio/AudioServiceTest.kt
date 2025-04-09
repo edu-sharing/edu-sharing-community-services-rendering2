@@ -48,7 +48,7 @@ class AudioServiceTest {
         lookupObject.mimeType = "audio/mpeg"
         lookupObject.quality = 100
 
-        every { storageService.getObjectLink(lookupObject) } returns objectLink
+        every { storageService.getObjectLink(lookupObject) } returns Pair(objectLink, 0)
 
         // Act
         val result = service.getObjectLinks(cacheObject)
@@ -69,7 +69,7 @@ class AudioServiceTest {
         val objectLink = ObjectLink(link = "mylink")
         val objectLinkList = listOf(objectLink)
 
-        every { storageService.getObjectLink(cacheObject = cacheObject) } returns objectLink
+        every { storageService.getObjectLink(cacheObject = cacheObject) } returns Pair(objectLink, 0)
 
         // Act
         val result = service.getObjectLinks(cacheObject)

@@ -8,5 +8,5 @@ data class ObjectLink (
     @JsonProperty("height")
     var height: Int = 0,
     @JsonProperty("link")
-    val link: String
+    val link: String,
 )
