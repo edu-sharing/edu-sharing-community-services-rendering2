@@ -3,6 +3,8 @@ package org.edu_sharing.rendering.modules.binder
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
+import org.edu_sharing.rendering.modules.binder.exception.MissingGitServiceException
+import org.edu_sharing.rendering.modules.binder.git.GitService
 import org.edu_sharing.rendering.modules.binder.git.GitServiceRegistry
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
@@ -43,6 +45,12 @@ class BinderService(
         node: Node,
         module: BinderRenderModule
     ): String {
+        val url = node.properties.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]
+        val gitService = gitServiceRegistry.getService(url)
+        if (gitService == null) {
+            log.warn("GitService not found for: $url")
+            throw MissingGitServiceException("No git service found for url: $url")
+        }
         // get existing job if present!
         val job = mapper.nodeToRenderingJob(node, module.module(), true)
 
@@ -56,17 +64,12 @@ class BinderService(
         amqpTemplate.convertAndSend(topicExchangeName, binderJobRoutingKey, BinderSubJobMessage(
             subJobId = binderUploadSubJob.id.toString()
         ))
-        createPreviewSubJob(job,module)
+        createPreviewSubJob(job, module, gitService)
 
         return job.id.toString()
     }
 
-    private fun createPreviewSubJob(job: RenderingJob, module: BinderRenderModule) {
-        val gitService = gitServiceRegistry.getService(job.externalUrl ?: "")
-        if (gitService == null) {
-            log.info("Preview not available. No GitService found for ${job.externalUrl}")
-            return
-        }
+    private fun createPreviewSubJob(job: RenderingJob, module: BinderRenderModule, gitService: GitService) {
         if (jupyterConverterWebClient == null) {
             log.trace("Preview not available. Jupyter converter web client not found")
             return

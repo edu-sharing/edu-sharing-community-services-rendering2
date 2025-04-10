@@ -30,12 +30,12 @@ class BinderMainJobLogic(
             if (subJobStatus.any { it < JobStatus.FINISHED }) {
                 return
             }
-            if (subJobStatus.toSet().size == 2 || subJobStatus.all {it == JobStatus.FINISHED }) {
-                mainJob.status = JobStatus.FINISHED
+            val statusToSet = if (subJobStatus.toSet().size == 2 || subJobStatus.all {it == JobStatus.FINISHED }) {
+                JobStatus.FINISHED
             } else {
-                mainJob.status = JobStatus.FAILED
+                JobStatus.FAILED
             }
-            jobRepository.save(mainJob)
+            jobRepository.updateStatusWithoutVersion(mainJob.id, statusToSet)
         } catch (exception: Exception) {
             log.error("Error processing main job $mainJobId", exception)
         }

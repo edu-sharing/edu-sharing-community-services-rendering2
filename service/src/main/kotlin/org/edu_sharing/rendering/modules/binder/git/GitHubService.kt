@@ -81,7 +81,8 @@ class GitHubService(
 
     @Throws (IllegalArgumentException::class)
     override fun getGitDetailsFromUrl(url: String): GitDetails {
-        val regex = if (identifyDeepLink(url)) "https://github\\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.*)"
+        val isDeepLink = identifyDeepLink(url)
+        val regex = if (isDeepLink) "https://github\\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.*)"
             else "https://github\\.com/([^/]+)/([^/]+)(?:/tree/([^/]+))?"
         val pattern: Pattern = Pattern.compile(regex)
         val matcher: Matcher = pattern.matcher(url)
@@ -94,7 +95,10 @@ class GitHubService(
         val repository =
             matcher.group(2) ?: throw IllegalArgumentException("GitHub URL for Binder must contain repository")
         val branch = if (matcher.group(3) != null) matcher.group(3) else "main"
-        val filePath = matcher.group(4)
+        var filePath: String? = null
+        if (isDeepLink) {
+            filePath = matcher.group(4)
+        }
 
         return GitDetails(
             user = user,

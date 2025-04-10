@@ -33,8 +33,8 @@ class BinderReceiver(
         var uploadSubJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
         var mainJob = jobRepository.findByIdOrNull(uploadSubJob.parent.id) ?: return
 
-        mainJob.status = JobStatus.PROCESSING
-        mainJob = jobRepository.save(mainJob)
+        jobRepository.updateStatusWithoutVersion(mainJob.id, JobStatus.PROCESSING)
+
         uploadService.process(
             cacheObject = mapper.renderingJobToCacheObject(mainJob),
             uploadSubJob = uploadSubJob,

@@ -5,10 +5,7 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
-import org.edu_sharing.rendering.modules.binder.dto.BinderPhases
-import org.edu_sharing.rendering.modules.binder.dto.BinderSseEvent
-import org.edu_sharing.rendering.modules.binder.dto.ProgressEntry
-import org.edu_sharing.rendering.modules.binder.dto.ProgressInfoObject
+import org.edu_sharing.rendering.modules.binder.dto.*
 import org.edu_sharing.rendering.modules.binder.git.GitServiceRegistry
 import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -35,18 +32,17 @@ class BinderUploadService(
         cacheObject: CacheObject, uploadSubJob: SubJob, module: String
     ) {
         var binderUploadSubJob = uploadSubJob
-        val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
-            ?: throw IllegalStateException("Git service for url not found: ${cacheObject.externalUrl ?: ""}. This should NOT happen at this point")
-        val gitDetails = gitService.getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
-        binderUploadSubJob.status = JobStatus.PROCESSING
-        binderUploadSubJob.message = "Initializing binder import"
-        binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
-
         val type
                 : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?> =
             object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?>() {}
 
         try {
+            val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
+                ?: throw IllegalStateException("Git service for url not found: ${cacheObject.externalUrl ?: ""}. This should NOT happen at this point")
+            val gitDetails = gitService.getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
+            binderUploadSubJob.status = JobStatus.PROCESSING
+            binderUploadSubJob.message = "Initializing binder import"
+            binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             val binderWebClient = getWebclient(module = module, repoId = cacheObject.repoId)
 
             val eventStream = binderWebClient.get()
@@ -60,7 +56,11 @@ class BinderUploadService(
                         "Time: {} - event: name[{}], id [{}], content[{}] ",
                         LocalTime.now(), content!!.event(), content.id(), content.data()
                     )
-                    updateSubJob(content.data() ?: BinderSseEvent(phase = "", message = ""), binderUploadSubJob.id)
+                    updateSubJob(
+                        eventData = content.data() ?: BinderSseEvent(phase = "", message = ""),
+                        subJobId = binderUploadSubJob.id,
+                        gitDetails = gitDetails
+                    )
                 },
                 Consumer { error: Throwable? ->
                     log.error("Error receiving SSE: ", error)
@@ -81,7 +81,7 @@ class BinderUploadService(
         }
     }
 
-    private fun updateSubJob(eventData: BinderSseEvent, subJobId: ObjectId) {
+    private fun updateSubJob(eventData: BinderSseEvent, subJobId: ObjectId, gitDetails: GitDetails) {
         if (eventData.phase.isNullOrBlank()) {
             return
         }
@@ -116,9 +116,14 @@ class BinderUploadService(
             }
 
             BinderPhases.READY.event -> {
+                var link = eventData.url
+                if (gitDetails.filePath != null) {
+                    link = link.plus("/doc/tree/${gitDetails.filePath}")
+                }
+                link = link.plus("?token=${eventData.token}")
                 subJob.progress = 100
                 subJob.status = JobStatus.FINISHED
-                subJob.message = "${eventData.url}?token=${eventData.token}"
+                subJob.message = link
                 hasBeenFinished = true
             }
 

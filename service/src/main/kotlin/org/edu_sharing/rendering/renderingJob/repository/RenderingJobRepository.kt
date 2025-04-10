@@ -6,6 +6,6 @@ import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface RenderingJobRepository: MongoRepository<RenderingJob, ObjectId> {
+interface RenderingJobRepository: MongoRepository<RenderingJob, ObjectId>, CustomRenderingJobRepository {
     fun findAllByEsObjectId(id: String): List<RenderingJob>
 }

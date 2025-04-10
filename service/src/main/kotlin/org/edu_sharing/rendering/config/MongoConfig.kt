@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.config
 
-import com.mongodb.MongoClientSettings
 import com.mongodb.WriteConcern
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
@@ -9,7 +8,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.auditing.DateTimeProvider
 import org.springframework.data.mongodb.MongoDatabaseFactory
-import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration
 import org.springframework.data.mongodb.config.EnableMongoAuditing
 import org.springframework.data.mongodb.core.MongoAction
 import org.springframework.data.mongodb.core.MongoTemplate
@@ -28,6 +26,7 @@ class MongoConfig {
                 action.entityType == RendererKeyConfig::class.java -> WriteConcern.ACKNOWLEDGED
                 action.entityType == RenderingJob::class.java -> WriteConcern.ACKNOWLEDGED
                 action.entityType == SubJob::class.java -> WriteConcern.ACKNOWLEDGED
+                action.collectionName == "renderingJob" -> WriteConcern.ACKNOWLEDGED
                 else -> WriteConcern.UNACKNOWLEDGED
             }
         }

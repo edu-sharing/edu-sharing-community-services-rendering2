@@ -38,8 +38,7 @@ class BinderPreviewReceiver(
         var previewJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
         var mainJob = jobRepository.findByIdOrNull(previewJob.parent.id) ?: return
 
-        mainJob.status = JobStatus.PROCESSING
-        mainJob = jobRepository.save(mainJob)
+        jobRepository.updateStatusWithoutVersion(mainJob.id, JobStatus.PROCESSING)
 
         previewJob.status = JobStatus.PROCESSING
         previewJob = subJobRepository.save(previewJob)

@@ -56,5 +56,4 @@ class RepositoryRegistrationStorageService(
     fun getRegistrations(): List<RepositoryRegistration> {
         return repoRegistrationRepository.findAll()
     }
-
 }
