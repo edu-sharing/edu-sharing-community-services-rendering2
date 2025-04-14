@@ -7,8 +7,8 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.modules.binder.dto.*
 import org.edu_sharing.rendering.modules.binder.git.GitServiceRegistry
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.core.ParameterizedTypeReference
@@ -40,7 +40,7 @@ class BinderUploadService(
             val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
                 ?: throw IllegalStateException("Git service for url not found: ${cacheObject.externalUrl ?: ""}. This should NOT happen at this point")
             val gitDetails = gitService.getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
-            binderUploadSubJob.status = JobStatus.PROCESSING
+            binderUploadSubJob.status = SubJobStatus.PROCESSING
             binderUploadSubJob.message = "Initializing binder import"
             binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             val binderWebClient = getWebclient(module = module, repoId = cacheObject.repoId)
@@ -64,7 +64,7 @@ class BinderUploadService(
                 },
                 Consumer { error: Throwable? ->
                     log.error("Error receiving SSE: ", error)
-                    binderUploadSubJob.status = JobStatus.FAILED
+                    binderUploadSubJob.status = SubJobStatus.FAILED
                     binderUploadSubJob.message = "Error receiving SSE " + error?.message
                     binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
                 },
@@ -74,7 +74,7 @@ class BinderUploadService(
             )
         } catch (exception: Exception) {
             log.error("Error creating jupyterHub URL: ", exception)
-            binderUploadSubJob.status = JobStatus.FAILED
+            binderUploadSubJob.status = SubJobStatus.FAILED
             binderUploadSubJob.message = "Error creating jupyterHub URL: " + exception.message
             binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             mainJobLogic.processMainJob(binderUploadSubJob.parent.id.toString())
@@ -122,14 +122,14 @@ class BinderUploadService(
                 }
                 link = link.plus("?token=${eventData.token}")
                 subJob.progress = 100
-                subJob.status = JobStatus.FINISHED
+                subJob.status = SubJobStatus.FINISHED
                 subJob.message = link
                 hasBeenFinished = true
             }
 
             BinderPhases.FAILED.event -> {
                 subJob.progress = 100
-                subJob.status = JobStatus.FAILED
+                subJob.status = SubJobStatus.FAILED
                 subJob.message = eventData.message
                 hasBeenFinished = true
             }

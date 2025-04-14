@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -26,7 +26,7 @@ class H5pJobService(
 
     fun createJob(node: Node, module: String): String {
         val existingJob = jobRepository.findAllByEsObjectId(node.ref.id)
-            .firstOrNull { it.status <= JobStatus.PROCESSING }
+            .firstOrNull { it.status <= RenderingJobStatus.PROCESSING }
 
         if (existingJob != null) {
             return existingJob.id.toString()
@@ -40,7 +40,6 @@ class H5pJobService(
         job = jobRepository.save(job)
 
         val subJob = SubJob(
-            status = JobStatus.QUEUED,
             routingKey = jobRoutingKey,
             parent = job
         )

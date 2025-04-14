@@ -39,6 +39,6 @@ class DocumentReceiver (
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
-       super.processMessage(message, false)
+       super.processMessage(message)
     }
 }

@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.renderingJob.entity
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
@@ -22,7 +23,7 @@ data class SubJob(
     @CreatedDate
     var createdDate: Date? = null,
     @Indexed
-    var status: JobStatus = JobStatus.QUEUED,
+    var status: SubJobStatus = SubJobStatus.QUEUED,
     val quality: Int = 0,
     var progress: Int = 0,
     var message: String? = null,
@@ -31,5 +32,6 @@ data class SubJob(
     @Version
     val version: Int? = null,
     val priority: Int = 0,
-    var additionalData: Map<String, String>? = null
+    var additionalData: Map<String, String>? = null,
+    var errorMessage: ErrorMessage? = null,
 )

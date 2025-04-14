@@ -11,7 +11,7 @@ import java.time.Duration
 @Service
 @ConditionalOnConverter
 class MoodleUploadService() {
-    /**categoryid
+    /**
      * Constructs the URL to the moodle course following these steps:
      *
      * 1) Call upload course to obtain the course id from moodle

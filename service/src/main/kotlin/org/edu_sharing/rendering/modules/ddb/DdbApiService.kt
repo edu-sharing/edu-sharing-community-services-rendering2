@@ -1,14 +1,18 @@
 package org.edu_sharing.rendering.modules.ddb
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -34,24 +38,30 @@ class DdbApiService(
     ) {
         log.info("Starting DDB API communication for node")
         if (renderingJob.subJobs.isEmpty()) {
-            renderingJob.status = JobStatus.FAILED
+            renderingJob.status = RenderingJobStatus.FAILED
             renderingJobRepository.save(renderingJob)
             return
         }
         var subJob = renderingJob.subJobs.first()
         try {
-            subJob.status = JobStatus.PROCESSING
+            subJob.status = SubJobStatus.PROCESSING
             subJob.message = "Calling DDB API"
             subJob = subJobRepository.save(subJob)
             subJob.additionalData = callApis(
                 remoteId = remoteId,
                 renderingJob = renderingJob
             )
-            subJob.status = JobStatus.FINISHED
+            subJob.status = SubJobStatus.FINISHED
         } catch (exception: Exception) {
             log.error("Error while processing DDB communication: ${exception.message}", exception)
-            subJob.message = exception.message
-            subJob.status = JobStatus.FAILED
+            subJob.errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = exception.message,
+                details = emptyMap(),
+                exception = exception,
+                userMessage = GENERIC_CONVERSION_ERROR
+            )
+            subJob.status = SubJobStatus.FAILED
         } finally {
             subJobRepository.save(subJob)
         }

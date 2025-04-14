@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.modules.image
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -44,13 +44,13 @@ class ImageReceiver(
         jobEntry.subJobs.forEach {
             var subJob = it
             try {
-                subJob.status = JobStatus.PROCESSING
+                subJob.status = SubJobStatus.PROCESSING
                 subJob = subJobRepository.save(subJob)
                 conversionService.convert(cacheObject, subJob.quality, sourceImage)
-                subJob.status = JobStatus.FINISHED
+                subJob.status = SubJobStatus.FINISHED
             } catch (exception: Exception) {
                 log.warn(exception.message)
-                subJob.status = JobStatus.FAILED
+                subJob.status = SubJobStatus.FAILED
             }
             subJobRepository.save(subJob)
         }

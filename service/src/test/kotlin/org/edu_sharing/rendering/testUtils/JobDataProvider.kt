@@ -1,9 +1,10 @@
 package org.edu_sharing.rendering.testUtils
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 
 class JobDataProvider {
     companion object {
@@ -31,13 +32,13 @@ class JobDataProvider {
             module = module,
             nodeVersion = "1.2",
             repoId = "repoid",
-            status = JobStatus.PROCESSING
+            status = RenderingJobStatus.PROCESSING
         )
     }
 
     fun getDummySubJob(
         subId: String,
-        status: JobStatus,
+        status: SubJobStatus,
         module: String,
         mimeType: String,
         quality: Int = 0
@@ -52,7 +53,7 @@ class JobDataProvider {
             module = module,
             nodeVersion = "1.2",
             repoId = "repoid",
-            status = JobStatus.PROCESSING,
+            status = RenderingJobStatus.PROCESSING,
             creationTimestamp = DUMMY_CREATION_TS
         )
         val subJob = SubJob(
@@ -75,7 +76,7 @@ class JobDataProvider {
             module = module,
             nodeVersion = "1.2",
             repoId = "repoid",
-            status = JobStatus.QUEUED
+            status = RenderingJobStatus.QUEUED
         )
         return job
     }

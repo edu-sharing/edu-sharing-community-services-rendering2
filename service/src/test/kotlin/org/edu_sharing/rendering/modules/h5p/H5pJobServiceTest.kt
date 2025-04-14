@@ -4,7 +4,7 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
@@ -120,7 +120,7 @@ class H5pJobServiceTest {
         val node = mockk<Node>()
 
         every { node.ref.id } returns "dummyNodeId"
-        every { finishedJob.status } returns JobStatus.FINISHED
+        every { finishedJob.status } returns RenderingJobStatus.FINISHED
         every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
         every { mapper.nodeToRenderingJob(node, "H5P", true) } returns dummyJob
         every { jobRepository.save(dummyJob) } returns dummyJob

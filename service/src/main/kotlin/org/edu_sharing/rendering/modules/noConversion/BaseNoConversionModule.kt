@@ -8,7 +8,7 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.storage.StorageService
@@ -42,7 +42,7 @@ abstract class BaseNoConversionModule(
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
-        if (renderingJob.status != JobStatus.FINISHED) return null
+        if (renderingJob.status != RenderingJobStatus.FINISHED) return null
         val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
         return storageService.getObjectLink(cacheObject).first
     }

@@ -1,18 +1,14 @@
 package org.edu_sharing.rendering.modules.av.audio
 
-import io.mockk.every
-import io.mockk.justRun
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verifySequence
+import io.mockk.*
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.CODEC
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.OUTPUT_FORMAT
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -48,7 +44,7 @@ class AudioConversionServiceTest {
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "audio/wav",
             module = "AUDIO",
-            status = JobStatus.PROCESSING
+            status = SubJobStatus.PROCESSING
         )
         val listenerSubJobSlot = slot<SubJob>()
         val dummyOutputFile = File("testFile")
@@ -101,7 +97,7 @@ class AudioConversionServiceTest {
             subId = JobDataProvider.SUB_ID_1,
             mimeType = "audio/wav",
             module = "AUDIO",
-            status = JobStatus.PROCESSING
+            status = SubJobStatus.PROCESSING
         )
         val dummyOutputFile = File("testFile")
         val dummyOriginalFile = File(DUMMY_ORIGINAL_FILE_PATH)

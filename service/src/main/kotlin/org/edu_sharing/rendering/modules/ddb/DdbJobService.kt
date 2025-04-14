@@ -2,8 +2,9 @@ package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.springframework.amqp.core.AmqpTemplate
@@ -28,7 +29,7 @@ class DdbJobService(
         val job = mapper.nodeToRenderingJob(node, module, true)
         jobRepository.save(job)
         val subJob = SubJob(
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             parent = job,
             routingKey = jobRoutingKey
         )

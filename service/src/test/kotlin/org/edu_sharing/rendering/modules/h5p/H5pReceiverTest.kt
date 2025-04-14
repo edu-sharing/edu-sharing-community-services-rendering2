@@ -6,9 +6,10 @@ import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -55,18 +56,18 @@ class H5PReceiverTest {
             mimeType = "application/zip",
             module = "H5P",
             quality = 0,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs.add(subJob)
 
         val subJobSlot = slot<SubJob>()
         val mainJobSlot = slot<RenderingJob>()
-        val statusList = mutableListOf<JobStatus>()
+        val statusList = mutableListOf<SubJobStatus>()
         val cacheObjectSlot = slot<CacheObject>()
 
         every { mainJobLogic.getMainJobEntry(message.id) } returns job
         every { renderingJobRepository.save(capture(mainJobSlot)) } answers {
-            Assertions.assertEquals(JobStatus.PROCESSING, mainJobSlot.captured.status)
+            Assertions.assertEquals(RenderingJobStatus.PROCESSING, mainJobSlot.captured.status)
             job
         }
         every { subJobRepository.save(capture(subJobSlot)) } answers {
@@ -84,7 +85,7 @@ class H5PReceiverTest {
         underTest.receiveMessage(message)
 
         // Assert
-        val expectedStatusSequence = mutableListOf(JobStatus.PROCESSING, JobStatus.FINISHED)
+        val expectedStatusSequence = mutableListOf(SubJobStatus.PROCESSING, SubJobStatus.FINISHED)
         assert(statusList == expectedStatusSequence)
 
         assert(subJob.message == "http://localhost:80$H5P_BASE_PATH/contentId")
@@ -139,19 +140,19 @@ class H5PReceiverTest {
             mimeType = "application/zip",
             module = "H5P",
             quality = 0,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs.add(subJob)
 
         val subJobSlot = slot<SubJob>()
         val mainJobSlot = slot<RenderingJob>()
-        val statusList = mutableListOf<JobStatus>()
+        val statusList = mutableListOf<SubJobStatus>()
         val cacheObjectSlot = slot<CacheObject>()
         val testMessage = "testMessage"
 
         every { mainJobLogic.getMainJobEntry(message.id) } returns job
         every { renderingJobRepository.save(capture(mainJobSlot)) } answers {
-            Assertions.assertEquals(JobStatus.PROCESSING, mainJobSlot.captured.status)
+            Assertions.assertEquals(RenderingJobStatus.PROCESSING, mainJobSlot.captured.status)
             job
         }
         every { subJobRepository.save(capture(subJobSlot)) } answers {
@@ -169,7 +170,7 @@ class H5PReceiverTest {
         underTest.receiveMessage(message)
 
         // Assert
-        val expectedStatusSequence = mutableListOf(JobStatus.PROCESSING, JobStatus.FAILED)
+        val expectedStatusSequence = mutableListOf(SubJobStatus.PROCESSING, SubJobStatus.FAILED)
         assert(statusList == expectedStatusSequence)
 
         assert(subJob.message != null && subJob.message!!.contains(testMessage))

@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.modules.binder
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.springframework.amqp.rabbit.annotation.Exchange
@@ -33,7 +33,7 @@ class BinderReceiver(
         var uploadSubJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
         var mainJob = jobRepository.findByIdOrNull(uploadSubJob.parent.id) ?: return
 
-        jobRepository.updateStatusWithoutVersion(mainJob.id, JobStatus.PROCESSING)
+        jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
 
         uploadService.process(
             cacheObject = mapper.renderingJobToCacheObject(mainJob),

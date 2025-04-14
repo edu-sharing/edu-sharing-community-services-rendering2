@@ -1,7 +1,8 @@
 package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
@@ -27,13 +28,13 @@ class BinderMainJobLogic(
             var mainJob = jobRepository.findByIdOrNull(ObjectId(mainJobId))
                 ?: throw IllegalStateException("Main job not found")
             val subJobStatus = mainJob.subJobs.map {it.status}
-            if (subJobStatus.any { it < JobStatus.FINISHED }) {
+            if (subJobStatus.any { it < SubJobStatus.FINISHED }) {
                 return
             }
-            val statusToSet = if (subJobStatus.toSet().size == 2 || subJobStatus.all {it == JobStatus.FINISHED }) {
-                JobStatus.FINISHED
+            val statusToSet = if (subJobStatus.toSet().size == 2 || subJobStatus.all {it == SubJobStatus.FINISHED }) {
+                RenderingJobStatus.FINISHED
             } else {
-                JobStatus.FAILED
+                RenderingJobStatus.FAILED
             }
             jobRepository.updateStatusWithoutVersion(mainJob.id, statusToSet)
         } catch (exception: Exception) {

@@ -7,9 +7,10 @@ import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.dto.JobInfoReply
 import org.edu_sharing.rendering.renderingJob.dto.JobProgressInfo
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -33,35 +34,40 @@ class JobInfoService(
     fun getJobInfo(job: RenderingJob): JobInfoReply {
         if (isMainJobQueuedOrCopying(job)) {
             return JobInfoReply(
-                jobs = mutableListOf(JobProgressInfo(status = job.status)), status = job.status, module = job.module
+                jobs = mutableListOf(JobProgressInfo(status = SubJobStatus.fromRenderingJobStatus(job.status))),
+                status = job.status,
+                module = job.module,
+                errorMessage = job.errorMessage
             )
         }
         val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
 
-        if (!job.conversionType) {
-            return getJobInfoForNonConversionObject(renderingJob = job, renderModule = renderModule)
+        if (!job.conversionType || job.subJobs.isEmpty()) {
+            return getJobInfoForJobWithoutSubJobs(renderingJob = job, renderModule = renderModule)
         }
 
         val infoList: MutableList<JobProgressInfo> = mutableListOf()
         job.subJobs.forEach {
             val jobInfo = JobProgressInfo(quality = it.quality, status = it.status)
             when (it.status) {
-                JobStatus.QUEUED -> {
+                SubJobStatus.QUEUED -> {
                     jobInfo.progress = getQueuePosition(it)
                 }
 
-                JobStatus.PROCESSING -> {
+                SubJobStatus.PROCESSING -> {
                     jobInfo.progress = it.progress.toLong()
                 }
 
-                JobStatus.FINISHED -> {
+                SubJobStatus.FINISHED -> {
                     jobInfo.objectLink = renderModule.getObjectLinkFromJobData(it, job)
                     jobInfo.additionalData = renderModule.getAdditionalDataFromSubJob(it)
                 }
 
-                JobStatus.FAILED -> {}
+                SubJobStatus.FAILED -> {
+                    jobInfo.error = it.errorMessage
+                }
             }
-            if (it.status != JobStatus.FAILED) {
+            if (it.status != SubJobStatus.FAILED) {
                 infoList.add(jobInfo)
             }
         }
@@ -82,16 +88,16 @@ class JobInfoService(
     }
 
     private fun isMainJobQueuedOrCopying(job: RenderingJob): Boolean {
-        val isQueued = job.status == JobStatus.QUEUED
-        val isCopying = job.status == JobStatus.PROCESSING && job.subJobs.isEmpty()
+        val isQueued = job.status == RenderingJobStatus.QUEUED
+        val isCopying = job.status == RenderingJobStatus.PROCESSING && job.subJobs.isEmpty()
         return isQueued || isCopying
     }
 
-    private fun getJobInfoForNonConversionObject(renderingJob: RenderingJob, renderModule: RenderModule): JobInfoReply {
+    private fun getJobInfoForJobWithoutSubJobs(renderingJob: RenderingJob, renderModule: RenderModule): JobInfoReply {
         val placeHolderSubJob = SubJob(
             routingKey = "",
             parent = renderingJob,
-            status = renderingJob.status,
+            status = SubJobStatus.fromRenderingJobStatus(renderingJob.status),
         )
         val objectLink = renderModule.getObjectLinkFromJobData(
             subJob = placeHolderSubJob,
@@ -100,8 +106,9 @@ class JobInfoService(
         return JobInfoReply(
             status = renderingJob.status, module = renderingJob.module, jobs = mutableListOf(
                 JobProgressInfo(
-                    status = renderingJob.status,
-                    objectLink = objectLink
+                    status = SubJobStatus.fromRenderingJobStatus(renderingJob.status),
+                    objectLink = objectLink,
+                    error = renderingJob.errorMessage
                 )
             )
         )

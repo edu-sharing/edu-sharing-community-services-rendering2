@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
@@ -35,8 +35,7 @@ class DdbReceiver(
             log.error("${this.javaClass.simpleName} received message with unknown job id ${message.id}")
             return
         }
-        mainJob.status = JobStatus.PROCESSING
-        mainJob = renderingJobRepository.save(mainJob)
+        renderingJobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
         ddbApiService.process(message.remoteId, mainJob)
         mainJobLogic.processMainJob(mainJob.id.toString())
     }

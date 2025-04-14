@@ -1,10 +1,13 @@
 package org.edu_sharing.rendering.modules.sodix
 
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -12,6 +15,7 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -43,15 +47,15 @@ class SodixReceiver(
         }
         val isPaidMedia = jobEntry.subJobs.size == 2
 
-        jobEntry.status = JobStatus.PROCESSING
+        jobEntry.status = RenderingJobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
         var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
         var downloadUrlSubJob = jobEntry.subJobs.firstOrNull { it.quality == 1}
 
-        playoutUrlSubJob.status = JobStatus.PROCESSING
+        playoutUrlSubJob.status = SubJobStatus.PROCESSING
         playoutUrlSubJob = subJobRepository.save(playoutUrlSubJob)
         if (downloadUrlSubJob != null) {
-            downloadUrlSubJob.status = JobStatus.PROCESSING
+            downloadUrlSubJob.status = SubJobStatus.PROCESSING
             downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
         }
 
@@ -62,21 +66,33 @@ class SodixReceiver(
                 repoId = jobEntry.repoId,
                 isPaidMedia = isPaidMedia
             )
-            playoutUrlSubJob.status = JobStatus.FINISHED
+            playoutUrlSubJob.status = SubJobStatus.FINISHED
             playoutUrlSubJob.message = playoutUrl
             subJobRepository.save(playoutUrlSubJob)
             if (downloadUrlSubJob != null) {
-                downloadUrlSubJob.status = JobStatus.FINISHED
+                downloadUrlSubJob.status = SubJobStatus.FINISHED
                 downloadUrlSubJob.message = downloadUrl
                 downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
             }
         } catch (exception: Exception) {
-            playoutUrlSubJob.status = JobStatus.FAILED
-            playoutUrlSubJob.message = exception.message
+            playoutUrlSubJob.status = SubJobStatus.FAILED
+            playoutUrlSubJob.errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = exception.message,
+                details = emptyMap(),
+                exception = exception,
+                userMessage = GENERIC_CONVERSION_ERROR
+            )
             subJobRepository.save(playoutUrlSubJob)
             if (downloadUrlSubJob != null) {
-                downloadUrlSubJob.status = JobStatus.FAILED
-                downloadUrlSubJob.message = exception.message
+                downloadUrlSubJob.status = SubJobStatus.FAILED
+                downloadUrlSubJob.errorMessage = ErrorMessage(
+                    status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    message = exception.message,
+                    details = emptyMap(),
+                    exception = exception,
+                    userMessage = GENERIC_CONVERSION_ERROR
+                )
                 subJobRepository.save(downloadUrlSubJob)
             }
         }

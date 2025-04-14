@@ -6,9 +6,9 @@ import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
 import org.edu_sharing.rendering.modules.binder.exception.MissingGitServiceException
 import org.edu_sharing.rendering.modules.binder.git.GitService
 import org.edu_sharing.rendering.modules.binder.git.GitServiceRegistry
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -56,7 +56,7 @@ class BinderService(
 
         jobRepository.save(job)
         val binderUploadSubJob = SubJob(
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             parent = job,
             routingKey = binderJobRoutingKey
         )
@@ -85,7 +85,7 @@ class BinderService(
         }
 
         val previewSubJob = SubJob(
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             parent = job,
             routingKey = binderJobRoutingKey,
             additionalData = mapOf("preview" to "preview")

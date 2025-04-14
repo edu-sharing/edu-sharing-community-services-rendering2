@@ -2,10 +2,13 @@ package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -15,6 +18,7 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @ConditionalOnConverter
@@ -46,20 +50,26 @@ class H5pReceiver(
             return
         }
         var subJob = jobEntry.subJobs.first()
-        subJob.status = JobStatus.PROCESSING
-        jobEntry.status = JobStatus.PROCESSING
+        subJob.status = SubJobStatus.PROCESSING
+        jobEntry.status = RenderingJobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
-            subJob.status = JobStatus.FINISHED
+            subJob.status = SubJobStatus.FINISHED
             subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
-            subJob.status = JobStatus.FAILED
-            subJob.message = exception.message
+            subJob.status = SubJobStatus.FAILED
+            subJob.errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = exception.message,
+                details = emptyMap(),
+                exception = exception,
+                userMessage = GENERIC_CONVERSION_ERROR
+            )
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

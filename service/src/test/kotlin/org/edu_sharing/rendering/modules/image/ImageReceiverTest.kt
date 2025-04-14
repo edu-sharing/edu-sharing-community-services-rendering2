@@ -5,9 +5,10 @@ import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
@@ -74,8 +75,8 @@ class ImageReceiverTest {
         verify(exactly = 1) { conversionService.convert(any(), job.subJobs[1].quality, bufferedImage) }
         verify(exactly = 1) { mainJobLogic.processMainJob(id) }
         verify(exactly = 1) { conversionService.deleteTempFile(any()) }
-        assert(job.subJobs[0].status == JobStatus.FAILED)
-        assert(job.subJobs[1].status == JobStatus.FINISHED)
+        assert(job.subJobs[0].status == SubJobStatus.FAILED)
+        assert(job.subJobs[1].status == SubJobStatus.FINISHED)
         confirmVerified(mainJobLogic, subJobRepository, conversionService)
     }
 
@@ -89,7 +90,7 @@ class ImageReceiverTest {
             module = "IMAGE",
             nodeVersion = "1.2",
             repoId = "repoid",
-            status = JobStatus.PROCESSING
+            status = RenderingJobStatus.PROCESSING
         )
         val dummy = RenderingJob(
             esHash = "hash",
@@ -99,20 +100,20 @@ class ImageReceiverTest {
             module = "IMAGE",
             nodeVersion = "1.2",
             repoId = "repoid",
-            status = JobStatus.PROCESSING
+            status = RenderingJobStatus.PROCESSING
         )
         val subJob1 = SubJob(
             id = ObjectId(subId1),
             parent = dummy,
             routingKey = "image",
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             quality = 100
         )
         val subJob2 = SubJob(
             id = ObjectId(subId2),
             parent = dummy,
             routingKey = "image",
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             quality = 200
         )
         job.subJobs.add(subJob1)

@@ -3,7 +3,7 @@ package org.edu_sharing.rendering.renderingJob
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.springframework.amqp.core.AmqpTemplate
@@ -41,7 +41,7 @@ class MainJobCreationService(
     fun getExistingJobId(cacheObject: CacheObject): String? {
         val existingJobs = renderingJobRepository.findAllByEsObjectId(cacheObject.nodeId)
         val unfinishedJob = existingJobs.firstOrNull {
-            it.status != JobStatus.FINISHED && it.status != JobStatus.FAILED && it.esHash == cacheObject.hash
+            it.status != RenderingJobStatus.FINISHED && it.status != RenderingJobStatus.FAILED && it.esHash == cacheObject.hash
         }
         return if (unfinishedJob !== null) unfinishedJob.id.toString() else null
     }

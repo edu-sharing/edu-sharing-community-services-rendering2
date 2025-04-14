@@ -5,7 +5,7 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -31,7 +31,7 @@ class EduHtmlService(
 
     fun createJob(node: Node, module: String): String {
         val existingJobs = jobRepository.findAllByEsObjectId(node.ref.id)
-            .filter { it.status <= JobStatus.PROCESSING }
+            .filter { it.status <= RenderingJobStatus.PROCESSING }
 
         if (existingJobs.isNotEmpty()) {
             return existingJobs[0].id.toString()
