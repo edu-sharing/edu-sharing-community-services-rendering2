@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_INTERNAL_SERVER_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.edusharingRepo.dto.*
@@ -64,8 +65,11 @@ class AdminController(
     @ExceptionHandler(InvalidKeyException::class)
     fun handleInvalidKeyException(exception: InvalidKeyException): ResponseEntity<ErrorMessage> {
         val message = ErrorMessage(
-            HttpStatus.NOT_FOUND.value(),
-            exception.message ?: ""
+            status = HttpStatus.NOT_FOUND.value(),
+            message = exception.message ?: "",
+            details = emptyMap(),
+            exception = exception,
+            userMessage = GENERIC_INTERNAL_SERVER_ERROR,
         )
 
         return ResponseEntity(message, HttpStatus.NOT_FOUND)
@@ -79,5 +83,4 @@ class AdminController(
             domains = entity.domains ?: emptyList()
         )
     }
-
 }
