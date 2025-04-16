@@ -95,7 +95,7 @@
       <dependency>
         <groupId>org.edu_sharing</groupId>
         <artifactId>edu_sharing-community-repository-backend-services-rest-client-java</artifactId>
-        <version>${project.version}</version>
+        <version>${bom.repository.version}</version>
       </dependency>
 
       <dependency>
