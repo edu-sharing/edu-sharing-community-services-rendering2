@@ -112,7 +112,7 @@ services:
     expose:
       - "8080"
     ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${ONYX_SERVICE_PORT_HTTP:-15100}:8080"
+      - "15100:8080"
 
 #volumes:
 #  minio-data-volume:
