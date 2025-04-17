@@ -1,13 +1,15 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.ErrorStrings.ERROR_PROCESSING_JOB
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ConversionModule
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.ConditionalOnJobManager
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
@@ -16,6 +18,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 
@@ -41,30 +44,37 @@ class JobReceiver(
     )
     fun receiveMessage(message: RenderingJobMessage) {
         var jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
-        jobEntry.status = JobStatus.PROCESSING
-        jobEntry = jobRepository.save(jobEntry)
-        val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
-            if (! jobEntry.conversionType) {
+            jobEntry.status = RenderingJobStatus.PROCESSING
+            jobEntry = jobRepository.save(jobEntry)
+            val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+            if (jobEntry.conversionType) {
+                storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+            } else {
                 storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
-                jobEntry.status = JobStatus.FINISHED
+                jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)
                 return
-            } else {
-                storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
             }
-        } catch (_: Exception) {
-            jobEntry.status = JobStatus.FAILED
+            val renderModule = moduleRegistry.getRenderModule<RenderModule>(jobEntry.module)
+            if (renderModule is ConversionModule) {
+                renderModule.createConversionSubJobs(jobEntry, message)
+            } else {
+                log.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
+                throw IllegalArgumentException("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
+            }
+        } catch (exception: Exception) {
+            jobEntry.status = RenderingJobStatus.FAILED
+            jobEntry.finishedTimestamp = System.currentTimeMillis()
+            val errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.ordinal,
+                details = emptyMap(),
+                message = exception.message,
+                exception = exception,
+                userMessage = ERROR_PROCESSING_JOB
+            )
+            jobEntry.errorMessage = errorMessage
             jobRepository.save(jobEntry)
-            return
-        }
-        val renderModule = moduleRegistry.getRenderModule<RenderModule>(jobEntry.module)
-        if (renderModule is ConversionModule) {
-            renderModule.createConversionSubJobs(jobEntry, message)
-        } else {
-            jobEntry.status = JobStatus.FAILED
-            jobRepository.save(jobEntry)
-            log.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
         }
     }
 }

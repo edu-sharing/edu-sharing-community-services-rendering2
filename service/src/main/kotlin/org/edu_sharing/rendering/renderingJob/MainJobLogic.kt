@@ -1,8 +1,9 @@
 package org.edu_sharing.rendering.renderingJob
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
@@ -19,7 +20,7 @@ class MainJobLogic (
         return jobRepository.findByIdOrNull(ObjectId(jobId))
     }
 
-    fun processMainJob(jobId: String, setToFinishedIfOneOrMoreSubJobsFinished: Boolean = false): Boolean {
+    fun processMainJob(jobId: String): Boolean {
         val job = getMainJobEntry(jobId)
         if (job == null) {
             log.error("Expected main job not found, job id: $jobId")
@@ -27,23 +28,23 @@ class MainJobLogic (
         }
         if (job.subJobs.isEmpty()) {
             log.error("No sub jobs found, job id: $jobId")
-            job.status = JobStatus.FAILED
-            jobRepository.save(job)
+            jobRepository.updateStatusWithoutVersion(job.id, status = RenderingJobStatus.FAILED)
             return true
         }
-        val areSomeProcessingOrQueued = job.subJobs.firstOrNull { it.status < JobStatus.FINISHED } != null
+        val areSomeProcessingOrQueued = job.subJobs.any { it.status <= SubJobStatus.PROCESSING }
         if (areSomeProcessingOrQueued) {
             return false
         }
-        val areAllFinished = job.subJobs.firstOrNull { it.status == JobStatus.FAILED } == null
-        val areSomeFinished = job.subJobs.firstOrNull { it.status == JobStatus.FINISHED } != null
-        if (areAllFinished || (areSomeFinished && setToFinishedIfOneOrMoreSubJobsFinished)) {
-            job.status = JobStatus.FINISHED
+        val areAllFinished = job.subJobs.all { it.status == SubJobStatus.FINISHED }
+        val areAllFailed = job.subJobs.all { it.status == SubJobStatus.FAILED }
+        val jobStatus = if (areAllFailed) {
+            RenderingJobStatus.FAILED
+        } else if(areAllFinished) {
+            RenderingJobStatus.FINISHED
         } else {
-            job.status = JobStatus.FAILED
+            RenderingJobStatus.PARTIALLY_FAILED
         }
-        job.finishedTimestamp = System.currentTimeMillis()
-        jobRepository.save(job)
+        jobRepository.updateStatusWithoutVersion(job.id, status = jobStatus)
         return true
     }
 }

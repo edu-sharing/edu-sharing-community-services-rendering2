@@ -1,9 +1,12 @@
 package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -12,6 +15,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -38,19 +42,25 @@ class BinderPreviewReceiver(
         var previewJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
         var mainJob = jobRepository.findByIdOrNull(previewJob.parent.id) ?: return
 
-        jobRepository.updateStatusWithoutVersion(mainJob.id, JobStatus.PROCESSING)
+        jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
 
-        previewJob.status = JobStatus.PROCESSING
+        previewJob.status = SubJobStatus.PROCESSING
         previewJob = subJobRepository.save(previewJob)
 
         val cacheObject = mapper.renderingJobToCacheObject(mainJob)
         try {
             binderPreviewService.process(cacheObject, mainJob.module)
-            previewJob.status = JobStatus.FINISHED
+            previewJob.status = SubJobStatus.FINISHED
         } catch (exception: Exception) {
             log.error("Binder preview job failed: ", exception)
-            previewJob.status = JobStatus.FAILED
-            previewJob.message = exception.message
+            previewJob.status = SubJobStatus.FAILED
+            previewJob.errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = exception.message,
+                details = emptyMap(),
+                exception = exception,
+                userMessage = GENERIC_CONVERSION_ERROR
+            )
         } finally {
             subJobRepository.save(previewJob)
             binderMainJobLogic.processMainJob(mainJob.id.toString())

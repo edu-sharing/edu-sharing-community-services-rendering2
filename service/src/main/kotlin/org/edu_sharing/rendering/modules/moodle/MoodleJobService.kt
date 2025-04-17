@@ -3,8 +3,9 @@ package org.edu_sharing.rendering.modules.moodle
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -32,7 +33,7 @@ class MoodleJobService(
         jobRepository.save(job)
 
         val subJob = SubJob(
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             routingKey = jobRoutingKey,
             parent = job
         )

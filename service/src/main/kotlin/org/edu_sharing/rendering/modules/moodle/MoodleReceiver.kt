@@ -1,9 +1,12 @@
 package org.edu_sharing.rendering.modules.moodle
 
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
@@ -11,6 +14,7 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -41,8 +45,8 @@ class MoodleReceiver (
             return
         }
         var subJob = jobEntry.subJobs.first()
-        subJob.status = JobStatus.PROCESSING
-        jobEntry.status = JobStatus.PROCESSING
+        subJob.status = SubJobStatus.PROCESSING
+        jobEntry.status = RenderingJobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         try {
@@ -51,11 +55,17 @@ class MoodleReceiver (
                 module = moduleRegistry.getRenderModule(jobEntry.module),
                 repoId = jobEntry.repoId
             )
-            subJob.status = JobStatus.FINISHED
+            subJob.status = SubJobStatus.FINISHED
             subJob.message = url
         } catch (exception: Exception) {
-            subJob.status = JobStatus.FAILED
-            subJob.message = exception.message
+            subJob.status = SubJobStatus.FAILED
+            subJob.errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = exception.message,
+                details = emptyMap(),
+                exception = exception,
+                userMessage = GENERIC_CONVERSION_ERROR
+            )
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

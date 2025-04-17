@@ -2,22 +2,12 @@ package org.edu_sharing.rendering.modules.av.video
 
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvFileHelper
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.ObjectFactory
 import ws.schild.jave.Encoder
-import ws.schild.jave.MultimediaObject
-import ws.schild.jave.encode.EncodingAttributes
-import java.io.File
 
 @ExtendWith(MockKExtension::class)
 class VideoConversionServiceTest {

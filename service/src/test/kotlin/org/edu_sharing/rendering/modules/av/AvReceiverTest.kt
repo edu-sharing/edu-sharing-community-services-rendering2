@@ -9,8 +9,8 @@ import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoRenderModule
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
@@ -88,7 +88,7 @@ class AvReceiverTest {
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 1080,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs = mutableListOf(notMatchingSubJob)
         every { mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID) } returns job
@@ -117,14 +117,14 @@ class AvReceiverTest {
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 720,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         val notMatchingSubJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_2,
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 1080,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob, notMatchingSubJob)
         val cacheObject = mockk<CacheObject>()
@@ -133,7 +133,7 @@ class AvReceiverTest {
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { cacheObject.deepCopy() } returns cacheObject
         val subJobSlot = slot<SubJob>()
-        val statusList = mutableListOf<JobStatus>()
+        val statusList = mutableListOf<SubJobStatus>()
         val qualityList = mutableListOf<Int>()
         every { subJobRepository.save(capture(subJobSlot)) } answers {
             statusList.add(subJobSlot.captured.status)
@@ -158,9 +158,9 @@ class AvReceiverTest {
 
         //Assert
         assert(statusList.size == 3)
-        assert(statusList[0] == JobStatus.PROCESSING)
-        assert(statusList[1] == JobStatus.PROCESSING)
-        assert(statusList[2] == JobStatus.FAILED)
+        assert(statusList[0] == SubJobStatus.PROCESSING)
+        assert(statusList[1] == SubJobStatus.PROCESSING)
+        assert(statusList[2] == SubJobStatus.FAILED)
         assert(qualityList.size == 3)
         assert(qualityList.none { it != 720 })
 
@@ -192,14 +192,14 @@ class AvReceiverTest {
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 720,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         val notMatchingSubJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_2,
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 1080,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob, notMatchingSubJob)
         val cacheObject = mockk<CacheObject>()
@@ -208,7 +208,7 @@ class AvReceiverTest {
         every { cacheObject.deepCopy() } returns cacheObject
 
         val subJobSlot = slot<SubJob>()
-        val statusList = mutableListOf<JobStatus>()
+        val statusList = mutableListOf<SubJobStatus>()
         val subIdSet = mutableSetOf<String>()
         every { subJobRepository.save(capture(subJobSlot)) } answers {
             statusList.add(subJobSlot.captured.status)
@@ -227,7 +227,7 @@ class AvReceiverTest {
         underTest.receiveMessage(message)
 
         //Assert
-        val expectedStatusSequence = mutableListOf(JobStatus.PROCESSING, JobStatus.FINISHED)
+        val expectedStatusSequence = mutableListOf(SubJobStatus.PROCESSING, SubJobStatus.FINISHED)
 
         assert(statusList == expectedStatusSequence)
         assert(subIdSet.size == 1)
@@ -258,14 +258,14 @@ class AvReceiverTest {
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 720,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         val notMatchingSubJob = jobDataProvider.getDummySubJob(
             subId = JobDataProvider.SUB_ID_2,
             mimeType = "video/mp4",
             module = "VIDEO",
             quality = 1080,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob, notMatchingSubJob)
         val cacheObject = mockk<CacheObject>()
@@ -274,7 +274,7 @@ class AvReceiverTest {
         every { cacheObject.deepCopy() } returns cacheObject
 
         val subJobSlot = slot<SubJob>()
-        val statusList = mutableListOf<JobStatus>()
+        val statusList = mutableListOf<SubJobStatus>()
         val subIdSet = mutableSetOf<String>()
         every { subJobRepository.save(capture(subJobSlot)) } answers {
             statusList.add(subJobSlot.captured.status)
@@ -293,7 +293,7 @@ class AvReceiverTest {
         underTest.receiveMessage(message)
 
         //Assert
-        val expectedStatusSequence = mutableListOf(JobStatus.PROCESSING, JobStatus.FINISHED)
+        val expectedStatusSequence = mutableListOf(SubJobStatus.PROCESSING, SubJobStatus.FINISHED)
 
         assert(statusList == expectedStatusSequence)
         assert(subIdSet.size == 1)
@@ -326,7 +326,7 @@ class AvReceiverTest {
             mimeType = "video/mp4",
             module = "NONSENSE",
             quality = 720,
-            status = JobStatus.QUEUED
+            status = SubJobStatus.QUEUED
         )
         job.subJobs = mutableListOf(matchingSubJob)
         val cacheObject = mockk<CacheObject>()
@@ -335,7 +335,7 @@ class AvReceiverTest {
         every { cacheObject.deepCopy() } returns cacheObject
 
         val subJobSlot = slot<SubJob>()
-        val statusList = mutableListOf<JobStatus>()
+        val statusList = mutableListOf<SubJobStatus>()
         val messageList = mutableListOf<String>()
         every { subJobRepository.save(capture(subJobSlot)) } answers {
             statusList.add(subJobSlot.captured.status)
@@ -353,9 +353,9 @@ class AvReceiverTest {
 
         // Assert
         assert(statusList.size == 3)
-        assert(statusList[0] == JobStatus.PROCESSING)
-        assert(statusList[1] == JobStatus.PROCESSING)
-        assert(statusList[2] == JobStatus.FAILED)
+        assert(statusList[0] == SubJobStatus.PROCESSING)
+        assert(statusList[1] == SubJobStatus.PROCESSING)
+        assert(statusList[2] == SubJobStatus.FAILED)
 
         assert(messageList.size == 3)
         assert(messageList[0].isBlank())

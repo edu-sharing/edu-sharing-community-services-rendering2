@@ -1,18 +1,20 @@
 package org.edu_sharing.rendering.modules.document
 
 import org.apache.tika.mime.MimeTypes
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.modules.ConversionService
 import org.edu_sharing.rendering.modules.ConverterWebServiceArguments
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.modules.document.DocumentReceiver.Companion.PUBLIC_FAILURE_MESSAGE
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -31,18 +33,24 @@ class DocumentConversionService(
 
     override fun process(cacheObject: CacheObject, renderingJob: RenderingJob) {
         var subJob = renderingJob.subJobs.first()
-        subJob.status = JobStatus.PROCESSING
+        subJob.status = SubJobStatus.PROCESSING
         subJob = subJobRepository.save(subJob)
         try {
             convertAndMoveToCache(
                 cacheObject,
                 moduleRegistry.getRenderModule(renderingJob.module)
             )
-            subJob.status = JobStatus.FINISHED
-        } catch (e: Exception) {
-            log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${e.message}",e)
-            subJob.status = JobStatus.FAILED
-            subJob.message = PUBLIC_FAILURE_MESSAGE
+            subJob.status = SubJobStatus.FINISHED
+        } catch (exception: Exception) {
+            log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${exception.message}",exception)
+            subJob.status = SubJobStatus.FAILED
+            subJob.errorMessage = ErrorMessage(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = exception.message,
+                details = emptyMap(),
+                exception = exception,
+                userMessage = GENERIC_CONVERSION_ERROR
+            )
         } finally {
             storageService.removeObject(cacheObject = cacheObject, isTemp =  true)
         }

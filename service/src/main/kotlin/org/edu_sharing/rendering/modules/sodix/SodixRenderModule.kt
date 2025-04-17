@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
-import org.edu_sharing.rendering.renderingJob.entity.JobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
@@ -53,16 +52,15 @@ class SodixRenderModule(
         jobRepository.save(job)
 
         subJobRepository.save(SubJob(
-            status = JobStatus.QUEUED,
             routingKey = jobRoutingKey,
             parent = job
         ))
 
         val isPaidMedia = node.properties.getOrDefault("ccm:editorial_state", mutableListOf(""))[0] == "restricted_mz"
 
+        // ToDo: Don't use quality to differentiate between sub job types
         if (isPaidMedia) {
             subJobRepository.save(SubJob(
-                status = JobStatus.QUEUED,
                 routingKey = jobRoutingKey,
                 parent = job,
                 quality = 1

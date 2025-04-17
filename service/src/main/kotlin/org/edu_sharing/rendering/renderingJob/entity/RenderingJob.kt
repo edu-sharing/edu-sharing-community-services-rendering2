@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.renderingJob.entity
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.annotation.ReadOnlyProperty
@@ -15,7 +16,7 @@ data class RenderingJob(
     @Id
     val id: ObjectId = ObjectId(),
     @Indexed
-    var status: JobStatus = JobStatus.QUEUED,
+    var status: RenderingJobStatus = RenderingJobStatus.QUEUED,
     var module: String,
     val esObjectType: String,
     val esObjectId: String,
@@ -29,11 +30,12 @@ data class RenderingJob(
     @ReadOnlyProperty
     @DocumentReference(lazy = true, lookup = "{'parent':?#{#self._id} }")
     var subJobs: MutableList<SubJob> = ArrayList(),
-    @Indexed(expireAfterSeconds = 86400)
+    @Indexed(expireAfter = "86400s")
     @LastModifiedDate
     var lastModifiedDate: Date? = null,
     @Version
     val version: Int? = null,
     val conversionType: Boolean = false,
     val externalUrl: String? = null,
+    var errorMessage: ErrorMessage? = null
 )
