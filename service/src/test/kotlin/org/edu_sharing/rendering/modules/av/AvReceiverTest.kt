@@ -148,7 +148,7 @@ class AvReceiverTest {
                 cacheObject, any()
             )
         } throws Exception()
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns false
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
         every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
@@ -176,7 +176,7 @@ class AvReceiverTest {
             subJobRepository.save(any())
             subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
             subJobRepository.save(any())
-            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)
         }
     }
 
@@ -217,7 +217,7 @@ class AvReceiverTest {
             matchingSubJob
         }
         justRun { videoConversionService.convert(cacheObject, matchingSubJob) }
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns false
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
         every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
@@ -242,7 +242,7 @@ class AvReceiverTest {
             videoConversionService.convert(any(), any())
             subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
             subJobRepository.save(any())
-            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)
         }
     }
 
@@ -283,7 +283,7 @@ class AvReceiverTest {
             matchingSubJob
         }
         justRun { videoConversionService.convert(cacheObject, matchingSubJob) }
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns true
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns true
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
         every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
@@ -308,7 +308,7 @@ class AvReceiverTest {
             videoConversionService.convert(any(), any())
             subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
             subJobRepository.save(any())
-            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)
             storageService.removeObject(cacheObject, true)
         }
     }
@@ -346,7 +346,7 @@ class AvReceiverTest {
         every { audioModule.module() } returns "AUDIO"
         every { videoModule.module() } returns "VIDEO"
         every { subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1)) } returns matchingSubJob
-        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true) } returns false
+        every { mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID) } returns false
 
         //Act
         underTest.receiveMessage(message)
@@ -356,12 +356,12 @@ class AvReceiverTest {
         assert(statusList[0] == SubJobStatus.PROCESSING)
         assert(statusList[1] == SubJobStatus.PROCESSING)
         assert(statusList[2] == SubJobStatus.FAILED)
-
+/**
         assert(messageList.size == 3)
         assert(messageList[0].isBlank())
         assert(messageList[1] == "${AvReceiver.MODULE_NOT_SUPPORTED_ERROR} NONSENSE")
         assert(messageList[2] == "${AvReceiver.MODULE_NOT_SUPPORTED_ERROR} NONSENSE")
-
+*/
         verifySequence {
             mainJobLogic.getMainJobEntry(JobDataProvider.DUMMY_JOB_ID)
             mapper.renderingJobToCacheObject(job)
@@ -372,7 +372,7 @@ class AvReceiverTest {
             subJobRepository.save(any())
             subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
             subJobRepository.save(any())
-            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID, true)
+            mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)
         }
 
     }

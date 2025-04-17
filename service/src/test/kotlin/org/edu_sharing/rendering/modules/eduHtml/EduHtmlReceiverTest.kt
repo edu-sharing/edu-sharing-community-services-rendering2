@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 
 class EduHtmlReceiverTest {
@@ -13,12 +14,14 @@ class EduHtmlReceiverTest {
     private val eduHtmlConversionService: EduHtmlConversionService = mockk()
     private val subJobRepository: SubJobRepository = mockk()
     private val mainJobLogic: MainJobLogic = mockk()
+    private val renderingJobRepository: RenderingJobRepository = mockk()
     private val mapper = Mapper()
     private val underTest = EduHtmlReceiver(
         eduHtmlService,
         eduHtmlConversionService,
         subJobRepository,mainJobLogic,
-        mapper
+        mapper,
+        renderingJobRepository
     )
 
 /*

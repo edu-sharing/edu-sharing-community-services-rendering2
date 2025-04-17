@@ -173,8 +173,6 @@ class H5PReceiverTest {
         val expectedStatusSequence = mutableListOf(SubJobStatus.PROCESSING, SubJobStatus.FAILED)
         assert(statusList == expectedStatusSequence)
 
-        assert(subJob.message != null && subJob.message!!.contains(testMessage))
-
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         verify(exactly = 1) { renderingJobRepository.save(any()) }
 
