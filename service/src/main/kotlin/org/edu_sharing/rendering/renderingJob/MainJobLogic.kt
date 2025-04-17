@@ -31,7 +31,7 @@ class MainJobLogic (
             jobRepository.updateStatusWithoutVersion(job.id, status = RenderingJobStatus.FAILED)
             return true
         }
-        val areSomeProcessingOrQueued = job.subJobs.none { it.status > SubJobStatus.PROCESSING }
+        val areSomeProcessingOrQueued = job.subJobs.any { it.status <= SubJobStatus.PROCESSING }
         if (areSomeProcessingOrQueued) {
             return false
         }
