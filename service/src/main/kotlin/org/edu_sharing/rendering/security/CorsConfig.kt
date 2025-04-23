@@ -13,15 +13,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 class CorsConfig(
     private val appInfo: AppInfo,
     @Value("\${app.security.enabled}")
-    private val securityEnabled: Boolean
+    private val securityEnabled: Boolean,
+    @Value("\${app.security.allowedOrigins}")
+    private val allowedOriginsFromConfig: MutableList<String>
 ) {
-    private final val allowedOrigins = mutableListOf<String>()
+
+    private val allowedOrigins: MutableList<String> = mutableListOf()
 
     init {
         init()
     }
 
     private final fun init(){
+        allowedOrigins.addAll(allowedOriginsFromConfig)
         addAllowedOrigin(appInfo.public.url.cleanUrl())
         addAllowedOrigin(appInfo.internal.url.cleanUrl())
         addAllowedOrigin("http://localhost:4200")
