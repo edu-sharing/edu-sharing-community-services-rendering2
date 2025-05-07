@@ -13,18 +13,18 @@
     <!-- feature branch -->
     <ref type="branch">
       <pattern><![CDATA[maven/feature/(?<version>\d+.\d+)(?=[-_]).+]]></pattern>
-      <version>${env.PROJECT_NAME:-}maven-fixes-${ref.version}-SNAPSHOT</version>
+      <version>maven-fixes-${ref.version}-SNAPSHOT</version>
       <properties>
-        <project.version.base>maven-fixes-${ref.version}-SNAPSHOT</project.version.base>
+        <project.version.project>${env.PROJECT_NAME:-}maven-fixes-${ref.version}-SNAPSHOT</project.version.project>
       </properties>
     </ref>
 
     <!-- other branches -->
     <ref type="branch">
       <pattern>.+</pattern>
-      <version>${env.PROJECT_NAME:-}${ref.slug}-SNAPSHOT</version>
+      <version>${ref.slug}-SNAPSHOT</version>
       <properties>
-        <project.version.base>${ref.slug}-SNAPSHOT</project.version.base>
+        <project.version.project>${env.PROJECT_NAME:-}${ref.slug}-SNAPSHOT</project.version.project>
       </properties>
     </ref>
 

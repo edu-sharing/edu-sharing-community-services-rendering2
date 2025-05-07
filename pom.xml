@@ -18,7 +18,7 @@
 
   <properties>
     <!-- git extension controlled props -->
-    <project.version.base>git</project.version.base>
+    <project.version.project>git</project.version.project>
 
     <java.version>21</java.version>
     <kotlin.version>1.9.21</kotlin.version>
@@ -29,7 +29,7 @@
 
 
     <!-- release-2 -->
-    <bom.repository.version>${project.version.base}</bom.repository.version>
+    <bom.repository.version>${project.version.project}</bom.repository.version>
 
   </properties>
 
