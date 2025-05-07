@@ -17,9 +17,6 @@
   <name>edu_sharing-community-services-rendering2</name>
 
   <properties>
-    <!-- git extension controlled props -->
-    <project.version.project>git</project.version.project>
-
     <java.version>21</java.version>
     <kotlin.version>1.9.21</kotlin.version>
     <maven.compiler.source>21</maven.compiler.source>
@@ -29,7 +26,7 @@
 
 
     <!-- release-2 -->
-    <bom.repository.version>${project.version.project}</bom.repository.version>
+    <bom.repository.version>${project.version}</bom.repository.version>
 
   </properties>
 
@@ -56,7 +53,8 @@
         </property>
       </activation>
       <properties>
-        <bom.repository.version>${project.version}</bom.repository.version>
+        <edu-sharing.project>enterprise-</edu-sharing.project>
+        <bom.repository.version>${edu-sharing.project}${project.version}</bom.repository.version>
       </properties>
     </profile>
   </profiles>
