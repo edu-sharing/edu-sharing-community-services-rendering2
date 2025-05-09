@@ -94,7 +94,7 @@ services:
 
 
   onix-service:
-    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-onyx:2025.05.1"
+    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-onyx:2025.05.1-0"
     environment:
       CATALINA_OPTS: >-
         -Xms${REPOSITORY_SERVICE_JAVA_XMS:-500m}
