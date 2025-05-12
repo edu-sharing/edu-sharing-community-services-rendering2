@@ -16,7 +16,7 @@ services:
     environment:
       JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
     ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_DEBUG_PORT:-9100}:8000"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_DEBUG_PORT:-9121}:8000"
 
   rendering2-document-converter:
     environment:
