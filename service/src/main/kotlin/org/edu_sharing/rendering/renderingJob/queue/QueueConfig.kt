@@ -17,6 +17,7 @@ class QueueConfig {
     @Bean
     fun singlePrefetchConnectionFactory(rabbitConnectionFactory: ConnectionFactory?, messageConverter: MessageConverter): RabbitListenerContainerFactory<SimpleMessageListenerContainer?>? {
         val factory = SimpleRabbitListenerContainerFactory()
+        factory.setDefaultRequeueRejected(false);
         factory.setConnectionFactory(rabbitConnectionFactory)
         factory.setPrefetchCount(1)
         factory.setConcurrentConsumers(1)
