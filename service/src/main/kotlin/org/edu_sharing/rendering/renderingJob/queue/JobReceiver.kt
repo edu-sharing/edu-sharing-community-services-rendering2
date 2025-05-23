@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.renderingJob.queue
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.ErrorStrings.ERROR_PROCESSING_JOB
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ConversionModule
@@ -18,7 +17,6 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 
@@ -66,14 +64,7 @@ class JobReceiver(
         } catch (exception: Exception) {
             jobEntry.status = RenderingJobStatus.FAILED
             jobEntry.finishedTimestamp = System.currentTimeMillis()
-            val errorMessage = ErrorMessage(
-                status = HttpStatus.INTERNAL_SERVER_ERROR.ordinal,
-                details = emptyMap(),
-                message = exception.message,
-                exception = exception,
-                userMessage = ERROR_PROCESSING_JOB
-            )
-            jobEntry.errorMessage = errorMessage
+            jobEntry.errorMessage = ERROR_PROCESSING_JOB
             jobRepository.save(jobEntry)
         }
     }

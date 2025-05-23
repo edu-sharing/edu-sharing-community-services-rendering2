@@ -12,9 +12,15 @@ data class RepositoryRegistration(
     @Indexed(unique = true)
     var repoId: String,
 
+    @Indexed(unique = true)
     var url: String,
     var publicKey: String,
     var domains: List<String>? = emptyList(),
     var optionalModules: MutableList<String> = mutableListOf(),
-    val module: MutableMap<String, ModuleSettings> = mutableMapOf<String, ModuleSettings>()
+    val module: MutableMap<String, ModuleSettings> = mutableMapOf(),
+    val repositoryUser: String,
+    val repositoryPassword: String,
+    var allowedOrigins: MutableSet<String> = mutableSetOf(),
+    var allowedOriginPatterns: MutableSet<String>? = mutableSetOf(),
+    var lastAllowedOriginSync: Long = 0
 )

@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.av
 
 import org.apache.commons.lang3.NotImplementedException
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
@@ -17,7 +16,6 @@ import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.*
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @ConditionalOnAvConverter
@@ -72,7 +70,6 @@ class AvReceiver(
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         subJob.status = SubJobStatus.PROCESSING
         subJob = subJobRepository.save(subJob)
-        var success = true
         try {
             val service = when(jobEntry.module) {
                 audioModule.module() -> audioConversionService
@@ -83,6 +80,12 @@ class AvReceiver(
                 cacheObject = cacheObject.deepCopy(),
                 subJob = subJob
             )
+            val finishedSubJob = subJobRepository.findByIdOrNull(subJob.id)
+            if (finishedSubJob !== null) {
+                finishedSubJob.status = SubJobStatus.FINISHED
+                finishedSubJob.progress = 100
+                subJobRepository.save(finishedSubJob)
+            }
         } catch (exception: Exception) {
             val failedSubJob = subJobRepository.findByIdOrNull(subJob.id)
             if (exception is ConversionException) {
@@ -91,26 +94,9 @@ class AvReceiver(
                 log.error(exception.message, exception)
             }
             if (failedSubJob != null) {
-                failedSubJob.errorMessage = ErrorMessage(
-                    status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    message = exception.message,
-                    details = emptyMap(),
-                    exception = exception,
-                    userMessage = GENERIC_CONVERSION_ERROR
-                )
+                failedSubJob.status = SubJobStatus.FAILED
+                failedSubJob.errorMessage = GENERIC_CONVERSION_ERROR
                 subJobRepository.save(failedSubJob)
-            }
-            success = false
-        } finally {
-            val finishedSubJob = subJobRepository.findByIdOrNull(subJob.id)
-            if (finishedSubJob !== null) {
-                if (success) {
-                    finishedSubJob.status = SubJobStatus.FINISHED
-                    finishedSubJob.progress = 100
-                } else {
-                    finishedSubJob.status = SubJobStatus.FAILED
-                }
-                subJobRepository.save(finishedSubJob)
             }
         }
         if (mainJobLogic.processMainJob(message.id)) {

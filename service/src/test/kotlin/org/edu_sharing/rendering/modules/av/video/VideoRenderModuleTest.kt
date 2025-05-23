@@ -2,20 +2,18 @@ package org.edu_sharing.rendering.modules.av.video
 
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.verifySequence
+import io.mockk.verify
+import org.bson.types.ObjectId
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RenderDataRequest
+import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -28,16 +26,12 @@ class VideoRenderModuleTest {
     private val videoService = mockk<VideoService>()
     private val amqpTemplate = mockk<AmqpTemplate>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val config = VideoConverterConfig()
+    private val config = mockk<VideoConverterConfig>()
 
     lateinit var underTest: VideoRenderModule
 
-    /*@BeforeEach
+    @BeforeEach
     fun setup() {
-        config.resolutions = mapOf<String, VideoResolutionItemConfig>(
-            "320" to VideoResolutionItemConfig(2),
-            "720" to VideoResolutionItemConfig(1)
-        )
         underTest = VideoRenderModule(
             nodePermissionExpirationTime = nodeExpiration,
             mapper = mapper,
@@ -46,6 +40,8 @@ class VideoRenderModuleTest {
             subJobRepository = subJobRepository,
             configuredResolutions = config
         )
+        underTest.avRoutingKey = "av_routing_key"
+        underTest.topicExchangeName = "topic_exchange_name"
     }
 
     @Test
@@ -54,195 +50,154 @@ class VideoRenderModuleTest {
     }
 
     @Test
-    fun testHandleUsesDefaultStrategyForNonConversionObject() {
-        // Arrange
+    fun testHandleNonConversionTypeWithCache() {
+        val node = mockk<Node>()
+        val userData = mockk<RequestUserData>()
         val cacheObject = mockk<CacheObject>()
-        val request = mockk<RenderDataRequest>()
-        val linkList = listOf(
-            ObjectLink(link = "link1"),
-            ObjectLink(link = "link2")
-        )
+        val objectLinks = listOf(mockk<ObjectLink>())
 
-        every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
-        every {videoService.getObjectLinks(cacheObject)} returns linkList
+        every { mapper.nodeToCacheObject(node) } returns cacheObject
+        every { node.properties } returns mapOf("ccm:height" to listOf(""))
         every { videoService.isConversionObject(cacheObject) } returns false
+        every { videoService.getObjectLinks(cacheObject, null, null) } returns objectLinks
 
-        // Act
-        val result = underTest.handle(request)
+        val result = underTest.handle(node, userData)
 
-        // Assert
+        verify { videoService.isConversionObject(cacheObject) }
+        verify { videoService.getObjectLinks(cacheObject, null, null) }
+        assert(result.objectLinks == objectLinks)
         assert(result.module == "VIDEO")
         assert(result.jobId == null)
-        assert(result.objectLinks == linkList)
-
-        verifySequence {
-            mapper.renderDataRequestToCacheObject(request)
-            videoService.getObjectLinks(cacheObject)
-            videoService.isConversionObject(cacheObject)
-        }
     }
 
     @Test
-    fun testHandleReturnsLinksAndNoJobIdIfAllNeededQualitiesAreFound() {
-        // Arrange
+    fun testHandleConversionTypeWithAllQualities() {
+        val node = mockk<Node>()
+        val userData = mockk<RequestUserData>()
         val cacheObject = mockk<CacheObject>()
-        val request = mockk<RenderDataRequest>()
-        val linkList = listOf(
-            ObjectLink(link = "link1"),
-            ObjectLink(link = "link2")
-        )
-        every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
+        val objectLinks = listOf(mockk<ObjectLink>())
+        val height = 1080
+
+        every { mapper.nodeToCacheObject(node) } returns cacheObject
+        every { node.properties } returns mapOf("ccm:height" to listOf(height.toString()))
         every { videoService.isConversionObject(cacheObject) } returns true
-        every { videoService.getObjectLinks(cacheObject) } returns linkList
-        every { videoService.getMissingQualities(linkList) } returns emptyList()
+        every { videoService.getObjectLinks(cacheObject, null, height) } returns objectLinks
+        every { videoService.getMissingQualities(objectLinks, height) } returns emptyList()
 
-        // Act
-        val result = underTest.handle(request)
+        val result = underTest.handle(node, userData)
 
-        // Assert
+        verify { videoService.isConversionObject(cacheObject) }
+        verify { videoService.getObjectLinks(cacheObject, null, height) }
+        verify { videoService.getMissingQualities(objectLinks, height) }
+        assert(result.objectLinks == objectLinks)
         assert(result.module == "VIDEO")
         assert(result.jobId == null)
-        assert(result.objectLinks == linkList)
-
-        verifySequence {
-            mapper.renderDataRequestToCacheObject(request)
-            videoService.getObjectLinks(cacheObject)
-            videoService.isConversionObject(cacheObject)
-            videoService.getMissingQualities(linkList)
-        }
     }
 
     @Test
-    fun testHandleCreatesJobsForMissingQualitiesAndReturnsLinksToExisting() {
-        // Arrange
+    fun testHandleConversionTypeWithMissingQualities() {
+        val node = mockk<Node>()
+        val userData = mockk<RequestUserData>()
         val cacheObject = mockk<CacheObject>()
-        val request = mockk<RenderDataRequest>()
-        val linkList = listOf(
-            ObjectLink(link = "link1"),
-            ObjectLink(link = "link2")
-        )
-        val missingQualities = listOf(800)
+        val objectLinks = listOf(mockk<ObjectLink>())
+        val height = 1080
+        val missingQualities = listOf(720)
+        val jobId = "test-job-id"
 
-        every { mapper.renderDataRequestToCacheObject(request) } returns cacheObject
+        every { mapper.nodeToCacheObject(node) } returns cacheObject
+        every { node.properties } returns mapOf("ccm:height" to listOf(height.toString()))
         every { videoService.isConversionObject(cacheObject) } returns true
-        every { videoService.getObjectLinks(cacheObject) } returns linkList
-        every { videoService.getMissingQualities(linkList) } returns missingQualities
-        every {
-            videoService.retrieveOrCreateJob(
-                cacheObject,
-                "VIDEO",
-                missingQualities
-            )
-        } returns "jobid123"
+        every { videoService.getObjectLinks(cacheObject, null, height) } returns objectLinks
+        every { videoService.getMissingQualities(objectLinks, height) } returns missingQualities
+        every { videoService.retrieveOrCreateJob(cacheObject, "VIDEO", missingQualities) } returns jobId
 
-        // Act
-        val result = underTest.handle(request)
+        val result = underTest.handle(node, userData)
 
-        // Assert
+        verify { videoService.isConversionObject(cacheObject) }
+        verify { videoService.getObjectLinks(cacheObject, null, height) }
+        verify { videoService.getMissingQualities(objectLinks, height) }
+        verify { videoService.retrieveOrCreateJob(cacheObject, "VIDEO", missingQualities) }
+        assert(result.objectLinks == objectLinks)
         assert(result.module == "VIDEO")
-        assert(result.jobId == "jobid123")
-        assert(result.objectLinks == linkList)
-
-        verifySequence {
-            mapper.renderDataRequestToCacheObject(request)
-            videoService.getObjectLinks(cacheObject)
-            videoService.isConversionObject(cacheObject)
-            videoService.getMissingQualities(linkList)
-            videoService.retrieveOrCreateJob(
-                cacheObject,
-                "VIDEO",
-                missingQualities
-            )
-        }
+        assert(result.jobId == jobId)
     }
 
     @Test
-    fun testGetObjectLinkFromJobDataReturnsRetrievedLink() {
-        // Arrange
-        val cacheObject = mockk<CacheObject>()
+    fun testGetObjectLinkFromJobDataSuccess() {
         val subJob = mockk<SubJob>()
         val renderingJob = mockk<RenderingJob>()
-        val link = ObjectLink(link = "link1")
-        val linkList = listOf(link)
+        val cacheObject = mockk<CacheObject>()
+        val objectLink = mockk<ObjectLink>()
 
         every { mapper.renderingJobToCacheObject(renderingJob) } returns cacheObject
-        every { subJob.quality } returns 123
-        every { videoService.getObjectLinks(cacheObject, 123) } returns linkList
+        every { subJob.quality } returns 720
+        every { videoService.getObjectLinks(cacheObject, 720) } returns listOf(objectLink)
 
-        // Act
         val result = underTest.getObjectLinkFromJobData(subJob, renderingJob)
 
-        // Assert
-        assert(result == linkList[0])
+        verify { mapper.renderingJobToCacheObject(renderingJob) }
+        verify { videoService.getObjectLinks(cacheObject, 720) }
+        assert(result == objectLink)
     }
 
     @Test
-    fun testGetObjectLinkFromJobDataReturnsNullIfNullReturnedFromService() {
-        // Arrange
-        val cacheObject = mockk<CacheObject>()
+    fun testGetObjectLinkFromJobDataReturnsNull() {
         val subJob = mockk<SubJob>()
         val renderingJob = mockk<RenderingJob>()
+        val cacheObject = mockk<CacheObject>()
 
         every { mapper.renderingJobToCacheObject(renderingJob) } returns cacheObject
-        every { subJob.quality } returns 123
-        every { videoService.getObjectLinks(cacheObject, 123) } returns null
+        every { subJob.quality } returns 720
+        every { videoService.getObjectLinks(cacheObject, 720) } returns null
 
-        // Act
         val result = underTest.getObjectLinkFromJobData(subJob, renderingJob)
 
-        // Assert
+        verify { mapper.renderingJobToCacheObject(renderingJob) }
+        verify { videoService.getObjectLinks(cacheObject, 720) }
         assert(result == null)
     }
 
     @Test
-    fun testGetNodePermissionExpirationTimeReturnsSetTime() {
+    fun testGetNodePermissionExpirationTime() {
         assert(underTest.getNodePermissionExpirationTime() == nodeExpiration)
     }
 
     @Test
-    fun testCreateJobCreatesAndEnqueuesProperJob() {
-        // Arrange
-        val provider = JobDataProvider()
-        val jobId = "507f191e810c19729de860ea"
-        val job = provider.prepareJobForConversionModuleTesting(jobId, "AUDIO")
-        val subJobList = mutableListOf<SubJob>()
-        val subJobMessageList = mutableListOf<SubJobMessage>()
-        val postProcessorSlot = mutableListOf<PriorityPostProcessor>()
+    fun testCreateConversionSubJobsWithMultipleResolutions() {
+        val renderingJob = mockk<RenderingJob>()
+        val message = mockk<RenderingJobMessage>()
+        val subJobs = mutableListOf<SubJob>()
+        val jobId = ObjectId()
 
+        every { renderingJob.id } returns jobId
+        every { renderingJob.subJobs } returns subJobs
+        every { message.missingQualities } returns listOf(720, 1080)
+        every { config.getPriority(720, 0) } returns 1
+        every { config.getPriority(1080, 0) } returns 2
+        every { subJobRepository.save(any()) } returns mockk()
+        every { amqpTemplate.convertAndSend(any(), any(), any(), any()) } returns Unit
 
-        underTest.avRoutingKey = "avRoutingKey"
-        underTest.topicExchangeName = "topicExchangeName"
+        underTest.createConversionSubJobs(renderingJob, message)
 
-        val renderingMessage = mockk<RenderingJobMessage>()
+        verify(exactly = 2) { subJobRepository.save(any()) }
+        verify(exactly = 2) { amqpTemplate.convertAndSend(any(), any(), any(), any()) }
+        assert(subJobs.size == 2)
+    }
 
-        every {renderingMessage.missingQualities} returns listOf(720,320)
-        every {subJobRepository.save(capture(subJobList))} returns mockk<SubJob>()
-        justRun {amqpTemplate.convertAndSend(
-            "topicExchangeName",
-            "avRoutingKey",
-            capture(subJobMessageList),
-            capture(postProcessorSlot))}
+    @Test
+    fun testCreateConversionSubJobsWithEmptyResolutions() {
+        val renderingJob = mockk<RenderingJob>()
+        val message = mockk<RenderingJobMessage>()
+        val subJobs = mutableListOf<SubJob>()
 
-        // Act
-        underTest.createConversionSubJobs(job, renderingMessage)
+        every { renderingJob.subJobs } returns subJobs
+        every { message.missingQualities } returns emptyList()
 
-        // Assert
-        assert(subJobList.size == 2)
-        assert(subJobList[0].quality == 320)
-        assert(subJobList[1].quality == 720)
-        assert(subJobList[0].parent == job)
-        assert(subJobList[1].parent == job)
-        assert(subJobList[0].routingKey == "avRoutingKey")
-        assert(subJobList[1].routingKey == "avRoutingKey")
+        underTest.createConversionSubJobs(renderingJob, message)
 
-        assert(subJobMessageList.size == 2)
-        assert(subJobMessageList[0].quality == 320)
-        assert(subJobMessageList[1].quality == 720)
-        assert(subJobMessageList[0].id == jobId)
-        assert(subJobMessageList[1].id == jobId)
+        verify(exactly = 0) { subJobRepository.save(any()) }
+        verify(exactly = 0) { amqpTemplate.convertAndSend(any(), any(), any(), any()) }
+        assert(subJobs.isEmpty())
+    }
 
-        assert(postProcessorSlot.size == 2)
-        assert(postProcessorSlot[0].priority == 2)
-        assert(postProcessorSlot[1].priority == 1)
-    }*/
 }

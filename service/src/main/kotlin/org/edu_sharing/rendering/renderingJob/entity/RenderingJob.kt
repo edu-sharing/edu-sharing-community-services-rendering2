@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.renderingJob.entity
 
 import org.bson.types.ObjectId
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.annotation.ReadOnlyProperty
@@ -37,5 +36,5 @@ data class RenderingJob(
     val version: Int? = null,
     val conversionType: Boolean = false,
     val externalUrl: String? = null,
-    var errorMessage: ErrorMessage? = null
+    var errorMessage: String? = null
 )

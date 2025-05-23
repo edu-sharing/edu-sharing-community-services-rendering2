@@ -157,11 +157,10 @@ class AvReceiverTest {
         underTest.receiveMessage(message)
 
         //Assert
-        assert(statusList.size == 3)
+        assert(statusList.size == 2)
         assert(statusList[0] == SubJobStatus.PROCESSING)
-        assert(statusList[1] == SubJobStatus.PROCESSING)
-        assert(statusList[2] == SubJobStatus.FAILED)
-        assert(qualityList.size == 3)
+        assert(statusList[1] == SubJobStatus.FAILED)
+        assert(qualityList.size == 2)
         assert(qualityList.none { it != 720 })
 
         verifySequence {
@@ -172,8 +171,6 @@ class AvReceiverTest {
             videoModule.module()
             cacheObject.deepCopy()
             videoConversionService.convert(any(), any())
-            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
-            subJobRepository.save(any())
             subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
             subJobRepository.save(any())
             mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)
@@ -352,10 +349,9 @@ class AvReceiverTest {
         underTest.receiveMessage(message)
 
         // Assert
-        assert(statusList.size == 3)
+        assert(statusList.size == 2)
         assert(statusList[0] == SubJobStatus.PROCESSING)
-        assert(statusList[1] == SubJobStatus.PROCESSING)
-        assert(statusList[2] == SubJobStatus.FAILED)
+        assert(statusList[1] == SubJobStatus.FAILED)
 /**
         assert(messageList.size == 3)
         assert(messageList[0].isBlank())
@@ -368,8 +364,6 @@ class AvReceiverTest {
             subJobRepository.save(any())
             audioModule.module()
             videoModule.module()
-            subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
-            subJobRepository.save(any())
             subJobRepository.findByIdOrNull(ObjectId(JobDataProvider.SUB_ID_1))
             subJobRepository.save(any())
             mainJobLogic.processMainJob(JobDataProvider.DUMMY_JOB_ID)

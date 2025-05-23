@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.config
 
-import io.lettuce.core.ClientOptions
 import io.lettuce.core.ReadFrom
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean

@@ -5,7 +5,7 @@ data class RepositoryRegistrationConfigItem(
     val username: String,
     val password: String,
     val optionalModules: List<String> = listOf(),
-    val module: Map<String, ModuleSettings> = emptyMap()
+    val module: MutableMap<String, ModuleSettings> = mutableMapOf()
 )
 
 data class ModuleSettings(

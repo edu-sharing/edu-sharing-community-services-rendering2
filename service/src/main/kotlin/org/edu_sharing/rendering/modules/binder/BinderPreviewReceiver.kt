@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -15,7 +14,6 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -54,13 +52,7 @@ class BinderPreviewReceiver(
         } catch (exception: Exception) {
             log.error("Binder preview job failed: ", exception)
             previewJob.status = SubJobStatus.FAILED
-            previewJob.errorMessage = ErrorMessage(
-                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message = exception.message,
-                details = emptyMap(),
-                exception = exception,
-                userMessage = GENERIC_CONVERSION_ERROR
-            )
+            previewJob.errorMessage = GENERIC_CONVERSION_ERROR
         } finally {
             subJobRepository.save(previewJob)
             binderMainJobLogic.processMainJob(mainJob.id.toString())

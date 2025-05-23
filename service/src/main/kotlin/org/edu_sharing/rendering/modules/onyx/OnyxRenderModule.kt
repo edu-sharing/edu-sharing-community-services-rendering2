@@ -1,0 +1,69 @@
+package org.edu_sharing.rendering.modules.onyx
+
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
+import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.core.dto.RequestUserData
+import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.modules.ThirdPartyModule
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+
+@Component
+class OnyxRenderModule(
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    private val mapper: Mapper,
+    private val jobRepository: RenderingJobRepository,
+    private val subJobRepository: SubJobRepository,
+    @Value("\${app.queue.topicExchange}")
+    private val topicExchangeName: String,
+    @Value("\${app.queue.onyx.key}")
+    private val jobRoutingKey: String
+): RenderModule, ThirdPartyModule {
+
+    companion object {
+        private val requiredCredentialKeys = setOf("onyxRestUrl, onyxRunUrl, returnService")
+    }
+
+    override fun module() = "ONYX"
+
+    override fun isOptionalModule() = true
+
+    override fun handle(
+        node: Node,
+        userData: RequestUserData
+    ): RenderDataResponse {
+        val job = mapper.nodeToRenderingJob(node, module())
+        jobRepository.save(job)
+
+        subJobRepository.save(SubJob(
+            routingKey = jobRoutingKey,
+            parent = job
+        ))
+
+
+
+        return RenderDataResponse(jobId = job.id.toString(), module = module())
+    }
+
+    override fun validateThirdPartyCredentials(
+        credentials: Map<String, String>,
+        repoId: String
+    ) {
+        validateCredentials(
+            credentials = credentials,
+            requiredCredentialKeys = requiredCredentialKeys,
+            moduleName = module()
+        )
+    }
+
+    override fun getConfig(repoId: String): Map<String, String> {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
+        return registration.module[module()]?.credentials ?: mapOf()
+    }
+}

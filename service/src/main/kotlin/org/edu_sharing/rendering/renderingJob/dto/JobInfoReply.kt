@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.renderingJob.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 
 data class JobInfoReply(
@@ -11,5 +10,5 @@ data class JobInfoReply(
     val module: String? = null,
     @JsonProperty("status")
     val status: RenderingJobStatus,
-    val errorMessage: ErrorMessage? = null
+    val userMessage: String? = null,
 )

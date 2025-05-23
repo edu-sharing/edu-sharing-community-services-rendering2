@@ -37,7 +37,7 @@ class JobInfoService(
                 jobs = mutableListOf(JobProgressInfo(status = SubJobStatus.fromRenderingJobStatus(job.status))),
                 status = job.status,
                 module = job.module,
-                errorMessage = job.errorMessage
+                userMessage = job.errorMessage
             )
         }
         val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
@@ -64,7 +64,7 @@ class JobInfoService(
                 }
 
                 SubJobStatus.FAILED -> {
-                    jobInfo.error = it.errorMessage
+                    jobInfo.publicErrorMessage = it.errorMessage
                 }
             }
             if (it.status != SubJobStatus.FAILED) {
@@ -108,7 +108,7 @@ class JobInfoService(
                 JobProgressInfo(
                     status = SubJobStatus.fromRenderingJobStatus(renderingJob.status),
                     objectLink = objectLink,
-                    error = renderingJob.errorMessage
+                    publicErrorMessage = renderingJob.errorMessage
                 )
             )
         )

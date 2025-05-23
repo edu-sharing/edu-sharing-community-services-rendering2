@@ -4,7 +4,6 @@ import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -18,7 +17,6 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @ConditionalOnConverter
@@ -63,13 +61,7 @@ class H5pReceiver(
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
             subJob.status = SubJobStatus.FAILED
-            subJob.errorMessage = ErrorMessage(
-                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message = exception.message,
-                details = emptyMap(),
-                exception = exception,
-                userMessage = GENERIC_CONVERSION_ERROR
-            )
+            subJob.errorMessage = GENERIC_CONVERSION_ERROR
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

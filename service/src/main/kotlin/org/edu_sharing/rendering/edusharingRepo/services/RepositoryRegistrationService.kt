@@ -4,6 +4,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClie
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
+import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
@@ -13,7 +14,6 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
-import org.edu_sharing.rendering.security.CorsService
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.cleanUrl
 import org.springframework.cache.annotation.CacheEvict
@@ -35,18 +35,10 @@ class RepositoryRegistrationService(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val storageService: StorageService,
     private val appInfo: AppInfo,
-    private val corsService: CorsService,
     private val moduleRegistry: ModuleRegistry,
     private val metadataService: MetadataService,
+    private val encryptionService: EncryptionService
 ) : RepositoryPublicKeyService {
-
-    init {
-        val registrations = repositoryRegistrationStorageService.getRegistrations()
-        corsService.addOrigin(
-            registrations
-                .filter { it.domains != null }
-                .flatMap { it.domains!! })
-    }
 
     fun getWebClientByRepoId(repoId: String): WebClient {
         return getWebClient(
@@ -56,8 +48,7 @@ class RepositoryRegistrationService(
         )
     }
 
-    private fun getWebClient
-                (url: String): WebClient {
+    private fun getWebClient(url: String): WebClient {
         return WebClient
             .builder()
             .baseUrl(url)
@@ -65,8 +56,8 @@ class RepositoryRegistrationService(
             .build()
     }
 
-    private fun createRegistration(url: String, force: Boolean): RepositoryRegistration {
-        val metadata = getWebClient(url)
+    private fun createRegistration(request: RegisterRepositoryRequest, force: Boolean): RepositoryRegistration {
+        val metadata = getWebClient(request.url)
             .get()
             .uri {
                 it.path("/metadata")
@@ -84,7 +75,8 @@ class RepositoryRegistrationService(
                 object {
                     val appId = props["appid"].toString()
                     val publicKey = props["public_key"].toString()
-                    val domain = listOf("${props["clientprotocol"]}://${props["domain"]}:${props["clientport"]}".cleanUrl()) // todo we need to get all domains from the repository
+                    val domain = listOf("${props["clientprotocol"]}://${props["domain"]}:${props["clientport"]}".cleanUrl())
+                    val host = props["domain"].toString()
                 }
             }
             .block()
@@ -97,19 +89,19 @@ class RepositoryRegistrationService(
         if (!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
             if (force) {
                 repositoryRegistrationStorageService.clearRegistrations()
-                corsService.clearExternalOrigins()
             } else {
                 throw IllegalArgumentException("It's not allowed to register more than one repository")
             }
         }
 
-
         val registration = RepositoryRegistration(
             repoId = metadata.appId,
-            url = url,
+            url = request.url,
             publicKey = metadata.publicKey,
             domains = metadata.domain,
-            optionalModules = mutableListOf()
+            optionalModules = mutableListOf(),
+            repositoryUser = request.username,
+            repositoryPassword = encryptionService.encrypt(request.password),
         )
 
         if (force) {
@@ -119,16 +111,14 @@ class RepositoryRegistrationService(
                }
         }
 
-        val storeRegistration = repositoryRegistrationStorageService.storeRegistration(registration)
-        corsService.addOrigin(storeRegistration.domains ?: emptyList())
-        return storeRegistration
+        return repositoryRegistrationStorageService.storeRegistration(registration)
     }
 
 
     @Transactional
     @CachePut("repositoryKeys", key = "#result.id")
     fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false): RepositoryRegistration {
-        val registrationEntity = createRegistration(request.url, force)
+        val registrationEntity = createRegistration(request, force)
 
         val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
         metadataService.generateMetadataFile().use {
@@ -137,7 +127,7 @@ class RepositoryRegistrationService(
         return registrationEntity
     }
 
-    private fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
+    fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
         val apiClient = ApiClient()
         apiClient.setBasePath("${url}/rest")
         apiClient.setUsername(username)
@@ -154,7 +144,6 @@ class RepositoryRegistrationService(
 
         val adminV1Api = getAdminV1Api(entry.url, request.username, request.password)
         adminV1Api.removeApplication(appInfo.appId)
-        corsService.removeOrigin(entry.domains ?: emptyList())
         return entry
     }
 
@@ -196,6 +185,14 @@ class RepositoryRegistrationService(
         }
 
         registration.optionalModules = registration.optionalModules.union(listOf(request.module)).toMutableList()
+        repositoryRegistrationStorageService.storeRegistration(registration)
+    }
+
+    fun removeOptionalModule(repoId: String, module: String) {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
+        registration.optionalModules.removeAll(listOf(module))
+        registration.module.remove(module)
         repositoryRegistrationStorageService.storeRegistration(registration)
     }
 

@@ -76,23 +76,11 @@ class SodixReceiver(
             }
         } catch (exception: Exception) {
             playoutUrlSubJob.status = SubJobStatus.FAILED
-            playoutUrlSubJob.errorMessage = ErrorMessage(
-                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message = exception.message,
-                details = emptyMap(),
-                exception = exception,
-                userMessage = GENERIC_CONVERSION_ERROR
-            )
+            playoutUrlSubJob.errorMessage =  GENERIC_CONVERSION_ERROR
             subJobRepository.save(playoutUrlSubJob)
             if (downloadUrlSubJob != null) {
                 downloadUrlSubJob.status = SubJobStatus.FAILED
-                downloadUrlSubJob.errorMessage = ErrorMessage(
-                    status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    message = exception.message,
-                    details = emptyMap(),
-                    exception = exception,
-                    userMessage = GENERIC_CONVERSION_ERROR
-                )
+                downloadUrlSubJob.errorMessage = GENERIC_CONVERSION_ERROR
                 subJobRepository.save(downloadUrlSubJob)
             }
         }

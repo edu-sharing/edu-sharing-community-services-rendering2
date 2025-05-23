@@ -37,7 +37,7 @@ class VideoRenderModule (
 
     override fun module() = "VIDEO"
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
 
         val originalHeightProperty = node.properties.getOrDefault("ccm:height", listOf(""))[0]

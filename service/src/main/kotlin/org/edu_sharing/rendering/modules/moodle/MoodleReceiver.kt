@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -14,7 +13,6 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -58,14 +56,9 @@ class MoodleReceiver (
             subJob.status = SubJobStatus.FINISHED
             subJob.message = url
         } catch (exception: Exception) {
+            log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
-            subJob.errorMessage = ErrorMessage(
-                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message = exception.message,
-                details = emptyMap(),
-                exception = exception,
-                userMessage = GENERIC_CONVERSION_ERROR
-            )
+            subJob.errorMessage = GENERIC_CONVERSION_ERROR
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)
