@@ -5,10 +5,10 @@ import jakarta.validation.Valid
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_INTERNAL_SERVER_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.dto.*
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
-import org.edu_sharing.rendering.security.CorsService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -22,13 +22,8 @@ import java.security.InvalidKeyException
 @ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true")
 class AdminController(
     private val repositoryRegistrationService: RepositoryRegistrationService,
-    private val corsService: CorsService
+    private val corsSyncService: CorsSyncService
 ) {
-
-    @GetMapping("/security/cors/allowed_origins")
-    fun getAllowedOrigins(): AllowedOriginsResult {
-        return AllowedOriginsResult(corsService.getAllowedOrigins())
-    }
 
     @GetMapping("/repository/register")
     fun registeredRepos(): List<RegistrationInfo> {
@@ -38,7 +33,10 @@ class AdminController(
 
     @PostMapping("/repository/register")
     fun registerWithRepo(@RequestBody @Valid body: RegisterRepositoryRequest): RegistrationInfo {
-        return toRegistrationInfo(repositoryRegistrationService.registerWithRepository(body))
+        val registration = repositoryRegistrationService.registerWithRepository(body)
+        corsSyncService.syncAllowedOriginsWithRepository(registration)
+        corsSyncService.triggerSync()
+        return toRegistrationInfo(registration)
     }
 
     @PatchMapping("/repository/register")
@@ -48,7 +46,9 @@ class AdminController(
 
     @DeleteMapping("/repository/register")
     fun deleteRepository(@RequestBody @Valid body: RemoveRepositoryRequest): RegistrationInfo {
-        return toRegistrationInfo(repositoryRegistrationService.deleteRepository(body))
+        val result = toRegistrationInfo(repositoryRegistrationService.deleteRepository(body))
+        corsSyncService.triggerSync()
+        return result
     }
 
     @PutMapping("/repository/modules/activate")

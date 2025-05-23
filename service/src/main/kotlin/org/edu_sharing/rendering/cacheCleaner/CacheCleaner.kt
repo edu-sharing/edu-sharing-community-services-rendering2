@@ -18,7 +18,7 @@ class CacheCleaner (
 ){
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    @Scheduled(fixedRateString = "\${app.cache.cleaner.schedule}")
+    @Scheduled(fixedDelayString = "\${app.cache.cleaner.schedule}")
     fun cleanCache() {
         log.info("Running cache cleaner...")
         storageService.getStorageInfo().forEach loop@{
