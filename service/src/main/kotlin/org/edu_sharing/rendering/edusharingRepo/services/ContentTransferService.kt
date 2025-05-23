@@ -11,8 +11,6 @@ import java.net.URLEncoder
 import java.security.Signature
 import java.util.*
 
-
-
 @Service
 class ContentTransferService(
     private val repoRegistrationService: RepositoryRegistrationService,
