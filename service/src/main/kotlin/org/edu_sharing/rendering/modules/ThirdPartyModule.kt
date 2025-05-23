@@ -4,8 +4,8 @@ interface ThirdPartyModule {
     fun validateThirdPartyCredentials(credentials: Map<String, String>, repoId: String)
     fun getConfig(repoId: String): Map<String, String>
     fun validateCredentials(credentials: Map<String, String>, requiredCredentialKeys: Set<String>, moduleName: String) {
-        var missingKeys = mutableListOf<String>()
-        var emptyValues = mutableListOf<String>()
+        val missingKeys = mutableListOf<String>()
+        val emptyValues = mutableListOf<String>()
         requiredCredentialKeys.forEach {
             if (!credentials.containsKey(it)) {
                 missingKeys.add(it)
