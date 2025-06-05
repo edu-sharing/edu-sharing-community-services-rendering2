@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface SubJobRepository: MongoRepository<SubJob, ObjectId> {
+interface SubJobRepository: MongoRepository<SubJob, ObjectId>, CustomSubJobRepository {
     @Aggregation(
         "{ \$match: {status: ?2, routingKey: ?3, \$or: [ {priority: { \$gt: ?1 } }, { \$and: [ { priority: ?1 }, { createdDate: { \$lte: ?0 } } ] } ] } }",
         "{ \$count: 'queuePosition' }"
