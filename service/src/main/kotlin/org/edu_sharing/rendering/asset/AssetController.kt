@@ -8,7 +8,6 @@ import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.storage.StaticStorageService
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
@@ -24,9 +23,7 @@ import java.net.URLDecoder
 class AssetController(
     private val assetService: AssetService,
     private val storageService: StaticStorageService,
-    private val nodePermissionSessionContextRepository: NodePermissionSessionContextRepository,
-    @Value("\${app.asset.static.frameAncestors}")
-    private val allowedFrameAncestors: String?
+    private val nodePermissionSessionContextRepository: NodePermissionSessionContextRepository
 ) {
 
     companion object{
@@ -46,11 +43,7 @@ class AssetController(
         if (asset.mimeType == "application/pdf") {
             doEncodeData = !nodePermissionSessionContextRepository.hasPermission(assetLinkParams.nodeId, "DownloadContent")
         }
-        val headers: MutableMap<String, String> = mutableMapOf()
-        if (! allowedFrameAncestors.isNullOrBlank()) {
-            headers.put("Content-Security-Policy", "frame-ancestors $allowedFrameAncestors" )
-        }
-        return prepareResponse(asset = asset, additionalHeaders = headers ,doEncodeData = doEncodeData)
+        return prepareResponse(asset = asset, additionalHeaders = mutableMapOf() ,doEncodeData = doEncodeData)
     }
 
     @GetMapping("$STATIC_ASSET_PATH/**")
@@ -60,11 +53,7 @@ class AssetController(
     ): ResponseEntity<Resource> {
         val (cacheObject, path) = storageService.getCacheObjectFromStaticPath(request.requestURI.substringAfter("$ROOT_REQUEST_PATH$STATIC_ASSET_PATH"))
         val asset = assetService.getStaticAsset(range, cacheObject, path)
-        val headers: MutableMap<String, String> = mutableMapOf()
-        if (! allowedFrameAncestors.isNullOrBlank()) {
-            headers.put("Content-Security-Policy", "frame-ancestors $allowedFrameAncestors" )
-        }
-        return prepareResponse(asset = asset, additionalHeaders = headers)
+        return prepareResponse(asset = asset, additionalHeaders = mutableMapOf())
     }
 
     private fun prepareResponse(
