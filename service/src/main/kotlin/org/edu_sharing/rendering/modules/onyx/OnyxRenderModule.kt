@@ -8,8 +8,10 @@ import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationS
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -19,6 +21,7 @@ class OnyxRenderModule(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
+    private val amqpTemplate: AmqpTemplate,
     @Value("\${app.queue.topicExchange}")
     private val topicExchangeName: String,
     @Value("\${app.queue.onyx.key}")
@@ -26,7 +29,7 @@ class OnyxRenderModule(
 ): RenderModule, ThirdPartyModule {
 
     companion object {
-        private val requiredCredentialKeys = setOf("onyxRestUrl, onyxRunUrl, returnService")
+        private val requiredCredentialKeys = setOf("onyxresturl, onyxrunurl, returnservice")
     }
 
     override fun module() = "ONYX"
@@ -39,14 +42,11 @@ class OnyxRenderModule(
     ): RenderDataResponse {
         val job = mapper.nodeToRenderingJob(node, module())
         jobRepository.save(job)
-
         subJobRepository.save(SubJob(
             routingKey = jobRoutingKey,
             parent = job
         ))
-
-
-
+        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, RenderingJobMessage(id = job.id.toString()))
         return RenderDataResponse(jobId = job.id.toString(), module = module())
     }
 
