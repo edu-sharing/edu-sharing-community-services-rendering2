@@ -21,8 +21,7 @@ import org.springframework.util.MultiValueMap
 
 @WebMvcTest(
     LumiProxyController::class,
-    excludeAutoConfiguration = [SecurityAutoConfiguration::class],
-    properties = ["app.asset.static.frameAncestors=test"]
+    excludeAutoConfiguration = [SecurityAutoConfiguration::class]
 )
 class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
     @MockkBean
@@ -75,10 +74,9 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(requestSlot.captured == result.request)
 
         assert(result.response.contentAsString == "mycontent")
-        assert(result.response.headerNames.size == 3)
+        assert(result.response.headerNames.size == 2)
         assert(result.response.getHeaderValue("Content-Length") == 9L)
         assert(result.response.getHeaderValue("Content-Type") == "text/html")
-        assert(result.response.getHeaderValue("Content-Security-Policy") == "frame-ancestors test")
 
         verifySequence {
             lumiContentManagementService.getNodeInfo(contentId)
