@@ -2,9 +2,7 @@ package org.edu_sharing.rendering.modules.sodix
 
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.edu_sharing.rendering.modules.ModuleRegistry
-import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
@@ -15,7 +13,6 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -27,7 +24,7 @@ class SodixReceiver(
     private val mainJobLogic: MainJobLogic,
     private val moduleRegistry: ModuleRegistry
 ) {
-    private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
+    private val log = LoggerFactory.getLogger(SodixReceiver::class.java)
 
     @RabbitListener(
         bindings = [
@@ -74,7 +71,7 @@ class SodixReceiver(
                 downloadUrlSubJob.message = downloadUrl
                 downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
             }
-        } catch (exception: Exception) {
+        } catch (_: Exception) {
             playoutUrlSubJob.status = SubJobStatus.FAILED
             playoutUrlSubJob.errorMessage =  GENERIC_CONVERSION_ERROR
             subJobRepository.save(playoutUrlSubJob)
@@ -84,7 +81,6 @@ class SodixReceiver(
                 subJobRepository.save(downloadUrlSubJob)
             }
         }
-
         mainJobLogic.processMainJob(message.id)
     }
 }
