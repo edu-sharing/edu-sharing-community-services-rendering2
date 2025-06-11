@@ -1,5 +1,5 @@
 cache:
-  key: $CI_BUILD_REF_NAME
+  key: "test"
   paths:
     - .m2/repository
 
