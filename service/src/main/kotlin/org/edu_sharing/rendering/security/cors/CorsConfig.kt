@@ -58,8 +58,6 @@ class CorsConfig(
             )
         config.addAllowedOrigin(appInfo.public.url.cleanUrl())
         config.addAllowedOrigin(appInfo.internal.url.cleanUrl())
-        config.addAllowedOrigin("http://localhost:11111")
-        config.addAllowedOrigin("http://localhost:4200")
         config.allowCredentials = true
         config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info")
         config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")

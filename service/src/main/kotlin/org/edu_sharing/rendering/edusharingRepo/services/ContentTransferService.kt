@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
@@ -8,13 +9,12 @@ import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
 import java.net.URLEncoder
-import java.security.Signature
 import java.util.*
 
 @Service
 class ContentTransferService(
     private val repoRegistrationService: RepositoryRegistrationService,
-    private val privatePublicKeyService: PrivatePublicKeyService,
+    private val encryptionService: EncryptionService,
     @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader
 ) {
     @Value("\${app.appId}")
@@ -32,11 +32,7 @@ class ContentTransferService(
 
         val timeStamp = System.currentTimeMillis()
         val sigData = cacheObject.nodeId + timeStamp
-        val privateKey = privatePublicKeyService.getPrivateKey()
-        val dsa = Signature.getInstance("SHA1withRSA")
-        dsa.initSign(privateKey)
-        dsa.update(sigData.toByteArray())
-        val signed = dsa.sign()
+        val signed = encryptionService.sign(sigData)
         val returnedData = repoRegistrationService.getWebClientByRepoId(cacheObject.repoId)
             .get()
             .uri {

@@ -27,7 +27,6 @@ class RegistrationRunner(
     private var repositoryRegistrationConfig: RepositoryRegistrationConfig,
     private val repositoryRegistrationRepository: RepositoryRegistrationRepository,
     private val corsSyncService: CorsSyncService,
-    private val encryptionService: EncryptionService,
     private val moduleRegistry: ModuleRegistry,
 ) : ApplicationRunner {
 
@@ -43,13 +42,6 @@ class RegistrationRunner(
                 val correspondingConfig = repositoryRegistrationConfig
                     .getAllRegistrations().firstOrNull { it.first.url == registration.url }
                 if (correspondingConfig == null) {
-                    return@forEach
-                }
-                if (correspondingConfig.first.username != registration.repositoryUser ||
-                    correspondingConfig.first.password != encryptionService.decrypt(registration.repositoryPassword)
-                ) {
-                    repositoryRegistrationRepository.delete(registration)
-                    log.info("Deleted registration for ${registration.url} because credentials have changed. It will be re-registered.")
                     return@forEach
                 }
                 val existingModules = registration.optionalModules
@@ -102,7 +94,7 @@ class RegistrationRunner(
                         log.warn("Settings provided for modules: ${orphanedSettingsKeys.joinToString(",")}. These modules are not in the optional-modules list. Did you forget them?")
                     }
                     log.info("Registration completed for ${registrationRequest.url}.")
-                    corsSyncService.syncAllowedOriginsWithRepository(registration)
+                    corsSyncService.syncAllowedOriginsWithRepository(registration.repoId)
                     log.info("Synced allowed origins for ${registration.repoId}.")
                     registration
                 } catch (e: InvalidKeyException) {

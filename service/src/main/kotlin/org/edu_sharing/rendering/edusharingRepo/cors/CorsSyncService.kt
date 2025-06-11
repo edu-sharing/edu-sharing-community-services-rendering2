@@ -1,5 +1,8 @@
 package org.edu_sharing.rendering.edusharingRepo.cors
 
+import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
+import org.edu_sharing.generated.repository.backend.services.rest.client.api.RenderingV1Api
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.ApplicationSimple
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMasterOrController
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
@@ -20,7 +23,9 @@ class CorsSyncService(
     private val amqpTemplate: AmqpTemplate,
     private val corsConfig: CorsConfig,
     @Value("\${app.queue.controllerBroadcastExchange}")
-    private val broadcastExchange: String
+    private val broadcastExchange: String,
+    @Value("\${app.appId}")
+    private val appId: String,
 ) {
     private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
 
@@ -39,12 +44,20 @@ class CorsSyncService(
         } else {
             log.info("No changes detected in cors settings from repositories. Skipping sync.")
         }
-        //applyKnownOrigins()
         log.info("Syncing allowed origins with all connected repositories finished")
     }
 
     fun triggerSync() {
         amqpTemplate.convertAndSend(broadcastExchange, "", "sync")
+    }
+
+    fun syncAllowedOriginsWithRepository(repoId: String): Boolean {
+        val registration = repositoryRegistrationRepository.findByRepoId(repoId)
+        if (registration.isEmpty) {
+            log.warn("Repository $repoId not found. Skipping sync.")
+            return false
+        }
+        return syncAllowedOriginsWithRepository(registration.get())
     }
 
     fun syncAllowedOriginsWithRepository(repositoryRegistration: RepositoryRegistration): Boolean {
@@ -53,42 +66,28 @@ class CorsSyncService(
         val about = aboutClient.about()
         if (about.lastCacheUpdate > repositoryRegistration.lastAllowedOriginSync) {
             log.info("Cache update detected since last sync with repo ${repositoryRegistration.repoId}. Last sync: ${repositoryRegistration.lastAllowedOriginSync}")
-            val adminClient = restClientProvider.getAdminV1Client(
-                url = repositoryRegistration.url,
-                password = encryptionService.decrypt(repositoryRegistration.repositoryPassword),
-                username = repositoryRegistration.repositoryUser
-            )
-            val repoProperties = adminClient.getApplicationXML("homeApplication.properties.xml")
-            val allowedOriginsFromRepo = repoProperties.getOrDefault("allow_origin", "")
-                .split(",")
-                .map { it.trim() }
-                .toMutableSet()
 
             val allowedOriginPatternsFromRepo = mutableSetOf<String>()
-            val applications = adminClient.applications
+            val allowedOriginsFromRepo = mutableSetOf<String>()
 
-            applications.forEach { application ->
-                val xml = application.xml
-                val props = Properties()
-                props.loadFromXML(xml.byteInputStream())
-                if (application.type == "LMS") {
-                    val domain = props.getProperty("domain")
-                    if (!domain.isNullOrBlank()) {
-                        allowedOriginsFromRepo.add(domain)
-                    }
-                }
-                val patterns = props.getProperty("allow_origin")
-                if (!patterns.isNullOrBlank()) {
-                    allowedOriginPatternsFromRepo.addAll(
-                        patterns.split(",")
-                            .map { it.trim() }
-                    )
-                }
-            }
             val currentCachedOrigins = repositoryRegistration.allowedOrigins
             val currentCachedPatterns = repositoryRegistration.allowedOriginPatterns
 
             repositoryRegistration.lastAllowedOriginSync = about.lastCacheUpdate
+            val applications = getApplicationInfo(repositoryRegistration.url)
+            applications.forEach { application ->
+                if (application.id == repositoryRegistration.repoId) {
+                    allowedOriginsFromRepo.addAll(application.allowedOrigins)
+                    return@forEach
+                }
+                if (application.id == appId) {
+                    return@forEach
+                }
+                if (application.type == "LMS") {
+                    allowedOriginsFromRepo.add(application.domain)
+                    allowedOriginPatternsFromRepo.addAll(application.allowedOrigins)
+                }
+            }
 
             if (currentCachedOrigins != allowedOriginsFromRepo) {
                 log.info("Detected changes in cors origins for repo ${repositoryRegistration.repoId}. Current cached origins: $currentCachedOrigins. Repo origins: $allowedOriginsFromRepo")
@@ -119,5 +118,25 @@ class CorsSyncService(
         corsConfig.updateAllowedOrigins(origins)
         corsConfig.updateAllowedPatterns(originPatterns)
         corsConfig.updateCorsConfiguration()
+    }
+
+    private fun getApplicationInfo (url: String): List<ApplicationSimple> {
+        val apiClient = ApiClient()
+        apiClient.basePath = "${url}/rest"
+        getAuthHeaders().forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
+        val renderingClient = RenderingV1Api(apiClient)
+        return renderingClient.applications1
+    }
+
+    private fun getAuthHeaders(): Map<String, String> {
+        val ts = System.currentTimeMillis()
+        val toSign = "$appId$ts"
+        val sig = encryptionService.sign(toSign)
+        return mapOf(
+            "X-Edu-App-Id" to appId,
+            "X-Edu-App-Signed" to toSign,
+            "X-Edu-App-Sig" to Base64.getEncoder().encodeToString(sig),
+            "X-Edu-App-Ts" to ts.toString()
+        )
     }
 }

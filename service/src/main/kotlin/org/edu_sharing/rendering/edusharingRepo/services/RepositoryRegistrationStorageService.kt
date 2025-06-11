@@ -34,8 +34,6 @@ class RepositoryRegistrationStorageService(
                 publicKey = UUID.randomUUID().toString(),
                 optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
                 module = localConfig?.module?.toMutableMap() ?: mutableMapOf(),
-                repositoryPassword = encryptionService.encrypt(localConfig?.password ?: ""),
-                repositoryUser = localConfig?.username ?: ""
             )
             return Optional.of<RepositoryRegistration>(registration)
         }

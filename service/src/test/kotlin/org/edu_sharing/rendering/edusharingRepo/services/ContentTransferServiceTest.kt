@@ -5,6 +5,7 @@ import io.mockk.junit5.MockKExtension
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -12,15 +13,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.core.io.Resource
 import org.springframework.core.io.ResourceLoader
 import org.springframework.web.reactive.function.client.WebClient
-import java.security.KeyPairGenerator
-import java.security.Signature
+import java.net.URLDecoder
 import java.util.*
 
 @ExtendWith(MockKExtension::class)
 class ContentTransferServiceTest {
-    private val privatePublicKeyService = mockk<PrivatePublicKeyService>()
     private val resourceLoader = mockk<ResourceLoader>()
     private val repositoryRegistrationService = mockk<RepositoryRegistrationService>()
+    private val encryptionService = mockk<EncryptionService>()
     private lateinit var eduSharingWebClient: WebClient
     private lateinit var mockServer: MockWebServer
 
@@ -36,7 +36,7 @@ class ContentTransferServiceTest {
         underTest = ContentTransferService(
             resourceLoader = resourceLoader,
             repoRegistrationService = repositoryRegistrationService,
-            privatePublicKeyService = privatePublicKeyService
+            encryptionService = encryptionService
         )
         underTest.appId = "renderer2"
     }
@@ -80,16 +80,13 @@ class ContentTransferServiceTest {
         val cacheObject = mockk<CacheObject>()
         val serverResponse = "test"
 
-        // Generate keyPair
-        val generator = KeyPairGenerator.getInstance("RSA")
-        generator.initialize(2048)
-        val keyPair = generator.generateKeyPair()
+        val signedSlot = slot<String>()
 
         every { cacheObject.nodeId } returns "node1"
         every { cacheObject.repoId } returns "repo1"
         every { cacheObject.version } returns "1.2"
         every { repositoryRegistrationService.getWebClientByRepoId("repo1") } returns eduSharingWebClient
-        every { privatePublicKeyService.getPrivateKey() } returns keyPair.private
+        every { encryptionService.sign(capture(signedSlot)) } returns "test".toByteArray()
 
         excludeRecords {
             cacheObject.nodeId
@@ -121,25 +118,22 @@ class ContentTransferServiceTest {
 
             // Check signed auth param against key
             val encodedAuthParam = requestUrl.queryParameter("authToken")
-            val signed = Base64.getDecoder().decode(encodedAuthParam)
-            val timeStamp = requestUrl.queryParameter("timeStamp")
-            val nodeId = requestUrl.queryParameter("nodeId")
-            val verify = Signature.getInstance("SHA1withRSA")
-            verify.initVerify(keyPair.public)
-            verify.update("$nodeId$timeStamp".toByteArray())
-            assert(verify.verify(signed))
+            val decoded = String(Base64.getDecoder().decode(URLDecoder.decode(encodedAuthParam, Charsets.UTF_8)))
+            assert(decoded == "test")
 
             // Check remaining query params
+            assert(requestUrl.queryParameter("timeStamp") !== null)
+            assert(requestUrl.queryParameter("nodeId") == "node1")
             assert(requestUrl.queryParameter("repId") == "repo1")
             assert(requestUrl.queryParameter("appId") == "renderer2")
             assert(requestUrl.queryParameter("version") == "1.2")
         }
 
         verifySequence {
-            privatePublicKeyService.getPrivateKey()
+            encryptionService.sign(any())
             repositoryRegistrationService.getWebClientByRepoId("repo1")
         }
-        confirmVerified(privatePublicKeyService, resourceLoader, repositoryRegistrationService)
+        confirmVerified(resourceLoader, repositoryRegistrationService)
     }
 
     @Test
@@ -148,16 +142,11 @@ class ContentTransferServiceTest {
         val cacheObject = mockk<CacheObject>()
         val serverResponse = "test"
 
-        // Generate keyPair
-        val generator = KeyPairGenerator.getInstance("RSA")
-        generator.initialize(2048)
-        val keyPair = generator.generateKeyPair()
-
         every { cacheObject.nodeId } returns "node1"
         every { cacheObject.repoId } returns "repo123"
         every { cacheObject.version } returns null
-        every { privatePublicKeyService.getPrivateKey() } returns keyPair.private
         every { repositoryRegistrationService.getWebClientByRepoId("repo123") } returns eduSharingWebClient
+        every { encryptionService.sign(any()) } returns "test".toByteArray()
 
         excludeRecords {
             cacheObject.nodeId
@@ -191,9 +180,8 @@ class ContentTransferServiceTest {
         }
 
         verifySequence {
-            privatePublicKeyService.getPrivateKey()
             repositoryRegistrationService.getWebClientByRepoId("repo123")
         }
-        confirmVerified(privatePublicKeyService, resourceLoader, repositoryRegistrationService)
+        confirmVerified( resourceLoader, repositoryRegistrationService)
     }
 }

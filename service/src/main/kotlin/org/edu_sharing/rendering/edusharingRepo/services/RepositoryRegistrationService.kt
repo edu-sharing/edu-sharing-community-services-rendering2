@@ -99,9 +99,7 @@ class RepositoryRegistrationService(
             url = request.url,
             publicKey = metadata.publicKey,
             domains = metadata.domain,
-            optionalModules = mutableListOf(),
-            repositoryUser = request.username,
-            repositoryPassword = encryptionService.encrypt(request.password),
+            optionalModules = mutableListOf()
         )
 
         if (force) {
@@ -129,7 +127,7 @@ class RepositoryRegistrationService(
 
     fun getAdminV1Api(url: String, username: String, password: String): AdminV1Api {
         val apiClient = ApiClient()
-        apiClient.setBasePath("${url}/rest")
+        apiClient.basePath = "${url}/rest"
         apiClient.setUsername(username)
         apiClient.setPassword(password)
         val adminV1Api = AdminV1Api(apiClient)
