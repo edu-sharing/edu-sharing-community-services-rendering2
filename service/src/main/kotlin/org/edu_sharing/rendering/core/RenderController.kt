@@ -1,5 +1,7 @@
 package org.edu_sharing.rendering.core
 
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
@@ -26,7 +28,7 @@ class RenderController (
     private val repositoryPublicKeyService: RepositoryPublicKeyService,
     private val nodeSessionContextRepository: NodeSessionContextRepository,
     @Value("\${app.security.enabled}")
-    private val securityEnabled: Boolean
+    private val securityEnabled: Boolean,
 ){
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -38,7 +40,10 @@ class RenderController (
         if (securityEnabled) {
             verifySignedNode(decodedNode, decodedSignature, body.repoId)
         }
-        val node = Node.fromJson(decodedNode.toString(Charsets.UTF_8))
+        val objectMapper = ObjectMapper().apply {
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        }
+        val node = objectMapper.readValue(decodedNode.toString(Charsets.UTF_8), Node::class.java)
         nodeSessionContextRepository.saveNode(node)
 
         return ResponseEntity
