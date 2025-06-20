@@ -10,8 +10,10 @@ import java.util.*
 
 @Document("Tracking")
 @CompoundIndexes(
-    CompoundIndex(name="bucket_repo_id_node_id_hash_idx", def="{'repoId': 1, 'node': 1, 'hash': 1, 'bucket': 1}", unique = true),
-    CompoundIndex(name="bucket_access_idx", def="{'bucket': 1, 'lastAccessed': 1}")
+    CompoundIndex(name="bucket_repo_id_node_id_hash_idx", def="{'repoId': 1, 'nodeId': 1, 'hash': 1, 'bucket': 1}", unique = true),
+    CompoundIndex(name="bucket_access_idx", def="{'bucket': 1, 'lastAccessed': 1}"),
+    CompoundIndex(name="repo_node_idx", def="{'repoId': 1, 'nodeId': 1}"),
+    CompoundIndex(name="repo_node_hash_idx", def="{'repoId': 1, 'nodeId': 1, 'hash': 1}", unique = true)
 )
 data class TrackingEntry(
     @Id

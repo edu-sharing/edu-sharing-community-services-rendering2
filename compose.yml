@@ -11,6 +11,15 @@ services:
       MINIO_ROOT_USER: "rendering2"
       MINIO_ROOT_PASSWORD: "rendering2"
       MINIO_DEFAULT_BUCKETS: lumi-contentbucket,lumi-tempbucket,lumi-libbucket
+
+      MINIO_NOTIFY_AMQP_ENABLE_minio-object-deleted: "on"
+      MINIO_NOTIFY_AMQP_URL_minio-object-deleted: "amqp://rendering:rendering@rabbitmq:5672"
+      MINIO_NOTIFY_AMQP_EXCHANGE_minio-object-deleted: "minio-events"
+      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_minio-object-deleted: "topic"
+      MINIO_NOTIFY_AMQP_ROUTING_KEY_minio-object-deleted: "file.deleted"
+      MINIO_NOTIFY_AMQP_DURABLE_minio-object-deleted: "on" # "off"
+      MINIO_NOTIFY_AMQP_DELIVERY_MODE_minio-object-deleted: "2" # "1"
+
 #    volumes:
 #      - "minio-data-volume:/bitnami/minio/data"
 

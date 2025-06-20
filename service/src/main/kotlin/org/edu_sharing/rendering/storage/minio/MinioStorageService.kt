@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.minio.*
 import io.minio.errors.ErrorResponseException
 import io.minio.messages.DeleteObject
+import io.minio.messages.EventType
+import io.minio.messages.NotificationConfiguration
+import io.minio.messages.QueueConfiguration
 import org.apache.catalina.util.URLEncoder
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
@@ -99,7 +102,7 @@ class MinioStorageService(
             .build()
             .toUriString()
         val objectLink = ObjectLink(link = url)
-        var lastModified: Long = 0
+        var lastModified: Long
         try {
             val stat = getStatObject(cacheObject)
             lastModified = stat.lastModified().toEpochSecond()
@@ -158,8 +161,6 @@ class MinioStorageService(
                     .`object`(storagePath)
                     .build()
             )
-
-            trackingService.deleteTrackedObject(cacheObject, bucket)
         }
     }
 
@@ -259,7 +260,7 @@ class MinioStorageService(
                 .bucket("temp")
                 .`object`(this.getTempPath(cacheObject))
                 .stream(inputStream, cacheObject.size, if (cacheObject.size < 0) defaultChunkSize else -1)
-                .contentType(if (cacheObject.mimeType.isNotBlank()) cacheObject.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .contentType(cacheObject.mimeType.ifBlank { MediaType.APPLICATION_OCTET_STREAM_VALUE })
                 .build()
         )
     }
@@ -420,6 +421,9 @@ class MinioStorageService(
             return
         }
         eduMinioClient.makeBucket(MakeBucketArgs.builder().bucket(name).build())
+        if (name != "temp") {
+            addBucketNotification(name)
+        }
     }
 
     private fun getTempPath(cacheObject: CacheObject): String {
@@ -428,6 +432,20 @@ class MinioStorageService(
                 cacheObject.mimeType
             )
         }"
+    }
+
+    private fun addBucketNotification(bucket: String) {
+        val queueConfig = QueueConfiguration()
+        queueConfig.setQueue("arn:minio:sqs::minio-object-deleted:amqp")
+        queueConfig.setEvents(listOf(EventType.OBJECT_REMOVED_ANY))
+        val notificationConfiguration = NotificationConfiguration()
+        notificationConfiguration.setQueueConfigurationList(listOf(queueConfig))
+        eduMinioClient.setBucketNotification(
+            SetBucketNotificationArgs.builder()
+                .bucket(bucket)
+                .config(notificationConfiguration)
+                .build()
+        )
     }
 
 }

@@ -21,4 +21,12 @@ class BucketPerMediaTypeStrategy() : BaseBucketStrategy() {
         val storagePath = getStoragePath(cacheObject, path)
         return "/${cacheObject.repoId}/${cacheObject.type}/${storagePath.trimStart('/')}"
     }
+
+    override fun getCacheObjectFromStoragePath(
+        bucket: String,
+        storagePath: String
+    ): CacheObject? {
+        val (nodeId, hash) = storagePath.trimStart('/').split("/", limit = 2)
+        return CacheObject.of(repoId = bucket, nodeId = nodeId, hash = hash, type = "")
+    }
 }

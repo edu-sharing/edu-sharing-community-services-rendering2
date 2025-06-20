@@ -11,4 +11,6 @@ interface TrackingEntryRepository: MongoRepository<TrackingEntry, ObjectId> {
     fun findByRepoIdAndNodeIdAndHashAndBucket(repoId: String, nodeId: String, hash: String, bucket: String): Optional<TrackingEntry>
     fun deleteByRepoIdAndNodeIdAndHashAndBucket(repoId: String, nodeId: String, hash: String, bucket: String)
     fun findAllByBucket(bucket: String, pageRequest: Pageable): Page<TrackingEntry>
+    fun findByRepoIdAndNodeIdAndHash(repoId: String, nodeId: String, hash: String): Optional<TrackingEntry>
+    fun findAllByRepoIdAndNodeId(repoId: String, nodeId: String): List<TrackingEntry>
 }

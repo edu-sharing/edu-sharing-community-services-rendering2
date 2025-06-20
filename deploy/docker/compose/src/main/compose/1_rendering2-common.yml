@@ -8,6 +8,13 @@ services:
       MINIO_ROOT_USER: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
       MINIO_ROOT_PASSWORD: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
       MINIO_DEFAULT_BUCKETS: lumi-contentbucket,lumi-tempbucket,lumi-libbucket
+      MINIO_NOTIFY_AMQP_ENABLE_minio-object-deleted: on
+      MINIO_NOTIFY_AMQP_URL_minio-object-deleted: "amqp://${RENDERING2_MESSAGE_QUEUE_USER:-rendering}:${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}@rendering2-message-queue:5672"
+      MINIO_NOTIFY_AMQP_EXCHANGE_minio-object-deleted: minio-events
+      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_minio-object-deleted: topic
+      MINIO_NOTIFY_AMQP_ROUTING_KEY_minio-object-deleted: file.deleted
+      MINIO_NOTIFY_AMQP_DURABLE_minio-object-deleted: on
+      MINIO_NOTIFY_AMQP_DELIVERY_MODE_minio-object-deleted: 2
     volumes:
       - "rendering2-blob-storage-volume-data:/bitnami/minio/data"
     expose:

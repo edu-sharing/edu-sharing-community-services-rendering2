@@ -52,6 +52,12 @@ class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
     }
 
     override fun customize(cookieSerializer: DefaultCookieSerializer?) {
-        cookieSerializer?.setDomainNamePattern("^.*?([^.]+\\.[^.]+)$")
+        cookieSerializer?.apply {
+            //setCookieName("SESSION_RS2")
+            setDomainNamePattern("^.*?([^.]+\\.[^.]+)$")
+            //setSameSite("None")
+            //setUseSecureCookie(true)
+            //setUseHttpOnlyCookie(true)
+        }
     }
 }

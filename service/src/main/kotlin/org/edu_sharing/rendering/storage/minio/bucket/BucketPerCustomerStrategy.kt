@@ -22,4 +22,12 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
         val storagePath = getStoragePath(cacheObject, path)
         return "/${cacheObject.repoId}/${storagePath.trimStart('/')}"
     }
+
+    override fun getCacheObjectFromStoragePath(
+        bucket: String,
+        storagePath: String
+    ): CacheObject? {
+        val (type, nodeId, hash) = storagePath.trimStart('/').split("/", limit = 3)
+        return CacheObject.of(repoId = bucket, type = type, nodeId = nodeId, hash = hash)
+    }
 }

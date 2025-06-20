@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.core.dto.mapper
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
+import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.springframework.stereotype.Component
@@ -70,6 +71,15 @@ class Mapper {
             hash = params.hash,
             quality = if (params.quality != 0) params.quality else null,
             mimeType = params.mimeType
+        )
+    }
+
+    fun trackingEntryToCacheObject(trackingEntry: TrackingEntry): CacheObject {
+        return CacheObject(
+            repoId = trackingEntry.repoId,
+            nodeId = trackingEntry.nodeId,
+            hash = trackingEntry.hash,
+            type = trackingEntry.type
         )
     }
 }
