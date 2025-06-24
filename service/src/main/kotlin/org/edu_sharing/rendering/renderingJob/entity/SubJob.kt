@@ -23,7 +23,7 @@ data class SubJob(
     var createdDate: Date? = null,
     @Indexed
     var status: SubJobStatus = SubJobStatus.QUEUED,
-    val quality: Int = 0,
+    var quality: Int = 0,
     var progress: Int = 0,
     var message: String? = null,
     @DocumentReference(lazy = true)

@@ -39,7 +39,7 @@ class MainJobLogic (
         val areAllFailed = job.subJobs.all { it.status == SubJobStatus.FAILED }
         val jobStatus = if (areAllFailed) {
             RenderingJobStatus.FAILED
-        } else if(areAllFinished) {
+        } else if (areAllFinished) {
             RenderingJobStatus.FINISHED
         } else {
             RenderingJobStatus.PARTIALLY_FAILED

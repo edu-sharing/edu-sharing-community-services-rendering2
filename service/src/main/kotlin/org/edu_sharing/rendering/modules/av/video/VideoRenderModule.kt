@@ -58,7 +58,7 @@ class VideoRenderModule (
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
 
-        // Missing qualities only apply to  conversion objects
+        // Missing qualities only apply to conversion objects
         var missingQualities: Collection<Int> = emptyList()
         if (isConversionType) {
             missingQualities = videoService.getMissingQualities(objectLinks, originalHeight ?: Int.MAX_VALUE)
@@ -83,7 +83,6 @@ class VideoRenderModule (
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
-
 
     override fun createConversionSubJobs(
         renderingJob: RenderingJob,
