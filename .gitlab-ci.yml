@@ -10,7 +10,7 @@ variables:
   DOCKER_TLS_CERTDIR: "$DIND_TLS_CERTDIR"
   DOCKER_USERNAME: "$DOCKER_USERNAME"
   DOCKER_PASSWORD: "$DOCKER_PASSWORD"
-  MAVEN_CLI: "-Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASES -Dmaven.deploy.snapshots=$MAVEN_DEPLOY_SNAPSHOTS --batch-mode --errors --fail-fast --show-version"
+  MAVEN_CLI: "-Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASE -Dhelm.deploy.url=$HELM_REGISTRY -Dhelm.deploy.type=$HELM_TYPE -Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASES -Dmaven.deploy.snapshots=$MAVEN_DEPLOY_SNAPSHOTS -Dversioning.configFile=maven-git-versioning-extension-ci.xml --batch-mode --errors --fail-fast --show-version"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
 default:
