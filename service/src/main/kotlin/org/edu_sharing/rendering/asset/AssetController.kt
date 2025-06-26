@@ -8,7 +8,7 @@ import org.edu_sharing.rendering.asset.dto.ReadableAsset
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.storage.StaticStorageService
-import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.InputStreamResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -61,18 +61,18 @@ class AssetController(
         additionalHeaders: Map<String, String>,
         doEncodeData: Boolean = false
     ): ResponseEntity<Resource> {
+        val isPartial = asset.range.isNotEmpty()
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
             .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-            .header(HttpHeaders.CONTENT_LENGTH, asset.fileSize.toString())
-        if (asset.range != "") {
+            .header(HttpHeaders.CONTENT_LENGTH, if (isPartial) asset.chunkSize.toString() else asset.fileSize.toString())
+        if (isPartial) {
             response.header(HttpHeaders.CONTENT_RANGE, asset.range)
         }
         additionalHeaders.forEach {
             response.header(it.key, it.value)
         }
-        val data = asset.stream.readAllBytes()
-        return response.body(ByteArrayResource(data))
+        return response.body(InputStreamResource(asset.stream))
     }
 }

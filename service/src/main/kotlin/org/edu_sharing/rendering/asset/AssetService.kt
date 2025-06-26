@@ -80,7 +80,8 @@ class AssetService(
         mimeType = fileDetails.mimeType,
         fileSize = fileDetails.size,
         range = "bytes ${longRange.first}-${longRange.last}/${fileDetails.size}",
-        stream = inputStream
+        stream = inputStream,
+        chunkSize = longRange.last - longRange.first + 1,
     )
 
     @Throws(NumberFormatException::class, IndexOutOfBoundsException::class)
