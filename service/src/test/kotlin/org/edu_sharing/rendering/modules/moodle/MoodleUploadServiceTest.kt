@@ -8,6 +8,7 @@ class MoodleUploadServiceTest {
     private val dummyMessage = MoodleJobMessage(
         id = "dummyId",
         nodeId = "dummyNodeId",
+        hash = "dummyHash",
         title = "dummyTitle",
         authorityName = "dummyAuthorityName",
         userEmail = "dummyUserEmail",

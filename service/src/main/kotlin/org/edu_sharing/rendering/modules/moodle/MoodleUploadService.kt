@@ -60,7 +60,7 @@ class MoodleUploadService() {
         webserviceToken: String
     ): Int {
         val postParams = LinkedMultiValueMap<String, String>()
-        postParams.add("nodeid", moodleJobMessage.nodeId)
+        postParams.add("nodeid", "${moodleJobMessage.nodeId}_${moodleJobMessage.hash}")
         postParams.add("category", config["categoryid"] ?: "1")
         postParams.add("title", moodleJobMessage.title)
         val method = module.getRemoteServiceMethod()

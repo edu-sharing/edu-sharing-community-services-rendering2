@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.moodle
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -42,6 +41,7 @@ class MoodleJobService(
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
+            hash = node.content.hash,
             title = node.title,
             authorityName = userData.authorityName,
             userEmail = userData.userEMail,
