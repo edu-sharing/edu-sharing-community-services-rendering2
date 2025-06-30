@@ -34,20 +34,18 @@ export default async function createH5PEditor(
 
     // Init S3 once
     const s3 = dbImplementations.initS3({
-        s3ForcePathStyle: true,
-        signatureVersion: 'v4'
+        forcePathStyle: true,
     })
     log.info("Initiated S3 client.")
 
     // Init library storage. We use mongo library storage.
-    const libraryCollection = mongoDb.collection(process.env.LIBRARY_MONGO_COLLECTION)
     const libraryStorageOptions = {
         s3Bucket: process.env.LIBRARY_AWS_S3_BUCKET,
         maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
     }
     const mongoS3LibraryStorage = new dbImplementations.MongoS3LibraryStorage(
         s3,
-        libraryCollection,
+        mongoDb.collection(process.env.LIBRARY_MONGO_COLLECTION),
         libraryStorageOptions
     );
     await mongoS3LibraryStorage.createIndexes();
@@ -65,14 +63,13 @@ export default async function createH5PEditor(
 
     log.info("Initiated caches.")
 
-    const contentCollection = mongoDb.collection(process.env.CONTENT_MONGO_COLLECTION)
     const contentStorageOptions = {
         s3Bucket: process.env.CONTENT_AWS_S3_BUCKET,
         maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
     }
     const contentStorage = new dbImplementations.MongoS3ContentStorage(
         s3,
-        contentCollection,
+        mongoDb.collection(process.env.CONTENT_MONGO_COLLECTION),
         contentStorageOptions
     )
 
