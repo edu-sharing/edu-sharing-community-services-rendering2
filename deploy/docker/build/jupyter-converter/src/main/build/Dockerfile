@@ -24,8 +24,9 @@ ARG git_commit_id=dev
 ARG project_artifactId=edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter
 ARG project_groupId=org.edu_sharing
 ARG project_version=dev
+ARG virtualEnvPath=/app/.venv
 
-ENV VIRTUAL_ENV=/app/.venv \
+ENV VIRTUAL_ENV=${virtualEnvPath} \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR app
@@ -36,7 +37,7 @@ RUN set -eux \
     && chown -RL worker:worker /tmp
 
 USER worker
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY --from=builder ${virtualEnvPath} ${virtualEnvPath}
 
 COPY artifacts/main.py ./main.py
 
