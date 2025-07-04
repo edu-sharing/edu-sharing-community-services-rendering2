@@ -34,10 +34,10 @@ class AssetService(
 
         val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
-            cacheObject,
-            longRange.last,
-            longRange.first,
-            false
+            cacheObject = cacheObject,
+            length = longRange.last - longRange.first + 1,
+            offset = longRange.first,
+            isTemp = false
         )
         return createReadableAsset(fileDetails, objectChunkStream, longRange)
     }
@@ -63,10 +63,10 @@ class AssetService(
 
         val longRange = parseRange(range, fileDetails.size)
         val objectChunkStream = storageImplementation.getObjectChunkStream(
-            cacheObject,
-            path,
-            longRange.first,
-            longRange.last
+            cacheObject = cacheObject,
+            path = path,
+            offset = longRange.first,
+            length = longRange.last - longRange.first + 1,
         )
 
         return createReadableAsset(fileDetails, objectChunkStream, longRange)
@@ -86,25 +86,31 @@ class AssetService(
 
     @Throws(NumberFormatException::class, IndexOutOfBoundsException::class)
     private fun parseRange(range: String, fileSize: Long): LongRange {
+        if (!(range.startsWith("bytes=") || range.startsWith("bytes "))) {
+            throw IllegalArgumentException("Range header must start with 'bytes=' or 'bytes '")
+        }
         val numericalRange = range.split(if (range.contains("=")) "=" else " ")[1]
         val (start, end) = numericalRange.split("-", limit = 2)
+        if (start.isEmpty()) {
+            throw IllegalArgumentException("Range start cannot be empty")
+        }
         val startLong = start.toLong()
-        val remainingBytes = fileSize - startLong
-        val desiredSize = if (end != "" && startLong >= end.toLong()) {
-            defaultChunkSize
-        } else if (end == "") {
-            defaultChunkSize
+        val endLong = if (end.isNotEmpty()) {
+            val parsedEnd = end.toLong()
+            if (parsedEnd < startLong) {
+                val chunkSize = minOf(defaultChunkSize, fileSize - startLong)
+                startLong + chunkSize - 1
+            } else {
+                minOf(parsedEnd, fileSize - 1)
+            }
+
         } else {
-            end.toLong() - startLong
+            val chunkSize = minOf(defaultChunkSize, fileSize - startLong)
+            startLong + chunkSize - 1
         }
-        val chunkSize = if (desiredSize >= remainingBytes) {
-            remainingBytes - 1
-        } else {
-            desiredSize
-        }
-        return LongRange(
-            startLong,
-            start.toLong() + chunkSize
-        )
+
+        val actualEnd = minOf(endLong, fileSize - 1)
+
+        return LongRange(startLong, actualEnd)
     }
 }

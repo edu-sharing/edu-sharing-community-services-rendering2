@@ -1,12 +1,7 @@
 package org.edu_sharing.rendering.asset
 
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.excludeRecords
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verifySequence
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -79,7 +74,7 @@ class AssetServiceTest {
         every {
             storageService.getObjectChunkStream(
                 cacheObject,
-                400000,
+                300001,
                 100000,
                 false
             )
@@ -99,7 +94,7 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                400000,
+                300001,
                 100000,
                 false
             )
@@ -123,7 +118,7 @@ class AssetServiceTest {
         every {
             storageService.getObjectChunkStream(
                 cacheObject,
-                400000,
+                300001,
                 100000,
                 false
             )
@@ -143,7 +138,7 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                400000,
+                300001,
                 100000,
                 false
             )
@@ -167,7 +162,7 @@ class AssetServiceTest {
         every {
             storageService.getObjectChunkStream(
                 cacheObject,
-                2100000,
+                2000000,
                 100000,
                 false
             )
@@ -180,14 +175,14 @@ class AssetServiceTest {
         assert(result.stream == stream)
         assert(result.mimeType == "video/mp4")
         assert(result.fileSize == 4000000L)
-        assert(result.range == "bytes 100000-2100000/4000000")
+        assert(result.range == "bytes 100000-2099999/4000000")
 
         verifySequence {
             mapper.assetLinkParamsToCacheObject(assetParams)
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                2100000,
+                2000000,
                 100000,
                 false
             )
@@ -211,7 +206,7 @@ class AssetServiceTest {
         every {
             storageService.getObjectChunkStream(
                 cacheObject,
-                399999,
+                300000,
                 100000,
                 false
             )
@@ -231,7 +226,7 @@ class AssetServiceTest {
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                399999,
+                300000,
                 100000,
                 false
             )
@@ -255,7 +250,7 @@ class AssetServiceTest {
         every {
             storageService.getObjectChunkStream(
                 cacheObject,
-                2100000,
+                2000000,
                 100000,
                 false
             )
@@ -268,14 +263,14 @@ class AssetServiceTest {
         assert(result.stream == stream)
         assert(result.mimeType == "video/mp4")
         assert(result.fileSize == 4000000L)
-        assert(result.range == "bytes 100000-2100000/4000000")
+        assert(result.range == "bytes 100000-2099999/4000000")
 
         verifySequence {
             mapper.assetLinkParamsToCacheObject(assetParams)
             storageService.getFileProperties(cacheObject)
             storageService.getObjectChunkStream(
                 cacheObject,
-                2100000,
+                2000000,
                 100000,
                 false
             )
@@ -331,7 +326,7 @@ class AssetServiceTest {
 
 
         every { storageService.getFileProperties(any(), "myuri") } returns fileDetails
-        every { storageService.getObjectChunkStream(any(), "myuri", 100000, 400000) } returns stream
+        every { storageService.getObjectChunkStream(any(), "myuri", 100000, 300001) } returns stream
 
         // Act
         val result = underTest.getStaticAsset(
@@ -348,7 +343,7 @@ class AssetServiceTest {
 
         verifySequence {
             storageService.getFileProperties(any(), "myuri")
-            storageService.getObjectChunkStream(any(), "myuri", 100000, 400000)
+            storageService.getObjectChunkStream(any(), "myuri", 100000, 300001)
         }
     }
 }
