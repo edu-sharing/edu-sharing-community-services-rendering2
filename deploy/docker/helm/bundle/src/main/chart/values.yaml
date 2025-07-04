@@ -100,6 +100,12 @@ edusharing_services_rendering2_mongodb:
     ## @param edusharing_services_rendering2_mongodb.config.username Set mongodb username
     username: &mongoConfigUsername rendering2
 
+    extra:
+      ## @param edusharing_services_rendering2_mongodb.config.extra.databases Set extra mongodb databases
+      databases: &mongoLumiConfigDatabase lumi
+      ## @param edusharing_services_rendering2_mongodb.config.extra.usernames Set extra mongodb usernames
+      usernames: &mongoLumiConfigUsername lumi
+
   init:
 
     permission:
@@ -128,63 +134,6 @@ edusharing_services_rendering2_mongodb:
         ## @param edusharing_services_rendering2_mongodb.sidecar.metrics.image.name Set metrics sidecar image name
         name: ${docker.edu_sharing.community.common.mongodb.exporter.name}
         ## @param edusharing_services_rendering2_mongodb.sidecar.metrics.image.tag Set metrics sidecar image tag
-        tag: ${docker.edu_sharing.community.common.mongodb.exporter.tag}
-
-########################################################################################################################
-
-edusharing_services_rendering2_mongodb_lumi:
-
-  ## @param edusharing_services_rendering2_mongodb_lumi.enabled Enable mongodb
-  enabled: true
-
-  ## @param edusharing_services_rendering2_mongodb_lumi.nameOverride Override mongodb name
-  nameOverride: &mongoLumiNameOverride edusharing-services-rendering2-mongodb-lumi
-
-  image:
-    ## @param edusharing_services_rendering2_mongodb_lumi.image.name Set mongodb image name
-    name: ${docker.edu_sharing.community.common.mongodb.name}
-    ## @param edusharing_services_rendering2_mongodb_lumi.image.tag Set mongodb image tag
-    tag: ${docker.edu_sharing.community.common.mongodb.tag}
-
-  service:
-    port:
-      ## @param edusharing_services_rendering2_mongodb_lumi.service.port.api Set mongodb service api port
-      api: &mongoLumiServicePortApi 27017
-
-  config:
-    ## @param edusharing_services_rendering2_mongodb_lumi.config.database Set mongodb database
-    database: &mongoLumiConfigDatabase lumi
-    ## @param edusharing_services_rendering2_mongodb_lumi.config.username Set mongodb username
-    username: &mongoLumiConfigUsername lumi
-
-  init:
-
-    permission:
-
-      image:
-        ## @param edusharing_services_rendering2_mongodb_lumi.init.permission.image.name Set mongodb init permission image name
-        name: ${docker.edu_sharing.community.common.minideb.name}
-        ## @param edusharing_services_rendering2_mongodb_lumi.init.permission.image.tag Set mongodb init permission image tag
-        tag: ${docker.edu_sharing.community.common.minideb.tag}
-
-  job:
-
-    dump:
-
-      image:
-        ## @param edusharing_services_rendering2_mongodb_lumi.job.dump.image.name Set mongodb dump job image name
-        name: ${docker.edu_sharing.community.common.mongodb.name}
-        ## @param edusharing_services_rendering2_mongodb_lumi.job.dump.image.tag Set mongodb dump job image tag
-        tag: ${docker.edu_sharing.community.common.mongodb.tag}
-
-  sidecar:
-
-    metrics:
-
-      image:
-        ## @param edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.name Set metrics sidecar image name
-        name: ${docker.edu_sharing.community.common.mongodb.exporter.name}
-        ## @param edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.tag Set metrics sidecar image tag
         tag: ${docker.edu_sharing.community.common.mongodb.exporter.tag}
 
 ########################################################################################################################
@@ -320,9 +269,9 @@ edusharing_services_rendering2_lumi:
 
     mongodb:
       ## @param edusharing_services_rendering2_lumi.config.mongodb.host Set mongodb host
-      host: *mongoLumiNameOverride
+      host: *mongoNameOverride
       ## @param edusharing_services_rendering2_lumi.config.mongodb.port Set mongodb port
-      port: *mongoLumiServicePortApi
+      port: *mongoServicePortApi
       ## @param edusharing_services_rendering2_lumi.config.mongodb.username Set mongodb username
       username: *mongoLumiConfigUsername
       ## @param edusharing_services_rendering2_lumi.config.mongodb.database Set mongodb database

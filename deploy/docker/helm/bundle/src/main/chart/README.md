@@ -27,25 +27,14 @@
 | `edusharing_services_rendering2_mongodb.service.port.api`                    | Set mongodb service api port                       | `27017`                                                        |
 | `edusharing_services_rendering2_mongodb.config.database`                     | Set mongodb database                               | `rendering2`                                                   |
 | `edusharing_services_rendering2_mongodb.config.username`                     | Set mongodb username                               | `rendering2`                                                   |
+| `edusharing_services_rendering2_mongodb.config.extra.databases`              | Set extra mongodb databases                        | `lumi`                                                         |
+| `edusharing_services_rendering2_mongodb.config.extra.usernames`              | Set extra mongodb usernames                        | `lumi`                                                         |
 | `edusharing_services_rendering2_mongodb.init.permission.image.name`          | Set mongodb init permission image name             | `${docker.edu_sharing.community.common.minideb.name}`          |
 | `edusharing_services_rendering2_mongodb.init.permission.image.tag`           | Set mongodb init permission image tag              | `${docker.edu_sharing.community.common.minideb.tag}`           |
 | `edusharing_services_rendering2_mongodb.job.dump.image.name`                 | Set mongodb dump job image name                    | `${docker.edu_sharing.community.common.mongodb.name}`          |
 | `edusharing_services_rendering2_mongodb.job.dump.image.tag`                  | Set mongodb dump job image tag                     | `${docker.edu_sharing.community.common.mongodb.tag}`           |
 | `edusharing_services_rendering2_mongodb.sidecar.metrics.image.name`          | Set metrics sidecar image name                     | `${docker.edu_sharing.community.common.mongodb.exporter.name}` |
 | `edusharing_services_rendering2_mongodb.sidecar.metrics.image.tag`           | Set metrics sidecar image tag                      | `${docker.edu_sharing.community.common.mongodb.exporter.tag}`  |
-| `edusharing_services_rendering2_mongodb_lumi.enabled`                        | Enable mongodb                                     | `true`                                                         |
-| `edusharing_services_rendering2_mongodb_lumi.nameOverride`                   | Override mongodb name                              | `edusharing-services-rendering2-mongodb-lumi`                  |
-| `edusharing_services_rendering2_mongodb_lumi.image.name`                     | Set mongodb image name                             | `${docker.edu_sharing.community.common.mongodb.name}`          |
-| `edusharing_services_rendering2_mongodb_lumi.image.tag`                      | Set mongodb image tag                              | `${docker.edu_sharing.community.common.mongodb.tag}`           |
-| `edusharing_services_rendering2_mongodb_lumi.service.port.api`               | Set mongodb service api port                       | `27017`                                                        |
-| `edusharing_services_rendering2_mongodb_lumi.config.database`                | Set mongodb database                               | `lumi`                                                         |
-| `edusharing_services_rendering2_mongodb_lumi.config.username`                | Set mongodb username                               | `lumi`                                                         |
-| `edusharing_services_rendering2_mongodb_lumi.init.permission.image.name`     | Set mongodb init permission image name             | `${docker.edu_sharing.community.common.minideb.name}`          |
-| `edusharing_services_rendering2_mongodb_lumi.init.permission.image.tag`      | Set mongodb init permission image tag              | `${docker.edu_sharing.community.common.minideb.tag}`           |
-| `edusharing_services_rendering2_mongodb_lumi.job.dump.image.name`            | Set mongodb dump job image name                    | `${docker.edu_sharing.community.common.mongodb.name}`          |
-| `edusharing_services_rendering2_mongodb_lumi.job.dump.image.tag`             | Set mongodb dump job image tag                     | `${docker.edu_sharing.community.common.mongodb.tag}`           |
-| `edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.name`     | Set metrics sidecar image name                     | `${docker.edu_sharing.community.common.mongodb.exporter.name}` |
-| `edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.tag`      | Set metrics sidecar image tag                      | `${docker.edu_sharing.community.common.mongodb.exporter.tag}`  |
 | `edusharing_services_rendering2_rabbitmq.enabled`                            | Enable rabbitmq                                    | `true`                                                         |
 | `edusharing_services_rendering2_rabbitmq.image.name`                         | Set rabbitmq image name                            | `${docker.edu_sharing.community.common.rabbitmq.name}`         |
 | `edusharing_services_rendering2_rabbitmq.image.tag`                          | Set rabbitmq image tag                             | `${docker.edu_sharing.community.common.rabbitmq.tag}`          |
@@ -74,7 +63,7 @@
 | `edusharing_services_rendering2_jupyter_converter.nameOverride`              | Override rendering2 jupyter converter name         | `edusharing-services-rendering2-jupyter-converter`             |
 | `edusharing_services_rendering2_jupyter_converter.service.port.api`          | Set rendering2 jupyter converter service api port  | `8000`                                                         |
 | `edusharing_services_rendering2_lumi.enabled`                                | Enable rendering2 lumi                             | `true`                                                         |
-| `edusharing_services_rendering2_lumi.config.mongodb.host`                    | Set mongodb host                                   | `edusharing-services-rendering2-mongodb-lumi`                  |
+| `edusharing_services_rendering2_lumi.config.mongodb.host`                    | Set mongodb host                                   | `edusharing-services-rendering2-mongodb`                       |
 | `edusharing_services_rendering2_lumi.config.mongodb.port`                    | Set mongodb port                                   | `27017`                                                        |
 | `edusharing_services_rendering2_lumi.config.mongodb.username`                | Set mongodb username                               | `lumi`                                                         |
 | `edusharing_services_rendering2_lumi.config.mongodb.database`                | Set mongodb database                               | `lumi`                                                         |
