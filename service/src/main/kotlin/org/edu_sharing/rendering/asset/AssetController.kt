@@ -67,6 +67,7 @@ class AssetController(
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)
             .header(HttpHeaders.ACCEPT_RANGES, "bytes")
             .header(HttpHeaders.CONTENT_LENGTH, if (isPartial) asset.chunkSize.toString() else asset.fileSize.toString())
+            .header("Content-Security-Policy", "frame-ancestors *")
         if (isPartial) {
             response.header(HttpHeaders.CONTENT_RANGE, asset.range)
         }
