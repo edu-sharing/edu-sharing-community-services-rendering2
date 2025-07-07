@@ -27,12 +27,6 @@ dependencies:
     alias: edusharing_services_rendering2_mongodb
     condition: edusharing_services_rendering2_mongodb.enabled
 
-  - name: edu_sharing-community-common-mongodb
-    repository: ${helm.deploy.url}
-    version: 7.x.x
-    alias: edusharing_services_rendering2_mongodb_lumi
-    condition: edusharing_services_rendering2_mongodb_lumi.enabled
-
   - name: edu_sharing-community-common-rabbitmq
     repository: ${helm.deploy.url}
     version: 1.x.x

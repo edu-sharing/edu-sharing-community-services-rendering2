@@ -5,6 +5,16 @@
 | Name                                                                         | Description                                        | Value                                                          |
 | ---------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
 | `nameOverride`                                                               | Override name                                      | `edusharing-services-rendering2`                               |
+| `edusharing_services_rendering2_rabbitmq.enabled`                            | Enable rabbitmq                                    | `true`                                                         |
+| `edusharing_services_rendering2_rabbitmq.image.name`                         | Set rabbitmq image name                            | `${docker.edu_sharing.community.common.rabbitmq.name}`         |
+| `edusharing_services_rendering2_rabbitmq.image.tag`                          | Set rabbitmq image tag                             | `${docker.edu_sharing.community.common.rabbitmq.tag}`          |
+| `edusharing_services_rendering2_rabbitmq.nameOverride`                       | Override rabbitmq name                             | `edusharing-services-rendering2-rabbitmq`                      |
+| `edusharing_services_rendering2_rabbitmq.service.port.amqp`                  | Set rabbitmq service amqp port                     | `5672`                                                         |
+| `edusharing_services_rendering2_rabbitmq.config.username`                    | Set mongodb username                               | `rendering2`                                                   |
+| `edusharing_services_rendering2_rabbitmq.init.permission.image.name`         | Set rabbitmq init permission image name            | `${docker.edu_sharing.community.common.minideb.name}`          |
+| `edusharing_services_rendering2_rabbitmq.init.permission.image.tag`          | Set rabbitmq init permission image tag             | `${docker.edu_sharing.community.common.minideb.tag}`           |
+| `edusharing_services_rendering2_rabbitmq.init.plugins.image.name`            | Set rabbitmq init plugins image name               | `${docker.edu_sharing.community.common.rabbitmq.name}`         |
+| `edusharing_services_rendering2_rabbitmq.init.plugins.image.tag`             | Set rabbitmq init plugins image tag                | `${docker.edu_sharing.community.common.rabbitmq.tag}`          |
 | `edusharing_services_rendering2_minio.enabled`                               | Enable minio                                       | `true`                                                         |
 | `edusharing_services_rendering2_minio.nameOverride`                          | Override minio name                                | `edusharing-services-rendering2-minio`                         |
 | `edusharing_services_rendering2_minio.image.name`                            | Set minio image name                               | `${docker.edu_sharing.community.common.minio.name}`            |
@@ -13,6 +23,16 @@
 | `edusharing_services_rendering2_minio.config.buckets[0].name`                | Set minio bucket                                   | `lumi-contentbucket`                                           |
 | `edusharing_services_rendering2_minio.config.buckets[1].name`                | Set minio bucket                                   | `lumi-libbucket`                                               |
 | `edusharing_services_rendering2_minio.config.buckets[2].name`                | Set minio bucket                                   | `lumi-tempbucket`                                              |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].id`              | Set minio amqp notify target id                    | `minio-object-deleted`                                         |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].enable`          | Set minio amqp notify enable                       | `on`                                                           |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].username`        | Set minio amqp notify username                     | `rendering2`                                                   |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].host`            | Set minio amqp notify host                         | `edusharing-services-rendering2-rabbitmq`                      |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].port`            | Set minio amqp notify port                         | `5672`                                                         |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].exchange`        | Set minio amqp notify exchange                     | `minio-events`                                                 |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].exchangeType`    | Set minio amqp notify exchange type                | `topic`                                                        |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].routingKey`      | Set minio amqp notify routing key                  | `file.deleted`                                                 |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].durable`         | Set minio amqp notify durable                      | `on`                                                           |
+| `edusharing_services_rendering2_minio.config.notify.amqp[0].deliveryMode`    | Set minio amqp notify delivery mode                | `2`                                                            |
 | `edusharing_services_rendering2_minio.config.username`                       | Set minio username                                 | `rendering2`                                                   |
 | `edusharing_services_rendering2_minio.init.permission.image.name`            | Set minio init permission image name               | `${docker.edu_sharing.community.common.minideb.name}`          |
 | `edusharing_services_rendering2_minio.init.permission.image.tag`             | Set minio init permission image tag                | `${docker.edu_sharing.community.common.minideb.tag}`           |
@@ -27,35 +47,14 @@
 | `edusharing_services_rendering2_mongodb.service.port.api`                    | Set mongodb service api port                       | `27017`                                                        |
 | `edusharing_services_rendering2_mongodb.config.database`                     | Set mongodb database                               | `rendering2`                                                   |
 | `edusharing_services_rendering2_mongodb.config.username`                     | Set mongodb username                               | `rendering2`                                                   |
+| `edusharing_services_rendering2_mongodb.config.extra.databases`              | Set extra mongodb databases                        | `lumi`                                                         |
+| `edusharing_services_rendering2_mongodb.config.extra.usernames`              | Set extra mongodb usernames                        | `lumi`                                                         |
 | `edusharing_services_rendering2_mongodb.init.permission.image.name`          | Set mongodb init permission image name             | `${docker.edu_sharing.community.common.minideb.name}`          |
 | `edusharing_services_rendering2_mongodb.init.permission.image.tag`           | Set mongodb init permission image tag              | `${docker.edu_sharing.community.common.minideb.tag}`           |
 | `edusharing_services_rendering2_mongodb.job.dump.image.name`                 | Set mongodb dump job image name                    | `${docker.edu_sharing.community.common.mongodb.name}`          |
 | `edusharing_services_rendering2_mongodb.job.dump.image.tag`                  | Set mongodb dump job image tag                     | `${docker.edu_sharing.community.common.mongodb.tag}`           |
 | `edusharing_services_rendering2_mongodb.sidecar.metrics.image.name`          | Set metrics sidecar image name                     | `${docker.edu_sharing.community.common.mongodb.exporter.name}` |
 | `edusharing_services_rendering2_mongodb.sidecar.metrics.image.tag`           | Set metrics sidecar image tag                      | `${docker.edu_sharing.community.common.mongodb.exporter.tag}`  |
-| `edusharing_services_rendering2_mongodb_lumi.enabled`                        | Enable mongodb                                     | `true`                                                         |
-| `edusharing_services_rendering2_mongodb_lumi.nameOverride`                   | Override mongodb name                              | `edusharing-services-rendering2-mongodb-lumi`                  |
-| `edusharing_services_rendering2_mongodb_lumi.image.name`                     | Set mongodb image name                             | `${docker.edu_sharing.community.common.mongodb.name}`          |
-| `edusharing_services_rendering2_mongodb_lumi.image.tag`                      | Set mongodb image tag                              | `${docker.edu_sharing.community.common.mongodb.tag}`           |
-| `edusharing_services_rendering2_mongodb_lumi.service.port.api`               | Set mongodb service api port                       | `27017`                                                        |
-| `edusharing_services_rendering2_mongodb_lumi.config.database`                | Set mongodb database                               | `lumi`                                                         |
-| `edusharing_services_rendering2_mongodb_lumi.config.username`                | Set mongodb username                               | `lumi`                                                         |
-| `edusharing_services_rendering2_mongodb_lumi.init.permission.image.name`     | Set mongodb init permission image name             | `${docker.edu_sharing.community.common.minideb.name}`          |
-| `edusharing_services_rendering2_mongodb_lumi.init.permission.image.tag`      | Set mongodb init permission image tag              | `${docker.edu_sharing.community.common.minideb.tag}`           |
-| `edusharing_services_rendering2_mongodb_lumi.job.dump.image.name`            | Set mongodb dump job image name                    | `${docker.edu_sharing.community.common.mongodb.name}`          |
-| `edusharing_services_rendering2_mongodb_lumi.job.dump.image.tag`             | Set mongodb dump job image tag                     | `${docker.edu_sharing.community.common.mongodb.tag}`           |
-| `edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.name`     | Set metrics sidecar image name                     | `${docker.edu_sharing.community.common.mongodb.exporter.name}` |
-| `edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.tag`      | Set metrics sidecar image tag                      | `${docker.edu_sharing.community.common.mongodb.exporter.tag}`  |
-| `edusharing_services_rendering2_rabbitmq.enabled`                            | Enable rabbitmq                                    | `true`                                                         |
-| `edusharing_services_rendering2_rabbitmq.image.name`                         | Set rabbitmq image name                            | `${docker.edu_sharing.community.common.rabbitmq.name}`         |
-| `edusharing_services_rendering2_rabbitmq.image.tag`                          | Set rabbitmq image tag                             | `${docker.edu_sharing.community.common.rabbitmq.tag}`          |
-| `edusharing_services_rendering2_rabbitmq.nameOverride`                       | Override rabbitmq name                             | `edusharing-services-rendering2-rabbitmq`                      |
-| `edusharing_services_rendering2_rabbitmq.service.port.amqp`                  | Set rabbitmq service amqp port                     | `5672`                                                         |
-| `edusharing_services_rendering2_rabbitmq.config.username`                    | Set mongodb username                               | `rendering2`                                                   |
-| `edusharing_services_rendering2_rabbitmq.init.permission.image.name`         | Set rabbitmq init permission image name            | `${docker.edu_sharing.community.common.minideb.name}`          |
-| `edusharing_services_rendering2_rabbitmq.init.permission.image.tag`          | Set rabbitmq init permission image tag             | `${docker.edu_sharing.community.common.minideb.tag}`           |
-| `edusharing_services_rendering2_rabbitmq.init.plugins.image.name`            | Set rabbitmq init plugins image name               | `${docker.edu_sharing.community.common.rabbitmq.name}`         |
-| `edusharing_services_rendering2_rabbitmq.init.plugins.image.tag`             | Set rabbitmq init plugins image tag                | `${docker.edu_sharing.community.common.rabbitmq.tag}`          |
 | `edusharing_services_rendering2_rediscluster.enabled`                        | Enable rediscluster                                | `true`                                                         |
 | `edusharing_services_rendering2_rediscluster.image.name`                     | Set rediscluster image name                        | `${docker.edu_sharing.community.common.redis-cluster.name}`    |
 | `edusharing_services_rendering2_rediscluster.image.tag`                      | Set rediscluster image tag                         | `${docker.edu_sharing.community.common.redis-cluster.tag}`     |
@@ -74,7 +73,7 @@
 | `edusharing_services_rendering2_jupyter_converter.nameOverride`              | Override rendering2 jupyter converter name         | `edusharing-services-rendering2-jupyter-converter`             |
 | `edusharing_services_rendering2_jupyter_converter.service.port.api`          | Set rendering2 jupyter converter service api port  | `8000`                                                         |
 | `edusharing_services_rendering2_lumi.enabled`                                | Enable rendering2 lumi                             | `true`                                                         |
-| `edusharing_services_rendering2_lumi.config.mongodb.host`                    | Set mongodb host                                   | `edusharing-services-rendering2-mongodb-lumi`                  |
+| `edusharing_services_rendering2_lumi.config.mongodb.host`                    | Set mongodb host                                   | `edusharing-services-rendering2-mongodb`                       |
 | `edusharing_services_rendering2_lumi.config.mongodb.port`                    | Set mongodb port                                   | `27017`                                                        |
 | `edusharing_services_rendering2_lumi.config.mongodb.username`                | Set mongodb username                               | `lumi`                                                         |
 | `edusharing_services_rendering2_lumi.config.mongodb.database`                | Set mongodb database                               | `lumi`                                                         |

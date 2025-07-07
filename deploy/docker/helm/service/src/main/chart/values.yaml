@@ -188,7 +188,7 @@ config:
   converter:
     audio:
       ## @param config.converter.audio.mimetypes Set mimetypes for audio converter
-      mimetypes: audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis
+      mimetypes: audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma
       ## @param config.converter.audio.bitrate Set bitrate for audio converter
       bitrate: 160
     document:
@@ -200,7 +200,7 @@ config:
       ## @param config.converter.image.format Set format for immage converter
       format: jpeg
       ## @param config.converter.image.mimetypes Set mimetypes for immage converter
-      mimetypes: image/webp,image/jpeg,image/jpg,image/png,image/bmp
+      mimetypes: image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp
       ## @param config.converter.image.sizes Set sizes for immage converter
       sizes: 400,800
     jupyter:
@@ -212,7 +212,7 @@ config:
       ## @param config.converter.video.format Set format for video converter
       format: mp4
       ## @param config.converter.video.mimetypes Set mimetypes for video converter
-      mimetypes: video/mp4,video/mpeg
+      mimetypes: video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv
       ## @param config.converter.video.resolutions Set resolutions for video converter
       resolutions: 480,720,1080
 

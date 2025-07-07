@@ -10,6 +10,49 @@ nameOverride: edusharing-services-rendering2
 # DEPENDENCY
 ########################################################################################################################
 
+edusharing_services_rendering2_rabbitmq:
+
+  ## @param edusharing_services_rendering2_rabbitmq.enabled Enable rabbitmq
+  enabled: true
+
+  image:
+    ## @param edusharing_services_rendering2_rabbitmq.image.name Set rabbitmq image name
+    name: ${docker.edu_sharing.community.common.rabbitmq.name}
+    ## @param edusharing_services_rendering2_rabbitmq.image.tag Set rabbitmq image tag
+    tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
+
+  ## @param edusharing_services_rendering2_rabbitmq.nameOverride Override rabbitmq name
+  nameOverride: &rabbitmqNameOverride edusharing-services-rendering2-rabbitmq
+
+  service:
+    port:
+      ## @param edusharing_services_rendering2_rabbitmq.service.port.amqp Set rabbitmq service amqp port
+      amqp: &rabbitmqServicePortAmqp 5672
+
+  config:
+    ## @param edusharing_services_rendering2_rabbitmq.config.username Set mongodb username
+    username: &rabbitmqConfigUsername rendering2
+
+  init:
+
+    permission:
+
+      image:
+        ## @param edusharing_services_rendering2_rabbitmq.init.permission.image.name Set rabbitmq init permission image name
+        name: ${docker.edu_sharing.community.common.minideb.name}
+        ## @param edusharing_services_rendering2_rabbitmq.init.permission.image.tag Set rabbitmq init permission image tag
+        tag: ${docker.edu_sharing.community.common.minideb.tag}
+
+    plugins:
+
+      image:
+        ## @param edusharing_services_rendering2_rabbitmq.init.plugins.image.name Set rabbitmq init plugins image name
+        name: ${docker.edu_sharing.community.common.rabbitmq.name}
+        ## @param edusharing_services_rendering2_rabbitmq.init.plugins.image.tag Set rabbitmq init plugins image tag
+        tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
+
+########################################################################################################################
+
 edusharing_services_rendering2_minio:
 
   ## @param edusharing_services_rendering2_minio.enabled Enable minio
@@ -39,6 +82,30 @@ edusharing_services_rendering2_minio:
       - name: &minioConfigBucketLib lumi-libbucket
       ## @param edusharing_services_rendering2_minio.config.buckets[2].name Set minio bucket
       - name: &minioConfigBucketTemp lumi-tempbucket
+
+    notify:
+      
+      amqp:
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].id Set minio amqp notify target id
+        - id: minio-object-deleted
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].enable Set minio amqp notify enable
+          enable: "on"
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].username Set minio amqp notify username
+          username: *rabbitmqConfigUsername
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].host Set minio amqp notify host
+          host: *rabbitmqNameOverride
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].port Set minio amqp notify port
+          port: *rabbitmqServicePortAmqp
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].exchange Set minio amqp notify exchange
+          exchange: "minio-events"
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].exchangeType Set minio amqp notify exchange type
+          exchangeType: "topic"
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].routingKey Set minio amqp notify routing key
+          routingKey: "file.deleted"
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].durable Set minio amqp notify durable
+          durable: "on"
+          ## @param edusharing_services_rendering2_minio.config.notify.amqp[0].deliveryMode Set minio amqp notify delivery mode
+          deliveryMode: "2"
 
     ## @param edusharing_services_rendering2_minio.config.username Set minio username
     username: &minioConfigUsername rendering2
@@ -100,6 +167,12 @@ edusharing_services_rendering2_mongodb:
     ## @param edusharing_services_rendering2_mongodb.config.username Set mongodb username
     username: &mongoConfigUsername rendering2
 
+    extra:
+      ## @param edusharing_services_rendering2_mongodb.config.extra.databases Set extra mongodb databases
+      databases: &mongoLumiConfigDatabase lumi
+      ## @param edusharing_services_rendering2_mongodb.config.extra.usernames Set extra mongodb usernames
+      usernames: &mongoLumiConfigUsername lumi
+
   init:
 
     permission:
@@ -129,106 +202,6 @@ edusharing_services_rendering2_mongodb:
         name: ${docker.edu_sharing.community.common.mongodb.exporter.name}
         ## @param edusharing_services_rendering2_mongodb.sidecar.metrics.image.tag Set metrics sidecar image tag
         tag: ${docker.edu_sharing.community.common.mongodb.exporter.tag}
-
-########################################################################################################################
-
-edusharing_services_rendering2_mongodb_lumi:
-
-  ## @param edusharing_services_rendering2_mongodb_lumi.enabled Enable mongodb
-  enabled: true
-
-  ## @param edusharing_services_rendering2_mongodb_lumi.nameOverride Override mongodb name
-  nameOverride: &mongoLumiNameOverride edusharing-services-rendering2-mongodb-lumi
-
-  image:
-    ## @param edusharing_services_rendering2_mongodb_lumi.image.name Set mongodb image name
-    name: ${docker.edu_sharing.community.common.mongodb.name}
-    ## @param edusharing_services_rendering2_mongodb_lumi.image.tag Set mongodb image tag
-    tag: ${docker.edu_sharing.community.common.mongodb.tag}
-
-  service:
-    port:
-      ## @param edusharing_services_rendering2_mongodb_lumi.service.port.api Set mongodb service api port
-      api: &mongoLumiServicePortApi 27017
-
-  config:
-    ## @param edusharing_services_rendering2_mongodb_lumi.config.database Set mongodb database
-    database: &mongoLumiConfigDatabase lumi
-    ## @param edusharing_services_rendering2_mongodb_lumi.config.username Set mongodb username
-    username: &mongoLumiConfigUsername lumi
-
-  init:
-
-    permission:
-
-      image:
-        ## @param edusharing_services_rendering2_mongodb_lumi.init.permission.image.name Set mongodb init permission image name
-        name: ${docker.edu_sharing.community.common.minideb.name}
-        ## @param edusharing_services_rendering2_mongodb_lumi.init.permission.image.tag Set mongodb init permission image tag
-        tag: ${docker.edu_sharing.community.common.minideb.tag}
-
-  job:
-
-    dump:
-
-      image:
-        ## @param edusharing_services_rendering2_mongodb_lumi.job.dump.image.name Set mongodb dump job image name
-        name: ${docker.edu_sharing.community.common.mongodb.name}
-        ## @param edusharing_services_rendering2_mongodb_lumi.job.dump.image.tag Set mongodb dump job image tag
-        tag: ${docker.edu_sharing.community.common.mongodb.tag}
-
-  sidecar:
-
-    metrics:
-
-      image:
-        ## @param edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.name Set metrics sidecar image name
-        name: ${docker.edu_sharing.community.common.mongodb.exporter.name}
-        ## @param edusharing_services_rendering2_mongodb_lumi.sidecar.metrics.image.tag Set metrics sidecar image tag
-        tag: ${docker.edu_sharing.community.common.mongodb.exporter.tag}
-
-########################################################################################################################
-
-edusharing_services_rendering2_rabbitmq:
-
-  ## @param edusharing_services_rendering2_rabbitmq.enabled Enable rabbitmq
-  enabled: true
-
-  image:
-    ## @param edusharing_services_rendering2_rabbitmq.image.name Set rabbitmq image name
-    name: ${docker.edu_sharing.community.common.rabbitmq.name}
-    ## @param edusharing_services_rendering2_rabbitmq.image.tag Set rabbitmq image tag
-    tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
-
-  ## @param edusharing_services_rendering2_rabbitmq.nameOverride Override rabbitmq name
-  nameOverride: &rabbitmqNameOverride edusharing-services-rendering2-rabbitmq
-
-  service:
-    port:
-      ## @param edusharing_services_rendering2_rabbitmq.service.port.amqp Set rabbitmq service amqp port
-      amqp: &rabbitmqServicePortAmqp 5672
-
-  config:
-    ## @param edusharing_services_rendering2_rabbitmq.config.username Set mongodb username
-    username: &rabbitmqConfigUsername rendering2
-
-  init:
-
-    permission:
-
-      image:
-        ## @param edusharing_services_rendering2_rabbitmq.init.permission.image.name Set rabbitmq init permission image name
-        name: ${docker.edu_sharing.community.common.minideb.name}
-        ## @param edusharing_services_rendering2_rabbitmq.init.permission.image.tag Set rabbitmq init permission image tag
-        tag: ${docker.edu_sharing.community.common.minideb.tag}
-
-    plugins:
-
-      image:
-        ## @param edusharing_services_rendering2_rabbitmq.init.plugins.image.name Set rabbitmq init plugins image name
-        name: ${docker.edu_sharing.community.common.rabbitmq.name}
-        ## @param edusharing_services_rendering2_rabbitmq.init.plugins.image.tag Set rabbitmq init plugins image tag
-        tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
 
 ########################################################################################################################
 
@@ -320,9 +293,9 @@ edusharing_services_rendering2_lumi:
 
     mongodb:
       ## @param edusharing_services_rendering2_lumi.config.mongodb.host Set mongodb host
-      host: *mongoLumiNameOverride
+      host: *mongoNameOverride
       ## @param edusharing_services_rendering2_lumi.config.mongodb.port Set mongodb port
-      port: *mongoLumiServicePortApi
+      port: *mongoServicePortApi
       ## @param edusharing_services_rendering2_lumi.config.mongodb.username Set mongodb username
       username: *mongoLumiConfigUsername
       ## @param edusharing_services_rendering2_lumi.config.mongodb.database Set mongodb database
