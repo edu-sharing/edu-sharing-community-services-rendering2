@@ -25,7 +25,7 @@
 
 
     <!-- release-2 -->
-    <bom.repository.version>${project.version}</bom.repository.version>
+    <bom.repository.version>10.0.0-RC1</bom.repository.version>
 
   </properties>
 
