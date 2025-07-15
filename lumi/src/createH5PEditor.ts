@@ -33,8 +33,10 @@ export default async function createH5PEditor(
     let lock = new H5P.SimpleLockProvider();
 
     // Init S3 once
+    // Placeholder region for AWS SDK compatibility - does not do anything as MINIO does not use regions
     const s3 = dbImplementations.initS3({
         forcePathStyle: true,
+        region: 'us-east-1',
     })
     log.info("Initiated S3 client.")
 
