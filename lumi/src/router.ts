@@ -8,6 +8,33 @@ import {H5pError, Logger} from "@lumieducation/h5p-server";
 
 const log = new Logger("Router")
 
+/**
+ * Creates and configures an Express router for managing H5P content with EduSharing integration.
+ *
+ * This router provides endpoints for EduSharing functionality including retrieving and managing
+ * H5P content (by nodeId or contentId), uploading packages, rendering H5P content, deleting content,
+ * and checking service health.
+ *
+ * @param {H5P.H5PEditor} h5pEditor - H5P editor instance for managing content creation and updates.
+ * @param {H5P.H5PPlayer} h5pPlayer - H5P player instance for rendering content.
+ * @param {string | "auto"} [languageOverride="auto"] - Language override setting for the H5P player,
+ *                                                      defaults to 'auto', which will use the language
+ *                                                      in the request or fall back to English.
+ * @param {Collection} eduCollection - MongoDB collection instance for managing EduSharing mapping of
+ *                                      content and node IDs.
+ *
+ * @returns {express.Router} An Express router configured with endpoints for interacting with EduSharing
+ *                           data and H5P functionality.
+ *
+ * Available Endpoints:
+ * - GET `/edusharing/nodeid/:nodeId`: Fetches the contentId associated with a given nodeId.
+ * - GET `/edusharing/contentid/:contentId`: Retrieves the nodeId associated with a given contentId.
+ * - POST `/edusharing`: Uploads an H5P package for a given nodeId and links it to the contentId.
+ * - GET `/:contentId`: Renders an H5P player page for the given contentId.
+ * - DELETE `/edusharing/:nodeHash`: Deletes H5P content and its EduSharing mapping using a node's hash.
+ * - GET `/edusharing/buckets`: Retrieves AWS S3 bucket configuration details.
+ * - GET `/edusharing/ping`: Health check endpoint for ensuring the service is running.
+ */
 const router = (
     h5pEditor: H5P.H5PEditor,
     h5pPlayer: H5P.H5PPlayer,

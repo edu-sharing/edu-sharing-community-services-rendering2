@@ -7,12 +7,20 @@ import {LaissezFairePermissionSystem, Logger} from "@lumieducation/h5p-server";
 const log = new Logger("CreateH5PEditor")
 
 /**
- * Create a H5PEditor object.
+ * Creates and initializes an H5P Editor instance using the provided configurations
+ * and dependencies, such as database connections and caching mechanisms.
  *
- * @param config the configuration object
- * @param mongoDb
- * @param translationCallback a function that is called to retrieve translations of keys in a certain language; the keys use the i18next format (e.g. namespace:key).
- * @returns a H5PEditor object
+ * @param {H5P.IH5PConfig} config - The H5P configuration object containing system-wide
+ * settings and other mandatory configurations for the editor.
+ *
+ * @param {Db} mongoDb - A MongoDB database instance used for content and library storage,
+ * required for the editor's functioning.
+ *
+ * @param {H5P.ITranslationFunction} [translationCallback] - An optional function for
+ * handling translations in the editor, enabling localization of the editor's interface.
+ *
+ * @return {Promise<H5P.H5PEditor>} A promise that resolves with the initialized H5P editor
+ * instance, which can be used for creating or editing H5P content.
  */
 export default async function createH5PEditor(
     config: H5P.IH5PConfig,
@@ -33,8 +41,10 @@ export default async function createH5PEditor(
     let lock = new H5P.SimpleLockProvider();
 
     // Init S3 once
+    // Placeholder region for AWS SDK compatibility - does not do anything as MINIO does not use regions
     const s3 = dbImplementations.initS3({
         forcePathStyle: true,
+        region: 'us-east-1',
     })
     log.info("Initiated S3 client.")
 

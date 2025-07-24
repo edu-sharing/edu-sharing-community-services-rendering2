@@ -1,5 +1,8 @@
 import {IPlayerModel} from "@lumieducation/h5p-server";
 
+/**
+ * Custom H5P player for Edu-Sharing purposes
+ */
 export default (model: IPlayerModel): string => `<!doctype html>
 <html class="h5p-iframe">
 <head>

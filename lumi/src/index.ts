@@ -17,6 +17,17 @@ import eduSharingPlayer from "./eduSharingPlayer";
 
 const log = new Logger("Index")
 
+/**
+ * Initializes and starts the Lumi Server with all necessary configurations
+ * and middleware. This includes loading environment variables, initializing
+ * translation, loading the H5P configuration, setting up MongoDB, creating
+ * the H5P Editor and Player, configuring metrics collection, and defining
+ * routes and request handlers. The method also includes a graceful shutdown
+ * handler to ensure proper cleanup during termination signals.
+ *
+ * @return {Promise<void>} A promise that resolves when the server has
+ *                        successfully started.
+ */
 const start = async () => {
     log.info("Lumi Server started")
     dotenv.config();
