@@ -8,6 +8,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.springframework.beans.factory.annotation.Value
@@ -25,6 +26,7 @@ import java.util.*
 @RequestMapping("/public/renderdata")
 class RenderController (
     private val service: RenderDataService,
+    private val trackingService: EduTrackingService,
     private val repositoryPublicKeyService: RepositoryPublicKeyService,
     private val nodeSessionContextRepository: NodeSessionContextRepository,
     @Value("\${app.security.enabled}")
@@ -45,6 +47,7 @@ class RenderController (
         }
         val node = objectMapper.readValue(decodedNode.toString(Charsets.UTF_8), Node::class.java)
         nodeSessionContextRepository.saveNode(node)
+        trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
 
         return ResponseEntity
             .ok()
