@@ -5,6 +5,12 @@ import org.jodconverter.local.LocalConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
+/**
+ * Configuration class for setting up the document converter.
+ *
+ * This class provides the necessary configuration to enable
+ * document conversion using the specified OfficeManager.
+ */
 @Configuration
 class ConverterConfig (
     private val officeManager: OfficeManager

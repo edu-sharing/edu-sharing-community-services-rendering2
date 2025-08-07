@@ -4,7 +4,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClie
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.RenderingV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.ApplicationSimple
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMasterOrController
-import org.edu_sharing.rendering.edusharingRepo.EncryptionService
+import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.repository.RepositoryRegistrationRepository
@@ -12,16 +12,15 @@ import org.edu_sharing.rendering.security.cors.CorsConfig
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 @ConditionalOnMasterOrController
 class CorsSyncService(
     private val repositoryRegistrationRepository: RepositoryRegistrationRepository,
     private val restClientProvider: RestClientProvider,
-    private val encryptionService: EncryptionService,
     private val amqpTemplate: AmqpTemplate,
     private val corsConfig: CorsConfig,
+    private val authHeaderProvider: AuthHeaderProvider,
     @Value("\${app.queue.controllerBroadcastExchange}")
     private val broadcastExchange: String,
     @Value("\${app.appId}")
@@ -123,20 +122,8 @@ class CorsSyncService(
     private fun getApplicationInfo (url: String): List<ApplicationSimple> {
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
-        getAuthHeaders().forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
+        authHeaderProvider.getAuthHeaders().forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
         val renderingClient = RenderingV1Api(apiClient)
         return renderingClient.applications1
-    }
-
-    private fun getAuthHeaders(): Map<String, String> {
-        val ts = System.currentTimeMillis()
-        val toSign = "$appId$ts"
-        val sig = encryptionService.sign(toSign)
-        return mapOf(
-            "X-Edu-App-Id" to appId,
-            "X-Edu-App-Signed" to toSign,
-            "X-Edu-App-Sig" to Base64.getEncoder().encodeToString(sig),
-            "X-Edu-App-Ts" to ts.toString()
-        )
     }
 }
