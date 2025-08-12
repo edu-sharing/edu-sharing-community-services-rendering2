@@ -60,7 +60,7 @@
     </docker.edu_sharing.community.common.minio.name>
 
     <docker.edu_sharing.community.common.minio.tag>
-      2025.2.28
+      2025.7.23
     </docker.edu_sharing.community.common.minio.tag>
 
     <docker.edu_sharing.community.common.rabbitmq.name>
