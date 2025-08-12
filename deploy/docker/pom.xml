@@ -68,7 +68,7 @@
     </docker.edu_sharing.community.common.rabbitmq.name>
 
     <docker.edu_sharing.community.common.rabbitmq.tag>
-      4.0.7
+      4.1.3
     </docker.edu_sharing.community.common.rabbitmq.tag>
 
     <docker.edu_sharing.community.common.mongodb.name>
