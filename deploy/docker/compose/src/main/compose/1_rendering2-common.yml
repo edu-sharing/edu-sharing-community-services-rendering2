@@ -90,7 +90,7 @@ services:
       app.session.h5p.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_H5P_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.converter.image.format: "${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
       app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp}"
-      app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-400,800}"
+      app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-800,1280,1920}"
       app.converter.video.format: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FORMAT:-mp4}"
       app.converter.video.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_VIDEO_MIME_TYPES:-video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv}"
       app.converter.video.resolutions: "${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"
@@ -167,7 +167,7 @@ services:
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: lumi-libbucket
       EDUSHARING_MONGO_COLLECTION: lumiedusharing
-      BASE_URL: /public/h5p
+      BASE_URL: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}/public/h5p"
       CACHE: in-memory
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info

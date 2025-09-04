@@ -71,6 +71,8 @@ class SecurityConfig(
                 it.disable()
             }.cors {
                 it.configurationSource(corsConfigurationSource)
+            }.headers { headers ->
+                headers.frameOptions { it.disable() }
             }.authorizeHttpRequests {
                 it.requestMatchers(
                     "/public/modules"
