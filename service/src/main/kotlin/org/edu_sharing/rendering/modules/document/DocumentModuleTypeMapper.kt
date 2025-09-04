@@ -32,6 +32,7 @@ class DocumentModuleTypeMapper(
             ModuleTypeDefinition(null, "application", PPTX) to documentRenderModule,
             ModuleTypeDefinition(null, "application", ODT) to documentRenderModule,
             ModuleTypeDefinition(null, "application", ODP) to documentRenderModule,
+            ModuleTypeDefinition(null, "text", "plain") to documentRenderModule,
             ModuleTypeDefinition(null, "application", ODS) to (spreadsheetRenderModule ?: documentRenderModule),
             ModuleTypeDefinition(null, "application", XLS) to (spreadsheetRenderModule ?: documentRenderModule),
             ModuleTypeDefinition(null, "application", XLSX) to (spreadsheetRenderModule ?: documentRenderModule),
