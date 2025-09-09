@@ -22,6 +22,8 @@ class DocumentModuleTypeMapper(
         const val ODT = "vnd.oasis.opendocument.text"
         const val ODP = "vnd.oasis.opendocument.presentation"
         const val ODS = "vnd.oasis.opendocument.spreadsheet"
+        const val RTF = "rtf"
+        const val OTT = "vnd.oasis.opendocument.text-template"
     }
 
     override fun moduleTypeAssociations(): List<Pair<ModuleTypeDefinition, RenderModule>> {
@@ -33,6 +35,8 @@ class DocumentModuleTypeMapper(
             ModuleTypeDefinition(null, "application", ODT) to documentRenderModule,
             ModuleTypeDefinition(null, "application", ODP) to documentRenderModule,
             ModuleTypeDefinition(null, "text", "plain") to documentRenderModule,
+            ModuleTypeDefinition(null, "application", OTT) to documentRenderModule,
+            ModuleTypeDefinition(null, "application", RTF) to documentRenderModule,
             ModuleTypeDefinition(null, "application", ODS) to (spreadsheetRenderModule ?: documentRenderModule),
             ModuleTypeDefinition(null, "application", XLS) to (spreadsheetRenderModule ?: documentRenderModule),
             ModuleTypeDefinition(null, "application", XLSX) to (spreadsheetRenderModule ?: documentRenderModule),
