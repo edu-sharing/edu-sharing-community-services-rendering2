@@ -19,15 +19,23 @@ import org.springframework.stereotype.Component
 @Component
 class CustomHttpSessionIdResolver: HttpSessionIdResolver {
 
+    private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
+
     private val cookieHttpSessionIdResolver = CookieHttpSessionIdResolver()
     private val headerHttpSessionIdResolver = HeaderHttpSessionIdResolver.authenticationInfo()
 
     override fun resolveSessionIds(request: HttpServletRequest?): List<String?>? {
         val cookieSessionValues = cookieHttpSessionIdResolver.resolveSessionIds(request)
         if (cookieSessionValues.isNotEmpty()) {
+            log.debug("Found session id in cookie")
             return cookieSessionValues
         }
-        return headerHttpSessionIdResolver.resolveSessionIds(request)
+        log.debug("No session id found in cookie")
+        val headerSessionValues = headerHttpSessionIdResolver.resolveSessionIds(request)
+        if (headerSessionValues.isNotEmpty()) {
+            log.debug("No session id found in header")
+        }
+        return headerSessionValues
     }
 
     override fun setSessionId(

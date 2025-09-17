@@ -36,7 +36,7 @@ class DocumentRenderModule(
     override fun module() = "DOCUMENT"
     fun getTargetMimetype() = MediaType.APPLICATION_PDF_VALUE
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
         val objectLinks = documentService.getObjectLinks(cacheObject, this)
 
