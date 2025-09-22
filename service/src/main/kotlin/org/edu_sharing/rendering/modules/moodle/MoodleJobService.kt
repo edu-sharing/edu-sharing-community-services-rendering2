@@ -44,9 +44,9 @@ class MoodleJobService(
             hash = node.content.hash,
             title = node.title,
             authorityName = userData.authorityName,
-            userEmail = userData.userEMail,
-            userGivenName = userData.firstName,
-            userSurname = userData.surName
+            userEmail = userData.userEMail ?: "",
+            userGivenName = userData.firstName ?: "",
+            userSurname = userData.surName ?: ""
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
