@@ -198,9 +198,9 @@ config:
       ## @param config.converter.image.format Set format for immage converter
       format: jpeg
       ## @param config.converter.image.mimetypes Set mimetypes for immage converter
-      mimetypes: image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp
+      mimetypes: image/vnd.wap.wbmp,image/x-png,image/jpeg,image/tiff,image/bmp,image/x-webp,image/webp
       ## @param config.converter.image.sizes Set sizes for immage converter
-      sizes: 400,800
+      sizes: 800,1280,1920
     jupyter:
       ## @param config.converter.jupyter.host Set jupyter-converter host
       host: edusharing-services-rendering2-jupyter-converter
