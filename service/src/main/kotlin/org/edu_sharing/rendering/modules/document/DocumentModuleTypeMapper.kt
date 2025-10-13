@@ -40,6 +40,7 @@ class DocumentModuleTypeMapper(
             ModuleTypeDefinition(null, "application", ODS) to (spreadsheetRenderModule ?: documentRenderModule),
             ModuleTypeDefinition(null, "application", XLS) to (spreadsheetRenderModule ?: documentRenderModule),
             ModuleTypeDefinition(null, "application", XLSX) to (spreadsheetRenderModule ?: documentRenderModule),
+            ModuleTypeDefinition(null, "text", "csv") to (spreadsheetRenderModule ?: documentRenderModule)
         )
     }
 }
