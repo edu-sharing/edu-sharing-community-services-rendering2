@@ -209,8 +209,12 @@ config:
     video:
       ## @param config.converter.video.format Set format for video converter
       format: mp4
+      ## @param config.converter.video.ffmpegThreads Set ffmpeg threads for video converter
+      ffmpegThreads: 0
+      ## @param config.converter.video.ffmpegPreset Set ffmpeg preset for video converter
+      ffmpegPreset: veryfast
       ## @param config.converter.video.mimetypes Set mimetypes for video converter
-      mimetypes: video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv
+      mimetypes: video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv,video/theora
       ## @param config.converter.video.resolutions Set resolutions for video converter
       resolutions: 480,720,1080
 

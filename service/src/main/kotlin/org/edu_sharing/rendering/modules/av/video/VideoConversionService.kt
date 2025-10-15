@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.modules.av.AvConversionService
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.beans.factory.ObjectFactory
@@ -15,10 +14,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
-import ws.schild.jave.encode.AudioAttributes
-import ws.schild.jave.encode.EncodingAttributes
-import ws.schild.jave.encode.VideoAttributes
+import ws.schild.jave.encode.*
 import ws.schild.jave.info.VideoSize
+import java.util.stream.Stream
 
 @ConditionalOnAvConverter
 @Service
@@ -29,10 +27,13 @@ class VideoConversionService(
     private val configuredResolutions: VideoConverterConfig,
     private val storageImplementation: StorageService,
     private val subJobRepository: SubJobRepository,
+    @param:Value("\${app.converter.video.format}")
+    private val videoFormat: String,
+    @param:Value("\${app.converter.video.ffmpegThreads}")
+    private val threads: Int,
+    @param:Value("\${app.converter.video.ffmpegPreset}")
+    private val preset: String
 ) : AvConversionService {
-
-    @Value("\${app.converter.video.format}")
-    lateinit var videoFormat: String
 
     companion object {
         const val AUDIO_BITRATE = 160000
@@ -42,7 +43,6 @@ class VideoConversionService(
     }
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
-
         val fileHelper = avFileHelperFactory.`object`
         fileHelper.use {
             fileHelper.initOutputTempFile(videoFormat)
@@ -60,7 +60,16 @@ class VideoConversionService(
             val listener = listenerFactory.`object`
             listener.subJob = subJob
             val encodingAttributes = initEncodingAttributes(targetWidth, targetHeight)
-            encoder.encode(multiMediaObject, fileHelper.outputFile, encodingAttributes, listener)
+            val threadArgument = object : EncodingArgument {
+                override fun getArguments(var1: EncodingAttributes): Stream<String> {
+                    return Stream.of("-threads", threads.toString())
+                }
+
+                override fun getArgType(): ArgType {
+                    return ArgType.GLOBAL
+                }
+            }
+            encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(threadArgument))
             outputCacheObject.size = fileHelper.outputFile.length()
             fileHelper.uploadToCache(outputCacheObject, mapOf(
                 "height" to targetHeight.toString(),
@@ -99,9 +108,11 @@ class VideoConversionService(
         video.setCodec(VIDEO_CODEC)
         video.setSize(VideoSize(targetWidth, targetHeight))
         video.setCrf(VIDEO_CRF)
+        video.setPreset(preset)
         val attrs = EncodingAttributes()
         attrs.setAudioAttributes(audio)
         attrs.setVideoAttributes(video)
+
         return attrs
     }
 }
