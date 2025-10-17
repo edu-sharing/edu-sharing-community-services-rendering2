@@ -38,10 +38,11 @@ class VideoRenderModuleTest {
             videoService = videoService,
             amqpTemplate = amqpTemplate,
             subJobRepository = subJobRepository,
-            configuredResolutions = config
+            configuredResolutions = config,
+            avRoutingKey = "av_routing_key",
+            topicExchangeName = "topic_exchange_name"
         )
-        underTest.avRoutingKey = "av_routing_key"
-        underTest.topicExchangeName = "topic_exchange_name"
+
     }
 
     @Test
