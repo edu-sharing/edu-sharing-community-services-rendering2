@@ -56,8 +56,8 @@ class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
         cookieSerializer?.apply {
             setCookieName("SESSION_RS2")
             setDomainNamePattern("^.*?([^.]+\\.[^.]+)$")
-            setSameSite("None")
-            setUseSecureCookie(true)
+            //setSameSite("None")
+            //setUseSecureCookie(true)
         }
     }
 }
