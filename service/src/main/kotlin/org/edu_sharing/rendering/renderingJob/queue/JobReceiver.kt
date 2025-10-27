@@ -2,12 +2,12 @@ package org.edu_sharing.rendering.renderingJob.queue
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.ErrorStrings.ERROR_PROCESSING_JOB
+import org.edu_sharing.rendering.core.annotation.ConditionalOnJobManager
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ConversionModule
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
-import org.edu_sharing.rendering.renderingJob.ConditionalOnJobManager
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.storage.StorageService

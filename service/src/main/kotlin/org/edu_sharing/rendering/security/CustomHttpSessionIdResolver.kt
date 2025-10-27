@@ -17,7 +17,7 @@ import java.time.Duration
 /**
  * Class CustomHttpSessionIdResolver
  *
- * This class replaces the standard cookie resolver in order to enable a two-fold strategy for session resolving.
+ * This class replaces the standard cookie resolver to enable a two-fold strategy for session resolving.
  * The session can be read via cookie or header (X-Auth-Token).
  *
  * By default, the strategy favors the cookie over the header. If a client does not accept and/or send the cookie,
@@ -57,15 +57,18 @@ class CustomHttpSessionIdResolver(
     }
 
     override fun resolveSessionIds(request: HttpServletRequest?): List<String?>? {
+        if (request != null) {
+            log.info("Resolving session id from request ${request.requestURI}")
+        }
         val cookieSessionValues = cookieHttpSessionIdResolver.resolveSessionIds(request)
         if (cookieSessionValues.isNotEmpty()) {
-            log.debug("Found session id in cookie")
+            log.info("Found session id in cookie")
             return cookieSessionValues
         }
-        log.debug("No session id found in cookie")
+        log.info("No session id found in cookie")
         val headerSessionValues = headerHttpSessionIdResolver.resolveSessionIds(request)
         if (headerSessionValues.isNotEmpty()) {
-            log.debug("No session id found in header")
+            log.info("Session id found in header")
         }
         return headerSessionValues
     }

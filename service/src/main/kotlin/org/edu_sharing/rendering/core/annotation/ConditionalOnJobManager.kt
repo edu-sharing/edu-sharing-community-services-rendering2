@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.renderingJob
+package org.edu_sharing.rendering.core.annotation
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 

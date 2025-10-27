@@ -334,6 +334,11 @@ config:
     password: ""
 
   session:
+    cookie:
+      ## @param server.servlet.session.cookie.same-site Set session cookie same-site
+      samesite: none
+      ## @param server.servlet.session.cookie.secure Set session cookie secure
+      secure: true
     nodePermissionExpirationTime:
       ## @param config.session.nodePermissionExpirationTime.audio Set session nodePermissionExpirationTime for audio
       audio: ""

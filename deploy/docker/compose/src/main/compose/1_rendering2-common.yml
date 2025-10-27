@@ -120,6 +120,8 @@ services:
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.password: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
+      server.servlet.session.cookie.same-site: "${RENDERING2_SERVICE_COOKIE_SAME_SITE:-Lax}"
+      server.servlet.session.cookie.secure: "${RENDERING2_SERVICE_COOKIE_SECURE:-true}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
       app.jupyterConverter.host: http://rendering2-jupyter-converter:8000
