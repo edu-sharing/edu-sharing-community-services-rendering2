@@ -83,7 +83,7 @@ class CorsSyncService(
                     return@forEach
                 }
                 if (application.type == "LMS") {
-                    allowedOriginsFromRepo.add(application.domain)
+                    allowedOriginsFromRepo.add("https://" + application.domain)
                     allowedOriginPatternsFromRepo.addAll(application.allowedOrigins)
                 }
             }

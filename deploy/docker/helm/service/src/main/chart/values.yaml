@@ -198,9 +198,9 @@ config:
       ## @param config.converter.image.format Set format for immage converter
       format: jpeg
       ## @param config.converter.image.mimetypes Set mimetypes for immage converter
-      mimetypes: image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp
+      mimetypes: image/vnd.wap.wbmp,image/x-png,image/jpeg,image/tiff,image/bmp,image/x-webp,image/webp
       ## @param config.converter.image.sizes Set sizes for immage converter
-      sizes: 400,800
+      sizes: 800,1280,1920
     jupyter:
       ## @param config.converter.jupyter.host Set jupyter-converter host
       host: edusharing-services-rendering2-jupyter-converter
@@ -209,8 +209,12 @@ config:
     video:
       ## @param config.converter.video.format Set format for video converter
       format: mp4
+      ## @param config.converter.video.ffmpegThreads Set ffmpeg threads for video converter
+      ffmpegThreads: 0
+      ## @param config.converter.video.ffmpegPreset Set ffmpeg preset for video converter
+      ffmpegPreset: veryfast
       ## @param config.converter.video.mimetypes Set mimetypes for video converter
-      mimetypes: video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv
+      mimetypes: video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv,video/theora
       ## @param config.converter.video.resolutions Set resolutions for video converter
       resolutions: 480,720,1080
 

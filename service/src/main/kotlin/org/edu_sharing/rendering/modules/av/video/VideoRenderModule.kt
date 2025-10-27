@@ -19,28 +19,25 @@ import org.springframework.stereotype.Component
 
 @Component
 class VideoRenderModule (
-    @Value("\${app.session.video.nodePermissionExpirationTime}")
-    private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val videoService: VideoService,
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate,
-    private val configuredResolutions: VideoConverterConfig
+    private val configuredResolutions: VideoConverterConfig,
+
+    @param:Value("\${app.session.video.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long?,
+    @param:Value("\${app.queue.av.key}")
+    private val avRoutingKey: String,
+    @param:Value("\${app.queue.topicExchange}")
+    private val topicExchangeName: String
 ): RenderModule, ConversionModule {
-
-    @Value("\${app.queue.av.key}")
-    lateinit var avRoutingKey: String
-
-    @Value("\${app.queue.topicExchange}")
-    lateinit var topicExchangeName: String
-
-
     override fun module() = "VIDEO"
 
     override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
 
-        val originalHeightProperty = node.properties.getOrDefault("ccm:height", listOf(""))[0]
+        val originalHeightProperty = node.properties?.getOrDefault("ccm:height", listOf(""))[0] ?: ""
         var originalHeight: Int? = null
         if (originalHeightProperty.isNotBlank()) {
             originalHeight = originalHeightProperty.toFloat().toInt()
