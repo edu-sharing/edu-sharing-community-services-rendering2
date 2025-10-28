@@ -14,10 +14,6 @@ services:
     volumes:
       - "${GIT_ROOT}/services-rendering-service2/service/target/edu_sharing-community-services-rendering2-service-${org.edu_sharing:edu_sharing-community-services-rendering2-service:jar.version}.jar:/application/app.jar"
 
-  rendering2-jupyter-converter:
-    volumes:
-      - "${GIT_ROOT}/services-rendering-service2/jupyter-converter/target/python/main.py:/app/main.py"
-
   rendering2-lumi:
     volumes:
       - "${GIT_ROOT}/services-rendering-service2/lumi/dist:/app/dist"
