@@ -108,8 +108,8 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.repository.registration.id.local.optional-modules: H5P,JUPYTER,EDUHTML
-#      app.repository.registration.id.local.optional-modules: H5P,JUPYTER,EDUHTML,MOODLE
+      app.repository.registration.id.local.optional-modules: H5P,EDUHTML
+#      app.repository.registration.id.local.optional-modules: H5P,EDUHTML,MOODLE
 #      app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
 #      app.repository.registration.id.local.module.MOODLE.credentials.user: user
 #      app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
@@ -124,7 +124,6 @@ services:
       server.servlet.session.cookie.secure: "${RENDERING2_SERVICE_COOKIE_SECURE:-false}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
-      app.jupyterConverter.host: http://rendering2-jupyter-converter:8000
     expose:
       - "8080"
     depends_on:
@@ -145,13 +144,6 @@ services:
       - -Dcom.sun.management.jmxremote.ssl=false
     expose:
       - "8080"
-
-  rendering2-jupyter-converter:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-jupyter-converter:${docker.tag}"
-    environment:
-      ENABLE_METRICS: "true"
-    expose:
-      - "8000"
 
   rendering2-lumi:
     image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
