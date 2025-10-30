@@ -127,7 +127,7 @@ class MinioStorageService(
             .scheme(appInfo.public.protocol)
             .host(appInfo.public.host)
             .port(appInfo.public.port.toInt())
-            .path("${ROOT_REQUEST_PATH}${STATIC_ASSET_PATH}${bucketStrategy.prefixStaticPath(cacheObject, path)}")
+            .path("${appInfo.public.path.trim('/')}${ROOT_REQUEST_PATH}${STATIC_ASSET_PATH}${bucketStrategy.prefixStaticPath(cacheObject, path)}")
             .build()
             .toUriString()
         return ObjectLink(link = url)
