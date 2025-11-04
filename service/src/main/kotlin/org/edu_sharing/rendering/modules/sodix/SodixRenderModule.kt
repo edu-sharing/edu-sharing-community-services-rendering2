@@ -34,6 +34,7 @@ class SodixRenderModule(
 
     companion object {
         private val requiredCredentialKeys = setOf("baseurl")
+        private val optionalCredentialKeys = setOf("playoutMimetypes")
     }
 
     override fun getNodePermissionExpirationTime() = null
@@ -41,9 +42,9 @@ class SodixRenderModule(
     override fun module() = "SODIX"
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
-        val replicationSource = node.properties.getOrDefault("ccm:replicationsource", mutableListOf(""))[0]
-        val replicationSourceId = node.properties.getOrDefault("ccm:replicationsourceid", mutableListOf(""))[0]
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
+        val replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0]
+        val replicationSourceId = node.properties?.getOrDefault("ccm:replicationsourceid", mutableListOf(""))[0]
         if (replicationSource.isNullOrBlank() || replicationSourceId.isNullOrBlank()) {
             log.error("Missing replication source data in request. Node: " + node.ref.id)
             throw IllegalArgumentException()
@@ -56,7 +57,21 @@ class SodixRenderModule(
             parent = job
         ))
 
-        val isPaidMedia = node.properties.getOrDefault("ccm:editorial_state", mutableListOf(""))[0] == "restricted_mz"
+        val isPaidMedia = node.properties?.getOrDefault("ccm:editorial_state", mutableListOf(""))[0] == "restricted_mz"
+        val config = getConfig(job.repoId)
+        if (!isPaidMedia && config.getOrDefault("playoutMimetypes", "").isNotBlank()) {
+            val mimeType = job.mimeType
+            val playoutMimetypes = config.getValue("playoutMimetypes").toRegex()
+            if (!playoutMimetypes.matches(mimeType)) {
+                log.info(
+                    "Sodix {} mimetype is not supported: {}, allowed: {}",
+                    job.repoId,
+                    mimeType,
+                    config.getValue("playoutMimetypes")
+                )
+                throw IllegalArgumentException("Sodix mimetype is not supported")
+            }
+        }
 
         // ToDo: Don't use quality to differentiate between sub job types
         if (isPaidMedia) {
@@ -83,7 +98,7 @@ class SodixRenderModule(
     ) {
         validateCredentials(
             credentials = credentials,
-            requiredCredentialKeys = requiredCredentialKeys,
+            requiredCredentialKeys = requiredCredentialKeys.filterNot { optionalCredentialKeys.contains(it) }.toSet(),
             moduleName = module()
         )
     }
