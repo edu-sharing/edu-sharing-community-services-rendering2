@@ -32,7 +32,7 @@ class BinderRenderModule(
 
     override fun module() = "BINDER"
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val jobId = jobService.createJobs(node, this)
         return RenderDataResponse(
             jobId = jobId,
