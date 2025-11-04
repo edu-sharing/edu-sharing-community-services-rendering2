@@ -14,8 +14,8 @@ class MoodleUploadService() {
     /**
      * Constructs the URL to the moodle course following these steps:
      *
-     * 1) Call upload course to obtain the course id from moodle
-     * 2) Get the user token for access to the course from moodle
+     * 1) Call upload course to get the course id from moodle
+     * 2) Get the user token for access to the course from moodle (either from credentials or API call)
      * 3) Build the url to the course using the obtained token
      *
      * @param moodleJobMessage the Moodle job message
@@ -25,7 +25,7 @@ class MoodleUploadService() {
     fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): String {
         val config = module.getConfig(repoId)
         val webClient = getWebClient(config)
-        val webserviceToken = module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "")
+        val webserviceToken = config["token"] ?: module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "")
         val courseId = uploadCourse(
             moodleJobMessage = moodleJobMessage,
             module = module,

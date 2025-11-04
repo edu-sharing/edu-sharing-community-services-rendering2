@@ -23,20 +23,22 @@ class MoodleRenderModule(
 ) : RenderModule, ThirdPartyModule {
 
     companion object {
-        private val requiredCredentialKeys = setOf("baseurl", "user", "password", "timeout", "categoryid")
+        private val requiredCredentialKeys = setOf("baseurl", "timeout", "categoryid")
+        private val optionalCredentialKeys = setOf("user", "password", "token", "submitUserDetails")
     }
 
     override fun module() = "MOODLE"
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),
             jobId = moodleJobService.createJob(
                 node = node,
-                userData = requestUserData,
-                module = module()
+                userData = userData,
+                module = module(),
+                submitUserDetails = getConfig(node.ref.repo).getOrDefault("submitUserDetails", "true").toBoolean()
             )
         )
     }
@@ -52,16 +54,20 @@ class MoodleRenderModule(
     override fun validateThirdPartyCredentials(credentials: Map<String, String>, repoId: String) {
        validateCredentials(
            credentials = credentials,
-           requiredCredentialKeys = requiredCredentialKeys,
+           requiredCredentialKeys = requiredCredentialKeys.filterNot { optionalCredentialKeys.contains(it) }.toSet(),
            moduleName = module()
        )
+
+        if ((credentials["user"] == null || credentials["password"] == null) && credentials["token"] == null) {
+            throw IllegalArgumentException("User and password or token must be provided.")
+        }
 
         val webClient = WebClient
             .builder()
             .baseUrl(credentials.getValue("baseurl"))
             .build()
 
-        val webserviceToken = getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
+        val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
 
         val testResult = webClient.get()
             .uri {
