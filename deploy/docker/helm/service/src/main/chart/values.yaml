@@ -252,10 +252,15 @@ config:
       #     value:
       #   - name: password
       #     value:
+      #   - name:token
+      #     value:
       #   - name: timeout
       #     value:
       #   - name: categoryid
       #     value:
+      #   - name: submitUserDetails
+      #     value:
+      #   - name: publicurl
       # - name: SODIX
       #   credentials:
       #   - name: baseurl

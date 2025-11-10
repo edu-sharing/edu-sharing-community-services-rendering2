@@ -29,7 +29,7 @@ class MoodleJobService(
     lateinit var jobRoutingKey: String
 
     fun createJob(node: Node, userData: RequestUserData, module: String, submitUserDetails: Boolean): String? {
-        val job = mapper.nodeToRenderingJob(node, module)
+        val job = mapper.nodeToRenderingJob(node = node, module = module, isConversionType = true)
         jobRepository.save(job)
 
         val subJob = SubJob(

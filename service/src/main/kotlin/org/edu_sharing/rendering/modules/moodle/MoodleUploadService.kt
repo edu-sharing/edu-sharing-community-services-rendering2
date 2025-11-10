@@ -43,8 +43,9 @@ class MoodleUploadService() {
     }
 
     private fun buildForwardUrl(userToken: String, config: Map<String, String>): String {
+        println("CONFIG: $config")
         return UriComponentsBuilder
-            .fromUriString(config["baseurl"] ?: "")
+            .fromUriString(config["publicurl"] ?: config["baseurl"] ?: "")
             .path("/local/edusharing_webservice/forwardUser.php")
             .queryParam("token", userToken)
             .build()

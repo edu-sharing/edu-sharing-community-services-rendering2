@@ -8,5 +8,5 @@ import org.springframework.stereotype.Component
 class MoodleRenderModuleTypeMapper(
     private val moodleRenderModule: MoodleRenderModule
 ) : ModuleTypeMapper {
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(type = "file-moodle") to moodleRenderModule)
+    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(resourceType = "moodle") to moodleRenderModule)
 }

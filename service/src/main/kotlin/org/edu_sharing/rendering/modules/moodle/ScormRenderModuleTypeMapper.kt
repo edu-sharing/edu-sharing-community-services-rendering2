@@ -8,5 +8,8 @@ import org.springframework.stereotype.Component
 class ScormRenderModuleTypeMapper(
     private val scormRenderModule: ScormRenderModule
 ): ModuleTypeMapper {
-    override fun moduleTypeAssociations() = listOf(ModuleTypeDefinition(type = "file-scorm") to scormRenderModule)
+    override fun moduleTypeAssociations() = listOf(
+        ModuleTypeDefinition(resourceType = "ADL SCORM") to scormRenderModule,
+        ModuleTypeDefinition(resourceType = "IMS Common Cartridge") to scormRenderModule
+    )
 }
