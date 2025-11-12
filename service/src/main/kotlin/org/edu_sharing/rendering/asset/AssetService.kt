@@ -49,9 +49,6 @@ class AssetService(
         cacheObject: CacheObject,
         path: String
     ): ReadableAsset {
-        // build cache object
-        // /public/assets/static/<cacheObjectStuff>/index.html
-        // /public/assets/static/<cacheObjectStuff>/123/whatever.html
         val fileDetails = storageImplementation.getFileProperties(cacheObject, path)
         if (range.isBlank()) {
             return ReadableAsset(

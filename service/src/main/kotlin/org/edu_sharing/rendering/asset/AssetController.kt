@@ -43,7 +43,7 @@ class AssetController(
         if (asset.mimeType == "application/pdf") {
             doEncodeData = !nodePermissionSessionContextRepository.hasPermission(assetLinkParams.nodeId, "DownloadContent")
         }
-        return prepareResponse(asset = asset, additionalHeaders = mutableMapOf() ,doEncodeData = doEncodeData)
+        return prepareResponse(asset = asset, additionalHeaders = emptyMap() ,doEncodeData = doEncodeData)
     }
 
     @GetMapping("$STATIC_ASSET_PATH/**")
@@ -53,7 +53,7 @@ class AssetController(
     ): ResponseEntity<Resource> {
         val (cacheObject, path) = storageService.getCacheObjectFromStaticPath(request.requestURI.substringAfter("$ROOT_REQUEST_PATH$STATIC_ASSET_PATH"))
         val asset = assetService.getStaticAsset(range, cacheObject, path)
-        return prepareResponse(asset = asset, additionalHeaders = mutableMapOf())
+        return prepareResponse(asset = asset, additionalHeaders = emptyMap())
     }
 
     private fun prepareResponse(
