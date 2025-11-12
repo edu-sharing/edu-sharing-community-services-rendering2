@@ -74,15 +74,21 @@ class LumiProxyService(
                     .build(true)
                     .toUri()
             }
-            .headers { headers }
-
+            .headers { h -> h.addAll(headers) }
         if (body != null) {
             lumiRequest.body(BodyInserters.fromValue(body))
         }
-
-        return lumiRequest.retrieve()
+        val lumiResponse = lumiRequest.retrieve()
             .toEntity(responseType)
             .block()
             ?: throw ResourceNotFoundException("Called lumi with ${method.name()} $requestURIPath ${request.queryString} $body")
+        val responseHeaders = HttpHeaders()
+        responseHeaders.addAll(lumiResponse.headers)
+        responseHeaders.set("TRACE", traceId)
+
+        return ResponseEntity
+            .status(lumiResponse.statusCode)
+            .headers(responseHeaders)
+            .body(lumiResponse.body)
     }
 }
