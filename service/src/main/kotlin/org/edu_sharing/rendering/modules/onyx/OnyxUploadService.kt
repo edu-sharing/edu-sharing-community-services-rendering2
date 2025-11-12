@@ -56,5 +56,4 @@ class OnyxUploadService(
             originalFile.delete()
         }
     }
-
 }

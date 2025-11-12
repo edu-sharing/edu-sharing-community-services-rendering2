@@ -40,7 +40,11 @@ class OnyxRenderModule(
         node: Node,
         userData: RequestUserData
     ): RenderDataResponse {
-        val job = mapper.nodeToRenderingJob(node, module())
+        val job = mapper.nodeToRenderingJob(
+            node = node,
+            module = module(),
+            isConversionType = true
+        )
         jobRepository.save(job)
         subJobRepository.save(SubJob(
             routingKey = jobRoutingKey,
