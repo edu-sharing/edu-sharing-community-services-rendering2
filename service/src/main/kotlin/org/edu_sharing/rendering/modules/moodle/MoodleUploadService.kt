@@ -6,6 +6,8 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.Duration
 
 @Service
@@ -43,13 +45,11 @@ class MoodleUploadService() {
     }
 
     private fun buildForwardUrl(userToken: String, config: Map<String, String>): String {
-        println("CONFIG: $config")
         return UriComponentsBuilder
             .fromUriString(config["publicurl"] ?: config["baseurl"] ?: "")
             .path("/local/edusharing_webservice/forwardUser.php")
             .queryParam("token", userToken)
-            .build()
-            .encode()
+            .build(false)
             .toUriString()
     }
 
@@ -113,7 +113,7 @@ class MoodleUploadService() {
         if (token.isNullOrBlank()) {
             throw Exception("Error getting user token from moodle")
         }
-        return token
+        return URLEncoder.encode(token, StandardCharsets.UTF_8)
     }
 
     private fun getWebClient(config: Map<String, String>): WebClient {
