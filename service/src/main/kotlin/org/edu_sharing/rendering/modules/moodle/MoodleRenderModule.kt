@@ -100,6 +100,10 @@ class MoodleRenderModule(
         return registration.module[module()]?.credentials ?: mapOf()
     }
 
+    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+        return subJob.additionalData
+    }
+
     fun getWebserviceToken(webClient: WebClient, user: String, password: String): String {
         val tokenResponse = webClient.get()
             .uri {

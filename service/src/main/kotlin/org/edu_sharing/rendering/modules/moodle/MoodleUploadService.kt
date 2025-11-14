@@ -24,7 +24,7 @@ class MoodleUploadService() {
      * @param module the Moodle render module
      * @return the constructed URL
      */
-    fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): String {
+    fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): Pair<String, String> {
         val config = module.getConfig(repoId)
         val webClient = getWebClient(config)
         val webserviceToken = config["token"] ?: module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "")
@@ -35,13 +35,23 @@ class MoodleUploadService() {
             webClient = webClient,
             webserviceToken = webserviceToken
         )
-        val userToken = getUserToken(
+        val userTokenPreview = getUserToken(
             moodleJobMessage = moodleJobMessage,
             courseId = courseId,
             webClient = webClient,
             webserviceToken = webserviceToken
         )
-        return buildForwardUrl(userToken, config)
+        val userTokenLink = getUserToken(
+            moodleJobMessage = moodleJobMessage,
+            courseId = courseId,
+            webClient = webClient,
+            webserviceToken = webserviceToken
+        )
+
+        val previewUrl = buildForwardUrl(userTokenPreview, config)
+        val linkUrl = buildForwardUrl(userTokenLink, config)
+
+        return previewUrl to linkUrl
     }
 
     private fun buildForwardUrl(userToken: String, config: Map<String, String>): String {
