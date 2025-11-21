@@ -53,8 +53,9 @@ class MoodleReceiver (
                 module = moduleRegistry.getRenderModule(jobEntry.module),
                 repoId = jobEntry.repoId
             )
+            subJob.message = url.first
+            subJob.additionalData = mapOf("linkUrl" to url.second)
             subJob.status = SubJobStatus.FINISHED
-            subJob.message = url
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED

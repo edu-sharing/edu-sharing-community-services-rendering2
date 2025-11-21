@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
@@ -22,21 +23,25 @@ class MoodleRenderModule(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
 ) : RenderModule, ThirdPartyModule {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     companion object {
-        private val requiredCredentialKeys = setOf("baseurl", "user", "password", "timeout", "categoryid")
+        private val requiredCredentialKeys = setOf("baseurl", "timeout", "categoryid")
+        private val optionalCredentialKeys = setOf("user", "password", "token", "submitUserDetails", "publicurl")
     }
 
     override fun module() = "MOODLE"
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),
             jobId = moodleJobService.createJob(
                 node = node,
-                userData = requestUserData,
-                module = module()
+                userData = userData,
+                module = module(),
+                submitUserDetails = getConfig(node.ref.repo).getOrDefault("submitUserDetails", "true").toBoolean()
             )
         )
     }
@@ -52,16 +57,20 @@ class MoodleRenderModule(
     override fun validateThirdPartyCredentials(credentials: Map<String, String>, repoId: String) {
        validateCredentials(
            credentials = credentials,
-           requiredCredentialKeys = requiredCredentialKeys,
+           requiredCredentialKeys = requiredCredentialKeys.filterNot { optionalCredentialKeys.contains(it) }.toSet(),
            moduleName = module()
        )
+
+        if ((credentials["user"] == null || credentials["password"] == null) && credentials["token"] == null) {
+            throw IllegalArgumentException("User and password or token must be provided.")
+        }
 
         val webClient = WebClient
             .builder()
             .baseUrl(credentials.getValue("baseurl"))
             .build()
 
-        val webserviceToken = getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
+        val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
 
         val testResult = webClient.get()
             .uri {
@@ -78,10 +87,10 @@ class MoodleRenderModule(
             .block()
 
         if (testResult == null) {
-            throw Exception("No test result returned from render Moodle.")
+            log.warn("No test result returned from render Moodle.")
         }
         if (testResult != 1) {
-            throw Exception("Moodle responded but test was not successful. Result: $testResult")
+            log.warn("Moodle responded but test was not successful. Result: $testResult")
         }
     }
 
@@ -89,6 +98,10 @@ class MoodleRenderModule(
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
         return registration.module[module()]?.credentials ?: mapOf()
+    }
+
+    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+        return subJob.additionalData
     }
 
     fun getWebserviceToken(webClient: WebClient, user: String, password: String): String {

@@ -15,6 +15,3 @@ services:
 
   rendering2-document-converter:
     restart: unless-stopped
-
-  rendering2-jupyter-converter:
-    restart: unless-stopped

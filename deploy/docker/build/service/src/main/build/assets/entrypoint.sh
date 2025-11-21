@@ -39,7 +39,7 @@ until nc -z "${redis_host}" "${redis_port}"; do
 done
 
 # Wait for repository to be ready
-for var in $(env | grep 'app.repository.registration.id.*.url' | cut -d'=' -f2); do
+for var in $(env | grep 'app\.repository\.registration\.id\..*\.url' | cut -d'=' -f2); do
   until [ "$(curl -sSfq -w "%{http_code}\n" -o /dev/null -H 'Accept: application/json' "${var}/rest/_about/status/SERVICE?timeoutSeconds=3")" = 200 ]; do
   	echo >&2 "Waiting for ${var} service ..."
   	sleep 3

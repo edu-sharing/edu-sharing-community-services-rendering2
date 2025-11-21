@@ -18,6 +18,9 @@ class EduTrackingService(
 
     @Throws(IllegalArgumentException::class)
     fun trackObject(event: String, objectId: String, repoId: String) {
+        if (event == "PRERENDER") {
+            return
+        }
         val registration = repositoryRegistrationRepository.findByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found") }
         val authentication = SecurityContextHolder.getContext().authentication

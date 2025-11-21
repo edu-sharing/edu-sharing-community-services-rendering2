@@ -108,21 +108,22 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.repository.registration.id.local.optional-modules: H5P,JUPYTER,EDUHTML
-#      app.repository.registration.id.local.optional-modules: H5P,JUPYTER,EDUHTML,MOODLE
-#      app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
+      app.repository.registration.id.local.optional-modules: H5P,EDUHTML
+      app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
+      app.repository.registration.id.local.module.MOODLE.credentials.publicurl: "${RENDERING2_MOODLE_PUBLIC_URL:-}"
 #      app.repository.registration.id.local.module.MOODLE.credentials.user: user
-#      app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
-#      app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
-#      app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
+      app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
+      app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
+      app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.password: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
+      server.servlet.session.cookie.same-site: "${RENDERING2_SERVICE_COOKIE_SAME_SITE:-Lax}"
+      server.servlet.session.cookie.secure: "${RENDERING2_SERVICE_COOKIE_SECURE:-false}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
-      app.jupyterConverter.host: http://rendering2-jupyter-converter:8000
     expose:
       - "8080"
     depends_on:
@@ -143,13 +144,6 @@ services:
       - -Dcom.sun.management.jmxremote.ssl=false
     expose:
       - "8080"
-
-  rendering2-jupyter-converter:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-jupyter-converter:${docker.tag}"
-    environment:
-      ENABLE_METRICS: "true"
-    expose:
-      - "8000"
 
   rendering2-lumi:
     image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
