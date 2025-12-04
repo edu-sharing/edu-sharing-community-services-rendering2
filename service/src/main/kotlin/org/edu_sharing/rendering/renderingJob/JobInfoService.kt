@@ -30,7 +30,7 @@ class JobInfoService(
         return jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
     }
 
-    @PreAuthorize("hasPermission(#job.esObjectId, 'Read')")
+    @PreAuthorize("hasPermission(#job.esObjectId, 'ReadAll')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
         if (isMainJobQueuedOrCopying(job)) {
             return JobInfoReply(

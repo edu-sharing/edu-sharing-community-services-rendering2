@@ -19,7 +19,7 @@ class AssetService(
 ) {
     private val defaultChunkSize = 2000000L
 
-    @PreAuthorize("hasPermission(#assetParams.nodeId, 'Read')")
+    @PreAuthorize("hasPermission(#assetParams.nodeId, 'ReadAll')")
     fun getAsset(assetParams: AssetLinkParams, range: String): ReadableAsset {
         val cacheObject = mapper.assetLinkParamsToCacheObject(assetParams)
         val fileDetails = storageImplementation.getFileProperties(cacheObject)
@@ -43,7 +43,7 @@ class AssetService(
     }
 
 
-    @PreAuthorize("hasPermission(#cacheObject.nodeId, 'Read')")
+    @PreAuthorize("hasPermission(#cacheObject.nodeId, 'ReadAll')")
     fun getStaticAsset(
         range: String,
         cacheObject: CacheObject,

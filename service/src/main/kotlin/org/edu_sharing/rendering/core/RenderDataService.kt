@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service
 class RenderDataService(
     private val moduleRegistry: ModuleRegistry,
 ) {
-    @PreAuthorize("hasPermission(#request.nodeId, 'Read')")
+    @PreAuthorize("hasPermission(#request.nodeId, 'ReadAll')")
     @PostAuthorize("@modulePermissionService.hasModuleAccess(returnObject, #request.nodeId)")
     fun getRenderModule(request: RenderDataRequest, node: Node) : RenderModule {
         return moduleRegistry.getRenderModule(node)
