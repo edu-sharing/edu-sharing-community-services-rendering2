@@ -20,7 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder
 class LumiProxyService(
     private val lumiWebClient: WebClient
 ) {
-    @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'Read')")
+    @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'ReadAll')")
     fun <T> processProxyRequest(
         pathPrefix: String,
         nodeInfo: LumiNodeInfo,
