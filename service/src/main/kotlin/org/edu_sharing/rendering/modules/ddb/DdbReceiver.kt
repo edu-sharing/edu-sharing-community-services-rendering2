@@ -30,7 +30,7 @@ class DdbReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: DdbJobMessage) {
-        var mainJob = mainJobLogic.getMainJobEntry(message.id)
+        val mainJob = mainJobLogic.getMainJobEntry(message.id)
         if (mainJob == null) {
             log.error("${this.javaClass.simpleName} received message with unknown job id ${message.id}")
             return
