@@ -115,11 +115,11 @@ class RepositoryRegistrationService(
 
     @Transactional
     @CachePut("repositoryKeys", key = "#result.id")
-    fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false): RepositoryRegistration {
+    fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false, useInternal: Boolean = false): RepositoryRegistration {
         val registrationEntity = createRegistration(request, force)
 
         val adminV1Api = getAdminV1Api(request.url, request.username, request.password)
-        metadataService.generateMetadataFile().use {
+        metadataService.generateMetadataFile(useInternal = useInternal).use {
             adminV1Api.addApplication(it.file)
         }
         return registrationEntity
