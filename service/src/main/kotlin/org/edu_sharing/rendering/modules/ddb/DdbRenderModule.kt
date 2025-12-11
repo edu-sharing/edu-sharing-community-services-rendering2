@@ -27,7 +27,7 @@ class DdbRenderModule(
 
     override fun module() = "DDB"
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val jobId = jobService.createJob(node, module())
         return RenderDataResponse(jobId = jobId, module = module())
     }

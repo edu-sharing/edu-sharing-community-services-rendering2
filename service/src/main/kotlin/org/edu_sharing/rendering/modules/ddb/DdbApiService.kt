@@ -63,10 +63,10 @@ class DdbApiService(
         val apiToken = getToken(renderingJob)
         val restResponse = callRestApi(remoteId, apiToken)
         val sizes = callIiifApi(restResponse.binaryRef, apiToken)
-        val additionalData = mutableMapOf<String, String>(
-            "linkTemplate" to "${DdbRenderModule.Companion.IIIF_API_BASE_URL}/${restResponse.binaryRef}/full/!${DdbRenderModule.Companion.WIDTH_PLACEHOLDER},${DdbRenderModule.Companion.HEIGHT_PLACEHOLDER}/0/default.jpg",
-            "widthPlaceHolder" to DdbRenderModule.Companion.WIDTH_PLACEHOLDER,
-            "heightPlaceHolder" to DdbRenderModule.Companion.HEIGHT_PLACEHOLDER,
+        val additionalData = mutableMapOf(
+            "linkTemplate" to "${DdbRenderModule.IIIF_API_BASE_URL}/${restResponse.binaryRef}/full/!${DdbRenderModule.Companion.WIDTH_PLACEHOLDER},${DdbRenderModule.Companion.HEIGHT_PLACEHOLDER}/0/default.jpg",
+            "widthPlaceHolder" to DdbRenderModule.WIDTH_PLACEHOLDER,
+            "heightPlaceHolder" to DdbRenderModule.HEIGHT_PLACEHOLDER,
             "institution" to restResponse.institution,
             "licenseLink" to restResponse.licenseLink,
             "licenseGroup" to restResponse.licenseGroup
@@ -78,7 +78,7 @@ class DdbApiService(
     }
 
     private fun callRestApi(remoteId: String, apiToken: String): DdbRestData {
-        val webClient = WebClient.create(DdbRenderModule.Companion.REST_API_BASE_URL)
+        val webClient = WebClient.create(DdbRenderModule.REST_API_BASE_URL)
 
         val response = webClient
             .get()
