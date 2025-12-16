@@ -78,7 +78,7 @@ class RegistrationRunner(
             .map {
                 val (registrationRequest, optionalModuleList, moduleSettings) = it
                 try {
-                    val registration = repositoryRegistrationService.registerWithRepository(registrationRequest, true)
+                    val registration = repositoryRegistrationService.registerWithRepository(request = registrationRequest, force = true, useInternal = true)
                     optionalModuleList.forEach { module ->
                         repositoryRegistrationService.activateOptionalModule(
                             ActivateOptionalModuleRequest(

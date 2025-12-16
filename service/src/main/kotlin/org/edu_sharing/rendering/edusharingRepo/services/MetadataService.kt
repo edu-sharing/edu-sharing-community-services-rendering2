@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.edusharingRepo.dom.MetadataFile
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
-import org.edu_sharing.rendering.edusharingRepo.dom.MetadataFile
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -84,19 +84,29 @@ class MetadataService(
         return KeyFactory.getInstance("RSA").generatePrivate(keySpec)
     }
 
-    fun generateMetadataFile(): MetadataFile {
+    /**
+     * Generates a metadata file containing configuration information for the rendering service.
+     *
+     * @param useInternal A boolean flag indicating whether to use internal or public connection details
+     *                    when generating the metadata file.
+     * @return A `MetadataFile` instance representing the generated metadata file.
+     */
+    fun generateMetadataFile(useInternal: Boolean): MetadataFile {
         val file = File.createTempFile("metadata", ".xml")
 
         FileOutputStream(file).use { outputStream ->
             val metadata = getConfig()
             val props = Properties()
+            val connectionInfo = if (useInternal) appInfo.internal else appInfo.public
 
             props["appid"] = appInfo.appId
             props["appcaption"] = appInfo.appCaption
             props["type"] = "RENDERINGSERVICE_2"
-            props["protocol"] = appInfo.public.protocol
-            props["host"] = appInfo.public.host
-            props["port"] = appInfo.public.port.toString()
+            props["protocol"] = connectionInfo.protocol
+            props["host"] = connectionInfo.host
+            props["port"] = connectionInfo.port.toString()
+            props["webappname"] = connectionInfo.path
+            // contenturl: Used by frontend needs to be reachable from the web
             props["contenturl"] = appInfo.public.url
             props["trustedclient"] = "true"
             props["public_key"] = metadata.publicKey
