@@ -1,12 +1,16 @@
 {{- if .Values.global.cluster.istio.enabled }}
 {{- if .Capabilities.APIVersions.Has "networking.istio.io/v1beta1" }}
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{- if $roleCfg.enabled }}
+{{- if hasKey $roleCfg "subpaths" }}
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
+    role: {{ $roleName }}
 spec:
-  host: {{ include "edusharing_common_lib.names.name" . }}
+  host: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
   trafficPolicy:
     loadBalancer:
       consistentHash:
@@ -14,5 +18,9 @@ spec:
           name: ISTIOCOOKIE
           path: /
           ttl: 0s
+---
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

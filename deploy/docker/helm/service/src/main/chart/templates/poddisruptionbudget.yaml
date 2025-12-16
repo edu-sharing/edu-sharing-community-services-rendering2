@@ -1,11 +1,18 @@
 {{- if .Values.global.cluster.pdb.enabled }}
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{- if $roleCfg.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
+    role: {{ $roleName }}
 spec:
   minAvailable: 1
   selector:
-    matchLabels: {{ include "edusharing_common_lib.labels.app" . | nindent 6 }}
+    matchLabels: {{ include "edusharing_common_lib.labels.app" $ | nindent 6 }}
+      role: {{ $roleName }}
+---
+{{- end }}
+{{- end }}
 {{- end }}

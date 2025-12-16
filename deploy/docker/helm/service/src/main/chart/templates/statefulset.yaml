@@ -1,49 +1,57 @@
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{- if $roleCfg.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
+    role: {{ $roleName }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ $roleCfg.replicaCount }}
   selector:
-    matchLabels: {{ include "edusharing_common_lib.labels.app" . | nindent 6 }}
-  serviceName: {{ include "edusharing_common_lib.names.name" . }}-headless
+    matchLabels: {{ include "edusharing_common_lib.labels.app" $ | nindent 6 }}
+      role: {{ $roleName }}
+  serviceName: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}-headless
   template:
     metadata:
-      labels: {{ include "edusharing_common_lib.labels.app" . | nindent 8 }}
+      labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
+        role: {{ $roleName }}
       annotations:
-        checksum/configmap-env: {{ include (print .Template.BasePath "/configmap-env.yaml") . | sha256sum | trunc 63 }}
-        checksum/configmap-file: {{ include (print .Template.BasePath "/configmap-file.yaml") . | sha256sum | trunc 63 }}
-        checksum/secret-env: {{ include (print .Template.BasePath "/secret-env.yaml") . | sha256sum | trunc 63 }}
-        {{- if not .Values.global.metrics.servicemonitor.enabled }}
+        checksum/configmap-env: {{ include (print $.Template.BasePath "/configmap-env.yaml") $ | sha256sum | trunc 63 }}
+        checksum/configmap-file: {{ include (print $.Template.BasePath "/configmap-file.yaml") $ | sha256sum | trunc 63 }}
+        checksum/secret-env: {{ include (print $.Template.BasePath "/secret-env.yaml") $ | sha256sum | trunc 63 }}
+        {{- if not $.Values.global.metrics.servicemonitor.enabled }}
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "9080"
         prometheus.io/scrape: "true"
         {{- end }}
-        sidecar.istio.io/inject: {{ .Values.global.cluster.istio.enabled | quote }}
-        {{- with merge .Values.podAnnotations .Values.global.annotations }}
+        sidecar.istio.io/inject: {{ $.Values.global.cluster.istio.enabled | quote }}
+        {{- with merge $.Values.podAnnotations $.Values.global.annotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       containers:
-      - name: {{ include "edusharing_common_lib.names.name" . }}
-        image: {{ include "edusharing_common_lib.images.image" . }}{{ .Values.image.name }}:{{ .Values.image.tag }}
-        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+      - name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+        image: {{ include "edusharing_common_lib.images.image" $ }}{{ $.Values.image.name }}:{{ $.Values.image.tag }}
+        imagePullPolicy: {{ $.Values.global.image.pullPolicy }}
+        env:
+        - name: APP_ROLES
+          value: {{ $roleCfg.appRoles | quote }}
         envFrom:
         - configMapRef:
-            name: {{ include "edusharing_common_lib.names.name" . }}-env
+            name: {{ include "edusharing_common_lib.names.name" $ }}-env
         - secretRef:
-            name: {{ include "edusharing_common_lib.names.name" . }}-env
+            name: {{ include "edusharing_common_lib.names.name" $ }}-env
         ports:
         - name: api
           containerPort: 8080
         - name: management
           containerPort: 9080
-        {{- if default .Values.global.debug .Values.debug }}
+        {{- if default $.Values.global.debug $.Values.debug }}
         - name: jpda
           containerPort: 5005
         {{- end }}
-        {{- with .Values.startupProbe }}
+        {{- with $.Values.startupProbe }}
         startupProbe:
           httpGet:
             path: /actuator/health/readiness
@@ -53,7 +61,7 @@ spec:
           periodSeconds: {{ .periodSeconds }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.livenessProbe }}
+        {{- with $.Values.livenessProbe }}
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
@@ -63,7 +71,7 @@ spec:
           periodSeconds: {{ .periodSeconds }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.readinessProbe }}
+        {{- with $.Values.readinessProbe }}
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
@@ -74,16 +82,16 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.resources }}
+        {{- with $.Values.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
-        {{- with .Values.securityContext }}
+        {{- with $.Values.securityContext }}
         securityContext: {{ toYaml . | nindent 10 }}
         {{- end }}
-      {{ if .Values.proxy.enabled }}
-      - name: {{ include "edusharing_common_lib.names.name" . }}-proxy
-        image: {{ include "edusharing_common_lib.images.common" . }}{{ .Values.sidecar.proxyCache.image.name }}:{{ .Values.sidecar.proxyCache.image.tag }}
-        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+      {{ if $.Values.proxy.enabled }}
+      - name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}-proxy
+        image: {{ include "edusharing_common_lib.images.common" $ }}{{ $.Values.sidecar.proxyCache.image.name }}:{{ $.Values.sidecar.proxyCache.image.tag }}
+        imagePullPolicy: {{ $.Values.global.image.pullPolicy }}
         args:
           - '-F'
           - '-f'
@@ -101,7 +109,7 @@ spec:
             subPath: proxy-config
           - name: temp-proxy
             mountPath: /var/lib/varnish
-        {{- with .Values.sidecar.proxyCache.startupProbe }}
+        {{- with $.Values.sidecar.proxyCache.startupProbe }}
         startupProbe:
           httpGet:
             path: /health/ready
@@ -112,7 +120,7 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.sidecar.proxyCache.livenessProbe }}
+        {{- with $.Values.sidecar.proxyCache.livenessProbe }}
         livenessProbe:
           exec:
             command:
@@ -124,7 +132,7 @@ spec:
           successThreshold: 1
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.sidecar.proxyCache.readinessProbe }}
+        {{- with $.Values.sidecar.proxyCache.readinessProbe }}
         readinessProbe:
           httpGet:
             path: /health/ready
@@ -135,15 +143,15 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.sidecar.proxyCache.resources }}
+        {{- with $.Values.sidecar.proxyCache.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
-        {{- with .Values.sidecar.proxyCache.securityContext }}
+        {{- with $.Values.sidecar.proxyCache.securityContext }}
         securityContext: {{ toYaml . | nindent 10 }}
         {{- end }}
-      - name: {{ include "edusharing_common_lib.names.name" . }}-proxy-metrics
-        image: {{ include "edusharing_common_lib.images.common" . }}{{ .Values.sidecar.proxyMetrics.image.name }}:{{ .Values.sidecar.proxyMetrics.image.tag }}
-        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+      - name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}-proxy-metrics
+        image: {{ include "edusharing_common_lib.images.common" $ }}{{ $.Values.sidecar.proxyMetrics.image.name }}:{{ $.Values.sidecar.proxyMetrics.image.tag }}
+        imagePullPolicy: {{ $.Values.global.image.pullPolicy }}
         ports:
           - name: metrics-proxy
             containerPort: 9131
@@ -153,7 +161,7 @@ spec:
             subPath: proxy-config
           - name: temp-proxy
             mountPath: /var/lib/varnish
-        {{- with .Values.sidecar.proxyMetrics.startupProbe }}
+        {{- with $.Values.sidecar.proxyMetrics.startupProbe }}
         startupProbe:
           exec:
             command:
@@ -166,7 +174,7 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.sidecar.proxyMetrics.livenessProbe }}
+        {{- with $.Values.sidecar.proxyMetrics.livenessProbe }}
         livenessProbe:
           exec:
             command:
@@ -178,7 +186,7 @@ spec:
           periodSeconds: {{ .periodSeconds }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.sidecar.proxyMetrics.readinessProbe }}
+        {{- with $.Values.sidecar.proxyMetrics.readinessProbe }}
         readinessProbe:
           exec:
             command:
@@ -191,52 +199,55 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with .Values.sidecar.proxyMetrics.resources }}
+        {{- with $.Values.sidecar.proxyMetrics.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
-        {{- with .Values.sidecar.proxyMetrics.securityContext }}
+        {{- with $.Values.sidecar.proxyMetrics.securityContext }}
         securityContext: {{ toYaml . | nindent 10 }}
         {{- end }}
       {{- end }}
-      {{- with .Values.global.image.pullSecrets }}
+      {{- with $.Values.global.image.pullSecrets }}
       imagePullSecrets: {{ toYaml . | nindent 8 }}
       {{- end }}
-      {{- with merge .Values.podSecurityContext .Values.global.security }}
+      {{- with merge $.Values.podSecurityContext $.Values.global.security }}
       securityContext: {{ toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with $.Values.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}
       {{- end }}
-      {{ with .Values.terminationGracePeriod }}
+      {{ with $.Values.terminationGracePeriod }}
       terminationGracePeriodSeconds: {{ . }}
       {{- end }}
-      {{- if or .Values.nodeAffinity .Values.podAntiAffinity }}
+      {{- if or $.Values.nodeAffinity $.Values.podAntiAffinity }}
       affinity:
-        {{- with .Values.nodeAffinity }}
+        {{- with $.Values.nodeAffinity }}
         nodeAffinity: {{ toYaml . | nindent 10 }}
         {{- end }}
-        {{- if .Values.podAntiAffinity }}
+        {{- if $.Values.podAntiAffinity }}
         podAntiAffinity:
-          {{- if eq .Values.podAntiAffinity "hard" }}
+          {{- if eq $.Values.podAntiAffinity "hard" }}
           requiredDuringSchedulingIgnoredDuringExecution:
           - topologyKey: kubernetes.io/hostname
             labelSelector:
-              matchLabels: {{ include "edusharing_common_lib.labels.app" . | nindent 16 }}
-          {{- else if eq .Values.podAntiAffinity "soft" }}
+              matchLabels: {{ include "edusharing_common_lib.labels.app" $ | nindent 16 }}
+          {{- else if eq $.Values.podAntiAffinity "soft" }}
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
-                matchLabels: {{ include "edusharing_common_lib.labels.app" . | nindent 18 }}
+                matchLabels: {{ include "edusharing_common_lib.labels.app" $ | nindent 18 }}
           {{- end }}
         {{- end }}
       {{- end }}
       volumes:
       - name: file
         configMap:
-          name: {{ include "edusharing_common_lib.names.name" . }}-file
-      {{- if .Values.proxy.enabled }}
+          name: {{ include "edusharing_common_lib.names.name" $ }}-file
+      {{- if $.Values.proxy.enabled }}
       - name: temp-proxy
         emptyDir: { }
       {{- end }}
+---
+{{- end }}
+{{- end }}

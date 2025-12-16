@@ -1,34 +1,44 @@
 {{- if not .Values.global.cluster.istio.enabled }}
 {{- if .Values.ingress.enabled }}
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{- if $roleCfg.enabled }}
+{{- if hasKey $roleCfg "subpaths" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
-  {{- with merge .Values.ingress.annotations .Values.global.cluster.cert.annotations }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
+    role: {{ $roleName }}
+  {{- with merge $.Values.ingress.annotations $.Values.global.cluster.cert.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.global.cluster.ingress.ingressClassName }}
-  ingressClassName: {{ .Values.global.cluster.ingress.ingressClassName | quote }}
+  {{- if $.Values.global.cluster.ingress.ingressClassName }}
+  ingressClassName: {{ $.Values.global.cluster.ingress.ingressClassName | quote }}
   {{- end }}
-  {{- with .Values.ingress.tls }}
+  {{- with $.Values.ingress.tls }}
   tls: {{ toYaml . | nindent 4 }}
   {{- end }}
   rules:
-  {{- range .Values.ingress.hosts }}
+  {{- range $.Values.ingress.hosts }}
   - host: {{ . }}
     http:
       paths:
-      {{- range $.Values.ingress.paths }}
-      - path: {{ . }}
+      {{- range $path := $.Values.ingress.paths }}
+      {{- range $subpath := $roleCfg.subpaths }}
+      - path: {{ $path }}{{ $subpath }}
         pathType: Prefix
         backend:
           service:
-            name: {{ include "edusharing_common_lib.names.name" $ }}
+            name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
             port:
               number: {{ $.Values.service.port.api }}
       {{- end }}
+      {{- end }}
   {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

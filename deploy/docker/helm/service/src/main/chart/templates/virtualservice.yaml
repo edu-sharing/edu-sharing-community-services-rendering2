@@ -1,39 +1,48 @@
 {{- if .Values.global.cluster.istio.enabled }}
 {{- if .Capabilities.APIVersions.Has "networking.istio.io/v1beta1" }}
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{- if $roleCfg.enabled }}
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}-internal
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}-internal
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
 spec:
   hosts:
-  - {{ include "edusharing_common_lib.names.name" . }}
+  - {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
   http:
   - route:
     - destination:
-        host: {{ include "edusharing_common_lib.names.name" . }}
+        host: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
       weight: 100
 ---
+{{- if hasKey $roleCfg "subpaths" }}
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}-external
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}-external
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
 spec:
-  hosts: {{ toYaml .Values.ingress.hosts | nindent 4 }}
+  hosts: {{ toYaml $.Values.ingress.hosts | nindent 4 }}
   gateways:
-  - {{ include "edusharing_common_lib.names.name" . }}
+  - {{ include "edusharing_common_lib.names.name" $ }}
   http:
-  {{- range .Values.ingress.paths }}
+  {{- range $path := $.Values.ingress.paths }}
+  {{- range $subpath := $roleCfg.subpaths }}
   - match:
     - uri:
-        prefix: {{ . }}
+        prefix: {{ $path }}{{ $subpath }}
     route:
     - destination:
-        host: {{ include "edusharing_common_lib.names.name" $ }}
+        host: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
         port:
-          number: {{ $.Values.service.port.api.external }}
+          number: {{ $.Values.service.port.api }}
       weight: 100
   {{- end }}
+  {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
