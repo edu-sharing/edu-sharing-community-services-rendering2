@@ -80,18 +80,122 @@ image:
 
 ########################################################################################################################
 
-## @param replicaCount Define amount of parallel replicas to run
-replicaCount: 1
+## @param roleForInternalUse Define role for internal usage
+roleForInternalUse: aio
 
-autoscaling:
-  ## @param autoscaling.enabled Enable autoscaling
-  enabled: false
-  ## @param autoscaling.minReplicas Define minimum number of replicas to have running
-  minReplicas: 3
-  ## @param autoscaling.maxReplicas Define maximum number of replicas to have running
-  maxReplicas: 5
-  ## @param autoscaling.targetCPU Set CPU limit when to scale
-  targetCPU: 80
+roles:
+
+  aio:
+    ## @param roles.aio.enabled Enabled aio role
+    enabled: true
+    ## @param roles.aio.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.aio.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.aio.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.aio.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.aio.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.aio.appRoles Define application roles
+    appRoles: "master,controller,job-manager,converter,avconverter"
+    ## @param roles.aio.subpaths Define ingress subpaths
+    subpaths:
+      - "/admin"
+      - "/public"
+
+  master:
+    ## @param roles.master.enabled Enabled master role
+    enabled: false
+    ## @param roles.master.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.master.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.master.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.master.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.master.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.master.appRoles Define application roles
+    appRoles: "master"
+    ## @param roles.master.subpaths Define ingress subpaths
+    subpaths:
+      - "/admin"
+
+  controller:
+    ## @param roles.controller.enabled Enabled controller role
+    enabled: false
+    ## @param roles.controller.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.controller.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.controller.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.controller.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.controller.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.controller.appRoles Define application roles
+    appRoles: "controller"
+    ## @param roles.controller.subpaths Define ingress subpaths
+    subpaths:
+      - "/public"
+
+  jobmanager:
+    ## @param roles.jobmanager.enabled Enabled jobmanager role
+    enabled: false
+    ## @param roles.jobmanager.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.jobmanager.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.jobmanager.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.jobmanager.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.jobmanager.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.jobmanager.appRoles Define application roles
+    appRoles: "job-manager"
+
+  converter:
+    ## @param roles.converter.enabled Enabled converter role
+    enabled: false
+    ## @param roles.converter.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.converter.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.converter.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.converter.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.converter.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.converter.appRoles Define application roles
+    appRoles: "converter"
+
+  avconverter:
+    ## @param roles.avconverter.enabled Enabled avconverter role
+    enabled: false
+    ## @param roles.avconverter.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.avconverter.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.avconverter.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.avconverter.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.avconverter.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.avconverter.appRoles Define application roles
+    appRoles: "avconverter"
 
 ########################################################################################################################
 
@@ -340,9 +444,9 @@ config:
 
   session:
     cookie:
-      ## @param server.servlet.session.cookie.same-site Set session cookie same-site
+      ## @param config.session.cookie.samesite Set session cookie same-site
       samesite: none
-      ## @param server.servlet.session.cookie.secure Set session cookie secure
+      ## @param config.session.cookie.secure Set session cookie secure
       secure: true
     nodePermissionExpirationTime:
       ## @param config.session.nodePermissionExpirationTime.audio Set session nodePermissionExpirationTime for audio

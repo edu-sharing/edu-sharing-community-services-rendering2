@@ -1,15 +1,21 @@
-{{- if .Values.autoscaling.enabled }}
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{- if $roleCfg.enabled }}
+{{- if $roleCfg.autoscaling.enabled }}
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "edusharing_common_lib.names.name" . }}
-  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+  name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+  labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
+    role: {{ $roleName }}
 spec:
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ $roleCfg.autoscaling.minReplicas }}
+  maxReplicas: {{ $roleCfg.autoscaling.maxReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: StatefulSet
-    name: {{ include "edusharing_common_lib.names.name" . }}
-  targetCPUUtilizationPercentage: {{ .Values.autoscaling.targetCPU }}
+    name: {{ include "edusharing_common_lib.names.name" $ }}-{{ $roleName }}
+  targetCPUUtilizationPercentage: {{ $roleCfg.autoscaling.targetCPU }}
+---
+{{- end }}
+{{- end }}
 {{- end }}
