@@ -15,7 +15,7 @@ import java.io.InputStream
 @Service
 class AssetService(
     private val storageImplementation: StaticStorageService,
-    private val mapper: Mapper
+    private val mapper: Mapper,
 ) {
     private val defaultChunkSize = 2000000L
 

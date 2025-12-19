@@ -156,15 +156,9 @@
     </dependency>
 
     <dependency>
-      <groupId>io.minio</groupId>
-      <artifactId>minio</artifactId>
-      <version>8.5.12</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.minio</groupId>
-      <artifactId>minio-admin</artifactId>
-      <version>8.5.12</version>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>2.40.9</version>
     </dependency>
 
     <dependency>

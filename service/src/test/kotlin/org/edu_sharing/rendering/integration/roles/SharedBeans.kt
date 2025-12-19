@@ -41,9 +41,7 @@ import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.security.NodePermissionSessionContextRepository
 import org.edu_sharing.rendering.security.SecurityDisabledConfig
 import org.edu_sharing.rendering.security.jwt.JwtUtils
-import org.edu_sharing.rendering.storage.minio.MinioConfig
-import org.edu_sharing.rendering.storage.minio.MinioStorageService
-import org.edu_sharing.rendering.storage.minio.bucket.BucketPerMediaTypeStrategy
+import org.edu_sharing.rendering.storage.bucket.BucketPerMediaTypeStrategy
 import org.springframework.security.access.PermissionEvaluator
 import org.springframework.util.ClassUtils
 
@@ -77,8 +75,6 @@ abstract class SharedBeans {
             MainJobCreationService::class,
             Mapper::class,
             MetadataService::class,
-            MinioConfig::class,
-            MinioStorageService::class,
             ModuleRegistry::class,
             MongoConfig::class,
             MoodleRenderModule::class,

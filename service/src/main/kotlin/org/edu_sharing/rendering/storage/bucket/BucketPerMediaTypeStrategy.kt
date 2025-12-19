@@ -1,18 +1,17 @@
-package org.edu_sharing.rendering.storage.minio.bucket
+package org.edu_sharing.rendering.storage.bucket
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.springframework.stereotype.Component
 
 @Component
-@ConditionalOnStorageByCustomer
-class BucketPerCustomerStrategy : BaseBucketStrategy() {
-
+@ConditionalOnStorageByMediaType
+class BucketPerMediaTypeStrategy() : BaseBucketStrategy() {
     override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
-        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}"
+        return "${cacheObject.nodeId}/${cacheObject.hash}"
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return "rs2-${cacheObject.repoId}"
+        return "rs2-${cacheObject.type}"
     }
 
     override fun prefixStaticPath(
@@ -20,14 +19,14 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
         path: String
     ): String {
         val storagePath = getStoragePath(cacheObject, path)
-        return "/${cacheObject.repoId}/${storagePath.trimStart('/')}"
+        return "/${cacheObject.repoId}/${cacheObject.type}/${storagePath.trimStart('/')}"
     }
 
     override fun getCacheObjectFromStoragePath(
         bucket: String,
         storagePath: String
     ): CacheObject? {
-        val (type, nodeId, hash) = storagePath.trimStart('/').split("/", limit = 3)
-        return CacheObject.of(repoId = bucket, type = type, nodeId = nodeId, hash = hash)
+        val (nodeId, hash) = storagePath.trimStart('/').split("/", limit = 2)
+        return CacheObject.of(repoId = bucket, nodeId = nodeId, hash = hash, type = "")
     }
 }

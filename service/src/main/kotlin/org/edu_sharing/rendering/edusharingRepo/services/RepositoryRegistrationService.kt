@@ -4,7 +4,6 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClie
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
-import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
@@ -37,7 +36,6 @@ class RepositoryRegistrationService(
     private val appInfo: AppInfo,
     private val moduleRegistry: ModuleRegistry,
     private val metadataService: MetadataService,
-    private val encryptionService: EncryptionService
 ) : RepositoryPublicKeyService {
 
     fun getWebClientByRepoId(repoId: String): WebClient {
@@ -99,7 +97,8 @@ class RepositoryRegistrationService(
             url = request.url,
             publicKey = metadata.publicKey,
             domains = metadata.domain,
-            optionalModules = mutableListOf()
+            optionalModules = mutableListOf(),
+            quota = request.quota
         )
 
         if (force) {

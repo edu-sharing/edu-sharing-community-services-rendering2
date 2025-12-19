@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.edusharingRepo
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
+import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_INTERNAL_SERVER_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.security.InvalidKeyException
+import kotlin.math.abs
 
 @RestController
 @RequestMapping("/admin")
@@ -29,7 +31,8 @@ class AdminController(
     private val corsSyncService: CorsSyncService,
     private val storageService: StorageService,
     private val trackingEntryRepository: TrackingEntryRepository,
-    private val mapper: Mapper
+    private val mapper: Mapper,
+    private val trackingService: TrackingService,
 ) {
 
     @GetMapping("/repository/register")
@@ -105,6 +108,18 @@ class AdminController(
             }
         }
         return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/cache/usage")
+    fun getCacheUsage(@RequestParam repoId: String): CacheUsageInfo {
+        val (actualSize, buckets) = storageService.getUsedSpace(repoId)
+        val trackedSize = trackingService.getBucketAggregation().first {it.repoId == repoId}.totalSize
+        return CacheUsageInfo(
+            managedBuckets = buckets,
+            actualSize = actualSize,
+            trackedSize = trackedSize,
+            discrepancy = abs(actualSize - trackedSize)
+        )
     }
 
     private fun toRegistrationInfo(entity: RepositoryRegistration): RegistrationInfo {

@@ -2,10 +2,12 @@ package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
+import org.edu_sharing.rendering.utils.FluxInputStream
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Service
+import org.springframework.web.reactive.function.client.bodyToFlux
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
 import java.net.URLEncoder
@@ -15,7 +17,8 @@ import java.util.*
 class ContentTransferService(
     private val repoRegistrationService: RepositoryRegistrationService,
     private val encryptionService: EncryptionService,
-    @Qualifier("webApplicationContext") private val resourceLoader: ResourceLoader
+    @param:Qualifier("webApplicationContext")
+    private val resourceLoader: ResourceLoader
 ) {
     @Value("\${app.appId}")
     lateinit var appId: String
@@ -27,7 +30,9 @@ class ContentTransferService(
     fun getAsInputStream(cacheObject: CacheObject): InputStream {
         if(cacheObject.nodeId.startsWith(TEST_ID_PREFIX)) {
             val resourceName = cacheObject.nodeId.substring(TEST_ID_PREFIX.length)
-            return resourceLoader.getResource("classpath:$resourceName").inputStream
+            val resource = resourceLoader.getResource("classpath:$resourceName")
+            cacheObject.size = resource.contentLength()
+            return resource.inputStream
         }
 
         val timeStamp = System.currentTimeMillis()
@@ -50,12 +55,8 @@ class ContentTransferService(
                     .toUri()
                 uri
             }.retrieve()
-            .bodyToMono(ByteArray::class.java)
-            .block()
-        if (returnedData == null) {
-            throw Exception("Empty data returned")
-        }
+            .bodyToFlux<org.springframework.core.io.buffer.DataBuffer>()
 
-        return returnedData.inputStream()
+        return FluxInputStream.toInputStream(returnedData)
     }
 }

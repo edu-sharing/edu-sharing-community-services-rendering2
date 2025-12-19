@@ -45,7 +45,12 @@ class ImageConversionService (
                 "height" to targetHeight.toString(),
                 "width" to targetWidth.toString()
             )
-            storageImplementation.putObject(cacheObject, ByteArrayInputStream(byteArrayOutputStream.toByteArray()), metadata)
+            // Size known from conversion
+            storageImplementation.putObject(
+                cacheObject = cacheObject,
+                inputStream = ByteArrayInputStream(byteArrayOutputStream.toByteArray()),
+                metadata = metadata
+            )
         }
     }
 
