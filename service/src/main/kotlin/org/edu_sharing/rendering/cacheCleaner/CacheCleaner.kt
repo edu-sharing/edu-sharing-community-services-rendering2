@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnMaster
-class CacheCleaner (
+class CacheCleaner(
     private val storageService: StorageService,
     private val storageManagerRegistry: StorageManagerRegistry,
     @param:Value("\${app.cache.cleaner.threshold.lower}") private val lowerThreshold: Float,

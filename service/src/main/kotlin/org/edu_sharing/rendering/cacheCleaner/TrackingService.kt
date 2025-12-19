@@ -42,8 +42,19 @@ class TrackingService(
             currentIndex = 0
         }
 
-        fun hasNext(): Boolean {
-            return result?.hasNext() != false
+        override fun next() : TrackingEntry {
+            if(currentIndex >= result.content.size){
+                if(!result.hasNext()) {
+                    throw NoSuchElementException("No more elements in iterator.")
+                }
+                fetchNext()
+            }
+
+            return result.content[currentIndex++]
+        }
+
+        override fun hasNext(): Boolean {
+            return currentIndex < result.content.size || result.hasNext()
         }
     }
 
