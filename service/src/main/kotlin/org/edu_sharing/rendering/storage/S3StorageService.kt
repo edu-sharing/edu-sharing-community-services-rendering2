@@ -90,14 +90,11 @@ class S3StorageService(
         return Pair(objectLink, lastModified)
     }
 
-    override fun removeObject(cacheObject: CacheObject, isTemp: Boolean) {
-        val bucket = getBucket(isTemp, cacheObject)
-        val storagePath = getStoragePath(isTemp, cacheObject)
-
+    override fun removeTempObject(cacheObject: CacheObject) {
         s3Client.deleteObject(
             DeleteObjectRequest.builder()
-                .bucket(bucket)
-                .key(storagePath)
+                .bucket(TEMP_BUCKET)
+                .key(getTempPath(cacheObject))
                 .build()
         )
     }

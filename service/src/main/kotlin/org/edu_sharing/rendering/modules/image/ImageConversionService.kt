@@ -63,6 +63,6 @@ class ImageConversionService (
     }
 
     fun deleteTempFile(cacheObject: CacheObject) {
-        storageImplementation.removeObject(cacheObject, true)
+        storageImplementation.removeTempObject(cacheObject)
     }
 }

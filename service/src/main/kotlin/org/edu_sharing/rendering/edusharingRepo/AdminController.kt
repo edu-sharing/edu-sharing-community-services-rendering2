@@ -96,16 +96,15 @@ class AdminController(
                 throw EntryNotFoundException("No tracking entry found for repoId $repoId, nodeId $nodeId and hash $hash.")
             }
             val cacheObject = mapper.trackingEntryToCacheObject(entry)
-            storageService.removeObject(cacheObject)
+            storageService.removeObjects(listOf(cacheObject))
+            trackingEntryRepository.delete(entry)
         } else {
             val entries = trackingEntryRepository.findAllByRepoIdAndNodeId(repoId, nodeId)
             if (entries.isEmpty()) {
                 throw EntryNotFoundException("No tracking entries found for repoId $repoId, nodeId $nodeId.")
             }
-            entries.forEach {
-                val cacheObject = mapper.trackingEntryToCacheObject(it)
-                storageService.removeObject(cacheObject)
-            }
+            storageService.removeObjects(entries.map {mapper.trackingEntryToCacheObject(it)})
+            trackingEntryRepository.deleteAll(entries)
         }
         return ResponseEntity.noContent().build()
     }
