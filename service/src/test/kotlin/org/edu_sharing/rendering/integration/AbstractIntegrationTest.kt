@@ -56,8 +56,8 @@ abstract class AbstractIntegrationTest() {
             registry.add("spring.rabbitmq.port", rabbitMQContainer::getAmqpPort)
 
             // Redis
-            registry.add("app.redis.url", redisContainer::getHost)
-            registry.add("app.redis.port") { redisContainer.getMappedPort(6379) }
+            registry.add("spring.redis.standalone.host", redisContainer::getHost)
+            registry.add("spring.redis.standalone.port") { redisContainer.getMappedPort(6379) }
         }
     }
 }

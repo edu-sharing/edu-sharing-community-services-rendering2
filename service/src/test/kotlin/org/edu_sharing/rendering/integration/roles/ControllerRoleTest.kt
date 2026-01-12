@@ -4,15 +4,20 @@ import org.edu_sharing.rendering.asset.AssetController
 import org.edu_sharing.rendering.asset.AssetService
 import org.edu_sharing.rendering.core.RenderController
 import org.edu_sharing.rendering.core.RenderDataService
+import org.edu_sharing.rendering.edusharingRepo.EduTrackingController
+import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
+import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ModuleInfoController
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyController
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyService
 import org.edu_sharing.rendering.renderingJob.JobInfoController
 import org.edu_sharing.rendering.renderingJob.JobInfoService
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -22,12 +27,17 @@ import org.springframework.context.ApplicationContext
         "app.security.enabled=false"
     ]
 )
-class ControllerRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
+class ControllerRoleTest(
+    @param:Autowired val context: ApplicationContext
+): AbstractIntegrationTest() {
 
     companion object {
         private val roleSpecificBeans = setOf(
             AssetController::class,
             AssetService::class,
+            CorsAllowedOriginsReceiver::class,
+            CorsSyncService::class,
+            EduTrackingController::class,
             RenderController::class,
             RenderDataService::class,
             ModuleInfoController::class,
@@ -38,7 +48,6 @@ class ControllerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
         )
     }
 
-    /*
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -48,8 +57,15 @@ class ControllerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
         val expectedBeans = roleSpecificBeans
             .map { ClassUtils.getShortNameAsProperty(it.java) } union SharedBeans.all
 
-        assert(expectedBeans == allEdusharingBeans)
-    }
+        val beanMatch = allEdusharingBeans == expectedBeans
+        if (! beanMatch) {
+            val missingBeans = expectedBeans subtract allEdusharingBeans
+            val unexpectedBeans = allEdusharingBeans subtract expectedBeans
 
-     */
+            println("Missing beans (expected but not found): $missingBeans")
+            println("Unexpected beans (found but not expected): $unexpectedBeans")
+        }
+
+        assert(beanMatch)
+    }
 }

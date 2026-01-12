@@ -7,9 +7,11 @@ import org.edu_sharing.rendering.modules.av.AvFileHelperFactory
 import org.edu_sharing.rendering.modules.av.AvReceiver
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -19,7 +21,9 @@ import org.springframework.context.ApplicationContext
         "app.security.enabled=false"
     ]
 )
-class AvConverterRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
+class AvConverterRoleTest(
+    @param:Autowired val context: ApplicationContext
+): AbstractIntegrationTest() {
     companion object {
         private val roleSpecificClassBeans = setOf(
             AvConfig::class,
@@ -35,21 +39,26 @@ class AvConverterRoleTest(@Autowired val context: ApplicationContext): AbstractI
         )
     }
 
-    /*
     @Test
     fun testBeanConfiguration() {
 
         val roleSpecificBeans = roleSpecificClassBeans
-            .map {ClassUtils.getShortNameAsProperty(it.java)} union roleSpecificFunctionalBeans
+            .map { ClassUtils.getShortNameAsProperty(it.java)} union roleSpecificFunctionalBeans
 
         val allEdusharingBeans = context.beanDefinitionNames.filter {
             context.getBean(it).javaClass.packageName.startsWith("org.edu_sharing.rendering")
         }.toSet()
-
         val expectedBeans = roleSpecificBeans union SharedBeans.all
 
-        assert(expectedBeans == allEdusharingBeans)
-    }
+        val beanMatch = allEdusharingBeans == expectedBeans
+        if (! beanMatch) {
+            val missingBeans = expectedBeans subtract allEdusharingBeans
+            val unexpectedBeans = allEdusharingBeans subtract expectedBeans
 
-     */
+            println("Missing beans (expected but not found): $missingBeans")
+            println("Unexpected beans (found but not expected): $unexpectedBeans")
+        }
+
+        assert(beanMatch)
+    }
 }
