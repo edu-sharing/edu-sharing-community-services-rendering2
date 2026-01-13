@@ -1,8 +1,13 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.mockk
+import io.mockk.*
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 
 class DocumentServiceTest {
@@ -12,7 +17,7 @@ class DocumentServiceTest {
     private val module = mockk<DocumentRenderModule>()
     private lateinit var underTest: DocumentService
 
-   /* @BeforeEach
+    @BeforeEach
     fun setUp() {
         underTest = DocumentService(
             storageImplementation = storageService,
@@ -29,7 +34,7 @@ class DocumentServiceTest {
         lookupObject.mimeType = "image/jpeg"
 
         every { module.getTargetMimetype() } returns "image/jpeg"
-        every { storageService.getObjectLink(lookupObject) } returns objectLink
+        every { storageService.getObjectLink(lookupObject) } returns (objectLink to 12L)
 
         // Act
         val result = underTest.getObjectLinks(cacheObject, module)
@@ -81,5 +86,5 @@ class DocumentServiceTest {
 
         verify(exactly = 1) { mainJobCreationService.retrieveOrCreateJob(cacheObject, module) }
         confirmVerified(storageService, mainJobCreationService)
-    }*/
+    }
 }
