@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DataBufferUtils
 import reactor.core.publisher.Flux
+import reactor.core.scheduler.Schedulers
 import java.io.InputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
@@ -27,6 +28,7 @@ object FluxInputStream {
             .doOnError { e ->
                 log.error("Error while streaming data from repository", e)
             }
+            .publishOn(Schedulers.boundedElastic())
             .doFinally {
                 try {
                     outStream.close()

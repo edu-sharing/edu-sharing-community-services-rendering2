@@ -1,12 +1,21 @@
 package org.edu_sharing.rendering.modules.document
 
+import io.mockk.*
 import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.modules.ConverterWebServiceArguments
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -43,6 +52,7 @@ class DocumentConversionServiceTest {
     private val moduleRegistry = mockk<ModuleRegistry>()
     private val serviceCaller = mockk<ConverterWebServiceCaller>()
     private val spreadSheetRenderModule: SpreadsheetRenderModule = mockk()
+    private val storageService = mockk<StorageService>()
 
     // Helper
     private val jobDataProvider = JobDataProvider()
@@ -50,7 +60,7 @@ class DocumentConversionServiceTest {
     // Class under test
     private lateinit var underTest: DocumentConversionService
 
-   /* @AfterEach
+    @AfterEach
     fun teardown() {
         clearAllMocks()
     }
@@ -62,26 +72,27 @@ class DocumentConversionServiceTest {
             moduleRegistry = moduleRegistry,
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
-            spreadsheetRenderModule = spreadSheetRenderModule
+            spreadsheetRenderModule = spreadSheetRenderModule,
+            storageService = storageService
         )
         // Arrange
         val job = mockk<RenderingJob>()
         val subId = ObjectId().toString()
         val subJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
         val processingSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.PROCESSING,
+            status = SubJobStatus.PROCESSING,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
         val finishedSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.FINISHED,
+            status = SubJobStatus.FINISHED,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
@@ -97,6 +108,7 @@ class DocumentConversionServiceTest {
         every { spreadSheetRenderModule.module() } returns "SPREADSHEET"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
+        justRun { storageService.removeObject(cacheObject = dummyCacheObjectWord, true) }
 
         excludeRecords {
             job.subJobs
@@ -121,6 +133,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
+            storageService.removeObject(cacheObject = dummyCacheObjectWord, true)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -132,26 +145,27 @@ class DocumentConversionServiceTest {
             moduleRegistry = moduleRegistry,
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
-            spreadsheetRenderModule = null
+            spreadsheetRenderModule = null,
+            storageService = storageService
         )
         // Arrange
         val job = mockk<RenderingJob>()
         val subId = ObjectId().toString()
         val subJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
         val processingSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.PROCESSING,
+            status = SubJobStatus.PROCESSING,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
         val finishedSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.FINISHED,
+            status = SubJobStatus.FINISHED,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
@@ -166,6 +180,7 @@ class DocumentConversionServiceTest {
         every { module.getTargetMimetype() } returns "application/pdf"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
+        justRun { storageService.removeObject(cacheObject = dummyCacheObjectWord, true) }
 
         excludeRecords {
             job.subJobs
@@ -189,6 +204,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
+            storageService.removeObject(cacheObject = dummyCacheObjectWord, true)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -200,26 +216,27 @@ class DocumentConversionServiceTest {
             moduleRegistry = moduleRegistry,
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
-            spreadsheetRenderModule = null
+            spreadsheetRenderModule = null,
+            storageService = storageService
         )
         // Arrange
         val job = mockk<RenderingJob>()
         val subId = ObjectId().toString()
         val subJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
         val processingSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.PROCESSING,
+            status = SubJobStatus.PROCESSING,
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
         val finishedSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.FINISHED,
+            status = SubJobStatus.FINISHED,
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
@@ -234,6 +251,7 @@ class DocumentConversionServiceTest {
         every { module.getTargetMimetype() } returns "application/pdf"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
+        justRun { storageService.removeObject(cacheObject = dummyCacheObjectExcel, true) }
 
         excludeRecords {
             job.subJobs
@@ -257,6 +275,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
+            storageService.removeObject(cacheObject = dummyCacheObjectExcel, true)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -268,26 +287,27 @@ class DocumentConversionServiceTest {
             moduleRegistry = moduleRegistry,
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
-            spreadsheetRenderModule = spreadSheetRenderModule
+            spreadsheetRenderModule = spreadSheetRenderModule,
+            storageService = storageService
         )
         // Arrange
         val job = mockk<RenderingJob>()
         val subId = ObjectId().toString()
         val subJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
         val processingSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.PROCESSING,
+            status = SubJobStatus.PROCESSING,
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
         val finishedSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.FINISHED,
+            status = SubJobStatus.FINISHED,
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
@@ -303,6 +323,7 @@ class DocumentConversionServiceTest {
         every { spreadSheetRenderModule.module() } returns "SPREADSHEET"
         every { moduleRegistry.getRenderModule<RenderModule>("SPREADSHEET") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
+        justRun { storageService.removeObject(cacheObject = dummyCacheObjectExcel, true) }
 
         excludeRecords {
             job.subJobs
@@ -327,6 +348,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("SPREADSHEET")
             serviceCaller.callConverterService(capture(argumentSlot))
+            storageService.removeObject(cacheObject = dummyCacheObjectExcel, true)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -338,30 +360,32 @@ class DocumentConversionServiceTest {
             moduleRegistry = moduleRegistry,
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
-            spreadsheetRenderModule = spreadSheetRenderModule
+            spreadsheetRenderModule = spreadSheetRenderModule,
+            storageService = storageService
         )
         // Arrange
         val job = mockk<RenderingJob>()
         val subId = ObjectId().toString()
         val subJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.QUEUED,
+            status = SubJobStatus.QUEUED,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
         val processingSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.PROCESSING,
+            status = SubJobStatus.PROCESSING,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
         val failedSubJob = jobDataProvider.getDummySubJob(
             subId = subId,
-            status = JobStatus.FAILED,
+            status = SubJobStatus.FAILED,
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
-        failedSubJob.message = PUBLIC_FAILURE_MESSAGE
+
+        failedSubJob.errorMessage = GENERIC_CONVERSION_ERROR
         val module = mockk<DocumentRenderModule>()
 
         every { job.subJobs } returns mutableListOf(subJob)
@@ -373,6 +397,7 @@ class DocumentConversionServiceTest {
         every { module.getTargetMimetype() } returns "application/pdf"
         every { spreadSheetRenderModule.module() } returns "SPREADSHEET"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
+        every { storageService.removeObject(cacheObject = dummyCacheObjectWithNonsenseMimeType, true) } returns Unit
 
         excludeRecords {
             job.subJobs
@@ -391,7 +416,8 @@ class DocumentConversionServiceTest {
         verifySequence {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
+            storageService.removeObject(cacheObject = dummyCacheObjectWithNonsenseMimeType, true)
             subJobRepository.save(failedSubJob)
         }
-    }*/
+    }
 }
