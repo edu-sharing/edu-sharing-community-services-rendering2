@@ -1,10 +1,20 @@
 package org.edu_sharing.rendering.modules.document
 
-import io.mockk.mockk
+import io.mockk.*
+import org.bson.types.ObjectId
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.dto.ObjectLink
+import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
+import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.junit.jupiter.api.Test
 import org.springframework.amqp.core.AmqpTemplate
+import org.springframework.http.MediaType
 
 class DocumentRenderModuleTest {
 
@@ -28,40 +38,39 @@ class DocumentRenderModuleTest {
         repoId = "repo123"
     )
 
-    /*@Test
+    @Test
     fun testHandleReturnsLinksToCachedObjectsIfAlreadyCached() {
         // Arrange
-        val mockRenderDataRequest = mockk<RenderDataRequest>()
+        val mockNode = mockk<Node>()
         val linkList = listOf(ObjectLink(link = "mylink"))
 
-        every { mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest) } returns cacheObject
-        every { mockDocumentService.getObjectLinks(cacheObject, underTest) } returns linkList
+        every {mockMapper.nodeToCacheObject(mockNode)} returns cacheObject
+        every {mockDocumentService.getObjectLinks(cacheObject, underTest)} returns linkList
 
         // Act
-        val result = underTest.handle(mockRenderDataRequest)
+        val result = underTest.handle(mockNode, mockk<RequestUserData>())
 
-        // Assert
+        assert(result.objectLinks?.get(0)?.link == "mylink")
         assert(result.module == "DOCUMENT")
         assert(result.jobId == null)
-        assert(result.objectLinks == linkList)
 
         verifySequence {
-            mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest)
+            mockMapper.nodeToCacheObject(mockNode)
             mockDocumentService.getObjectLinks(cacheObject, underTest)
         }
     }
 
+
     @Test
     fun testHandleReturnsCreatedJobIdIfCreated() {
         // Arrange
-        val mockRenderDataRequest = mockk<RenderDataRequest>()
-
-        every { mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest) } returns cacheObject
+        val mockNode = mockk<Node>()
+        every { mockMapper.nodeToCacheObject(mockNode) } returns cacheObject
         every { mockDocumentService.getObjectLinks(cacheObject, underTest) } returns null
         every { mockDocumentService.retrieveOrCreateJob(cacheObject, underTest) } returns "newJob123"
 
         // Act
-        val result = underTest.handle(mockRenderDataRequest)
+        val result = underTest.handle(mockNode, mockk<RequestUserData>())
 
         // Assert
         assert(result.module == "DOCUMENT")
@@ -69,11 +78,12 @@ class DocumentRenderModuleTest {
         assert(result.objectLinks == null)
 
         verifySequence {
-            mockMapper.renderDataRequestToCacheObject(mockRenderDataRequest)
+            mockMapper.nodeToCacheObject(mockNode)
             mockDocumentService.getObjectLinks(cacheObject, underTest)
             mockDocumentService.retrieveOrCreateJob(cacheObject, underTest)
         }
     }
+
 
     @Test
     fun testGetObjectLinkFromJobDataReturnsObjectLinkReturnedFromService() {
@@ -130,30 +140,33 @@ class DocumentRenderModuleTest {
     }
 
     @Test
-    fun testCreateJobCreatesAndEnqueuesProperJob() {
+    fun testCreateConversionSubJobsSetsCorrectSubJobs() {
         // Arrange
-        underTest.topicExchangeName = "myExchange"
-        underTest.documentRoutingKey = "myRoutingKey"
-        val subJobSlot = slot<SubJob>()
+        underTest.documentRoutingKey = "documentRoutingKey"
+        underTest.topicExchangeName = "topicExchangeName"
+        val mockRenderingJob = mockk<RenderingJob>()
+        val mockRenderingJobMessage = mockk<RenderingJobMessage>()
+        val documentSubJobSlot = slot<SubJob>()
         val messageSlot = slot<SubJobMessage>()
-        val renderingJob = mockk<RenderingJob>()
-        val message = mockk<RenderingJobMessage>()
         val jobId = ObjectId()
 
-        every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
-        every { renderingJob.subJobs } returns ArrayList()
-        every { renderingJob.id } returns jobId
-        justRun { amqpTemplate.convertAndSend("myExchange", "myRoutingKey", capture(messageSlot)) }
+        every { mockRenderingJob.subJobs } returns mutableListOf()
+        every { subJobRepository.save(capture(documentSubJobSlot)) } returns mockk<SubJob>()
+        every { mockRenderingJob.id } returns jobId
+        justRun { amqpTemplate.convertAndSend("topicExchangeName", "documentRoutingKey", capture(messageSlot)) }
+        every { mockRenderingJobMessage.id } returns "jobId123"
 
         // Act
-        underTest.createConversionSubJobs(renderingJob, message)
+        underTest.createConversionSubJobs(mockRenderingJob, mockRenderingJobMessage)
 
         // Assert
-        assert(subJobSlot.isCaptured)
-        assert(subJobSlot.captured.routingKey == "myRoutingKey")
-        assert(subJobSlot.captured.parent == renderingJob)
-        assert(messageSlot.isCaptured)
+        verifySequence {
+            subJobRepository.save(capture(documentSubJobSlot))
+            amqpTemplate.convertAndSend("topicExchangeName", "documentRoutingKey", capture(messageSlot))
+        }
+
+        assert(documentSubJobSlot.captured.parent == mockRenderingJob)
+        assert(documentSubJobSlot.captured.routingKey == "documentRoutingKey")
         assert(messageSlot.captured.id == jobId.toString())
-    }*/
+    }
 }
-       
