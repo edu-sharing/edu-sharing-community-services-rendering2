@@ -190,17 +190,17 @@
             <artifactId>logging-interceptor</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.12</version>
-        </dependency>
+    <dependency>
+      <groupId>io.minio</groupId>
+      <artifactId>minio</artifactId>
+      <version>8.6.0</version>
+    </dependency>
 
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio-admin</artifactId>
-            <version>8.5.12</version>
-        </dependency>
+    <dependency>
+      <groupId>io.minio</groupId>
+      <artifactId>minio-admin</artifactId>
+      <version>8.6.0</version>
+    </dependency>
 
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
