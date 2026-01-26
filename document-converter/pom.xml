@@ -26,14 +26,48 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <jodconverter.version>4.4.7</jodconverter.version>
+    <spring-boot.version>3.4.5</spring-boot.version>
+    <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <!-- Override Kotlin deps because of spring boot dependencies imports older one -->
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-js</artifactId>
+        <version>${kotlin.version}</version>
+        <type>klib</type>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-common</artifactId>
+        <version>${kotlin.version}</version>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-test-js</artifactId>
+        <version>${kotlin.version}</version>
+        <type>klib</type>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-test-common</artifactId>
+        <version>${kotlin.version}</version>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-test-annotations-common</artifactId>
+        <version>${kotlin.version}</version>
+        <type>pom</type>
+      </dependency>
+
       <dependency>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.5</version>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -295,6 +329,7 @@
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
           <executions>
             <execution>
               <id>repackage</id>
@@ -328,7 +363,7 @@
             <dependency>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-maven-plugin</artifactId>
-              <version>3.2.3</version>
+              <version>${spring-boot.version}</version>
             </dependency>
           </dependencies>
           <executions>
