@@ -54,7 +54,6 @@
       8.2.0
     </docker.edu_sharing.community.common.redis-cluster.tag>
 
-
     <docker.edu_sharing.community.common.minio.name>
       edu_sharing-community-common-docker-minio
     </docker.edu_sharing.community.common.minio.name>
@@ -62,6 +61,14 @@
     <docker.edu_sharing.community.common.minio.tag>
       2025.7.23
     </docker.edu_sharing.community.common.minio.tag>
+
+    <docker.edu_sharing.community.common.rustfs.name>
+      edu_sharing-community-common-docker-rustfs
+    </docker.edu_sharing.community.common.rustfs.name>
+
+    <docker.edu_sharing.community.common.rustfs.tag>
+      1.0.0-alpha.82
+    </docker.edu_sharing.community.common.rustfs.tag>
 
     <docker.edu_sharing.community.common.rabbitmq.name>
       edu_sharing-community-common-docker-rabbitmq
