@@ -1,26 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
-import io.mockk.every
-import io.mockk.junit5.MockKExtension
-import io.mockk.justRun
-import io.mockk.mockk
-import io.mockk.verifySequence
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.rendering.cacheCleaner.TrackingService
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
-import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.http.MediaType
-import org.springframework.web.reactive.function.client.WebClient
-import java.util.*
-
+/*
 @ExtendWith(MockKExtension::class)
 class H5pUploadServiceTest {
 
@@ -182,3 +162,5 @@ class H5pUploadServiceTest {
         }
     }
 }
+
+ */

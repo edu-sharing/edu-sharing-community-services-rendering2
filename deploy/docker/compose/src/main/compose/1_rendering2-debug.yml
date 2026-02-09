@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
 
-  rendering2-blob-storage:
+  rendering2-rustfs-storage:
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT:-9101}:9000"
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT:-9102}:9001"

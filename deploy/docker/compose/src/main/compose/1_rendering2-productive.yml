@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  rendering2-blob-storage:
+  rendering2-rustfs-storage:
     restart: unless-stopped
 
   rendering2-message-queue:

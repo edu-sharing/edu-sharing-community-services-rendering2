@@ -20,5 +20,6 @@ data class RepositoryRegistration(
     val module: MutableMap<String, ModuleSettings> = mutableMapOf(),
     var allowedOrigins: MutableSet<String> = mutableSetOf(),
     var allowedOriginPatterns: MutableSet<String>? = mutableSetOf(),
-    var lastAllowedOriginSync: Long = 0
+    var lastAllowedOriginSync: Long = 0,
+    var quota: Long = 0,
 )

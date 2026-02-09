@@ -48,6 +48,35 @@ export default async function createH5PEditor(
     })
     log.info("Initiated S3 client.")
 
+    const ensureBucketExists = async (bucketName: string): Promise<void> => {
+        try {
+            await s3.headBucket({ Bucket: bucketName });
+            log.info(`Bucket ${bucketName} already exists.`);
+        } catch (error: any) {
+            if (error.$metadata?.httpStatusCode === 404 || error.name === 'NotFound') {
+                log.info(`Bucket ${bucketName} not found. Creating...`);
+                try {
+                    await s3.createBucket({ Bucket: bucketName });
+                    log.info(`Bucket ${bucketName} did not exist and was created successfully.`);
+                } catch (createError: any) {
+                    if (createError.name !== 'BucketAlreadyOwnedByYou' && createError.name !== 'BucketAlreadyExists') {
+                        throw createError;
+                    }
+                }
+            } else {
+                log.error(`Error checking bucket ${bucketName}:`, error);
+                throw error;
+            }
+        }
+    };
+
+    await Promise.all([
+        ensureBucketExists(process.env.LIBRARY_AWS_S3_BUCKET),
+        ensureBucketExists(process.env.CONTENT_AWS_S3_BUCKET),
+        ensureBucketExists(process.env.TEMPORARY_AWS_S3_BUCKET)
+    ]);
+
+
     // Init library storage. We use mongo library storage.
     const libraryStorageOptions = {
         s3Bucket: process.env.LIBRARY_AWS_S3_BUCKET,

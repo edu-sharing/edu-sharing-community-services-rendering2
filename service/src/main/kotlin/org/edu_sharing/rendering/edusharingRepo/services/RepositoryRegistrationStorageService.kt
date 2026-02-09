@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
-import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RepositoryRegistrationRepository
@@ -15,7 +14,6 @@ import java.util.*
 class RepositoryRegistrationStorageService(
     private val repoRegistrationRepository: RepositoryRegistrationRepository,
     private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
-    private val encryptionService: EncryptionService,
     @Value("\${app.security.enabled}")
     private val securityEnabled: Boolean
 ) {
@@ -34,6 +32,7 @@ class RepositoryRegistrationStorageService(
                 publicKey = UUID.randomUUID().toString(),
                 optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
                 module = localConfig?.module?.toMutableMap() ?: mutableMapOf(),
+                quota = localConfig?.quota ?: 0L
             )
             return Optional.of<RepositoryRegistration>(registration)
         }

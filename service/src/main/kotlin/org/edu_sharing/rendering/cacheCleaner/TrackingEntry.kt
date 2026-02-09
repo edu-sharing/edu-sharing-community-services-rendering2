@@ -4,29 +4,35 @@ import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.CompoundIndexes
-import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import java.util.*
 
 @Document("Tracking")
 @CompoundIndexes(
-    CompoundIndex(name="bucket_repo_id_node_id_hash_idx", def="{'repoId': 1, 'nodeId': 1, 'hash': 1, 'bucket': 1}", unique = true),
-    CompoundIndex(name="bucket_access_idx", def="{'bucket': 1, 'lastAccessed': 1}"),
-    CompoundIndex(name="repo_node_idx", def="{'repoId': 1, 'nodeId': 1}"),
-    CompoundIndex(name="repo_node_hash_idx", def="{'repoId': 1, 'nodeId': 1, 'hash': 1}", unique = true)
+    // Covers:
+    // 1. findByRepoIdAndNodeIdAndHashAndBucket
+    // 2. findByRepoIdAndNodeIdAndHash
+    // 3. findAllByRepoIdAndNodeId
+    // 4. findAllByRepoId
+    CompoundIndex(name="repo_node_hash_bucket_idx", def="{'repoId': 1, 'nodeId': 1, 'hash': 1, 'bucket': 1}", unique = true),
+    
+    // Optimized for CacheCleaner:
+    // Covers: findAllByRepoId sorted by lastAccessed
+    CompoundIndex(name="repo_lastAccessed_idx", def="{'repoId': 1, 'lastAccessed': 1}"),
+
+    // Covers: findAllByBucket
+    // Also covers queries filtering by bucket and lastAccessed
+    CompoundIndex(name="bucket_lastAccessed_idx", def="{'bucket': 1, 'lastAccessed': 1}")
 )
 data class TrackingEntry(
     @Id
     val id: ObjectId = ObjectId(),
-
-    // StoragePath
     val repoId: String,
     val nodeId: String,
     val hash: String,
     val type: String,
     val bucket: String,
-
-    @Indexed
+    var binarySize: Long,
     var lastAccessed: Date = Date(),
 
     ){
@@ -35,13 +41,14 @@ data class TrackingEntry(
             return trackingEntry.copy(lastAccessed = Date())
         }
 
-        fun of(repoId: String, nodeId: String, hash: String, type: String, bucket: String): TrackingEntry{
+        fun of(repoId: String, nodeId: String, hash: String, type: String, bucket: String, binarySize: Long): TrackingEntry{
             return TrackingEntry(
                 repoId = repoId,
                 nodeId = nodeId,
                 hash = hash,
                 bucket = bucket,
                 type = type,
+                binarySize = binarySize,
                 lastAccessed = Date()
             )
         }

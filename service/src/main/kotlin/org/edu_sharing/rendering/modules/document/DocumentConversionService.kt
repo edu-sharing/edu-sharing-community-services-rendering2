@@ -44,7 +44,7 @@ class DocumentConversionService(
             subJob.status = SubJobStatus.FAILED
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
         } finally {
-            storageService.removeObject(cacheObject = cacheObject, isTemp =  true)
+            storageService.removeTempObject(cacheObject = cacheObject)
         }
         subJobRepository.save(subJob)
     }

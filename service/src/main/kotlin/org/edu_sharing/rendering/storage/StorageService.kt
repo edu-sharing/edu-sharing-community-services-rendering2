@@ -8,13 +8,16 @@ import java.io.InputStream
 interface StorageService {
     fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String> = emptyMap())
     fun getObjectLink(cacheObject: CacheObject): Pair<ObjectLink, Long>
-    fun removeObject(cacheObject: CacheObject, isTemp: Boolean = false)
+    fun removeTempObject(cacheObject: CacheObject)
+    fun removeObjects(cacheObjects: List<CacheObject>, isTemp: Boolean = false)
     fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): InputStream
     fun getObjectChunkStream(cacheObject: CacheObject, length: Long, offset: Long, isTemp: Boolean = false): InputStream
     fun putTempFile(cacheObject: CacheObject, inputStream: InputStream)
     fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails
     fun getStorageInfo(): List<StorageInfo>
-    fun freeStorage(storageInfo: StorageInfo, lowerThreshold: Float)
     fun objectExists(cacheObject: CacheObject): Boolean
     fun isStoringByRepoId(): Boolean
+    fun getDirectorySize(bucket: String, directory: String): Long
+    fun getUsedSpace(repoId: String): Pair<Long, List<String>>
+    fun getBuckets(): List<String>
 }

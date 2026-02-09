@@ -17,7 +17,8 @@ class RepositoryRegistrationConfig {
                     RegisterRepositoryRequest(
                         url = it.value.url,
                         username = it.value.username,
-                        password = it.value.password
+                        password = it.value.password,
+                        quota = it.value.quota,
                     ),
                     it.value.optionalModules,
                     it.value.module

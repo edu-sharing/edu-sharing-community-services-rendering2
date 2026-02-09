@@ -2,26 +2,19 @@ version: '3.8'
 
 services:
 
-  minio:
-    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-minio:2024.11.7
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs-server
     ports:
-      - "9101:9000"
-      - "9111:9001"
+      - "9101:9000"   # S3 API endpoint
+      - "9111:9001"   # Web console
     environment:
-      MINIO_ROOT_USER: "rendering2"
-      MINIO_ROOT_PASSWORD: "rendering2"
-      MINIO_DEFAULT_BUCKETS: lumi-contentbucket,lumi-tempbucket,lumi-libbucket
-
-      MINIO_NOTIFY_AMQP_ENABLE_minio-object-deleted: "on"
-      MINIO_NOTIFY_AMQP_URL_minio-object-deleted: "amqp://rendering:rendering@rabbitmq:5672"
-      MINIO_NOTIFY_AMQP_EXCHANGE_minio-object-deleted: "minio-events"
-      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_minio-object-deleted: "topic"
-      MINIO_NOTIFY_AMQP_ROUTING_KEY_minio-object-deleted: "file.deleted"
-      MINIO_NOTIFY_AMQP_DURABLE_minio-object-deleted: "on" # "off"
-      MINIO_NOTIFY_AMQP_DELIVERY_MODE_minio-object-deleted: "2" # "1"
-
-#    volumes:
-#      - "minio-data-volume:/bitnami/minio/data"
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_ACCESS_KEY=rendering2
+      - RUSTFS_SECRET_KEY=rendering2
+    command: [ "rustfs" ]
 
   repository-cache:
     image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:6.2.7
@@ -77,11 +70,12 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: rendering2
       AWS_SECRET_ACCESS_KEY: rendering2
-      MINIO_HOST: minio
+      MINIO_HOST: rustfs
       MINIO_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
       MONGODB_HOST: mongo
       MONGODB_PORT: 27017
+      MONGODB_URL: mongodb://lumi:lumi@mongo:27017/lumi
       MONGODB_AUTH_DB: "lumi"
       MONGODB_DB: "lumi"
       MONGODB_USER: "lumi"

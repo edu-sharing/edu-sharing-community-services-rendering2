@@ -58,7 +58,7 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            requestUserData = mockk<RequestUserData>(),
+            userData = mockk<RequestUserData>(),
         )
 
         // Assert
@@ -89,7 +89,7 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            requestUserData = mockk()
+            userData = mockk()
         )
 
         // Assert
@@ -123,7 +123,7 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            requestUserData = mockk(),
+            userData = mockk(),
         )
 
         // Assert
@@ -156,7 +156,7 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            requestUserData = mockk(),
+            userData = mockk(),
         )
 
         // Assert
@@ -189,7 +189,7 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            requestUserData = mockk(),
+            userData = mockk(),
         )
 
         // Assert

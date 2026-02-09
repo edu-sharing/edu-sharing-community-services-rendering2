@@ -9,5 +9,6 @@ data class RegisterRepositoryRequest(
     val username: String,
     @NotNull
     val password: String,
+    val quota: Long = 0
 )
 
