@@ -2,26 +2,23 @@ version: '3.7'
 
 services:
 
-  rendering2-blob-storage:
-    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.minio.name}:${docker.edu_sharing.community.common.minio.tag}"
+  rendering2-rustfs-storage:
+    image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.rustfs.name}:${docker.edu_sharing.community.common.rustfs.tag}"
     environment:
-      MINIO_ROOT_USER: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
-      MINIO_ROOT_PASSWORD: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
-      MINIO_DEFAULT_BUCKETS: lumi-contentbucket,lumi-tempbucket,lumi-libbucket
-      MINIO_NOTIFY_AMQP_ENABLE_minio-object-deleted: on
-      MINIO_NOTIFY_AMQP_URL_minio-object-deleted: "amqp://${RENDERING2_MESSAGE_QUEUE_USER:-rendering}:${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}@rendering2-message-queue:5672"
-      MINIO_NOTIFY_AMQP_EXCHANGE_minio-object-deleted: minio-events
-      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_minio-object-deleted: topic
-      MINIO_NOTIFY_AMQP_ROUTING_KEY_minio-object-deleted: file.deleted
-      MINIO_NOTIFY_AMQP_DURABLE_minio-object-deleted: on
-      MINIO_NOTIFY_AMQP_DELIVERY_MODE_minio-object-deleted: 2
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ENABLE: true
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_ACCESS_KEY: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
+      RUSTFS_SECRET_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
+      RUST_BACKTRACE: full
+    command: [ "rustfs" ]
     volumes:
-      - "rendering2-blob-storage-volume-data:/bitnami/minio/data"
+      - "rendering2-rustfs-storage-volume-data:/data"
     expose:
       - 9000
       - 9001
     ports:
-      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_BLOB_STORAGE_PORT_HTTP:-10201}:9001"
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_RUSTFS_STORAGE_PORT_HTTP:-10201}:9001"
 
   rendering2-message-queue:
     image: "${docker.registry}/${docker.common}/${docker.edu_sharing.community.common.rabbitmq.name}:${docker.edu_sharing.community.common.rabbitmq.tag}"
@@ -55,8 +52,8 @@ services:
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
     environment:
-      MINIO_HOST: rendering2-blob-storage
-      MINIO_PORT: 9000
+      S3_HOST: rendering2-rustfs-storage
+      S3_PORT: 9000
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
       REDIS_HOST: redis-cache
@@ -101,8 +98,10 @@ services:
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-PT1H}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
-      app.minio.user: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
-      app.minio.password: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
+      app.s3.accessKeyId: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
+      app.s3.secretAccessKey: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
+      app.s3.region: eu-central-1
+      app.s3.protocol: http
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -148,12 +147,13 @@ services:
   rendering2-lumi:
     image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
     environment:
-      AWS_ACCESS_KEY_ID: "${RENDERING2_BLOB_STORAGE_USER:-rendering2}"
-      AWS_SECRET_ACCESS_KEY: "${RENDERING2_BLOB_STORAGE_PASSWORD:-rendering2}"
+      AWS_ACCESS_KEY_ID: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
+      AWS_SECRET_ACCESS_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
       AWS_S3_MAX_FILE_LENGTH: "${RENDERING2_LUMI_MAX_FILE_SIZE:-1000}"
-      AWS_S3_ENDPOINT: http://rendering2-blob-storage:9000
-      MINIO_HOST: rendering2-blob-storage
-      MINIO_PORT: 9000
+      AWS_REGION: eu-central-1
+      AWS_S3_ENDPOINT: http://rendering2-rustfs-storage:9000
+      S3_HOST: rendering2-rustfs-storage
+      S3_PORT: 9000
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
       MONGODB_URL: "mongodb://${RENDERING2_LUMI_DATABASE_USER:-lumi}:${RENDERING2_LUMI_DATABASE_PASS:-lumi}@mongo-database:27017/${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
@@ -172,4 +172,4 @@ services:
       - "3000"
 
 volumes:
-  rendering2-blob-storage-volume-data:
+  rendering2-rustfs-storage-volume-data:

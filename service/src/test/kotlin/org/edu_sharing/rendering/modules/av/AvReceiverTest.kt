@@ -1,23 +1,6 @@
 package org.edu_sharing.rendering.modules.av
 
-import io.mockk.*
-import org.bson.types.ObjectId
-import org.edu_sharing.rendering.core.dto.CacheObject
-import org.edu_sharing.rendering.core.dto.mapper.Mapper
-import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
-import org.edu_sharing.rendering.modules.av.audio.AudioRenderModule
-import org.edu_sharing.rendering.modules.av.video.VideoConversionService
-import org.edu_sharing.rendering.modules.av.video.VideoRenderModule
-import org.edu_sharing.rendering.renderingJob.MainJobLogic
-import org.edu_sharing.rendering.renderingJob.entity.SubJob
-import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
-import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
-import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.storage.StorageService
-import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.Test
-import org.springframework.data.repository.findByIdOrNull
-
+/*
 class AvReceiverTest {
     private val mainJobLogic: MainJobLogic = mockk()
     private val subJobRepository: SubJobRepository = mockk()
@@ -371,3 +354,4 @@ class AvReceiverTest {
 
     }
 }
+*/

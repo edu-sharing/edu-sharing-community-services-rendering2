@@ -5,8 +5,8 @@ set -eu
 mongodb_host=${MONGODB_HOST:?Error: MONGODB_HOST environment variable is not set}
 mongodb_port=${MONGODB_PORT:?Error: MONGODB_PORT environment variable is not set}
 
-minio_host=${MINIO_HOST:?Error: MINIO_HOST environment variable is not set}
-minio_port=${MINIO_PORT:?Error: MINIO_PORT environment variable is not set}
+s3_host=${S3_HOST:?Error: S3_HOST environment variable is not set}
+s3_port=${S3_PORT:?Error: S3_PORT environment variable is not set}
 
 rabbitmq_host=${RABBITMQ_HOST:?Error: RABBITMQ_HOST environment variable is not set}
 rabbitmq_port=${RABBITMQ_PORT:?Error: RABBITMQ_PORT environment variable is not set}
@@ -21,8 +21,8 @@ until nc -z "${mongodb_host}" "${mongodb_port}"; do
 done
 
 # Wait for MinIO to be ready
-until nc -z "${minio_host}" "${minio_port}"; do
-  echo "Waiting for ${minio_host}:${minio_port}..."
+until nc -z "${s3_host}" "${s3_port}"; do
+  echo "Waiting for ${s3_host}:${s3_port}..."
   sleep 2
 done
 
