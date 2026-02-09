@@ -5,8 +5,11 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.storage.StaticStorageService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.net.URLConnection
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -17,21 +20,32 @@ class EduHtmlConversionService(
     private val contentTransferService: ContentTransferService,
     private val storageImplementation: StaticStorageService
 ) {
+    private val log = LoggerFactory.getLogger(this.javaClass)
+
     fun cacheData(cacheObject: CacheObject) {
-        val inputStream = contentTransferService.getAsInputStream(cacheObject)
-        inputStream.mark(0)
-        inputStream.use {
-            val zipRoot = getZipRootPath(ZipInputStream(it))
-            inputStream.reset()
-            unzipArchive(cacheObject, ZipInputStream(it), zipRoot)
+        val tempZip = Files.createTempFile("eduhtml-", ".zip")
+
+        try {
+            contentTransferService.getAsInputStream(cacheObject).use { input ->
+                Files.copy(input, tempZip, StandardCopyOption.REPLACE_EXISTING)
+            }
+
+            val zipRoot = Files.newInputStream(tempZip).use { firstPass ->
+                getZipRootPath(ZipInputStream(firstPass))
+            }
+
+            Files.newInputStream(tempZip).use { secondPass ->
+                unzipArchive(cacheObject, ZipInputStream(secondPass), zipRoot)
+            }
+        } finally {
+            try {
+                Files.deleteIfExists(tempZip)
+            } catch (_: Exception) {
+                log.warn("Could not delete temporary zip file: ${tempZip.toAbsolutePath()}")
+            }
         }
     }
 
-    /**
-     * Function unzipArchive
-     *
-     * Unzips all files and folders below the provided root path to blob storage
-     */
     private fun unzipArchive(cacheObject: CacheObject, zipInputStream: ZipInputStream, zipRoot: String) {
         var currentEntry: ZipEntry? = zipInputStream.nextEntry
         while (currentEntry != null) {
@@ -40,17 +54,16 @@ class EduHtmlConversionService(
                     .copy(mimeType = URLConnection.guessContentTypeFromName(currentEntry.name))
                 extractedCacheObject.size = -1
 
-                storageImplementation.putObject(extractedCacheObject, zipInputStream, currentEntry.name.substringAfter(zipRoot))
+                storageImplementation.putObject(
+                    extractedCacheObject,
+                    zipInputStream,
+                    currentEntry.name.substringAfter(zipRoot)
+                )
             }
             currentEntry = zipInputStream.nextEntry
         }
     }
 
-    /**
-     * Function getZipRootPath
-     *
-     * Discerns the zip root path (i.e. the folder containing the index file)
-     */
     private fun getZipRootPath(zipInputStream: ZipInputStream): String {
         var currentEntry: ZipEntry? = zipInputStream.nextEntry
         while (currentEntry != null) {

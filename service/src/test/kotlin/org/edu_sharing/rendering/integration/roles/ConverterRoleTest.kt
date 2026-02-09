@@ -16,9 +16,15 @@ import org.edu_sharing.rendering.modules.jupyter.JupyterConverterConfig
 import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
+import org.edu_sharing.rendering.modules.onyx.OnyxReceiver
+import org.edu_sharing.rendering.modules.onyx.OnyxUploadService
+import org.edu_sharing.rendering.modules.sodix.SodixApiCallerService
+import org.edu_sharing.rendering.modules.sodix.SodixReceiver
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -28,7 +34,9 @@ import org.springframework.context.ApplicationContext
         "app.security.enabled=false"
     ]
 )
-class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
+class ConverterRoleTest(
+    @param:Autowired val context: ApplicationContext
+): AbstractIntegrationTest() {
     
     companion object {
         private val roleSpecificClassBeans = setOf(
@@ -46,11 +54,14 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractInt
             H5pReceiver::class,
             H5pUploadService::class,
             MoodleReceiver::class,
-            MoodleUploadService::class
+            MoodleUploadService::class,
+            OnyxReceiver::class,
+            OnyxUploadService::class,
+            SodixApiCallerService::class,
+            SodixReceiver::class
         )
     }
 
-    /*
     @Test
     fun testBeanConfiguration() {
         val roleSpecificBeans = roleSpecificClassBeans
@@ -62,8 +73,15 @@ class ConverterRoleTest(@Autowired val context: ApplicationContext): AbstractInt
             context.getBean(it).javaClass.packageName.startsWith("org.edu_sharing.rendering")
         }.toSet()
 
-        assert(expectedBeans == allEdusharingBeans)
-    }
+        val beanMatch = allEdusharingBeans == expectedBeans
+        if (! beanMatch) {
+            val missingBeans = expectedBeans subtract allEdusharingBeans
+            val unexpectedBeans = allEdusharingBeans subtract expectedBeans
 
-     */
+            println("Missing beans (expected but not found): $missingBeans")
+            println("Unexpected beans (found but not expected): $unexpectedBeans")
+        }
+
+        assert(beanMatch)
+    }
 }

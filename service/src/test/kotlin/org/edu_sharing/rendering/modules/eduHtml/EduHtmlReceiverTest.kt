@@ -1,13 +1,22 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
-import io.mockk.mockk
+import io.mockk.*
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
+import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.junit.jupiter.api.Test
 
 class EduHtmlReceiverTest {
     private val eduHtmlService: EduHtmlService = mockk()
@@ -15,7 +24,7 @@ class EduHtmlReceiverTest {
     private val subJobRepository: SubJobRepository = mockk()
     private val mainJobLogic: MainJobLogic = mockk()
     private val renderingJobRepository: RenderingJobRepository = mockk()
-    private val mapper = Mapper()
+    private val mapper = mockk<Mapper>()
     private val underTest = EduHtmlReceiver(
         eduHtmlService,
         eduHtmlConversionService,
@@ -24,7 +33,6 @@ class EduHtmlReceiverTest {
         renderingJobRepository
     )
 
-/*
     @Test
     fun testReceiveMessageReturnsEarlyIfNoMainJobFound() {
         // Arrange
@@ -43,8 +51,9 @@ class EduHtmlReceiverTest {
         // Arrange
         val id = "507f191e810c19729de860ea"
         val message = RenderingJobMessage(id = id)
-        val job = prepareJobForTesting(id)
+        val job = mockk<RenderingJob>()
         every { mainJobLogic.getMainJobEntry(id) } returns job
+        every { job.subJobs } returns mutableListOf()
         // Act
         underTest.receiveMessage(message)
         // Assert
@@ -52,30 +61,51 @@ class EduHtmlReceiverTest {
         confirmVerified(mainJobLogic)
     }
 
-
     @Test
     fun testReceiveMessageSetsSubJobToFailedIfCachingFails() {
         // Arrange
-        val id = "507f191e810c19729de860ea"
-        val subId = "507f191e810c19729de860eb"
-        val message = RenderingJobMessage(id = id)
-        val job = prepareJobForTesting(id = id, subId = subId)
-        val cacheObject = mapper.renderingJobToCacheObject(job)
-        val failedSubJob = getDummySubJob(subId, JobStatus.FAILED)
-        every { mainJobLogic.getMainJobEntry(id) } returns job
-        every { eduHtmlConversionService.cacheData(cacheObject) } throws Exception()
-        every { mainJobLogic.processMainJob(id) } returns true
-        every { subJobRepository.save(failedSubJob) } returns failedSubJob
+        val message = mockk<RenderingJobMessage>()
+        val job = mockk<RenderingJob>()
+        val subJob = mockk<SubJob>()
+        val cacheObject = mockk<CacheObject>()
+        val jobId = ObjectId()
+
+        every { message.id } returns "id"
+        every { job.subJobs } returns mutableListOf(subJob)
+        every { mainJobLogic.getMainJobEntry("id") } returns job
+        every { job.id } returns jobId
+        justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
+        every  { subJobRepository.save(subJob) } returns subJob
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { eduHtmlConversionService.cacheData(cacheObject) } throws Exception("testException")
+        justRun { subJob.errorMessage = GENERIC_CONVERSION_ERROR }
+        justRun { subJob.status = SubJobStatus.FAILED }
+        every { mainJobLogic.processMainJob(jobId.toString()) } returns true
+
+        excludeRecords {
+            message.id
+            job.subJobs
+            job.id
+        }
+
         // Act
         underTest.receiveMessage(message)
+
         // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
-        verify(exactly = 1) { eduHtmlConversionService.cacheData(cacheObject) }
-        verify(exactly = 1) { mainJobLogic.processMainJob(id) }
-        verify(exactly = 1) { subJobRepository.save(failedSubJob) }
-        confirmVerified(mainJobLogic,eduHtmlConversionService, mainJobLogic)
+        verifySequence {
+            mainJobLogic.getMainJobEntry("id")
+            renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING)
+            subJobRepository.save(subJob)
+            mapper.renderingJobToCacheObject(job)
+            eduHtmlConversionService.cacheData(cacheObject)
+            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            subJob.status = SubJobStatus.FAILED
+            subJobRepository.save(subJob)
+            mainJobLogic.processMainJob(jobId.toString())
+        }
     }
 
+    /*
     @Test
     fun testReceiveMessageSetsSubJobToFailedIfRetrievingSubJobFails() {
         // Arrange
@@ -128,46 +158,5 @@ class EduHtmlReceiverTest {
         confirmVerified(mainJobLogic,eduHtmlConversionService, mainJobLogic)
     }
 
-    private fun prepareJobForTesting(id: String, subId: String? = null): RenderingJob {
-        val job = RenderingJob(
-            id = ObjectId(id),
-            esHash = "hash",
-            esObjectId = JobDataProvider.ES_OBJECT_ID,
-            esObjectType = "esobjecttype",
-            mimeType = "image/jpeg",
-            module = "EDUHTML",
-            nodeVersion = "1.2",
-            repoId = "repoid",
-            status = JobStatus.PROCESSING
-        )
-        if (subId != null) {
-            job.subJobs = mutableListOf(getDummySubJob(subId, JobStatus.QUEUED))
-        }
-        return job
-    }
-
-    private fun getDummySubJob(subId: String, status: JobStatus): SubJob {
-        // Sub jobs need a fake parent
-        val dummy = RenderingJob(
-            id = ObjectId(JobDataProvider.DUMMY_JOB_ID),
-            esHash = "hash",
-            esObjectId = JobDataProvider.ES_OBJECT_ID,
-            esObjectType = "esobjecttype",
-            mimeType = "image/jpeg",
-            module = "IMAGE",
-            nodeVersion = "1.2",
-            repoId = "repoid",
-            status = JobStatus.PROCESSING,
-            creationTimestamp = JobDataProvider.DUMMY_CREATION_TS
-        )
-        val subJob = SubJob(
-            id = ObjectId(subId),
-            parent = dummy,
-            routingKey = "whatever",
-            status = status
-        )
-        return subJob
-    }
-*/
-
+     */
 }

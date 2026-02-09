@@ -23,7 +23,7 @@ class EduHtmlRenderModule(
     override fun isOptionalModule() = true
 
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val staticLink = try {
             val cacheObject = mapper.nodeToCacheObject(node)
             eduHtmlService.getObjectLink(cacheObject)

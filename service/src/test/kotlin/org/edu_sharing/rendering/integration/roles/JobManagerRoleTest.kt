@@ -2,9 +2,11 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.renderingJob.queue.JobReceiver
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.util.ClassUtils
 
 @SpringBootTest(
     properties = [
@@ -14,7 +16,9 @@ import org.springframework.context.ApplicationContext
         "app.security.enabled=false"
     ]
 )
-class JobManagerRoleTest(@Autowired val context: ApplicationContext): AbstractIntegrationTest() {
+class JobManagerRoleTest(
+    @param:Autowired val context: ApplicationContext
+): AbstractIntegrationTest() {
 
     companion object {
         private val roleSpecificBeans = setOf(
@@ -22,7 +26,6 @@ class JobManagerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
         )
     }
 
-    /*
     @Test
     fun testBeanConfiguration() {
         val allEdusharingBeans = context.beanDefinitionNames.filter {
@@ -32,8 +35,15 @@ class JobManagerRoleTest(@Autowired val context: ApplicationContext): AbstractIn
         val expectedBeans = roleSpecificBeans
             .map { ClassUtils.getShortNameAsProperty(it.java) } union SharedBeans.all
 
-        assert(expectedBeans == allEdusharingBeans)
-    }
+        val beanMatch = allEdusharingBeans == expectedBeans
+        if (! beanMatch) {
+            val missingBeans = expectedBeans subtract allEdusharingBeans
+            val unexpectedBeans = allEdusharingBeans subtract expectedBeans
 
-     */
+            println("Missing beans (expected but not found): $missingBeans")
+            println("Unexpected beans (found but not expected): $unexpectedBeans")
+        }
+
+        assert(beanMatch)
+    }
 }

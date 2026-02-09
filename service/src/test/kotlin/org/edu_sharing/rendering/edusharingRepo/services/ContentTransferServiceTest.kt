@@ -8,7 +8,6 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.core.io.Resource
@@ -49,7 +48,6 @@ class ContentTransferServiceTest {
     }
 
     @Test
-    @Disabled
     fun testGetAsInputStreamRetrievesTestDataIfTestPrefixSet() {
         // Arrange
         val cacheObject = mockk<CacheObject>()
@@ -58,6 +56,8 @@ class ContentTransferServiceTest {
         every { cacheObject.nodeId } returns "TEST_node1"
         every { resourceLoader.getResource("classpath:node1") } returns resource
         every { resource.inputStream } returns stream
+        every { resource.contentLength() } returns 1L
+        every { cacheObject.size = any() } just Runs
 
         excludeRecords {
             cacheObject.nodeId
