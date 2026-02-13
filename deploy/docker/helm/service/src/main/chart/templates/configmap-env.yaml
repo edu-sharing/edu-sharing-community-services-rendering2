@@ -19,8 +19,8 @@ data:
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005
     {{- end }}
   SPRING_APPLICATION_JSON: {{ .Values.config.override | quote }}
-  MINIO_HOST: {{ .Values.config.s3.host | quote }}
-  MINIO_PORT: {{ .Values.config.s3.port | quote }}
+  S3_HOST: {{ .Values.config.s3.host | quote }}
+  S3_PORT: {{ .Values.config.s3.port | quote }}
   RABBITMQ_HOST: {{ .Values.config.rabbitmq.host | quote }}
   RABBITMQ_PORT: {{ .Values.config.rabbitmq.port | quote }}
   REDIS_HOST: {{ .Values.config.redis.host | quote }}
@@ -37,6 +37,8 @@ data:
   "app.internal.host": {{ include "edusharing_common_lib.names.name" . }}
   "app.internal.path": {{ .Values.ingress.paths | first | quote }}
   "app.internal.port": "8080"
+  "app.s3.region": {{ .Values.config.s3.region | quote }}
+  "app.s3.protocol": {{ .Values.config.s3.protocol | quote }}
   "app.session.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.default | quote }}
   "app.session.image.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.image | quote }}
   "app.session.audio.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.audio | quote }}
@@ -67,4 +69,14 @@ data:
   "spring.redis.cluster.maxRedirects": "5"
   "server.servlet.session.cookie.same-site": {{ .Values.config.session.cookie.samesite | quote}}
   "server.servlet.session.cookie.secure": {{ .Values.config.session.cookie.secure | quote}}
-
+  {{- range $register := .Values.config.home.registrations }}
+  {{- $modules := list -}}
+  {{- range $module := $register.modules }}
+  {{- $modules = append $modules $module.name }}
+  {{- with $module.cspHeader }}
+  "app.repository.registration.id.{{ $register.id }}.module.{{ $module.name }}.cspHeader": {{ . | quote }}
+  {{- end }}
+  {{- end }}
+  "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
+  "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}
+  {{- end }}

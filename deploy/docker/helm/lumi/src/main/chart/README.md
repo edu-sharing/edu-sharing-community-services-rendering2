@@ -47,6 +47,8 @@
 | `config.mongodb.collections.library`            | Set collection for library                   | `h5plibraries`                              |
 | `config.s3.host`                                | Set S3 host                                  | `edusharing-rendering2-minio`               |
 | `config.s3.port`                                | Set S3 port                                  | `9000`                                      |
+| `config.s3.protocol`                            | Set S3 protocol                              | `http`                                      |
+| `config.s3.region`                              | Set S3 region                                | `eu-central-1`                              |
 | `config.s3.username`                            | Set S3 username                              | `rendering2`                                |
 | `config.s3.password`                            | Set S3 password                              | `""`                                        |
 | `config.s3.buckets.content`                     | Set S3 bucket for content                    | `lumi-contentbucket`                        |

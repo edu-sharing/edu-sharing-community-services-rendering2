@@ -53,89 +53,71 @@ edusharing_services_rendering2_rabbitmq:
 
 ########################################################################################################################
 
-edusharing_services_rendering2_store:
+edusharing_services_rendering2_storage:
 
-  ## @param edusharing_services_rendering2_store.nameOverride Override store name
-  nameOverride: &storeNameOverride edusharing-services-rendering2-store
+  ## @param edusharing_services_rendering2_storage.nameOverride Override storage name
+  nameOverride: &storageNameOverride edusharing-services-rendering2-storage
 
   service:
 
     port:
-      ## @param edusharing_services_rendering2_store.service.port.api Set store service api port
-      api: &storeServicePortApi 9000
+      ## @param edusharing_services_rendering2_storage.service.port.api Set storage service api port
+      api: &storageServicePortApi 9000
 
   config:
 
-    ## @param edusharing_services_rendering2_store.config.username Set store username
-    username: &storeConfigUsername rendering2
+    ## @param edusharing_services_rendering2_storage.config.protocol Set storage protocol
+    protocol: &storageConfigProtocol http
+
+    ## @param edusharing_services_rendering2_storage.config.region Set storage region
+    region: &storageConfigRegion eu-central-1
+
+    ## @param edusharing_services_rendering2_storage.config.username Set storage username
+    username: &storageConfigUsername rendering2
 
 ########################################################################################################################
 
-edusharing_services_rendering2_store_minio:
+edusharing_services_rendering2_storage_minio:
 
-  ## @param edusharing_services_rendering2_store_minio.enabled Enable minio
+  ## @param edusharing_services_rendering2_storage_minio.enabled Enable minio
   enabled: false
 
-  ## @param edusharing_services_rendering2_store_minio.nameOverride Override minio name
-  nameOverride: *storeNameOverride
+  ## @param edusharing_services_rendering2_storage_minio.nameOverride Override minio name
+  nameOverride: *storageNameOverride
 
   image:
-    ## @param edusharing_services_rendering2_store_minio.image.name Set minio image name
+    ## @param edusharing_services_rendering2_storage_minio.image.name Set minio image name
     name: ${docker.edu_sharing.community.common.minio.name}
-    ## @param edusharing_services_rendering2_store_minio.image.tag Set minio image tag
+    ## @param edusharing_services_rendering2_storage_minio.image.tag Set minio image tag
     tag: ${docker.edu_sharing.community.common.minio.tag}
 
   service:
 
     port:
-      ## @param edusharing_services_rendering2_store_minio.service.port.api Set minio service api port
-      api: *storeServicePortApi
+      ## @param edusharing_services_rendering2_storage_minio.service.port.api Set minio service api port
+      api: *storageServicePortApi
 
   config:
 
-    buckets:
-      ## @param edusharing_services_rendering2_store_minio.config.buckets[0].name Set minio bucket
-      - name: &minioConfigBucketContent lumi-contentbucket
-      ## @param edusharing_services_rendering2_store_minio.config.buckets[1].name Set minio bucket
-      - name: &minioConfigBucketLib lumi-libbucket
-      ## @param edusharing_services_rendering2_store_minio.config.buckets[2].name Set minio bucket
-      - name: &minioConfigBucketTemp lumi-tempbucket
+    ## @param edusharing_services_rendering2_storage_minio.config.buckets Set minio buckets
+    buckets: []
 
     notify:
-      
-      amqp:
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].id Set minio amqp notify target id
-        - id: minio-object-deleted
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].enable Set minio amqp notify enable
-          enable: "on"
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].username Set minio amqp notify username
-          username: *rabbitmqConfigUsername
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].host Set minio amqp notify host
-          host: *rabbitmqNameOverride
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].port Set minio amqp notify port
-          port: *rabbitmqServicePortAmqp
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].exchange Set minio amqp notify exchange
-          exchange: "minio-events"
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].exchangeType Set minio amqp notify exchange type
-          exchangeType: "topic"
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].routingKey Set minio amqp notify routing key
-          routingKey: "file.deleted"
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].durable Set minio amqp notify durable
-          durable: "on"
-          ## @param edusharing_services_rendering2_store_minio.config.notify.amqp[0].deliveryMode Set minio amqp notify delivery mode
-          deliveryMode: "2"
 
-    ## @param edusharing_services_rendering2_store_minio.config.username Set minio username
-    username: *storeConfigUsername
+      ## @param edusharing_services_rendering2_storage_minio.config.notify.amqp Set minio amqp notify targets
+      amqp: []
+
+    ## @param edusharing_services_rendering2_storage_minio.config.username Set minio username
+    username: *storageConfigUsername
 
   init:
 
     permission:
 
       image:
-        ## @param edusharing_services_rendering2_store_minio.init.permission.image.name Set minio init permission image name
+        ## @param edusharing_services_rendering2_storage_minio.init.permission.image.name Set minio init permission image name
         name: ${docker.edu_sharing.community.common.minideb.name}
-        ## @param edusharing_services_rendering2_store_minio.init.permission.image.tag Set minio init permission image tag
+        ## @param edusharing_services_rendering2_storage_minio.init.permission.image.tag Set minio init permission image tag
         tag: ${docker.edu_sharing.community.common.minideb.tag}
 
   job:
@@ -147,52 +129,52 @@ edusharing_services_rendering2_store_minio:
         wait:
 
           image:
-            ## @param edusharing_services_rendering2_store_minio.job.provisioning.init.wait.image.name Set wait container image name
+            ## @param edusharing_services_rendering2_storage_minio.job.provisioning.init.wait.image.name Set wait container image name
             name: ${docker.edu_sharing.community.common.minideb.name}
-            ## @param edusharing_services_rendering2_store_minio.job.provisioning.init.wait.image.tag Set wait container image tag
+            ## @param edusharing_services_rendering2_storage_minio.job.provisioning.init.wait.image.tag Set wait container image tag
             tag: ${docker.edu_sharing.community.common.minideb.tag}
 
       image:
-        ## @param edusharing_services_rendering2_store_minio.job.provisioning.image.name Set job image name
+        ## @param edusharing_services_rendering2_storage_minio.job.provisioning.image.name Set job image name
         name: ${docker.edu_sharing.community.common.minio.name}
-        ## @param edusharing_services_rendering2_store_minio.job.provisioning.image.tag Set job image tag
+        ## @param edusharing_services_rendering2_storage_minio.job.provisioning.image.tag Set job image tag
         tag: ${docker.edu_sharing.community.common.minio.tag}
 
 ########################################################################################################################
 
-edusharing_services_rendering2_store_rustfs:
+edusharing_services_rendering2_storage_rustfs:
 
-  ## @param edusharing_services_rendering2_store_rustfs.enabled Enable rustfs
+  ## @param edusharing_services_rendering2_storage_rustfs.enabled Enable rustfs
   enabled: true
 
-  ## @param edusharing_services_rendering2_store_rustfs.nameOverride Override rustfs name
-  nameOverride: *storeNameOverride
+  ## @param edusharing_services_rendering2_storage_rustfs.nameOverride Override rustfs name
+  nameOverride: *storageNameOverride
 
   image:
-    ## @param edusharing_services_rendering2_store_rustfs.image.name Set rustfs image name
+    ## @param edusharing_services_rendering2_storage_rustfs.image.name Set rustfs image name
     name: ${docker.edu_sharing.community.common.rustfs.name}
-    ## @param edusharing_services_rendering2_store_rustfs.image.tag Set rustfs image tag
+    ## @param edusharing_services_rendering2_storage_rustfs.image.tag Set rustfs image tag
     tag: ${docker.edu_sharing.community.common.rustfs.tag}
 
   service:
 
     port:
-      ## @param edusharing_services_rendering2_store_rustfs.service.port.api Set rustfs service api port
-      api: *storeServicePortApi
+      ## @param edusharing_services_rendering2_storage_rustfs.service.port.api Set rustfs service api port
+      api: *storageServicePortApi
 
   config:
 
-    ## @param edusharing_services_rendering2_store_rustfs.config.username Set rustfs username
-    username: *storeConfigUsername
+    ## @param edusharing_services_rendering2_storage_rustfs.config.username Set rustfs username
+    username: *storageConfigUsername
 
   init:
 
     permission:
 
       image:
-        ## @param edusharing_services_rendering2_store_rustfs.init.permission.image.name Set rustfs init permission image name
+        ## @param edusharing_services_rendering2_storage_rustfs.init.permission.image.name Set rustfs init permission image name
         name: ${docker.edu_sharing.community.common.minideb.name}
-        ## @param edusharing_services_rendering2_store_rustfs.init.permission.image.tag Set rustfs init permission image tag
+        ## @param edusharing_services_rendering2_storage_rustfs.init.permission.image.tag Set rustfs init permission image tag
         tag: ${docker.edu_sharing.community.common.minideb.tag}
 
 ########################################################################################################################
@@ -359,19 +341,15 @@ edusharing_services_rendering2_lumi:
 
     s3:
       ## @param edusharing_services_rendering2_lumi.config.s3.host Set S3 host
-      host: *storeNameOverride
+      host: *storageNameOverride
       ## @param edusharing_services_rendering2_lumi.config.s3.port Set S3 port
-      port: *storeServicePortApi
+      port: *storageServicePortApi
+      ## @param edusharing_services_rendering2_lumi.config.s3.protocol Set S3 protocol
+      protocol: *storageConfigProtocol
+      ## @param edusharing_services_rendering2_lumi.config.s3.region Set S3 region
+      region: *storageConfigRegion
       ## @param edusharing_services_rendering2_lumi.config.s3.username Set S3 username
-      username: *storeConfigUsername
-
-      buckets:
-        ## @param edusharing_services_rendering2_lumi.config.s3.buckets.content Set S3 bucket for content
-        content: *minioConfigBucketContent
-        ## @param edusharing_services_rendering2_lumi.config.s3.buckets.library Set S3 bucket for library
-        library: *minioConfigBucketLib
-        ## @param edusharing_services_rendering2_lumi.config.s3.buckets.temporary Set S3 bucket for temporary
-        temporary: *minioConfigBucketTemp
+      username: *storageConfigUsername
 
 ########################################################################################################################
 
@@ -420,10 +398,14 @@ edusharing_services_rendering2_service:
 
     s3:
       ## @param edusharing_services_rendering2_service.config.s3.host Set S3 host
-      host: *storeNameOverride
+      host: *storageNameOverride
       ## @param edusharing_services_rendering2_service.config.s3.port Set S3 port
-      port: *storeServicePortApi
+      port: *storageServicePortApi
       ## @param edusharing_services_rendering2_service.config.s3.username Set S3 username
-      username: *storeConfigUsername
+      username: *storageConfigUsername
+      ## @param edusharing_services_rendering2_service.config.s3.protocol Set S3 protocol
+      protocol: *storageConfigProtocol
+      ## @param edusharing_services_rendering2_service.config.s3.region Set S3 region
+      region: *storageConfigRegion
 
 ########################################################################################################################

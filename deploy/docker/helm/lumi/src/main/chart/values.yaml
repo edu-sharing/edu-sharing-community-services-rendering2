@@ -136,6 +136,10 @@ config:
     host: edusharing-rendering2-minio
     ## @param config.s3.port Set S3 port
     port: 9000
+    ## @param config.s3.protocol Set S3 protocol
+    protocol: http
+    ## @param config.s3.region Set S3 region
+    region: eu-central-1
     ## @param config.s3.username Set S3 username
     username: rendering2
     ## @param config.s3.password Set S3 password
