@@ -114,6 +114,7 @@ services:
       app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
       app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
+      app.repository.registration.id.local.module.H5P.cspHeader: "${RENDERING2_H5P_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
