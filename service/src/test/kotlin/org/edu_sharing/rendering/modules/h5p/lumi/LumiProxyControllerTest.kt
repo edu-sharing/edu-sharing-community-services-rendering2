@@ -4,6 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
+import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,6 +31,9 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
     @MockkBean
     lateinit var lumiContentManagementService: LumiContentManagementService
 
+    @MockkBean
+    lateinit var h5pRenderModule: H5pRenderModule
+
     @Test
     fun testGetContentCallsServiceWithCorrectParamsAndReturnsResponse() {
         // Arrange
@@ -48,16 +52,19 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         val responseEntity = ResponseEntity("mycontent", multiValueMap, HttpStatus.OK)
 
+        every { nodeInfo.nodeId } returns "myNodeId"
         every { lumiContentManagementService.getNodeInfo(contentId) } returns nodeInfo
+        every { lumiContentManagementService.getCspHeader("myNodeId") } returns "myCspHeader"
         every {
             lumiProxyService.processProxyRequest(
-                H5P_BASE_PATH,
-                nodeInfo,
-                captureNullable(bodySlot),
-                capture(methodSlot),
-                capture(requestSlot),
-                any(),
-                String::class.java
+                pathPrefix = H5P_BASE_PATH,
+                nodeInfo = nodeInfo,
+                body = captureNullable(bodySlot),
+                method =capture(methodSlot),
+                request= capture(requestSlot),
+                traceId = any(),
+                responseType = String::class.java,
+                additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
         } returns responseEntity
 
@@ -80,14 +87,16 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         verifySequence {
             lumiContentManagementService.getNodeInfo(contentId)
+            lumiContentManagementService.getCspHeader("myNodeId")
             lumiProxyService.processProxyRequest(
-                H5P_BASE_PATH,
-                nodeInfo,
-                captureNullable(bodySlot),
-                capture(methodSlot),
-                capture(requestSlot),
-                any(),
-                String::class.java
+                pathPrefix = H5P_BASE_PATH,
+                nodeInfo = nodeInfo,
+                body = captureNullable(bodySlot),
+                method =capture(methodSlot),
+                request= capture(requestSlot),
+                traceId = any(),
+                responseType = String::class.java,
+                additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
         }
     }

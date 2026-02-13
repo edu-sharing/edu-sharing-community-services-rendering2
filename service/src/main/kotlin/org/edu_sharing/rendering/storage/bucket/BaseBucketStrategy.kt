@@ -15,7 +15,7 @@ abstract class BaseBucketStrategy : BucketStrategy {
     }
 
     override fun getStoragePath(cacheObject: CacheObject, path: String): String {
-        return "/${getCacheObjectRootPath(cacheObject)}/${path.trimStart('/')}"
+        return "${getCacheObjectRootPath(cacheObject)}/${path.trimStart('/')}"
     }
 
     override fun getExtensionFromMimeType(mimeType: String): String {

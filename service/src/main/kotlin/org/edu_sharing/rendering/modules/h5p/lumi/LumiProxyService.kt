@@ -29,6 +29,7 @@ class LumiProxyService(
         request: HttpServletRequest,
         traceId: String,
         responseType: Class<T>,
+        additionalHeaders: Map<String, String> = emptyMap()
     ): ResponseEntity<T> {
         return processProxyRequest(
             pathPrefix = pathPrefix,
@@ -37,6 +38,7 @@ class LumiProxyService(
             request = request,
             traceId = traceId,
             responseType = responseType,
+            additionalHeaders = additionalHeaders
         )
     }
 
@@ -47,6 +49,7 @@ class LumiProxyService(
         request: HttpServletRequest,
         traceId: String,
         responseType: Class<T>,
+        additionalHeaders: Map<String, String> = emptyMap()
     ): ResponseEntity<T> {
         ThreadContext.put("traceId", traceId)
 
@@ -85,6 +88,7 @@ class LumiProxyService(
         val responseHeaders = HttpHeaders()
         responseHeaders.addAll(lumiResponse.headers)
         responseHeaders.set("TRACE", traceId)
+        additionalHeaders.forEach { (key, value) -> responseHeaders.set(key, value) }
 
         return ResponseEntity
             .status(lumiResponse.statusCode)

@@ -6,6 +6,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.RequestUserData
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 class H5pRenderModuleTest {
     private val h5pJobServiceMock = mockk<H5pJobService>()
     private val lumiContentManagementServiceMock = mockk<LumiContentManagementService>()
+    private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
     private val appInfo = AppInfo()
 
     private lateinit var underTest: H5pRenderModule
@@ -24,7 +26,13 @@ class H5pRenderModuleTest {
     @BeforeEach
     fun setUp() {
         appInfo.public = AppInfo.ConnectionInfo("http", "test.com", 8000, "", "http://test.com:8000" )
-        underTest = H5pRenderModule(33L, h5pJobServiceMock, lumiContentManagementServiceMock, appInfo)
+        underTest = H5pRenderModule(
+            33L,
+            h5pJobServiceMock,
+            lumiContentManagementServiceMock,
+            appInfo,
+            repositoryRegistrationStorageService
+        )
         clearAllMocks()
     }
 

@@ -14,4 +14,5 @@ interface RenderModule {
     fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? = null
     fun getNodePermissionExpirationTime(): Long? = null
     fun isOptionalModule(): Boolean = false
+    fun getCspHeader(repoId: String): String? = null
 }

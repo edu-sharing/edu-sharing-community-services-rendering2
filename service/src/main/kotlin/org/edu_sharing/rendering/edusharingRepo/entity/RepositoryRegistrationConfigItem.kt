@@ -10,5 +10,6 @@ data class RepositoryRegistrationConfigItem(
 )
 
 data class ModuleSettings(
-    val credentials: Map<String, String>
+    var credentials: Map<String, String> = emptyMap(),
+    var cspHeader: String? = null
 )

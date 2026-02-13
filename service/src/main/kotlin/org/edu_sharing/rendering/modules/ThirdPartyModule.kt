@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.modules
 
 interface ThirdPartyModule {
     fun validateThirdPartyCredentials(credentials: Map<String, String>, repoId: String)
-    fun getConfig(repoId: String): Map<String, String>
+    fun getCredentials(repoId: String): Map<String, String>
     fun validateCredentials(credentials: Map<String, String>, requiredCredentialKeys: Set<String>, moduleName: String) {
         val missingKeys = mutableListOf<String>()
         val emptyValues = mutableListOf<String>()

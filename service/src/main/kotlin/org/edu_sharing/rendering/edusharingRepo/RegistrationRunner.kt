@@ -62,8 +62,17 @@ class RegistrationRunner(
                             )
                         )
                     }
+                    val isUpdateToCsp = correspondingConfig.third[module]?.cspHeader != registration.module[module]?.cspHeader
+                    if (isUpdateToCsp) {
+                        log.info("Updating CSP header for module $module in registration for ${registration.url}.")
+                        repositoryRegistrationService.setCspHeader(
+                            repoId = registration.repoId,
+                            module = module,
+                            cspHeader = correspondingConfig.third[module]?.cspHeader
+                        )
+                    }
                 }
-                registration.optionalModules.subtract(configModules).forEach { module ->
+                registration.optionalModules.subtract(configModules.toSet()).forEach { module ->
                     repositoryRegistrationService.removeOptionalModule(repoId = registration.repoId, module = module)
                 }
 
@@ -89,7 +98,14 @@ class RegistrationRunner(
                         )
                         log.info("Optional module activated: $module.")
                     }
-                    val orphanedSettingsKeys = moduleSettings.keys.subtract(optionalModuleList)
+                    moduleSettings.forEach { module ->
+                        repositoryRegistrationService.setCspHeader(
+                            repoId = registration.repoId,
+                            module = module.key,
+                            cspHeader = module.value.cspHeader
+                        )
+                    }
+                    val orphanedSettingsKeys = moduleSettings.keys.subtract(optionalModuleList.toSet())
                     if (orphanedSettingsKeys.isNotEmpty()) {
                         log.warn("Settings provided for modules: ${orphanedSettingsKeys.joinToString(",")}. These modules are not in the optional-modules list. Did you forget them?")
                     }

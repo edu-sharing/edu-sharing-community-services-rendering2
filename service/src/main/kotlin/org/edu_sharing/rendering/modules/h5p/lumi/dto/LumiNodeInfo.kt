@@ -7,5 +7,5 @@ data class LumiNodeInfo(
     @Id
     val lumiId: String,
     val nodeId: String,
-    val hash: String
+    val hash: String,
 )

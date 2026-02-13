@@ -185,6 +185,15 @@ class RepositoryRegistrationService(
         repositoryRegistrationStorageService.storeRegistration(registration)
     }
 
+    fun setCspHeader(repoId: String, module: String, cspHeader: String?) {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
+        val moduleSettings = registration.module[module] ?: ModuleSettings()
+        moduleSettings.cspHeader = cspHeader
+        registration.module[module] = moduleSettings
+        repositoryRegistrationStorageService.storeRegistration(registration)
+    }
+
     fun removeOptionalModule(repoId: String, module: String) {
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }

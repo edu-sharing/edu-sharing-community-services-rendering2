@@ -17,7 +17,7 @@ class OnyxUploadService(
     private val contentTransferService: ContentTransferService
 ) {
     fun uploadTest(cacheObject: CacheObject): String {
-        val config = module.getConfig(cacheObject.repoId)
+        val config = module.getCredentials(cacheObject.repoId)
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val originalFile = File.createTempFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}",

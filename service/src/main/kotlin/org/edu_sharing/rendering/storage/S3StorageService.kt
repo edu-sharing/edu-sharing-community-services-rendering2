@@ -295,7 +295,7 @@ class S3StorageService(
         putObjectInternal(
             cacheObject = cacheObject,
             inputStream = inputStream,
-            targetPath = bucketStrategy.getStoragePath(cacheObject, targetPath),
+            targetPath = bucketStrategy.getStoragePath(cacheObject, targetPath).trimStart('/'),
             metadata = metadata
         )
     }
@@ -332,7 +332,7 @@ class S3StorageService(
         path: String
     ): InputStream {
         val bucket = bucketStrategy.getBucket(cacheObject)
-        val key = bucketStrategy.getStoragePath(cacheObject, path)
+        val key = bucketStrategy.getStoragePath(cacheObject, path).trimStart('/')
 
         val stream = s3Client.getObject(
             GetObjectRequest.builder()
@@ -355,7 +355,7 @@ class S3StorageService(
         length: Long
     ): InputStream {
         val bucket = bucketStrategy.getBucket(cacheObject)
-        val key = bucketStrategy.getStoragePath(cacheObject, path)
+        val key = bucketStrategy.getStoragePath(cacheObject, path).trimStart('/')
         val rangeHeader = "bytes=$offset-${offset + length - 1}"
 
         val stream = s3Client.getObject(
@@ -420,7 +420,7 @@ class S3StorageService(
         cacheObject: CacheObject,
         path: String
     ): String {
-        return bucketStrategy.getStoragePath(cacheObject, path)
+        return bucketStrategy.getStoragePath(cacheObject, path).trimStart('/')
     }
 
     private fun putObjectInternal(
@@ -468,8 +468,8 @@ class S3StorageService(
 
     private fun getHeadObject(cacheObject: CacheObject, path: String? = null): HeadObjectResponse {
         val storagePath =
-            if (path == null) bucketStrategy.getStoragePath(cacheObject)
-            else bucketStrategy.getStoragePath(cacheObject, path)
+            if (path == null) bucketStrategy.getStoragePath(cacheObject).trimStart('/')
+            else bucketStrategy.getStoragePath(cacheObject, path).trimStart('/')
 
         return s3Client.headObject(
             HeadObjectRequest.builder()

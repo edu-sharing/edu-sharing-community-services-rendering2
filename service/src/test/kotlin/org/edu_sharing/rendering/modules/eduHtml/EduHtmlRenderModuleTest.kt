@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlRenderModule
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(MockKExtension::class)
 class EduHtmlRenderModuleTest {
     private val eduHtmlServiceMock = mockk<EduHtmlService>()
+    private val repositoryRegistrationStorageServiceMock = mockk<RepositoryRegistrationStorageService>()
     private val mapper = mockk<Mapper>()
 
     private lateinit var underTest: EduHtmlRenderModule
@@ -29,7 +31,8 @@ class EduHtmlRenderModuleTest {
         underTest = EduHtmlRenderModule(
             nodePermissionExpirationTime = 67L,
             eduHtmlService = eduHtmlServiceMock,
-            mapper = mapper
+            mapper = mapper,
+            repositoryRegistrationStorageService = repositoryRegistrationStorageServiceMock
         )
         clearAllMocks()
     }

@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.RequestUserData
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
@@ -20,7 +21,8 @@ class H5pRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val h5pJobService: H5pJobService,
     private val lumiContentManagementService: LumiContentManagementService,
-    private val appInfo: AppInfo
+    private val appInfo: AppInfo,
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
 ): RenderModule {
 
     override fun module() = "H5P"
@@ -28,7 +30,7 @@ class H5pRenderModule(
     override fun isOptionalModule() = true
 
     override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
-        val cachedLumiContentId = lumiContentManagementService.getContentId(node.ref.id, node.content.hash)
+        val cachedLumiContentId = lumiContentManagementService.getContentId(node.ref.id, node.content?.hash ?: "")
         if (cachedLumiContentId != null) {
             return RenderDataResponse(
                 module = module(),
@@ -53,4 +55,10 @@ class H5pRenderModule(
     }
 
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
+
+    override fun getCspHeader(repoId: String): String? {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
+        return registration.module[module()]?.cspHeader
+    }
 }

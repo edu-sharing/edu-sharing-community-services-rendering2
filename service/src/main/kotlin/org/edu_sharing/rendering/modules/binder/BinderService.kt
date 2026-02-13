@@ -99,7 +99,7 @@ class BinderService(
     }
 
     private fun hasGitHubApiToken(module: BinderRenderModule, job: RenderingJob): Boolean {
-        val config = module.getConfig(job.repoId)
+        val config = module.getCredentials(job.repoId)
         return config.containsKey("githubtoken") && !config["githubtoken"].isNullOrBlank()
     }
 }

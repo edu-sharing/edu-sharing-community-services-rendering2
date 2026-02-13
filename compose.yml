@@ -14,6 +14,7 @@ services:
       - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
       - RUSTFS_ACCESS_KEY=rendering2
       - RUSTFS_SECRET_KEY=rendering2
+      - RUST_BACKTRACE=full
     command: [ "rustfs" ]
 
   repository-cache:

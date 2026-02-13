@@ -2,9 +2,12 @@ package org.edu_sharing.rendering.modules.h5p.lumi
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
+import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiBucketInfo
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeHashResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
+import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
@@ -13,6 +16,8 @@ import org.springframework.web.util.UriComponentsBuilder
 class LumiContentManagementService(
     private val lumiWebClient: WebClient,
     private val lumiCacheRepository: LumiCacheRepository,
+    private val nodeSessionContextRepo: NodeSessionContextRepository,
+    @param:Lazy private val module: H5pRenderModule
 ) {
     companion object {
         private var contentBucket: String = ""
@@ -24,6 +29,12 @@ class LumiContentManagementService(
 
     fun getContentId(nodeId: String, hash: String): String? {
         return lumiCacheRepository.findByNodeIdAndHash(nodeId, hash)?.lumiId
+    }
+
+    fun getCspHeader(nodeId: String): String? {
+        val repoId = nodeSessionContextRepo.getNode(nodeId)?.ref?.repo
+            ?: throw IllegalStateException("Corrupt session state: Missing node permission for node $nodeId")
+        return module.getCspHeader(repoId)
     }
 
     private fun retrieveNodeInfo(contentId: String) : LumiNodeInfo {
@@ -81,5 +92,6 @@ class LumiContentManagementService(
             }.retrieve()
             .bodyToMono(Void::class.java)
             .block()
+        lumiCacheRepository.deleteByNodeId(trackingEntry.nodeId)
     }
 }
