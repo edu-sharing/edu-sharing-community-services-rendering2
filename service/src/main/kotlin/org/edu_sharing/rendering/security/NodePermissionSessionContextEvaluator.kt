@@ -35,5 +35,4 @@ class NodePermissionSessionContextEvaluator(private val nodePermissionSessionCon
 
         return nodePermissionSessionContextRepository.hasPermission(targetId, permission)
     }
-
 }

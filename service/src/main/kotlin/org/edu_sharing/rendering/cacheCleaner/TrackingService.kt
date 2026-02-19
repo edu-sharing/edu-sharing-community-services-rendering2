@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import java.util.*
+import java.util.function.Function
 
 @Service
 class TrackingService(
@@ -18,30 +19,62 @@ class TrackingService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    inner class TrackingIterator(val bucket: String) {
+    /**
+     * Iterator used for traversing through pages of `TrackingEntry` objects retrieved from a data source.
+     * This class uses a delegate function to fetch paginated data based on a `Pageable` object.
+     *
+     * The returned items are ordered oldest to newest (last accessed)
+     *
+     * @property delegate A function that takes a `Pageable` object and returns a `Page` of `TrackingEntry` instances.
+     */
+    class TrackingIterator(val delegate: Function<Pageable,Page<TrackingEntry>>) : Iterator<TrackingEntry> {
         private var page: Pageable = PageRequest.of(0, 100, Sort.Direction.ASC, "lastAccessed")
-        private var result: Page<TrackingEntry>? = null
+        private lateinit var result: Page<TrackingEntry>
+        private var currentIndex = 0
 
-
-        fun getNext(): List<TrackingEntry> {
-            result = trackingEntryRepository.findAllByBucket(bucket, page)
-            page = result!!.nextPageable()
-            return result!!.content
+        init {
+            fetchNext()
         }
 
-        fun hasNext(): Boolean {
-            return result?.hasNext() != false
+        private fun fetchNext() {
+            result = delegate.apply(page)
+            page = result.nextPageable()
+            currentIndex = 0
         }
+
+        override fun next() : TrackingEntry {
+            if(currentIndex >= result.content.size){
+                if(!result.hasNext()) {
+                    throw NoSuchElementException("No more elements in iterator.")
+                }
+                fetchNext()
+            }
+
+            return result.content[currentIndex++]
+        }
+
+        override fun hasNext(): Boolean {
+            return currentIndex < result.content.size || result.hasNext()
+        }
+    }
+
+    fun getTrackedObjectsByBucket(bucket: String): TrackingIterator {
+        return TrackingIterator {trackingEntryRepository.findAllByBucket(bucket, it)}
     }
 
     /**
-     * returns tracked objects sorted by lastAccessed date in accenting order
+     * Retrieves a `TrackingIterator` for iterating through tracked objects associated with the specified repository ID.
+     *
+     * The iterator orders tracked objects by the last accessed date (oldest to newest).
+     *
+     * @param repoId The ID of the repository whose tracked objects are to be retrieved.
+     * @return A `TrackingIterator` instance for traversing pages of tracked objects linked to the given repository ID.
      */
-    fun getTrackedObjectsByBucket(bucket: String): TrackingIterator {
-        return TrackingIterator(bucket)
+    fun getTrackedObjectsByRepoId(repoId: String): TrackingIterator {
+        return TrackingIterator {trackingEntryRepository.findAllByRepoId(repoId, it)}
     }
 
-    fun trackCacheObject(cacheObject: CacheObject, bucket: String) {
+    fun trackCacheObject(cacheObject: CacheObject, bucket: String, size: Long? = null) {
         val trackingEntry = trackingEntryRepository.findByRepoIdAndNodeIdAndHashAndBucket(
             cacheObject.repoId,
             cacheObject.nodeId,
@@ -54,11 +87,15 @@ class TrackingService(
                     nodeId = cacheObject.nodeId,
                     hash = cacheObject.hash,
                     type = cacheObject.type,
-                    bucket = bucket
+                    bucket = bucket,
+                    binarySize = cacheObject.size
                 )
             )
         try {
             trackingEntry.lastAccessed = Date()
+            if (size != null) {
+                trackingEntry.binarySize = size
+            }
             trackingEntryRepository.save(trackingEntry)
         } catch (_: DuplicateKeyException) {
             log.warn("tracking entry for node id ${cacheObject.nodeId} already exists.")
@@ -78,6 +115,10 @@ class TrackingService(
 
     fun deleteAllTrackedObjects(trackedObjects: Iterable<TrackingEntry>) {
         trackingEntryRepository.deleteAll(trackedObjects)
+    }
+
+    fun getBucketAggregation(): List<BucketAggregation> {
+        return trackingEntryRepository.getBucketAggregation()
     }
 }
 

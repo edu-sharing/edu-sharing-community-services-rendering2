@@ -100,7 +100,7 @@ class AvReceiver(
             }
         }
         if (mainJobLogic.processMainJob(message.id)) {
-            storageImplementation.removeObject(cacheObject, true)
+            storageImplementation.removeTempObject(cacheObject)
         }
     }
 }

@@ -34,7 +34,7 @@ class ImageRenderModule(
 
     override fun module() = "IMAGE"
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
         val objectLinks = imageService.getObjectLinks(cacheObject)
         val isConversionType = imageService.isConversionObject(cacheObject)

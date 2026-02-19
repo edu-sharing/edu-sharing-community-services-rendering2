@@ -1,4 +1,4 @@
-package org.edu_sharing.rendering.storage.minio.bucket
+package org.edu_sharing.rendering.storage.bucket
 
 import org.apache.tika.mime.MimeTypes
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -15,7 +15,7 @@ abstract class BaseBucketStrategy : BucketStrategy {
     }
 
     override fun getStoragePath(cacheObject: CacheObject, path: String): String {
-        return "/${getCacheObjectRootPath(cacheObject)}/${path.trimStart('/')}"
+        return "${getCacheObjectRootPath(cacheObject)}/${path.trimStart('/')}"
     }
 
     override fun getExtensionFromMimeType(mimeType: String): String {

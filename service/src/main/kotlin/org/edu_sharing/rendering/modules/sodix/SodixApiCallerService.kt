@@ -13,7 +13,7 @@ class SodixApiCallerService {
         repoId: String,
         isPaidMedia: Boolean
     ): Pair<String, String?> {
-        val config = module.getConfig(repoId)
+        val config = module.getCredentials(repoId)
         val webClient = WebClient
             .builder()
             .baseUrl(config["baseurl"] ?: "")

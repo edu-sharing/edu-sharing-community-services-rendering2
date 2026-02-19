@@ -159,7 +159,7 @@ class BinderUploadService(
         if (module !is ThirdPartyModule) {
             throw IllegalArgumentException("Unexpected module type: ${module::class.java}")
         }
-        val config = module.getConfig(repoId)
+        val config = module.getCredentials(repoId)
         val baseUrl = config["baseurl"] ?: throw IllegalArgumentException("baseurl must be provided")
         return WebClient.builder().baseUrl(baseUrl).build()
     }

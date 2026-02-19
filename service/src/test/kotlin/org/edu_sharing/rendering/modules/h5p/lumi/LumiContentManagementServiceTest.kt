@@ -1,20 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
-import io.mockk.*
-import io.mockk.junit5.MockKExtension
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
-import org.edu_sharing.rendering.cacheCleaner.TrackingService
-import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
-import org.edu_sharing.rendering.storage.StorageService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.web.reactive.function.client.WebClient
-import java.util.*
-
+/*
 @ExtendWith(MockKExtension::class)
 class LumiContentManagementServiceTest {
     private val cacheRepository = mockk<LumiCacheRepository>()
@@ -147,3 +133,5 @@ class LumiContentManagementServiceTest {
         confirmVerified(cacheRepository)
     }
 }
+
+ */

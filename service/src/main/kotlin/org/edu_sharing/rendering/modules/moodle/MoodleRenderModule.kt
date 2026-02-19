@@ -41,7 +41,7 @@ class MoodleRenderModule(
                 node = node,
                 userData = userData,
                 module = module(),
-                submitUserDetails = getConfig(node.ref.repo).getOrDefault("submitUserDetails", "true").toBoolean()
+                submitUserDetails = getCredentials(node.ref.repo).getOrDefault("submitUserDetails", "true").toBoolean()
             )
         )
     }
@@ -94,7 +94,7 @@ class MoodleRenderModule(
         }
     }
 
-    override fun getConfig(repoId: String): Map<String, String> {
+    override fun getCredentials(repoId: String): Map<String, String> {
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
         return registration.module[module()]?.credentials ?: mapOf()

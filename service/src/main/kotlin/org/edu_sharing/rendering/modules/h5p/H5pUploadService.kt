@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiContentResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
+import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.HttpStatus
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
 
@@ -26,7 +28,8 @@ class H5pUploadService(
     private val contentTransferService: ContentTransferService,
     private val lumiWebClient: WebClient,
     private val lumiContentManagementService: LumiContentManagementService,
-    private val trackingService: TrackingService
+    private val trackingService: TrackingService,
+    private val storageService: StorageService
 ) {
     private val log = LoggerFactory.getLogger(H5pUploadService::class.java)
 
@@ -42,9 +45,10 @@ class H5pUploadService(
     }
 
     private fun getLumiId(cacheObject: CacheObject): String {
-        trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket())
         try {
-            return getCachedContentId(cacheObject.nodeId, cacheObject.hash)
+            val lumiId = getCachedContentId(cacheObject.nodeId, cacheObject.hash)
+            trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket())
+            return lumiId
         } catch (exception: WebClientResponseException) {
             if (exception.statusCode.isSameCodeAs(HttpStatus.NOT_FOUND)) {
                 log.info("Not yet cached. Uploading H5P-Package.")
@@ -52,7 +56,10 @@ class H5pUploadService(
                 throw exception
             }
         }
-        return uploadPackage(cacheObject)
+        val lumiId = uploadPackage(cacheObject)
+        val size = storageService.getDirectorySize(lumiContentManagementService.getContentBucket(), lumiId)
+        trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(), size)
+        return lumiId
     }
 
     private fun getCachedContentId(nodeId: String, hash: String): String {
@@ -92,7 +99,7 @@ class H5pUploadService(
                     uri
                 }.contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
-                .retrieve().bodyToMono(String::class.java).block()
+                .retrieve().bodyToMono<String>().block()
             return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
         } catch (exception: Exception) {
             throw exception

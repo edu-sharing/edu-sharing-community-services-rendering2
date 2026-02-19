@@ -441,6 +441,10 @@ config:
     username: rendering2
     ## @param config.s3.password Set S3 password
     password: ""
+    ## @param config.s3.protocol Set S3 protocol
+    protocol: http
+    ## @param config.s3.region Set S3 region
+    region: eu-central-1
 
   session:
     cookie:

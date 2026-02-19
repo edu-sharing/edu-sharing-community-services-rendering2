@@ -18,8 +18,14 @@ dependencies:
   - name: edu_sharing-community-common-minio
     repository: ${helm.deploy.url}
     version: 1.x.x
-    alias: edusharing_services_rendering2_minio
-    condition: edusharing_services_rendering2_minio.enabled
+    alias: edusharing_services_rendering2_storage_minio
+    condition: edusharing_services_rendering2_storage_minio.enabled
+
+  - name: edu_sharing-community-common-rustfs
+    repository: ${helm.deploy.url}
+    version: 1.x.x
+    alias: edusharing_services_rendering2_storage_rustfs
+    condition: edusharing_services_rendering2_storage_rustfs.enabled
 
   - name: edu_sharing-community-common-mongodb
     repository: ${helm.deploy.url}

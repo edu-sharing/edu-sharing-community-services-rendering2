@@ -1,8 +1,8 @@
-package org.edu_sharing.rendering.storage.minio.bucket
+package org.edu_sharing.rendering.storage.bucket
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 
-@ConditionalOnProperty(name=["app.storage.minio.bucket.mode"], havingValue = "byCustomer")
+@ConditionalOnProperty(name=["app.storage.s3.bucket.mode"], havingValue = "byCustomer")
 @Target(allowedTargets = [AnnotationTarget.TYPE, AnnotationTarget.FUNCTION, AnnotationTarget.CLASS])
 @Retention(AnnotationRetention.RUNTIME)
 annotation class ConditionalOnStorageByCustomer()

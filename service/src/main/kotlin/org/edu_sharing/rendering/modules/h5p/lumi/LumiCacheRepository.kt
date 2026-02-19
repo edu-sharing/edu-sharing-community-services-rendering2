@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface LumiCacheRepository: CrudRepository<LumiNodeInfo, String> {
     fun findByNodeIdAndHash(nodeId: String, hash: String): LumiNodeInfo?
+    fun deleteByNodeId(nodeId: String)
 }

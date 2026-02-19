@@ -83,7 +83,7 @@ class BinderPreviewService(
         if (module !is ThirdPartyModule) {
             throw IllegalArgumentException("Unexpected module type: ${module::class.java}")
         }
-        val config = module.getConfig(repoId)
+        val config = module.getCredentials(repoId)
         return config["githubtoken"] ?: throw IllegalArgumentException("GitHub token must be provided")
     }
 }

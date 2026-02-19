@@ -137,7 +137,7 @@ class DdbApiService(
         if (module !is ThirdPartyModule) {
             throw IllegalArgumentException("Unexpected module type: ${module::class.java}")
         }
-        val config = module.getConfig(renderingJob.repoId)
+        val config = module.getCredentials(renderingJob.repoId)
         return config.getOrDefault("apiToken", "")
     }
 }

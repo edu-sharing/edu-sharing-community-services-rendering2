@@ -5,7 +5,8 @@ metadata:
   labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
 data:
   AWS_S3_MAX_FILE_LENGTH: {{ .Values.config.files.maxsize | quote }}
-  AWS_S3_ENDPOINT: {{ (printf "http://%s:%d" .Values.config.s3.host (.Values.config.s3.port | int)) | quote }}
+  AWS_S3_ENDPOINT: {{ (printf "%s://%s:%d" .Values.config.s3.protocol .Values.config.s3.host (.Values.config.s3.port | int)) | quote }}
+  AWS_REGION: {{ .Values.config.s3.region | quote }}
   BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}
@@ -15,8 +16,8 @@ data:
   LIBRARY_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.library | quote }}
   LOG_LEVEL: {{ .Values.config.log.level | quote }}
   LOG_SCOPE: {{ .Values.config.log.scope | quote }}
-  MINIO_HOST: {{ .Values.config.s3.host | quote }}
-  MINIO_PORT: {{ .Values.config.s3.port | quote }}
+  S3_HOST: {{ .Values.config.s3.host | quote }}
+  S3_PORT: {{ .Values.config.s3.port | quote }}
   MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
   MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
   TEMPORARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.temporary | quote }}

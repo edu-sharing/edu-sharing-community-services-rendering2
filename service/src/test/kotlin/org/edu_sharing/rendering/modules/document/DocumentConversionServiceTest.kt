@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.web.reactive.function.client.WebClient
 
+
 @ExtendWith(MockKExtension::class)
 class DocumentConversionServiceTest {
 
@@ -108,7 +109,7 @@ class DocumentConversionServiceTest {
         every { spreadSheetRenderModule.module() } returns "SPREADSHEET"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
-        justRun { storageService.removeObject(cacheObject = dummyCacheObjectWord, true) }
+        justRun { storageService.removeTempObject(cacheObject = dummyCacheObjectWord) }
 
         excludeRecords {
             job.subJobs
@@ -133,7 +134,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
-            storageService.removeObject(cacheObject = dummyCacheObjectWord, true)
+            storageService.removeTempObject(cacheObject = dummyCacheObjectWord)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -180,7 +181,7 @@ class DocumentConversionServiceTest {
         every { module.getTargetMimetype() } returns "application/pdf"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
-        justRun { storageService.removeObject(cacheObject = dummyCacheObjectWord, true) }
+        justRun { storageService.removeTempObject(cacheObject = dummyCacheObjectWord) }
 
         excludeRecords {
             job.subJobs
@@ -204,7 +205,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
-            storageService.removeObject(cacheObject = dummyCacheObjectWord, true)
+            storageService.removeTempObject(cacheObject = dummyCacheObjectWord)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -251,7 +252,7 @@ class DocumentConversionServiceTest {
         every { module.getTargetMimetype() } returns "application/pdf"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
-        justRun { storageService.removeObject(cacheObject = dummyCacheObjectExcel, true) }
+        justRun { storageService.removeTempObject(cacheObject = dummyCacheObjectExcel) }
 
         excludeRecords {
             job.subJobs
@@ -275,7 +276,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
-            storageService.removeObject(cacheObject = dummyCacheObjectExcel, true)
+            storageService.removeTempObject(cacheObject = dummyCacheObjectExcel)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -323,7 +324,7 @@ class DocumentConversionServiceTest {
         every { spreadSheetRenderModule.module() } returns "SPREADSHEET"
         every { moduleRegistry.getRenderModule<RenderModule>("SPREADSHEET") } returns module
         justRun { serviceCaller.callConverterService(capture(argumentSlot)) }
-        justRun { storageService.removeObject(cacheObject = dummyCacheObjectExcel, true) }
+        justRun { storageService.removeTempObject(cacheObject = dummyCacheObjectExcel) }
 
         excludeRecords {
             job.subJobs
@@ -348,7 +349,7 @@ class DocumentConversionServiceTest {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("SPREADSHEET")
             serviceCaller.callConverterService(capture(argumentSlot))
-            storageService.removeObject(cacheObject = dummyCacheObjectExcel, true)
+            storageService.removeTempObject(cacheObject = dummyCacheObjectExcel)
             subJobRepository.save(finishedSubJob)
         }
     }
@@ -397,7 +398,7 @@ class DocumentConversionServiceTest {
         every { module.getTargetMimetype() } returns "application/pdf"
         every { spreadSheetRenderModule.module() } returns "SPREADSHEET"
         every { moduleRegistry.getRenderModule<RenderModule>("DOCUMENT") } returns module
-        every { storageService.removeObject(cacheObject = dummyCacheObjectWithNonsenseMimeType, true) } returns Unit
+        every { storageService.removeTempObject(cacheObject = dummyCacheObjectWithNonsenseMimeType) } returns Unit
 
         excludeRecords {
             job.subJobs
@@ -416,8 +417,9 @@ class DocumentConversionServiceTest {
         verifySequence {
             subJobRepository.save(any())
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
-            storageService.removeObject(cacheObject = dummyCacheObjectWithNonsenseMimeType, true)
+            storageService.removeTempObject(cacheObject = dummyCacheObjectWithNonsenseMimeType)
             subJobRepository.save(failedSubJob)
         }
     }
 }
+

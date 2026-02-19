@@ -47,8 +47,10 @@ class JobReceiver(
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
             if (jobEntry.conversionType) {
+                // Size known from repo
                 storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
             } else {
+                // size known from repo
                 storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
                 jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)
@@ -61,7 +63,7 @@ class JobReceiver(
                 log.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
                 throw IllegalArgumentException("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
             }
-        } catch (exception: Exception) {
+        } catch (_: Exception) {
             jobEntry.status = RenderingJobStatus.FAILED
             jobEntry.finishedTimestamp = System.currentTimeMillis()
             jobEntry.errorMessage = ERROR_PROCESSING_JOB

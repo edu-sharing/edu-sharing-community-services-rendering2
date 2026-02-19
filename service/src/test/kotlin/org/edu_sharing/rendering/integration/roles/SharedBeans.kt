@@ -38,9 +38,9 @@ import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.modules.h5p.H5pJobService
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModuleTypeMapper
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiBucketManagement
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiConfig
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiStorageManager
 import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.image.ImageService
@@ -62,12 +62,8 @@ import org.edu_sharing.rendering.renderingJob.repository.CustomSubJobRepositoryI
 import org.edu_sharing.rendering.security.*
 import org.edu_sharing.rendering.security.cors.CorsConfig
 import org.edu_sharing.rendering.security.jwt.JwtUtils
-import org.edu_sharing.rendering.storage.StorageManagerRegistry
-import org.edu_sharing.rendering.storage.minio.MinioConfig
-import org.edu_sharing.rendering.storage.minio.MinioHealthIndicator
-import org.edu_sharing.rendering.storage.minio.MinioStorageService
-import org.edu_sharing.rendering.storage.minio.ObjectDeletionListener
-import org.edu_sharing.rendering.storage.minio.bucket.BucketPerMediaTypeStrategy
+import org.edu_sharing.rendering.storage.*
+import org.edu_sharing.rendering.storage.bucket.BucketPerMediaTypeStrategy
 import org.springframework.security.access.PermissionEvaluator
 import org.springframework.util.ClassUtils
 
@@ -124,16 +120,13 @@ abstract class SharedBeans {
             JupyterRenderModule::class,
             JupyterRenderModuleTypeMapper::class,
             JwtUtils::class,
-            LumiBucketManagement::class,
             LumiConfig::class,
             LumiContentManagementService::class,
+            LumiStorageManager::class,
             MainJobLogic::class,
             MainJobCreationService::class,
             Mapper::class,
             MetadataService::class,
-            MinioConfig::class,
-            MinioHealthIndicator::class,
-            MinioStorageService::class,
             ModulePermissionService::class,
             ModuleRegistry::class,
             MongoConfig::class,
@@ -143,7 +136,6 @@ abstract class SharedBeans {
             NoConversionModuleTypeMapper::class,
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
-            ObjectDeletionListener::class,
             OnyxRenderModule::class,
             PermissionEvaluator::class,
             PdfRenderModule::class,
@@ -155,6 +147,10 @@ abstract class SharedBeans {
             RepositoryRegistrationService::class,
             RepositoryRegistrationStorageService::class,
             RestClientProvider::class,
+            Rs2StorageManager::class,
+            S3Config::class,
+            S3HealthIndicator::class,
+            S3StorageService::class,
             SchedulingConfig::class,
             ScormRenderModule::class,
             ScormRenderModuleTypeMapper::class,
@@ -176,7 +172,6 @@ abstract class SharedBeans {
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
             "permissionEvaluator",
-            "eduMinioAdminClient"
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans

@@ -12,13 +12,13 @@
 
 ## H5P Editor and Core updates
 
-In order to **update H5P-Editor** to another version change the respective version in the "setup" script in package.json.
+In order to **update H5P-Editor** to another version, change the respective version in the "setup" script in package.json.
 
 ```
 "setup": "rm -rf ./h5p && ./download-core.sh 1.27.0 1.25"
 ```
 
-The editor version is the second argument (1.25 in the example above). Don't forget to run the script and rebuild the application:
+The editor version is the second argument (1.25 in the example above). Remember to run the script and rebuild the application:
 
 - Fetch H5P: `npm run setup`
 - Build: `npm run build`

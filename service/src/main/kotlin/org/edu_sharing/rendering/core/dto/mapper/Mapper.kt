@@ -13,10 +13,10 @@ class Mapper {
         return CacheObject(
             nodeId = node.ref.id,
             type = node.mediatype ?: "",
-            hash = node.content.hash ?: "nohash",
+            hash = node.content?.hash ?: "nohash",
             size = node.size?.toLong() ?: 0,
             mimeType = node.mimetype ?: "",
-            version = node.content.version ?: "",
+            version = node.content?.version ?: "",
             repoId = node.ref.repo
         )
     }
@@ -25,14 +25,14 @@ class Mapper {
         return RenderingJob(
             esObjectId = node.ref.id,
             esObjectType = node.mediatype ?: "",
-            esHash = node.content.hash ?: "nohash",
+            esHash = node.content?.hash ?: "nohash",
             mimeType = node.mimetype ?: "",
             repoId = node.ref.repo,
-            nodeVersion = node.content.version,
-            size = if (node.size.isNullOrEmpty()) 0 else node.size.toLong(),
+            nodeVersion = node.content?.version ?: "",
+            size = if (node.size.isNullOrEmpty()) 0 else node.size?.toLong(),
             module = module,
             conversionType = isConversionType,
-            externalUrl = node.properties.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]
+            externalUrl = node.properties?.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]
         )
     }
 

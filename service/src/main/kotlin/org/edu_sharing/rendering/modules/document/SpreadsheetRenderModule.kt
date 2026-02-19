@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.document
 
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component
 class SpreadsheetRenderModule(
     @Value("\${app.session.spreadsheet.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     mapper: Mapper,
     documentService: DocumentService,
     subJobRepository: SubJobRepository,
@@ -22,8 +24,14 @@ class SpreadsheetRenderModule(
     mapper = mapper,
     documentService = documentService,
     subJobRepository = subJobRepository,
-    amqpTemplate = amqpTemplate
+    amqpTemplate = amqpTemplate,
 ) {
     override fun module() = "SPREADSHEET"
     override fun getTargetMimetype() = MediaType.TEXT_HTML_VALUE
+    override fun isOptionalModule() = true
+    override fun getCspHeader(repoId: String): String? {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
+        return registration.module[module()]?.cspHeader
+    }
 }

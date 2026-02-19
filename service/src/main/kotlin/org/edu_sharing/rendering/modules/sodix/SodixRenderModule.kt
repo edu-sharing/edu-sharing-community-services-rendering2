@@ -58,7 +58,7 @@ class SodixRenderModule(
         ))
 
         val isPaidMedia = node.properties?.getOrDefault("ccm:editorial_state", mutableListOf(""))[0] == "restricted_mz"
-        val config = getConfig(job.repoId)
+        val config = getCredentials(job.repoId)
         if (!isPaidMedia && config.getOrDefault("playoutMimetypes", "").isNotBlank()) {
             val mimeType = job.mimeType
             val playoutMimetypes = config.getValue("playoutMimetypes").toRegex()
@@ -103,7 +103,7 @@ class SodixRenderModule(
         )
     }
 
-    override fun getConfig(repoId: String): Map<String, String> {
+    override fun getCredentials(repoId: String): Map<String, String> {
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
         return registration.module[module()]?.credentials ?: mapOf()

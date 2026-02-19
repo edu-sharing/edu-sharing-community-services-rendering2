@@ -10,9 +10,13 @@ import org.springframework.stereotype.Component
  * It provides a method to retrieve the appropriate {@link BucketManagement} instance for a given bucket name.
  */
 @Component
-class StorageManagerRegistry(@Nullable private val bucketManagers: List<BucketManagement>) {
+class StorageManagerRegistry(
+    @param:Nullable private val storageManagers: List<StorageManager>
+) {
 
-    private final val registeredManager = bucketManagers.associateBy { it.bucketPrefix() }
+    private final val registeredManager = storageManagers.associateBy { it.bucketPrefix() }
+
+    fun getStorageManagers() = storageManagers
 
     /**
      * Retrieves the {@link BucketManagement} instance corresponding to the given bucket name.
@@ -21,5 +25,5 @@ class StorageManagerRegistry(@Nullable private val bucketManagers: List<BucketMa
      * @param bucketName The name of the bucket.
      * @return The corresponding {@link BucketManagement} instance, or {@code null} if no manager is found.
      */
-    fun getBucketManagerByBucketName(bucketName:  String): BucketManagement? = registeredManager[bucketName.substringBefore("-")]
+    fun getBucketManagerByBucketName(bucketName:  String): StorageManager? = registeredManager[bucketName.substringBefore("-")]
 }
