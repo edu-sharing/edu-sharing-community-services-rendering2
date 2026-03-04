@@ -18,8 +18,9 @@ data class RepositoryRegistration(
     var domains: List<String>? = emptyList(),
     var optionalModules: MutableList<String> = mutableListOf(),
     val module: MutableMap<String, ModuleSettings> = mutableMapOf(),
+    var quota: Long = 0,
+    // All settings below are automatically synced from the repository
     var allowedOrigins: MutableSet<String> = mutableSetOf(),
     var allowedOriginPatterns: MutableSet<String>? = mutableSetOf(),
     var lastAllowedOriginSync: Long = 0,
-    var quota: Long = 0,
 )

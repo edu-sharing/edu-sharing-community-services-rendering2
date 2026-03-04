@@ -12,7 +12,9 @@ import org.edu_sharing.rendering.core.exception.EntryNotFoundException
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.dto.*
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
@@ -33,6 +35,8 @@ class AdminController(
     private val trackingEntryRepository: TrackingEntryRepository,
     private val mapper: Mapper,
     private val trackingService: TrackingService,
+    private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
 ) {
 
     @GetMapping("/repository/register")
@@ -43,6 +47,7 @@ class AdminController(
 
     @PostMapping("/repository/register")
     fun registerWithRepo(@RequestBody @Valid body: RegisterRepositoryRequest): RegistrationInfo {
+        validateConfigRequest(body)
         val registration = repositoryRegistrationService.registerWithRepository(body)
         corsSyncService.syncAllowedOriginsWithRepository(registration)
         corsSyncService.triggerSync()
@@ -51,11 +56,13 @@ class AdminController(
 
     @PatchMapping("/repository/register")
     fun updateRepoRegistration(@RequestBody @Valid body: RegisterRepositoryRequest): RegistrationInfo {
+        validateConfigRequest(body)
         return toRegistrationInfo(repositoryRegistrationService.registerWithRepository(body, true))
     }
 
     @DeleteMapping("/repository/register")
     fun deleteRepository(@RequestBody @Valid body: RemoveRepositoryRequest): RegistrationInfo {
+        validateConfigRequest(body.repoId)
         val result = toRegistrationInfo(repositoryRegistrationService.deleteRepository(body))
         corsSyncService.triggerSync()
         return result
@@ -63,12 +70,24 @@ class AdminController(
 
     @PutMapping("/repository/modules/activate")
     fun activateOptionalModule(@RequestBody @Valid body: ActivateOptionalModuleRequest) {
+        validateConfigRequest(body.repoId)
         repositoryRegistrationService.activateOptionalModule(body)
     }
 
     @PutMapping("/repository/modules/deactivate")
     fun deactivateOptionalModule(@RequestBody @Valid body: DeactivateOptionalModuleRequest) {
+        validateConfigRequest(body.repoId)
         repositoryRegistrationService.deactivateOptionalModule(body)
+    }
+
+    @PutMapping("/repository/modules/csp")
+    fun setCsp(@RequestBody @Valid body: SetCspRequest) {
+        validateConfigRequest(body.repoId)
+        repositoryRegistrationService.setCspHeader(
+            repoId = body.repoId,
+            module = body.module,
+            cspHeader = body.cspHeaderValue
+        )
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -128,5 +147,27 @@ class AdminController(
             publicKey = entity.publicKey,
             domains = entity.domains ?: emptyList()
         )
+    }
+    
+    private fun validateConfigRequest(repoId: String) {
+        if (repoId.isBlank()) {
+            throw IllegalArgumentException("Repository ID cannot be blank")
+        }
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId).orElse(null) ?: return
+        val hasConfig = repositoryRegistrationConfig
+            .getAllRegistrations()
+            .any { it.first.url.trim() == registration.url.trim() }
+        if (hasConfig) {
+            throw IllegalArgumentException("Repository with ID $repoId has been configured by automatic registration from application properties")
+        }
+    }
+
+    private fun validateConfigRequest(body: RegisterRepositoryRequest) {
+        val hasConfig = repositoryRegistrationConfig
+            .getAllRegistrations()
+            .any { it.first.url.trim() == body.url.trim() }
+        if (hasConfig) {
+            throw IllegalArgumentException("Repository with url ${body.url} has been configured by automatic registration from application properties")
+        }
     }
 }
