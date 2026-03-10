@@ -23,6 +23,6 @@ class StorageManagerRegistry(
      * @return The corresponding {@link BucketManagement} instance, or {@code null} if no manager is found.
      */
     fun getBucketManagerByBucketName(bucketName: String, repoId: String): StorageManager? {
-        return storageManagers.firstOrNull {it.getByBucketName(bucketName, repoId) != null}
+        return storageManagers.firstOrNull { it.isBucketOwner(bucketName, repoId) }
     }
 }

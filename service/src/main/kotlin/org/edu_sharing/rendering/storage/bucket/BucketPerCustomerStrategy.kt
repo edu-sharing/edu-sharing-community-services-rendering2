@@ -6,13 +6,14 @@ import org.springframework.stereotype.Component
 @Component
 @ConditionalOnStorageByCustomer
 class BucketPerCustomerStrategy : BaseBucketStrategy() {
+    private val prefix = "rs2-"
 
     override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
         return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}"
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return "rs2-${cacheObject.repoId}"
+        return "$prefix${cacheObject.repoId}"
     }
 
     override fun prefixStaticPath(
@@ -31,7 +32,7 @@ class BucketPerCustomerStrategy : BaseBucketStrategy() {
         return CacheObject.of(repoId = bucket, type = type, nodeId = nodeId, hash = hash)
     }
 
-    override fun isPrefixBased(): Boolean {
-        return true
+    override fun isManagedBucket(bucket: String, repoId: String): Boolean {
+        return bucket.startsWith(prefix)
     }
 }

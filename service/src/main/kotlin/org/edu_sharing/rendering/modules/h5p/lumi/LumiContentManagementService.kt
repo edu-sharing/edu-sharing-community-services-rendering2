@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
 
+// TODO impl. lumi per repoId!!!
 @Service
 class LumiContentManagementService(
     private val lumiWebClient: WebClient,
@@ -67,7 +68,7 @@ class LumiContentManagementService(
     }
 
     @Cacheable("contentBucket")
-    fun getContentBucket(): String {
+    fun getContentBucket(repoId: String): String {
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
@@ -89,7 +90,7 @@ class LumiContentManagementService(
                     .build(true)
                     .toUri()
             }.retrieve()
-            .bodyToMono(Void::class.java)
+            .bodyToMono<Void>()
             .block()
         lumiCacheRepository.deleteByNodeId(trackingEntry.nodeId)
     }

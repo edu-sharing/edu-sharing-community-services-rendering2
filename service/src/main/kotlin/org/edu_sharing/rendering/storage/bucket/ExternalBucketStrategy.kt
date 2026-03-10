@@ -40,7 +40,13 @@ class ExternalBucketStrategy(
         return CacheObject.of(repoId = bucket, type = type, nodeId = nodeId, hash = hash)
     }
 
-    override fun isPrefixBased(): Boolean {
-        return false
+    override fun isManagedBucket(bucket: String, repoId: String): Boolean {
+        return repositoryRegistrationStorageService
+            .getRegistrationByRepoId(repoId)
+            .orElse(null)
+            ?.buckets
+            ?.renderingBucket
+            ?.let { bucket == it }
+            ?: false
     }
 }

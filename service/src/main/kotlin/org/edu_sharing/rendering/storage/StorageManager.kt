@@ -17,5 +17,5 @@ interface StorageManager {
 
     fun getManagedBuckets(repoId: String): List<String>
 
-    fun getByBucketName(bucketName: String, repoId: String): StorageManager?
+    fun isBucketOwner(bucketName: String, repoId: String): Boolean
 }
