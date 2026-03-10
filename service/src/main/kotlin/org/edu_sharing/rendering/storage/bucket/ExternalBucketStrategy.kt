@@ -49,4 +49,15 @@ class ExternalBucketStrategy(
             ?.let { bucket == it }
             ?: false
     }
+
+    override fun getTempBucket(repoId: String): String {
+        return repositoryRegistrationStorageService
+            .getRegistrationByRepoId(repoId)
+            .orElseThrow {
+                IllegalArgumentException("Unknown repository identifier $repoId provided")
+            }
+            .buckets
+            ?.tempBucket
+            ?: throw IllegalArgumentException("No temp bucket ID configured for repository $repoId")
+    }
 }

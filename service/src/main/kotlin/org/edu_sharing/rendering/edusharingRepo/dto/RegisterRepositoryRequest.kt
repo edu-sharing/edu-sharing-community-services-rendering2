@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo.dto
 
+import org.edu_sharing.rendering.edusharingRepo.entity.ExternalBuckets
 import org.jetbrains.annotations.NotNull
 
 data class RegisterRepositoryRequest(
@@ -9,6 +10,7 @@ data class RegisterRepositoryRequest(
     val username: String,
     @NotNull
     val password: String,
-    val quota: Long = 0
+    val quota: Long = 0,
+    val externalBuckets: ExternalBuckets? = null
 )
 

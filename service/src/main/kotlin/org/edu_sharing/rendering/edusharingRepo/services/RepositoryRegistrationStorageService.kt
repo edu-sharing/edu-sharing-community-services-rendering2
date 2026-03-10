@@ -32,7 +32,8 @@ class RepositoryRegistrationStorageService(
                 publicKey = UUID.randomUUID().toString(),
                 optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
                 module = localConfig?.module?.toMutableMap() ?: mutableMapOf(),
-                quota = localConfig?.quota ?: 0L
+                quota = localConfig?.quota ?: 0L,
+                buckets = localConfig?.externalBuckets
             )
             return Optional.of<RepositoryRegistration>(registration)
         }
