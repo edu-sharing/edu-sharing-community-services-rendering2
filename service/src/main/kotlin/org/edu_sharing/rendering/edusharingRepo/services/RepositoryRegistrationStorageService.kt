@@ -14,7 +14,7 @@ import java.util.*
 class RepositoryRegistrationStorageService(
     private val repoRegistrationRepository: RepositoryRegistrationRepository,
     private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
-    @Value("\${app.security.enabled}")
+    @param:Value("\${app.security.enabled}")
     private val securityEnabled: Boolean
 ) {
 

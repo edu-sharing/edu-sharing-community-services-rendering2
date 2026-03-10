@@ -29,4 +29,8 @@ class BucketPerMediaTypeStrategy() : BaseBucketStrategy() {
         val (nodeId, hash) = storagePath.trimStart('/').split("/", limit = 2)
         return CacheObject.of(repoId = bucket, nodeId = nodeId, hash = hash, type = "")
     }
+
+    override fun isPrefixBased(): Boolean {
+        return true
+    }
 }

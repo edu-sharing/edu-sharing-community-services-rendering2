@@ -42,7 +42,7 @@ class CacheCleaner(
                     .takeUntil(0L, { totalSize, _ -> totalSize >= maxSize }) { totalSize, element ->
                         totalSize + element.binarySize
                     }
-                    .groupBy { entry -> storageManagerRegistry.getBucketManagerByBucketName(entry.bucket) }
+                    .groupBy { entry -> storageManagerRegistry.getBucketManagerByBucketName(entry.bucket, entry.repoId) }
 
                 bucketEntryGroups.forEach { (bucketManager, entries) ->
                     bucketManager?.deleteObjectsFromStorage(entries)

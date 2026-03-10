@@ -8,14 +8,6 @@ import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
  */
 interface StorageManager {
     /**
-     * Returns the prefix associated with the bucket managed by this implementation.
-     * The prefix is used to identify and associate the correct bucket manager.
-     *
-     * @return The bucket prefix as a {@link String}.
-     */
-    fun bucketPrefix(): String
-
-    /**
      * Frees storage based on the given storage information and a lower threshold.
      * Implementations should ensure that storage usage does not exceed the defined constraints.
      *
@@ -23,5 +15,7 @@ interface StorageManager {
      */
     fun deleteObjectsFromStorage(trackingEntries: List<TrackingEntry>)
 
-    fun getManagedBuckets(): List<String>
+    fun getManagedBuckets(repoId: String): List<String>
+
+    fun getByBucketName(bucketName: String, repoId: String): StorageManager?
 }

@@ -261,7 +261,7 @@ class S3StorageService(
      * @return The total used storage space in bytes as a `Long`.
      */
     override fun getUsedSpace(repoId: String): Pair<Long, List<String>> {
-        var managedBuckets = storageManagerRegistry.getStorageManagers().flatMap { it.getManagedBuckets() }
+        var managedBuckets = storageManagerRegistry.getStorageManagers().flatMap { it.getManagedBuckets(repoId) }
         if (isStoringByRepoId()) {
             managedBuckets = managedBuckets.filter { it.contains(repoId) }
         }

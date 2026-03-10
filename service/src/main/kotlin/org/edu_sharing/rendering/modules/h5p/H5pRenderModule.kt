@@ -22,7 +22,9 @@ class H5pRenderModule(
     private val h5pJobService: H5pJobService,
     private val lumiContentManagementService: LumiContentManagementService,
     private val appInfo: AppInfo,
-    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    @Value("\${app.security.enabled}")
+    private val securityEnabled: Boolean
 ): RenderModule {
 
     override fun module() = "H5P"
@@ -57,6 +59,7 @@ class H5pRenderModule(
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
     override fun getCspHeader(repoId: String): String? {
+        if (!securityEnabled) return "frame-ancestors *"
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Unknown repository id: $repoId") }
         return registration.module[module()]?.cspHeader

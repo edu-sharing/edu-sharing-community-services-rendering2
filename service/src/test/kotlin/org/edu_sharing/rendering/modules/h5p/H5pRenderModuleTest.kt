@@ -31,7 +31,8 @@ class H5pRenderModuleTest {
             h5pJobServiceMock,
             lumiContentManagementServiceMock,
             appInfo,
-            repositoryRegistrationStorageService
+            repositoryRegistrationStorageService,
+            securityEnabled = true
         )
         clearAllMocks()
     }
