@@ -15,4 +15,5 @@ interface RenderModule {
     fun getNodePermissionExpirationTime(): Long? = null
     fun isOptionalModule(): Boolean = false
     fun getCspHeader(repoId: String): String? = null
+    fun getClientSettings(repoId: String): Map<String, String> = emptyMap()
 }

@@ -13,7 +13,7 @@ class EduTrackingService(
     private val restClientProvider: RestClientProvider,
     private val repositoryRegistrationRepository: RepositoryRegistrationRepository,
     private val authHeaderProvider: AuthHeaderProvider,
-    @Value("\${app.security.enabled}")
+    @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
 ) {
 

@@ -71,7 +71,7 @@ class JobInfoService(
                 infoList.add(jobInfo)
             }
         }
-        return JobInfoReply(infoList, status = job.status, module = job.module)
+        return JobInfoReply(infoList, status = job.status, module = job.module, userMessage = job.errorMessage)
     }
 
     private fun getQueuePosition(subJob: SubJob): Long {

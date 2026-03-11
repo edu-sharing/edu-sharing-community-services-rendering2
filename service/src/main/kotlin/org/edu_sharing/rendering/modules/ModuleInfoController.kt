@@ -27,7 +27,8 @@ class ModuleInfoController(
             .map {
                 RenderModuleInfo(
                     name = it.second.module(),
-                    typeMapping = it.first
+                    typeMapping = it.first,
+                    settings = it.second.getClientSettings(repoId)
                 )
             }
     }

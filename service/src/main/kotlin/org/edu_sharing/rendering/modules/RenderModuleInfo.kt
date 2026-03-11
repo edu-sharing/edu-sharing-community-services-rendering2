@@ -2,5 +2,6 @@ package org.edu_sharing.rendering.modules
 
 data class RenderModuleInfo(
     val name: String,
-    val typeMapping: ModuleTypeDefinition
+    val typeMapping: ModuleTypeDefinition,
+    val settings: Map<String, String> = emptyMap()
 )
