@@ -11,9 +11,8 @@ interface RenderModule {
     fun module(): String
     fun handle(node: Node, userData: RequestUserData): RenderDataResponse
     fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? = null
-    fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? = null
+    fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? = null
     fun getNodePermissionExpirationTime(): Long? = null
     fun isOptionalModule(): Boolean = false
     fun getCspHeader(repoId: String): String? = null
-    fun getClientSettings(repoId: String): Map<String, String> = emptyMap()
 }

@@ -74,7 +74,7 @@ class BinderRenderModule(
         }
     }
 
-    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+    override fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? {
         return subJob.additionalData
     }
 }

@@ -60,7 +60,7 @@ class JobInfoService(
 
                 SubJobStatus.FINISHED -> {
                     jobInfo.objectLink = renderModule.getObjectLinkFromJobData(it, job)
-                    jobInfo.additionalData = renderModule.getAdditionalDataFromSubJob(it)
+                    jobInfo.additionalData = renderModule.getAdditionalData(it, job.repoId)
                 }
 
                 SubJobStatus.FAILED -> {

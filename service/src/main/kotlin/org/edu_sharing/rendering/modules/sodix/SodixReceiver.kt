@@ -48,14 +48,8 @@ class SodixReceiver(
         jobEntry.status = RenderingJobStatus.PROCESSING
         jobEntry = renderingJobRepository.save(jobEntry)
         var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
-        var downloadUrlSubJob = jobEntry.subJobs.first { it.quality == 1}
-
         playoutUrlSubJob.status = SubJobStatus.PROCESSING
         playoutUrlSubJob = subJobRepository.save(playoutUrlSubJob)
-
-        downloadUrlSubJob.status = SubJobStatus.PROCESSING
-        downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
-
         try {
             val (playoutUrl, downloadUrl) = sodixService.getContentUrl(
                 sodixJobMessage = message,
@@ -64,10 +58,10 @@ class SodixReceiver(
             )
             playoutUrlSubJob.status = SubJobStatus.FINISHED
             playoutUrlSubJob.message = playoutUrl
+            if (downloadUrl != null) {
+                playoutUrlSubJob.additionalData = mapOf("downloadUrl" to downloadUrl)
+            }
             subJobRepository.save(playoutUrlSubJob)
-            downloadUrlSubJob.status = SubJobStatus.FINISHED
-            downloadUrlSubJob.message = downloadUrl
-            downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
         } catch (exception: Exception) {
             val objectMapper = ObjectMapper()
             var userMessage = GENERIC_CONVERSION_ERROR
@@ -84,9 +78,6 @@ class SodixReceiver(
             playoutUrlSubJob.status = SubJobStatus.FAILED
             playoutUrlSubJob.errorMessage = userMessage
             subJobRepository.save(playoutUrlSubJob)
-            downloadUrlSubJob.status = SubJobStatus.FAILED
-            downloadUrlSubJob.errorMessage = userMessage
-            subJobRepository.save(downloadUrlSubJob)
         }
         mainJobLogic.processMainJob(message.id)
     }

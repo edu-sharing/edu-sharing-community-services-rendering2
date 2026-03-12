@@ -56,17 +56,9 @@ class SodixRenderModule(
         )
         jobRepository.save(job)
 
-        // Job for playout URL
         subJobRepository.save(SubJob(
             routingKey = jobRoutingKey,
             parent = job
-        ))
-
-        // Job for download URL
-        subJobRepository.save(SubJob(
-            routingKey = jobRoutingKey,
-            parent = job,
-            quality = 1
         ))
 
         val isPaidMedia = node.properties?.getOrDefault("ccm:editorial_state", mutableListOf(""))[0] == "restricted_mz"
@@ -79,7 +71,10 @@ class SodixRenderModule(
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 
-        return RenderDataResponse(jobId = job.id.toString())
+        return RenderDataResponse(
+            jobId = job.id.toString(),
+            module = module()
+        )
     }
 
     override fun validateThirdPartyCredentials(
@@ -99,11 +94,14 @@ class SodixRenderModule(
         return registration.module[module()]?.credentials ?: mapOf()
     }
 
-    override fun getClientSettings(repoId: String): Map<String, String> {
-        return getCredentials(repoId).filter { optionalCredentialKeys.contains(it.key) }
-    }
-
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
         return subJob.message?.let { ObjectLink(link = it) }
+    }
+
+    override fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? {
+        val clientSettings = getCredentials(repoId).filter { optionalCredentialKeys.contains(it.key) }
+        val subJobAdditionalData = subJob.additionalData ?: emptyMap()
+
+        return clientSettings + subJobAdditionalData
     }
 }

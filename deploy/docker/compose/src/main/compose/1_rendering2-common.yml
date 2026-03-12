@@ -118,6 +118,9 @@ services:
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
+      app.repository.registration.id.local.module.SODIX.credentials.baseurl: "${RENDERING2_SODIX_URL:-http://localhost:8091}"
+      app.repository.registration.id.local.module.SODIX.credentials.playoutMimetypes: "${RENDERING2_SODIX_PLAYOUT_MIMETYPES:-^(?:image\/png|video\/mp4)$}"
+      app.repository.registration.id.local.module.SODIX.credentials.allowExternalFrameSrc: "${RENDERING2_SODIX_ALLOW_EXTERNAL_FRAME_SRC:-true}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.data.mongodb.authentication-database: ${RENDERING2_SERVICE_DATABASE_NAME:-rendering}
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
