@@ -6,8 +6,10 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 
 @Service
@@ -34,11 +36,18 @@ class MoodleJobService(
         )
         subJobRepository.save(subJob)
 
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userDetails = authentication.principal as JWTBasedUserDetail
+
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
             hash = node.content?.hash ?: "",
-            title = node.title ?: ""
+            title = node.title ?: "",
+            userName = userDetails.username,
+            userEmail = userDetails.email,
+            firstName = userDetails.firstName,
+            lastName = userDetails.lastName
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()

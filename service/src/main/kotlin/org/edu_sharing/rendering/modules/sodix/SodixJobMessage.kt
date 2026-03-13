@@ -4,5 +4,6 @@ data class SodixJobMessage(
     val id: String,
     val nodeId: String,
     val identifier: String,
-    val isPaidMedia: Boolean = false
+    val isPaidMedia: Boolean = false,
+    val role: String
 )

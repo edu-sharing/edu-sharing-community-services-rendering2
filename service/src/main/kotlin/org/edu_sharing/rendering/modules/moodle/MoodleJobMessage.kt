@@ -5,4 +5,8 @@ data class MoodleJobMessage(
     val nodeId: String,
     val hash: String,
     val title: String,
+    val userName: String,
+    val userEmail: String,
+    val firstName: String,
+    val lastName: String,
 )

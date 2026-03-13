@@ -1,8 +1,6 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
-import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -40,12 +38,14 @@ class MoodleUploadService() {
         val userTokenPreview = getUserToken(
             courseId = courseId,
             webClient = webClient,
-            webserviceToken = webserviceToken
+            webserviceToken = webserviceToken,
+            message = moodleJobMessage
         )
         val userTokenLink = getUserToken(
             courseId = courseId,
             webClient = webClient,
-            webserviceToken = webserviceToken
+            webserviceToken = webserviceToken,
+            message = moodleJobMessage
         )
 
         val previewUrl = buildForwardUrl(userTokenPreview, config)
@@ -98,15 +98,14 @@ class MoodleUploadService() {
     private fun getUserToken(
         courseId: Int,
         webClient: WebClient,
-        webserviceToken: String
+        webserviceToken: String,
+        message: MoodleJobMessage
     ): String {
         val postParams = LinkedMultiValueMap<String, String>()
-        val authentication = SecurityContextHolder.getContext().authentication
-        val userDetails = authentication.principal as JWTBasedUserDetail
-        postParams.add("user_name", userDetails.username)
-        postParams.add("user_givenname", userDetails.firstName)
-        postParams.add("user_surname", userDetails.lastName)
-        postParams.add("user_email", userDetails.email)
+        postParams.add("user_name", message.userName)
+        postParams.add("user_givenname", message.firstName)
+        postParams.add("user_surname", message.lastName)
+        postParams.add("user_email", message.userEmail)
         postParams.add("courseid", courseId.toString())
         postParams.add("role", "student")
         val token = webClient.post()
