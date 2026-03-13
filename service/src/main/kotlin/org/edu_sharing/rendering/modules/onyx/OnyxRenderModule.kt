@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.onyx
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
@@ -37,8 +36,7 @@ class OnyxRenderModule(
     override fun isOptionalModule() = true
 
     override fun handle(
-        node: Node,
-        userData: RequestUserData
+        node: Node
     ): RenderDataResponse {
         val job = mapper.nodeToRenderingJob(
             node = node,

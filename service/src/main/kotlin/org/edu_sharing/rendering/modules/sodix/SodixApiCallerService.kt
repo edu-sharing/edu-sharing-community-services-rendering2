@@ -1,6 +1,8 @@
 package org.edu_sharing.rendering.modules.sodix
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
@@ -19,12 +21,19 @@ class SodixApiCallerService {
             .baseUrl(config["baseurl"] ?: "")
             .build()
 
-        // Todo: Add user role (TEACHER, LEARNER) to paid media request (query param)
         val result = webClient.get()
             .uri {
-                it.path(if (sodixJobMessage.isPaidMedia) "render/paidmedia" else "render/playout")
+                val builder = it
+                    .path(if (sodixJobMessage.isPaidMedia) "render/paidmedia" else "render/playout")
                     .queryParam("id", sodixJobMessage.identifier)
-                    .build()
+
+                if (sodixJobMessage.isPaidMedia) {
+                    val authentication = SecurityContextHolder.getContext().authentication
+                    val userDetails = authentication.principal as JWTBasedUserDetail
+                    builder.queryParam("role", if (userDetails.primaryAffiliation == "teacher") "TEACHER" else "LEARNER")
+                }
+
+                builder.build()
             }
             .retrieve()
             .bodyToMono<SodixApiResponse>()

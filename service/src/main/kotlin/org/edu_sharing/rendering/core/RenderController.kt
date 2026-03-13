@@ -51,7 +51,7 @@ class RenderController (
 
         return ResponseEntity
             .ok()
-            .body(service.getRenderModule(body, node).handle(node, body.userData))
+            .body(service.getRenderModule(body, node).handle(node))
     }
 
     private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String) {

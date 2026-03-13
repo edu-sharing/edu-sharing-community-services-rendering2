@@ -47,8 +47,7 @@ class AudioRenderModuleTest {
 
         // Act
         val result = underTest.handle(
-            node = node,
-            requestUserData = mockk()
+            node = node
         )
 
         // Assert
@@ -73,8 +72,7 @@ class AudioRenderModuleTest {
 
         // Act
         val result = underTest.handle(
-            node = node,
-            requestUserData = mockk()
+            node = node
         )
 
         // Assert

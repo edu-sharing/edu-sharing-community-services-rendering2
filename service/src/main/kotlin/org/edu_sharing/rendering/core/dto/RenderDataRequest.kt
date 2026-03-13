@@ -3,16 +3,14 @@ package org.edu_sharing.rendering.core.dto
 import org.jetbrains.annotations.NotNull
 
 data class RenderDataRequest(
-    @NotNull
+    @param:NotNull
     val nodeId: String,
-    @NotNull
+    @param:NotNull
     val repoId: String,
-    @NotNull
+    @param:NotNull
     val securedNode: String,
-    @NotNull
+    @param:NotNull
     val signature: String,
-    @NotNull
-    val userData: RequestUserData,
     val eventType: String = "VIEW_MATERIAL",
 )
 

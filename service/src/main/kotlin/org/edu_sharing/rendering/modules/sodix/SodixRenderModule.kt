@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.sodix
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
@@ -42,7 +41,7 @@ class SodixRenderModule(
     override fun module() = "SODIX"
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node): RenderDataResponse {
         val replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0]
         val replicationSourceId = node.properties?.getOrDefault("ccm:replicationsourceid", mutableListOf(""))[0]
         if (replicationSource.isNullOrBlank() || replicationSourceId.isNullOrBlank()) {

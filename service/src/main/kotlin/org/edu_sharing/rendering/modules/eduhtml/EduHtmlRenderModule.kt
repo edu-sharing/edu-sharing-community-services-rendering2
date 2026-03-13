@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.eduhtml
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
@@ -24,7 +23,7 @@ class EduHtmlRenderModule(
     override fun module() = "EDUHTML"
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node): RenderDataResponse {
         val staticLink = try {
             val cacheObject = mapper.nodeToCacheObject(node)
             eduHtmlService.getObjectLink(cacheObject)
