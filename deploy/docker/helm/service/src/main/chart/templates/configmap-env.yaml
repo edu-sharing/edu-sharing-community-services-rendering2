@@ -39,6 +39,7 @@ data:
   "app.internal.port": "8080"
   "app.s3.region": {{ .Values.config.s3.region | quote }}
   "app.s3.protocol": {{ .Values.config.s3.protocol | quote }}
+  "app.s3.bucket.mode": {{ .Values.config.s3.mode | quote }}
   "app.session.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.default | quote }}
   "app.session.image.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.image | quote }}
   "app.session.audio.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.audio | quote }}
@@ -76,6 +77,9 @@ data:
   {{- with $module.cspHeader }}
   "app.repository.registration.id.{{ $register.id }}.module.{{ $module.name }}.cspHeader": {{ . | quote }}
   {{- end }}
+  {{- end }}
+  {{- range $bucket := register.buckets }}
+  "app.repository.registration.id.{{ $register.id }}.buckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
   {{- end }}
   "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
   "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}
