@@ -65,7 +65,7 @@ services:
       VIRTUAL_PORT: 8080
       server.servlet.context-path: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
       app.appId: rendering2
-      app.security.enabled: false
+      app.security.enabled: true
       app.public.protocol: "${RENDERING2_SERVICE_PUBLIC_PROTOCOL:-http}"
       app.public.host: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
       app.public.port: "${RENDERING2_SERVICE_PUBLIC_PORT:-80}"
