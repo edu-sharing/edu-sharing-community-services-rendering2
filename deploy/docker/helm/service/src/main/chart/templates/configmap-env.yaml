@@ -78,7 +78,7 @@ data:
   "app.repository.registration.id.{{ $register.id }}.module.{{ $module.name }}.cspHeader": {{ . | quote }}
   {{- end }}
   {{- end }}
-  {{- range $bucket := register.buckets }}
+  {{- range $bucket := $register.buckets }}
   "app.repository.registration.id.{{ $register.id }}.buckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
   {{- end }}
   "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
