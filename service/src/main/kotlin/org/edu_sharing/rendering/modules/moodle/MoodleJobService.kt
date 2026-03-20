@@ -11,6 +11,7 @@ import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
+import java.util.*
 
 @Service
 class MoodleJobService(
@@ -45,11 +46,16 @@ class MoodleJobService(
             hash = node.content?.hash ?: "",
             title = node.title ?: "",
             userName = userDetails.username,
-            userEmail = userDetails.email,
+            userEmail = userDetails.email.ifBlank { getFallbackMail() },
             firstName = userDetails.firstName,
             lastName = userDetails.lastName
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
+    }
+
+    private fun getFallbackMail(): String {
+        val shortId = UUID.randomUUID().toString().replace("-", "").take(12)
+        return "$shortId@$shortId.edu"
     }
 }
