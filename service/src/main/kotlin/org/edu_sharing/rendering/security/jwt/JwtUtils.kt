@@ -56,8 +56,8 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
                     expirationDate = jws.payload.expiration,
                     authorities = grantedAuthority,
                     repoId = jws.payload.get("repoId", String::class.java),
-                    firstName = jws.payload.get("firstName", String::class.java),
-                    lastName = jws.payload.get("lastName", String::class.java),
+                    firstName = jws.payload.getOrDefault("firstName", "") as String,
+                    lastName = jws.payload.getOrDefault("lastName", "") as String,
                     email = jws.payload.getOrDefault("userEmail", "") as String,
                     primaryAffiliation = jws.payload.getOrDefault("primaryAffiliation", "") as String
                 )
