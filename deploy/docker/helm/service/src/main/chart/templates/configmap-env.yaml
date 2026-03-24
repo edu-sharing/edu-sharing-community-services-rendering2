@@ -68,6 +68,7 @@ data:
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}
   "spring.redis.cluster.nodes": {{ (printf "%s:%d" .Values.config.redis.host (.Values.config.redis.port | int)) | quote }}
   "spring.redis.cluster.maxRedirects": "5"
+  "spring.redis.cluster.keyPrefix": {{ include "edusharing_common_lib.names.name" . | quote }}
   "server.servlet.session.cookie.same-site": {{ .Values.config.session.cookie.samesite | quote}}
   "server.servlet.session.cookie.secure": {{ .Values.config.session.cookie.secure | quote}}
   {{- range $register := .Values.config.home.registrations }}
