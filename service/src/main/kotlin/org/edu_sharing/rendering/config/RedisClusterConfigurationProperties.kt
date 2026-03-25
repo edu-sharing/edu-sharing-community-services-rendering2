@@ -21,4 +21,5 @@ class RedisClusterConfigurationProperties {
          */
     lateinit var nodes: List<String>
     var maxRedirects: Int? = null
+    var keyPrefix: String? = null
 }

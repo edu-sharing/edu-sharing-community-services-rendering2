@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+import org.springframework.data.redis.serializer.StringRedisSerializer
 
 @Configuration
 class RedisConfig {
@@ -40,10 +41,24 @@ class RedisConfig {
     }
 
     @Bean
-    fun redisTemplate(redisConnectionFactory: RedisConnectionFactory): RedisTemplate<String, Any> {
+    fun redisTemplate(
+        redisConnectionFactory: RedisConnectionFactory,
+        redisClusterConfigurationProperties: RedisClusterConfigurationProperties?
+    ): RedisTemplate<String, Any> {
         val template: RedisTemplate<String, Any> = RedisTemplate()
         template.connectionFactory = redisConnectionFactory
         template.valueSerializer = GenericJackson2JsonRedisSerializer()
+
+        redisClusterConfigurationProperties?.keyPrefix?.let { prefix ->
+            template.keySerializer = object : StringRedisSerializer() {
+                override fun serialize(key: String?): ByteArray? {
+                    return super.serialize(prefix + key)
+                }
+            }
+        }
+
         return template
     }
+
+
 }
