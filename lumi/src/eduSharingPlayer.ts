@@ -51,6 +51,11 @@ export default (model: IPlayerModel): string => `<!doctype html>
         }
       })();
     </script>
+    <style>
+        ul.h5p-actions {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="h5p-content" data-content-id="${model.contentId}"></div>
