@@ -228,6 +228,8 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
     ## @param ingress.annotations.nginx.ingress.kubernetes.io/proxy-send-timeout Set proxy-send-timeout on nginx ingress
     nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
+    ## @param ingress.annotations.nginx.ingress.kubernetes.io/proxy-pass-headers Set proxy-pass-headers on nginx ingress
+    nginx.ingress.kubernetes.io/proxy-pass-headers: "Authentication-Info"
 
   ## @param ingress.hosts Set ingress hosts
   hosts:
