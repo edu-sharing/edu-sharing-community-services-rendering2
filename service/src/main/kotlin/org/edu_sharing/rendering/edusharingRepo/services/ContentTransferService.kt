@@ -9,6 +9,7 @@ import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.bodyToFlux
 import org.springframework.web.util.UriComponentsBuilder
+import reactor.core.publisher.Flux
 import java.io.InputStream
 import java.net.URLEncoder
 import java.util.*
@@ -54,8 +55,21 @@ class ContentTransferService(
                     .build(true)
                     .toUri()
                 uri
-            }.retrieve()
+            }
+            .retrieve()
             .bodyToFlux<org.springframework.core.io.buffer.DataBuffer>()
+            .handle { buffer, sink ->
+                if (buffer.readableByteCount() == 0) {
+                    sink.error(Exception("Empty response received for ${cacheObject.repoId}/${cacheObject.nodeId}"))
+                } else {
+                    sink.next(buffer)
+                }
+            }
+            .switchIfEmpty(
+                Flux.error(
+                    Exception("Empty response received for ${cacheObject.repoId}/${cacheObject.nodeId}")
+                )
+            )
 
         return FluxInputStream.toInputStream(returnedData)
     }

@@ -5,12 +5,14 @@ cache:
 
 variables:
   COMMON_BIND_HOST: "0.0.0.0"
+  DEPLOY_DOCKER_HELM: "true"
+  DEPLOY_TIMESTAMP: "$DEPLOY_TIMESTAMP"
   DOCKER_DRIVER: "$DIND_DRIVER"
   DOCKER_HOST: "$DIND_HOST"
   DOCKER_TLS_CERTDIR: "$DIND_TLS_CERTDIR"
   DOCKER_USERNAME: "$DOCKER_USERNAME"
   DOCKER_PASSWORD: "$DOCKER_PASSWORD"
-  MAVEN_CLI: "-Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASE -Dhelm.deploy.url=$HELM_REGISTRY -Dhelm.deploy.type=$HELM_TYPE -Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASES -Dmaven.deploy.snapshots=$MAVEN_DEPLOY_SNAPSHOTS -Dversioning.configFile=maven-git-versioning-extension-ci.xml --batch-mode --errors --fail-fast --show-version"
+  MAVEN_CLI: "-Ddocker.registry=$DOCKER_REGISTRY -Dhelm.deploy.url=$HELM_REGISTRY -Dhelm.deploy.type=$HELM_TYPE -Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASES -Dmaven.deploy.snapshots=$MAVEN_DEPLOY_SNAPSHOTS -Dversioning.configFile=maven-git-versioning-extension-ci.xml --batch-mode --errors --fail-fast --show-version"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
 default:
@@ -20,7 +22,6 @@ default:
       alias: docker
       entrypoint: [ "env", "-u", "DOCKER_HOST" ]
       command: [ "dockerd-entrypoint.sh" ]
-
 stages:
   - deploy
 
@@ -35,8 +36,13 @@ deploy:
   before_script:
     - apt-get update -y
     - apt-get install -y unzip
+    - pushd /tmp
+    - wget https://get.helm.sh/helm-v3.14.2-linux-amd64.tar.gz
+    - tar -xzvf helm-v3.14.2-linux-amd64.tar.gz
+    - ./linux-amd64/helm repo add edu-sharing https://artifacts.edu-sharing.com/repository/helm
+    - popd
   script:
-    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -P docker.deploy
+    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy
   artifacts:
     paths:
       - service/target/surefire-reports

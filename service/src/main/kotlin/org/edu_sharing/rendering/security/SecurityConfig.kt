@@ -31,7 +31,7 @@ import org.springframework.web.cors.CorsConfigurationSource
 @EnableMethodSecurity
 @ConditionalOnProperty(name = ["app.security.enabled"], havingValue = "true")
 class SecurityConfig(
-    @Value("\${app.security.adminPassword}") var adminPassword: String
+    @param:Value("\${app.security.adminPassword}") var adminPassword: String
 ) {
 
     @Bean
@@ -101,14 +101,9 @@ class SecurityConfig(
             }.cors {
                 it.configurationSource(corsConfigurationSource)
             }.authorizeHttpRequests {
-                it.requestMatchers(
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/v3/api-docs/**",
-                    "/actuator/health/*",
-                    "/actuator/prometheus",
-                    "/ping"
-                ).permitAll()
+                it.requestMatchers("/v3/api-docs/administration/**").hasRole("ADMIN")
+                it.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                it.requestMatchers("/actuator/health/*", "/actuator/prometheus", "/ping").permitAll()
                 it.anyRequest().authenticated()
             }.httpBasic(Customizer.withDefaults())
             .build()

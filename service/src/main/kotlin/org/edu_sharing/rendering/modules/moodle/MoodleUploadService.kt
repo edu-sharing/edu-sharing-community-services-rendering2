@@ -36,16 +36,16 @@ class MoodleUploadService() {
             webserviceToken = webserviceToken
         )
         val userTokenPreview = getUserToken(
-            moodleJobMessage = moodleJobMessage,
             courseId = courseId,
             webClient = webClient,
-            webserviceToken = webserviceToken
+            webserviceToken = webserviceToken,
+            message = moodleJobMessage
         )
         val userTokenLink = getUserToken(
-            moodleJobMessage = moodleJobMessage,
             courseId = courseId,
             webClient = webClient,
-            webserviceToken = webserviceToken
+            webserviceToken = webserviceToken,
+            message = moodleJobMessage
         )
 
         val previewUrl = buildForwardUrl(userTokenPreview, config)
@@ -96,16 +96,16 @@ class MoodleUploadService() {
     }
 
     private fun getUserToken(
-        moodleJobMessage: MoodleJobMessage,
         courseId: Int,
         webClient: WebClient,
-        webserviceToken: String
+        webserviceToken: String,
+        message: MoodleJobMessage
     ): String {
         val postParams = LinkedMultiValueMap<String, String>()
-        postParams.add("user_name", moodleJobMessage.authorityName)
-        postParams.add("user_givenname", moodleJobMessage.userGivenName)
-        postParams.add("user_surname", moodleJobMessage.userSurname)
-        postParams.add("user_email", moodleJobMessage.userEmail)
+        postParams.add("user_name", message.userName)
+        postParams.add("user_givenname", message.firstName)
+        postParams.add("user_surname", message.lastName)
+        postParams.add("user_email", message.userEmail)
         postParams.add("courseid", courseId.toString())
         postParams.add("role", "student")
         val token = webClient.post()

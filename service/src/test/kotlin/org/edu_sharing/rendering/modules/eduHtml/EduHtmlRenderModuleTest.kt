@@ -5,7 +5,6 @@ import io.mockk.junit5.MockKExtension
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
@@ -46,7 +45,7 @@ class EduHtmlRenderModuleTest {
         every { eduHtmlServiceMock.getObjectLink(cacheObject = cacheObject) } returns ObjectLink(link = "mylink")
 
         // Act
-        val result = underTest.handle(node, mockk<RequestUserData>())
+        val result = underTest.handle(node)
 
         // Assert
         assert(result.module == "EDUHTML")
@@ -70,7 +69,7 @@ class EduHtmlRenderModuleTest {
         every { eduHtmlServiceMock.createJob(node, "EDUHTML") } returns jobId
 
         // Act
-        val result = underTest.handle(node, mockk<RequestUserData>())
+        val result = underTest.handle(node)
 
         // Assert
         assert(result.module == "EDUHTML")

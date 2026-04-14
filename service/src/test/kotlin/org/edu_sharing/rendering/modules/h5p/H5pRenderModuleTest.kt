@@ -5,7 +5,6 @@ import io.mockk.junit5.MockKExtension
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
@@ -31,7 +30,8 @@ class H5pRenderModuleTest {
             h5pJobServiceMock,
             lumiContentManagementServiceMock,
             appInfo,
-            repositoryRegistrationStorageService
+            repositoryRegistrationStorageService,
+            securityEnabled = true
         )
         clearAllMocks()
     }
@@ -50,7 +50,7 @@ class H5pRenderModuleTest {
         }
 
         // Act
-        val result = underTest.handle(node, mockk<RequestUserData>())
+        val result = underTest.handle(node)
 
         // Assert
         assert(result.module == "H5P")
@@ -77,7 +77,7 @@ class H5pRenderModuleTest {
         }
 
         // Act
-        val result = underTest.handle(node, mockk<RequestUserData>())
+        val result = underTest.handle(node)
 
         // Assert
         assert(result.module == "H5P")

@@ -9,7 +9,11 @@ data class JWTBasedUserDetail(
     val notBefore: Date,
     val expirationDate: Date,
     private val authorities: MutableCollection<out GrantedAuthority>? = ArrayList<GrantedAuthority>(),
-    val repoId: String
+    val repoId: String,
+    val firstName: String,
+    val lastName : String,
+    val email : String,
+    val primaryAffiliation: String
 ) : UserDetails {
 
     override fun getAuthorities(): MutableCollection<out GrantedAuthority> {

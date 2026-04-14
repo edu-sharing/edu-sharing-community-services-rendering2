@@ -4,6 +4,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiCall
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiException
 import org.edu_sharing.rendering.edusharingRepo.repository.RepositoryRegistrationRepository
 import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 
@@ -12,13 +13,15 @@ class EduTrackingService(
     private val restClientProvider: RestClientProvider,
     private val repositoryRegistrationRepository: RepositoryRegistrationRepository,
     private val authHeaderProvider: AuthHeaderProvider,
+    @param:Value($$"${app.security.enabled}")
+    private val securityEnabled: Boolean,
 ) {
 
     private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
 
     @Throws(IllegalArgumentException::class)
     fun trackObject(event: String, objectId: String, repoId: String) {
-        if (event == "PRERENDER") {
+        if (event == "PRERENDER" || !securityEnabled) {
             return
         }
         val registration = repositoryRegistrationRepository.findByRepoId(repoId)

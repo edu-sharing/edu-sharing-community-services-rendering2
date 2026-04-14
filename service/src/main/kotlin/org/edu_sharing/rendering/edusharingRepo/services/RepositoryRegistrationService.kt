@@ -22,6 +22,7 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.scheduler.Schedulers
 import java.security.InvalidKeyException
 import java.security.KeyFactory
@@ -64,7 +65,7 @@ class RepositoryRegistrationService(
                     .build()
             }.accept(MediaType.APPLICATION_XML)
             .retrieve()
-            .bodyToMono(String::class.java)
+            .bodyToMono<String>()
             .publishOn(Schedulers.boundedElastic())
             .mapNotNull {
                 val buffer = it.byteInputStream()
@@ -98,7 +99,8 @@ class RepositoryRegistrationService(
             publicKey = metadata.publicKey,
             domains = metadata.domain,
             optionalModules = mutableListOf(),
-            quota = request.quota
+            quota = request.quota,
+            buckets = request.externalBuckets
         )
 
         if (force) {

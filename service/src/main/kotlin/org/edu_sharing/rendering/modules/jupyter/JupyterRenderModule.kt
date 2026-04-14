@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.jupyter
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.ConversionModule
 import org.edu_sharing.rendering.modules.RenderModule
@@ -37,7 +36,7 @@ class JupyterRenderModule(
 
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, requestUserData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
         val objectLinks = jupyterJobService.getObjectLinks(cacheObject, this)
 
@@ -54,7 +53,7 @@ class JupyterRenderModule(
         return links?.get(0)
     }
 
-    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+    override fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? {
         return subJob.additionalData
     }
 

@@ -47,7 +47,7 @@ class H5pUploadService(
     private fun getLumiId(cacheObject: CacheObject): String {
         try {
             val lumiId = getCachedContentId(cacheObject.nodeId, cacheObject.hash)
-            trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket())
+            trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(cacheObject.repoId))
             return lumiId
         } catch (exception: WebClientResponseException) {
             if (exception.statusCode.isSameCodeAs(HttpStatus.NOT_FOUND)) {
@@ -57,8 +57,8 @@ class H5pUploadService(
             }
         }
         val lumiId = uploadPackage(cacheObject)
-        val size = storageService.getDirectorySize(lumiContentManagementService.getContentBucket(), lumiId)
-        trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(), size)
+        val size = storageService.getDirectorySize(lumiContentManagementService.getContentBucket(cacheObject.repoId), lumiId)
+        trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(cacheObject.repoId), size)
         return lumiId
     }
 

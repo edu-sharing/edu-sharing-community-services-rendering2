@@ -5,13 +5,15 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnStorageByMediaType
-class BucketPerMediaTypeStrategy() : BaseBucketStrategy() {
+class BucketPerMediaTypeStrategy : BaseBucketStrategy() {
+    private val prefix = "rs2-"
+
     override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
         return "${cacheObject.nodeId}/${cacheObject.hash}"
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return "rs2-${cacheObject.type}"
+        return "$prefix${cacheObject.type}"
     }
 
     override fun prefixStaticPath(
@@ -28,5 +30,9 @@ class BucketPerMediaTypeStrategy() : BaseBucketStrategy() {
     ): CacheObject? {
         val (nodeId, hash) = storagePath.trimStart('/').split("/", limit = 2)
         return CacheObject.of(repoId = bucket, nodeId = nodeId, hash = hash, type = "")
+    }
+
+    override fun isManagedBucket(bucket: String, repoId: String): Boolean {
+        return bucket.startsWith(prefix)
     }
 }

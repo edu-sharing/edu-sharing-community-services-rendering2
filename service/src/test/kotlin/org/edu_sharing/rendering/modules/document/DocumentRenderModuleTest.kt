@@ -5,7 +5,6 @@ import org.bson.types.ObjectId
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -48,7 +47,7 @@ class DocumentRenderModuleTest {
         every {mockDocumentService.getObjectLinks(cacheObject, underTest)} returns linkList
 
         // Act
-        val result = underTest.handle(mockNode, mockk<RequestUserData>())
+        val result = underTest.handle(mockNode)
 
         assert(result.objectLinks?.get(0)?.link == "mylink")
         assert(result.module == "DOCUMENT")
@@ -70,7 +69,7 @@ class DocumentRenderModuleTest {
         every { mockDocumentService.retrieveOrCreateJob(cacheObject, underTest) } returns "newJob123"
 
         // Act
-        val result = underTest.handle(mockNode, mockk<RequestUserData>())
+        val result = underTest.handle(mockNode)
 
         // Assert
         assert(result.module == "DOCUMENT")

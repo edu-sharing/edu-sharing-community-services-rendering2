@@ -228,6 +228,8 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
     ## @param ingress.annotations.nginx.ingress.kubernetes.io/proxy-send-timeout Set proxy-send-timeout on nginx ingress
     nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
+    ## @param ingress.annotations.nginx.ingress.kubernetes.io/proxy-pass-headers Set proxy-pass-headers on nginx ingress
+    nginx.ingress.kubernetes.io/proxy-pass-headers: "Authentication-Info"
 
   ## @param ingress.hosts Set ingress hosts
   hosts:
@@ -369,7 +371,12 @@ config:
       #   credentials:
       #   - name: baseurl
       #     value:
-
+      ## @param config.home.registrations[0].buckets Set buckets for repository registration
+      buckets: []
+      # - name: renderingBucket
+      #   value: rendering2
+      # - name: tempBucket
+      #   value: temp
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
@@ -445,7 +452,8 @@ config:
     protocol: http
     ## @param config.s3.region Set S3 region
     region: eu-central-1
-
+    ## @param config.s3.mode Set S3 mode [byType|byCustomer|externalBucket]
+    mode: byType
   session:
     cookie:
       ## @param config.session.cookie.samesite Set session cookie same-site

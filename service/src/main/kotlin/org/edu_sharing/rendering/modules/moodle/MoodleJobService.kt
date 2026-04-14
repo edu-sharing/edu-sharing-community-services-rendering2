@@ -1,15 +1,15 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.slf4j.LoggerFactory
+import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import java.util.*
 
@@ -20,15 +20,13 @@ class MoodleJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
-
     @Value("\${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     @Value("\${app.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
-    fun createJob(node: Node, userData: RequestUserData, module: String, submitUserDetails: Boolean): String? {
+    fun createJob(node: Node, module: String): String? {
         val job = mapper.nodeToRenderingJob(node = node, module = module, isConversionType = true)
         jobRepository.save(job)
 
@@ -39,17 +37,25 @@ class MoodleJobService(
         )
         subJobRepository.save(subJob)
 
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userDetails = authentication.principal as JWTBasedUserDetail
+
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
             hash = node.content?.hash ?: "",
             title = node.title ?: "",
-            authorityName = userData.authorityName,
-            userEmail = if (submitUserDetails) (userData.userEMail ?: "") else "${UUID.randomUUID()}@${UUID.randomUUID()}.edu",
-            userGivenName = if (submitUserDetails) (userData.firstName ?: "") else UUID.randomUUID().toString(),
-            userSurname = if (submitUserDetails) (userData.surName ?: "") else UUID.randomUUID().toString()
+            userName = userDetails.username,
+            userEmail = userDetails.email.ifBlank { getFallbackMail() },
+            firstName = userDetails.firstName,
+            lastName = userDetails.lastName
         )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
+    }
+
+    private fun getFallbackMail(): String {
+        val shortId = UUID.randomUUID().toString().replace("-", "").take(12)
+        return "$shortId@$shortId.edu"
     }
 }

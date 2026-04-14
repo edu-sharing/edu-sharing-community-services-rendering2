@@ -39,6 +39,7 @@ data:
   "app.internal.port": "8080"
   "app.s3.region": {{ .Values.config.s3.region | quote }}
   "app.s3.protocol": {{ .Values.config.s3.protocol | quote }}
+  "app.s3.bucket.mode": {{ .Values.config.s3.mode | quote }}
   "app.session.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.default | quote }}
   "app.session.image.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.image | quote }}
   "app.session.audio.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.audio | quote }}
@@ -67,6 +68,7 @@ data:
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}
   "spring.redis.cluster.nodes": {{ (printf "%s:%d" .Values.config.redis.host (.Values.config.redis.port | int)) | quote }}
   "spring.redis.cluster.maxRedirects": "5"
+  "spring.redis.cluster.keyPrefix": {{ printf "%s:" (include "edusharing_common_lib.names.name" .) | quote }}
   "server.servlet.session.cookie.same-site": {{ .Values.config.session.cookie.samesite | quote}}
   "server.servlet.session.cookie.secure": {{ .Values.config.session.cookie.secure | quote}}
   {{- range $register := .Values.config.home.registrations }}
@@ -76,6 +78,9 @@ data:
   {{- with $module.cspHeader }}
   "app.repository.registration.id.{{ $register.id }}.module.{{ $module.name }}.cspHeader": {{ . | quote }}
   {{- end }}
+  {{- end }}
+  {{- range $bucket := $register.buckets }}
+  "app.repository.registration.id.{{ $register.id }}.buckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
   {{- end }}
   "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
   "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}

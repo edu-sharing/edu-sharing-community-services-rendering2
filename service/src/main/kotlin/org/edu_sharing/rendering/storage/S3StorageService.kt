@@ -24,8 +24,6 @@ import java.io.InputStream
 import java.net.URLEncoder
 import java.util.*
 
-private const val TEMP_BUCKET = "temp"
-
 @Service
 class S3StorageService(
     private val s3Client: S3Client,
@@ -93,14 +91,14 @@ class S3StorageService(
     override fun removeTempObject(cacheObject: CacheObject) {
         s3Client.deleteObject(
             DeleteObjectRequest.builder()
-                .bucket(TEMP_BUCKET)
+                .bucket(bucketStrategy.getTempBucket(cacheObject.repoId))
                 .key(getTempPath(cacheObject))
                 .build()
         )
     }
 
     private fun getBucket(isTemp: Boolean, cacheObject: CacheObject): String {
-        return if (isTemp) TEMP_BUCKET else bucketStrategy.getBucket(cacheObject)
+        return if (isTemp) bucketStrategy.getTempBucket(cacheObject.repoId) else bucketStrategy.getBucket(cacheObject)
     }
 
     private fun getStoragePath(isTemp: Boolean, cacheObject: CacheObject): String {
@@ -185,9 +183,9 @@ class S3StorageService(
         cacheObject: CacheObject,
         inputStream: InputStream
     ) {
-        createBucketIfMissing(TEMP_BUCKET)
+        createBucketIfMissing(bucketStrategy.getTempBucket(cacheObject.repoId))
         val request = PutObjectRequest.builder()
-            .bucket(TEMP_BUCKET)
+            .bucket(bucketStrategy.getTempBucket(cacheObject.repoId))
             .key(getTempPath(cacheObject))
             .contentType(cacheObject.mimeType.ifBlank { "application/octet-stream" })
             .build()
@@ -261,7 +259,7 @@ class S3StorageService(
      * @return The total used storage space in bytes as a `Long`.
      */
     override fun getUsedSpace(repoId: String): Pair<Long, List<String>> {
-        var managedBuckets = storageManagerRegistry.getStorageManagers().flatMap { it.getManagedBuckets() }
+        var managedBuckets = storageManagerRegistry.getStorageManagers().flatMap { it.getManagedBuckets(repoId) }
         if (isStoringByRepoId()) {
             managedBuckets = managedBuckets.filter { it.contains(repoId) }
         }

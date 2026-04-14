@@ -14,7 +14,7 @@ import java.util.*
 class RepositoryRegistrationStorageService(
     private val repoRegistrationRepository: RepositoryRegistrationRepository,
     private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
-    @Value("\${app.security.enabled}")
+    @param:Value("\${app.security.enabled}")
     private val securityEnabled: Boolean
 ) {
 
@@ -32,7 +32,8 @@ class RepositoryRegistrationStorageService(
                 publicKey = UUID.randomUUID().toString(),
                 optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
                 module = localConfig?.module?.toMutableMap() ?: mutableMapOf(),
-                quota = localConfig?.quota ?: 0L
+                quota = localConfig?.quota ?: 0L,
+                buckets = localConfig?.externalBuckets
             )
             return Optional.of<RepositoryRegistration>(registration)
         }

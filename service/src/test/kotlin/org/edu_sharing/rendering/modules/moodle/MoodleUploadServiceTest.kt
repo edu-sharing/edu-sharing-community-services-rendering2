@@ -10,10 +10,10 @@ class MoodleUploadServiceTest {
         nodeId = "dummyNodeId",
         hash = "dummyHash",
         title = "dummyTitle",
-        authorityName = "dummyAuthorityName",
+        userName = "dummyUserName",
         userEmail = "dummyUserEmail",
-        userGivenName = "dummyUserGivenName",
-        userSurname = "dummyUserSurname"
+        firstName = "dummyFirstName",
+        lastName = "dummyLastName"
     )
 
     private val repoId = "repoId"

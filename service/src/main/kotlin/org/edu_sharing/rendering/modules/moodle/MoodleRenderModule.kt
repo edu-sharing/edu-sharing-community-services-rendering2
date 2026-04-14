@@ -3,7 +3,6 @@ package org.edu_sharing.rendering.modules.moodle
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
@@ -13,11 +12,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
 
 @Component
 class MoodleRenderModule(
-    @Value("\${app.session.moodle.nodePermissionExpirationTime}")
+    @param:Value($$"${app.session.moodle.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val moodleJobService: MoodleJobService,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
@@ -33,15 +33,13 @@ class MoodleRenderModule(
     override fun module() = "MOODLE"
     override fun isOptionalModule() = true
 
-    override fun handle(node: Node, userData: RequestUserData): RenderDataResponse {
+    override fun handle(node: Node): RenderDataResponse {
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),
             jobId = moodleJobService.createJob(
                 node = node,
-                userData = userData,
                 module = module(),
-                submitUserDetails = getCredentials(node.ref.repo).getOrDefault("submitUserDetails", "true").toBoolean()
             )
         )
     }
@@ -82,7 +80,7 @@ class MoodleRenderModule(
                     .build()
             }
             .retrieve()
-            .bodyToMono(Int::class.java)
+            .bodyToMono<Int>()
             .timeout(Duration.ofSeconds(credentials.getValue("timeout").toLong()))
             .block()
 
@@ -100,7 +98,7 @@ class MoodleRenderModule(
         return registration.module[module()]?.credentials ?: mapOf()
     }
 
-    override fun getAdditionalDataFromSubJob(subJob: SubJob): Map<String, String>? {
+    override fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? {
         return subJob.additionalData
     }
 
@@ -114,7 +112,7 @@ class MoodleRenderModule(
                     .build()
             }
             .retrieve()
-            .bodyToMono(MoodleTokenReply::class.java)
+            .bodyToMono<MoodleTokenReply>()
             .block()
 
         return tokenResponse?.token ?: throw Exception("Token could not be retrieved from Moodle.")

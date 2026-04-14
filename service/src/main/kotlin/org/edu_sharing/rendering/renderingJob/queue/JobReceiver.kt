@@ -47,10 +47,8 @@ class JobReceiver(
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
             if (jobEntry.conversionType) {
-                // Size known from repo
                 storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
             } else {
-                // size known from repo
                 storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
                 jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)

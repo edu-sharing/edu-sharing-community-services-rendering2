@@ -72,7 +72,7 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
         return getRenderModule(
             type = node.mediatype ?: "",
             mimeType = node.mimetype ?: "",
-            replicationSource = node.properties.getOrDefault("ccm:replicationSource", mutableListOf(""))[0],
+            replicationSource = node.properties.getOrDefault("ccm:replicationsource", mutableListOf(""))[0],
             resourceType = node.properties.getOrDefault("ccm:ccressourcetype", mutableListOf(""))[0],
             remoteRepositoryType = node.remote?.repository?.repositoryType
         )

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.sodix
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.modules.ModuleRegistry
@@ -13,7 +14,9 @@ import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClientResponseException
 
 @Component
 @ConditionalOnConverter
@@ -31,55 +34,50 @@ class SodixReceiver(
             QueueBinding(
                 value = Queue(name = "\${app.queue.sodix.name}", durable = "false"),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.sodix.key}"]
+                key = [$$"${app.queue.sodix.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SodixJobMessage) {
-        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
+        var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
-        val isPaidMedia = jobEntry.subJobs.size == 2
-
         jobEntry.status = RenderingJobStatus.PROCESSING
-        renderingJobRepository.save(jobEntry)
+        jobEntry = renderingJobRepository.save(jobEntry)
         var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
-        var downloadUrlSubJob = jobEntry.subJobs.firstOrNull { it.quality == 1}
-
         playoutUrlSubJob.status = SubJobStatus.PROCESSING
         playoutUrlSubJob = subJobRepository.save(playoutUrlSubJob)
-        if (downloadUrlSubJob != null) {
-            downloadUrlSubJob.status = SubJobStatus.PROCESSING
-            downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
-        }
-
         try {
             val (playoutUrl, downloadUrl) = sodixService.getContentUrl(
                 sodixJobMessage = message,
                 module = moduleRegistry.getRenderModule(jobEntry.module),
                 repoId = jobEntry.repoId,
-                isPaidMedia = isPaidMedia
             )
             playoutUrlSubJob.status = SubJobStatus.FINISHED
             playoutUrlSubJob.message = playoutUrl
-            subJobRepository.save(playoutUrlSubJob)
-            if (downloadUrlSubJob != null) {
-                downloadUrlSubJob.status = SubJobStatus.FINISHED
-                downloadUrlSubJob.message = downloadUrl
-                downloadUrlSubJob = subJobRepository.save(downloadUrlSubJob)
+            if (downloadUrl != null) {
+                playoutUrlSubJob.additionalData = mapOf("downloadUrl" to downloadUrl)
             }
-        } catch (_: Exception) {
+            subJobRepository.save(playoutUrlSubJob)
+        } catch (exception: Exception) {
+            val objectMapper = ObjectMapper()
+            var userMessage = GENERIC_CONVERSION_ERROR
+            if (exception is WebClientResponseException && exception.statusCode == HttpStatus.BAD_GATEWAY) {
+                userMessage = try {
+                    val jsonNode = objectMapper.readTree(exception.responseBodyAsString)
+                    jsonNode.path("error").asText(GENERIC_CONVERSION_ERROR)
+                } catch (_: Exception) {
+                    GENERIC_CONVERSION_ERROR
+                }
+            }
+            jobEntry.errorMessage = userMessage
+            renderingJobRepository.save(jobEntry)
             playoutUrlSubJob.status = SubJobStatus.FAILED
-            playoutUrlSubJob.errorMessage =  GENERIC_CONVERSION_ERROR
+            playoutUrlSubJob.errorMessage = userMessage
             subJobRepository.save(playoutUrlSubJob)
-            if (downloadUrlSubJob != null) {
-                downloadUrlSubJob.status = SubJobStatus.FAILED
-                downloadUrlSubJob.errorMessage = GENERIC_CONVERSION_ERROR
-                subJobRepository.save(downloadUrlSubJob)
-            }
         }
         mainJobLogic.processMainJob(message.id)
     }

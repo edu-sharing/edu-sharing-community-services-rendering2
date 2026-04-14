@@ -62,7 +62,7 @@ class VideoRenderModuleTest {
         every { videoService.isConversionObject(cacheObject) } returns false
         every { videoService.getObjectLinks(cacheObject, null, null) } returns objectLinks
 
-        val result = underTest.handle(node, userData)
+        val result = underTest.handle(node)
 
         verify { videoService.isConversionObject(cacheObject) }
         verify { videoService.getObjectLinks(cacheObject, null, null) }
@@ -85,7 +85,7 @@ class VideoRenderModuleTest {
         every { videoService.getObjectLinks(cacheObject, null, height) } returns objectLinks
         every { videoService.getMissingQualities(objectLinks, height) } returns emptyList()
 
-        val result = underTest.handle(node, userData)
+        val result = underTest.handle(node)
 
         verify { videoService.isConversionObject(cacheObject) }
         verify { videoService.getObjectLinks(cacheObject, null, height) }
@@ -112,7 +112,7 @@ class VideoRenderModuleTest {
         every { videoService.getMissingQualities(objectLinks, height) } returns missingQualities
         every { videoService.retrieveOrCreateJob(cacheObject, "VIDEO", missingQualities) } returns jobId
 
-        val result = underTest.handle(node, userData)
+        val result = underTest.handle(node)
 
         verify { videoService.isConversionObject(cacheObject) }
         verify { videoService.getObjectLinks(cacheObject, null, height) }

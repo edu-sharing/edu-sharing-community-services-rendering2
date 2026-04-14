@@ -60,7 +60,7 @@ class JobInfoService(
 
                 SubJobStatus.FINISHED -> {
                     jobInfo.objectLink = renderModule.getObjectLinkFromJobData(it, job)
-                    jobInfo.additionalData = renderModule.getAdditionalDataFromSubJob(it)
+                    jobInfo.additionalData = renderModule.getAdditionalData(it, job.repoId)
                 }
 
                 SubJobStatus.FAILED -> {
@@ -71,7 +71,7 @@ class JobInfoService(
                 infoList.add(jobInfo)
             }
         }
-        return JobInfoReply(infoList, status = job.status, module = job.module)
+        return JobInfoReply(infoList, status = job.status, module = job.module, userMessage = job.errorMessage)
     }
 
     private fun getQueuePosition(subJob: SubJob): Long {

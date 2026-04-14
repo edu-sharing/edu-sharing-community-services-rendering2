@@ -51,11 +51,15 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
             if (jws != null) {
                 val grantedAuthority = mutableListOf<GrantedAuthority>()
                 return JWTBasedUserDetail(
-                    jws.payload.issuer,
-                    jws.payload.notBefore,
-                    jws.payload.expiration,
-                    grantedAuthority,
-                    jws.payload.get("repoId", String::class.java),
+                    username = jws.payload.issuer,
+                    notBefore =jws.payload.notBefore,
+                    expirationDate = jws.payload.expiration,
+                    authorities = grantedAuthority,
+                    repoId = jws.payload.get("repoId", String::class.java),
+                    firstName = jws.payload.get("firstName", String::class.java),
+                    lastName = jws.payload.get("lastName", String::class.java),
+                    email = jws.payload.getOrDefault("userEmail", "") as String,
+                    primaryAffiliation = jws.payload.getOrDefault("primaryAffiliation", "") as String
                 )
             }
             return null;

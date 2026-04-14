@@ -5,7 +5,6 @@ import io.mockk.junit5.MockKExtension
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
-import org.edu_sharing.rendering.core.dto.RequestUserData
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -58,7 +57,6 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            userData = mockk<RequestUserData>(),
         )
 
         // Assert
@@ -88,8 +86,7 @@ class ImageRenderModuleTest {
 
         // Act
         val result = underTest.handle(
-            node = node,
-            userData = mockk()
+            node = node
         )
 
         // Assert
@@ -123,7 +120,6 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            userData = mockk(),
         )
 
         // Assert
@@ -156,7 +152,6 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            userData = mockk(),
         )
 
         // Assert
@@ -189,7 +184,6 @@ class ImageRenderModuleTest {
         // Act
         val result = underTest.handle(
             node = node,
-            userData = mockk(),
         )
 
         // Assert

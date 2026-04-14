@@ -8,12 +8,20 @@ import org.springframework.stereotype.Component
 class LumiStorageManager(
     private val lumiContentManagementService: LumiContentManagementService,
 ): StorageManager {
-    override fun bucketPrefix(): String = "lumi"
     override fun deleteObjectsFromStorage(trackingEntries: List<TrackingEntry>) {
         for (trackingEntry in trackingEntries) {
             lumiContentManagementService.deleteContent(trackingEntry)
         }
     }
 
-    override fun getManagedBuckets() = listOf(lumiContentManagementService.getContentBucket())
+    override fun getManagedBuckets(repoId: String): List<String> {
+        return listOf(lumiContentManagementService.getContentBucket(repoId))
+    }
+
+    override fun isBucketOwner(
+        bucketName: String,
+        repoId: String
+    ): Boolean {
+        return bucketName == lumiContentManagementService.getContentBucket(repoId);
+    }
 }

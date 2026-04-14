@@ -19,6 +19,7 @@ class RepositoryRegistrationConfig {
                         username = it.value.username,
                         password = it.value.password,
                         quota = it.value.quota,
+                        externalBuckets = it.value.externalBuckets
                     ),
                     it.value.optionalModules,
                     it.value.module
