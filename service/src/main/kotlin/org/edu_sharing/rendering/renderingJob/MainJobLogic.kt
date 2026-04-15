@@ -20,6 +20,10 @@ class MainJobLogic (
         return jobRepository.findByIdOrNull(ObjectId(jobId))
     }
 
+    fun getMainJobEntry(jobId: String, status: RenderingJobStatus): RenderingJob? {
+        return jobRepository.findByIdAndStatus(ObjectId(jobId), status)
+    }
+
     fun processMainJob(jobId: String): Boolean {
         val job = getMainJobEntry(jobId)
         if (job == null) {

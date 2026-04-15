@@ -21,6 +21,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
+import java.time.Duration
 
 @Service
 @ConditionalOnConverter
@@ -29,7 +30,8 @@ class H5pUploadService(
     private val lumiWebClient: WebClient,
     private val lumiContentManagementService: LumiContentManagementService,
     private val trackingService: TrackingService,
-    private val storageService: StorageService
+    private val storageService: StorageService,
+    private val module: H5pRenderModule
 ) {
     private val log = LoggerFactory.getLogger(H5pUploadService::class.java)
 
@@ -46,7 +48,7 @@ class H5pUploadService(
 
     private fun getLumiId(cacheObject: CacheObject): String {
         try {
-            val lumiId = getCachedContentId(cacheObject.nodeId, cacheObject.hash)
+            val lumiId = getCachedContentId(cacheObject.nodeId, cacheObject.hash, cacheObject.repoId)
             trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(cacheObject.repoId))
             return lumiId
         } catch (exception: WebClientResponseException) {
@@ -62,7 +64,7 @@ class H5pUploadService(
         return lumiId
     }
 
-    private fun getCachedContentId(nodeId: String, hash: String): String {
+    private fun getCachedContentId(nodeId: String, hash: String, repoId: String): String {
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
@@ -71,7 +73,8 @@ class H5pUploadService(
                     .toUri()
                 uri
             }.retrieve()
-            .bodyToMono(String::class.java)
+            .bodyToMono<String>()
+            .timeout(getTimeout(repoId))
             .block()
         return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
     }
@@ -99,12 +102,21 @@ class H5pUploadService(
                     uri
                 }.contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
-                .retrieve().bodyToMono<String>().block()
+                .retrieve()
+                .bodyToMono<String>()
+                .timeout(getTimeout(cacheObject.repoId))
+                .block()
             return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
         } catch (exception: Exception) {
             throw exception
         } finally {
             originalFile.delete()
         }
+    }
+
+    private fun getTimeout(repoId: String): Duration {
+        val credentials = module.getCredentials(repoId)
+        val timeout = credentials["timeout"]?.toLongOrNull() ?: 300L
+        return Duration.ofSeconds(timeout)
     }
 }
