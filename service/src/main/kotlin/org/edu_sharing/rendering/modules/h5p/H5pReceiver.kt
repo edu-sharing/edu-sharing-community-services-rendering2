@@ -41,9 +41,9 @@ class H5pReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
-        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
+        val jobEntry = mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
-            log.error(if (jobEntry == null) "No job entry with id {}"
+            log.error(if (jobEntry == null) "No matching job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
