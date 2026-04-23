@@ -39,8 +39,12 @@ class RenderController (
     ): ResponseEntity<RenderDataResponse> {
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
+        val signatureAlgorithm = body.signatureAlgorithm
+            ?.takeIf { it.isNotBlank() }
+            ?.let { String(Base64.getDecoder().decode(it)) }
+            ?: "SHA1withRSA" //@TODO prevent fallback to unsafe algorithm by explicit allow over rs config (defaultVerify) or repo config
         if (securityEnabled) {
-            verifySignedNode(decodedNode, decodedSignature, body.repoId)
+            verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }
         val objectMapper = ObjectMapper().apply {
             configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -54,9 +58,9 @@ class RenderController (
             .body(service.getRenderModule(body, node).handle(node))
     }
 
-    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String) {
+    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String, signatureAlgorithm: String) {
         val repoPublicKey = repositoryPublicKeyService.getRepositoryKey(repoId)
-        val verify = Signature.getInstance("SHA1withRSA")
+        val verify = Signature.getInstance(signatureAlgorithm)
         verify.initVerify(repoPublicKey)
         verify.update(nodeData)
         val result = verify.verify(signature)
