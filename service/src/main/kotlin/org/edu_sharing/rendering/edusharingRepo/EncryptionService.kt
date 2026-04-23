@@ -6,11 +6,12 @@ import java.security.Signature
 
 @Service
 class EncryptionService(
-    private val privatePublicKeyService: PrivatePublicKeyService
+    private val privatePublicKeyService: PrivatePublicKeyService,
+    val signingAlg: String = "SHA512withRSA"
 ) {
     fun sign(toSign: String): ByteArray {
         val privateKey = privatePublicKeyService.getPrivateKey()
-        val dsa = Signature.getInstance("SHA1withRSA")
+        val dsa = Signature.getInstance(signingAlg)
         dsa.initSign(privateKey)
         dsa.update(toSign.toByteArray())
         return dsa.sign()
