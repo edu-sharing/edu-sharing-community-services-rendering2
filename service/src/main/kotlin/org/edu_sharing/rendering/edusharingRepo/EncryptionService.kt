@@ -10,7 +10,7 @@ import kotlin.jvm.javaClass
 @Service
 class EncryptionService(
     private val privatePublicKeyService: PrivatePublicKeyService,
-    @param:Value($$"${app.security.signing.alg}")
+    @param:Value("\${app.security.signing.alg:SHA512withRSA}")
     private val signingAlg: String //@TODO individual config for repo
 ) {
 
