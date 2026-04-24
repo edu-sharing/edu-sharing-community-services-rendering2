@@ -11,7 +11,8 @@ data class RenderDataRequest(
     val securedNode: String,
     @param:NotNull
     val signature: String,
-    val signatureAlgorithm: String? = null,
+    @param:NotNull
+    val signatureAlgorithm: String,
     val eventType: String = "VIEW_MATERIAL",
 )
 

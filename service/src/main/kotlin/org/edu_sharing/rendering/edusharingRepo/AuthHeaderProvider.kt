@@ -19,7 +19,7 @@ class AuthHeaderProvider(
             "X-Edu-App-Signed" to toSign,
             "X-Edu-App-Sig" to Base64.getEncoder().encodeToString(sig),
             "X-Edu-App-Ts" to ts.toString(),
-            "X-Edu-App-SignedAlg" to encryptionService.signingAlg
+            "X-Edu-App-SignedAlg" to encryptionService.getSigningAlg()
         )
     }
 }

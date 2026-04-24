@@ -51,7 +51,7 @@ class ContentTransferService(
                     .queryParam("authToken",
                         URLEncoder.encode(Base64.getEncoder().encodeToString(signed), Charsets.UTF_8)
                     )
-                    .queryParam("signedAlg", encryptionService.signingAlg)
+                    .queryParam("signedAlg", encryptionService.getSigningAlg())
                     .queryParam("version", cacheObject.version ?: "")
                     .build(true)
                     .toUri()

@@ -39,11 +39,9 @@ class RenderController (
     ): ResponseEntity<RenderDataResponse> {
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
-        val signatureAlgorithm = body.signatureAlgorithm
-            ?.takeIf { it.isNotBlank() }
-            ?.let { String(Base64.getDecoder().decode(it)) }
-            ?: "SHA1withRSA" //@TODO prevent fallback to unsafe algorithm by explicit allow over rs config (defaultVerify) or repo config
+        val signatureAlgorithm = body.signatureAlgorithm //String(Base64.getDecoder().decode(body.signatureAlgorithm))
         if (securityEnabled) {
+            //@TODO: check if signatureAlgorithm is allowed
             verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }
         val objectMapper = ObjectMapper().apply {

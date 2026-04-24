@@ -89,7 +89,7 @@ class ContentTransferServiceTest {
         every { cacheObject.version } returns "1.2"
         every { repositoryRegistrationService.getWebClientByRepoId("repo1") } returns eduSharingWebClient
         every { encryptionService.sign(capture(signedSlot)) } returns "test".toByteArray()
-        every { encryptionService.signingAlg } returns "SHA512withRSA"
+        every { encryptionService.getSigningAlg() } returns "SHA512withRSA"
 
         excludeRecords {
             cacheObject.nodeId
@@ -135,7 +135,7 @@ class ContentTransferServiceTest {
         verifySequence {
             encryptionService.sign(any())
             repositoryRegistrationService.getWebClientByRepoId("repo1")
-            encryptionService.signingAlg
+            encryptionService.getSigningAlg()
         }
         confirmVerified(resourceLoader, repositoryRegistrationService)
     }
@@ -151,7 +151,7 @@ class ContentTransferServiceTest {
         every { cacheObject.version } returns null
         every { repositoryRegistrationService.getWebClientByRepoId("repo123") } returns eduSharingWebClient
         every { encryptionService.sign(any()) } returns "test".toByteArray()
-        every { encryptionService.signingAlg } returns "SHA512withRSA"
+        every { encryptionService.getSigningAlg() } returns "SHA512withRSA"
 
         excludeRecords {
             cacheObject.nodeId
