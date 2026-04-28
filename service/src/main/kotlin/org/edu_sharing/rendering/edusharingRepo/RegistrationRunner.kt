@@ -71,6 +71,9 @@ class RegistrationRunner(
                             cspHeader = correspondingConfig.third[module]?.cspHeader
                         )
                     }
+                    if (registration.signingAlgorithm.isBlank()) {
+                        repositoryRegistrationService.syncSigningAlgorithm(registration.repoId)
+                    }
                 }
                 registration.optionalModules.subtract(configModules.toSet()).forEach { module ->
                     repositoryRegistrationService.removeOptionalModule(repoId = registration.repoId, module = module)

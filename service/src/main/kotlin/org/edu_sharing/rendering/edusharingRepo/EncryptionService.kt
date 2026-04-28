@@ -1,28 +1,33 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.security.Signature
-import kotlin.jvm.javaClass
 
 @Service
 class EncryptionService(
     private val privatePublicKeyService: PrivatePublicKeyService,
-    @param:Value("\${app.security.signing.alg:SHA512withRSA}")
-    private val signingAlg: String //@TODO individual config for repo
-) {
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    ) {
 
-    fun sign(toSign: String): ByteArray {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    fun sign(toSign: String, repoId: String): ByteArray {
         val privateKey = privatePublicKeyService.getPrivateKey()
-        val dsa = Signature.getInstance(getSigningAlg())
+        val dsa = Signature.getInstance(getSigningAlg(repoId))
         dsa.initSign(privateKey)
         dsa.update(toSign.toByteArray())
         return dsa.sign()
     }
 
-    fun getSigningAlg(): String {
-        return signingAlg
+    fun getSigningAlg(repoId: String): String {
+        val algo = repositoryRegistrationStorageService
+            .getRegistrationByRepoId(repoId)
+            .orElseThrow { IllegalArgumentException("Repository registration not found for id: $repoId") }
+            .signingAlgorithm
+        log.error("Using signing algorithm $algo for repository $repoId")
+        return algo
     }
 }
