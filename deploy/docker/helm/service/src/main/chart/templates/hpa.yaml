@@ -1,6 +1,6 @@
 {{- range $roleName, $roleCfg := .Values.roles }}
 {{- if $roleCfg.enabled }}
-{{- if $roleCfg.autoscaling.enabled }}
+{{- if and $roleCfg.autoscaling $roleCfg.autoscaling.enabled }}
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
