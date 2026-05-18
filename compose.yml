@@ -71,8 +71,8 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: rendering2
       AWS_SECRET_ACCESS_KEY: rendering2
-      MINIO_HOST: rustfs
-      MINIO_PORT: 9000
+      S3_HOST: rustfs
+      S3_PORT: 9000
       AWS_S3_MAX_FILE_LENGTH: 1000
       MONGODB_HOST: mongo
       MONGODB_PORT: 27017
