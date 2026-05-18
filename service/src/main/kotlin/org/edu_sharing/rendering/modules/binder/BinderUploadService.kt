@@ -27,7 +27,7 @@ class BinderUploadService(
     private val mainJobLogic: BinderMainJobLogic,
     private val moduleRegistry: ModuleRegistry,
     private val gitServiceRegistry: GitServiceRegistry,
-    @param:Value($$"${spring.codec.max-in-memory-size}")
+    @param:Value($$"${spring.http.codecs.max-in-memory-size}")
     private val maxInMemorySize: DataSize
 ) {
     private val log = LoggerFactory.getLogger(javaClass)

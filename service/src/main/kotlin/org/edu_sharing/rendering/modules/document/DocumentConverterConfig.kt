@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient
 class DocumentConverterConfig(
     @param:Value($$"${app.documentConverter.host}")
     private val converterBaseUrl: String,
-    @param:Value($$"${spring.codec.max-in-memory-size}")
+    @param:Value($$"${spring.http.codecs.max-in-memory-size}")
     private val maxInMemorySize: DataSize
 ) {
 

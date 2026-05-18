@@ -122,7 +122,7 @@ services:
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
-      spring.codec.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
+      spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       spring.data.mongodb.authentication-database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"

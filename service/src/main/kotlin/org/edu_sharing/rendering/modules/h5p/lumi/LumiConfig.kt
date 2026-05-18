@@ -13,7 +13,7 @@ class LumiConfig(
     private val lumiHost: String,
     @param:Value($$"${app.public.path}")
     private val publicPath: String,
-    @param:Value($$"${spring.codec.max-in-memory-size}")
+    @param:Value($$"${spring.http.codecs.max-in-memory-size}")
     private val maxInMemorySize: DataSize
 ) {
 
