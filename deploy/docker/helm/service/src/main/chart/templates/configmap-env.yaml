@@ -66,6 +66,7 @@ data:
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}
+  "spring.codec.max-in-memory-size": {{ .Values.config.webclient.codec.maxInMemorySize | quote }}
   "spring.redis.cluster.nodes": {{ (printf "%s:%d" .Values.config.redis.host (.Values.config.redis.port | int)) | quote }}
   "spring.redis.cluster.maxRedirects": "5"
   "spring.redis.cluster.keyPrefix": {{ printf "%s:" (include "edusharing_common_lib.names.name" .) | quote }}

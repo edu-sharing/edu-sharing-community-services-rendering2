@@ -4,21 +4,25 @@ import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.util.unit.DataSize
 import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
-class LumiConfig() {
-    @Value("\${app.lumi.host}")
-    lateinit var lumiHost: String
+class LumiConfig(
+    @param:Value($$"${app.lumi.host}")
+    private val lumiHost: String,
+    @param:Value($$"${app.public.path}")
+    private val publicPath: String,
+    @param:Value($$"${spring.codec.max-in-memory-size}")
+    private val maxInMemorySize: DataSize
+) {
 
-    @Value("\${app.public.path}")
-    lateinit var publicPath: String
 
     @Bean
     fun lumiWebClient(): WebClient {
         val lumiApiUrl = getLumiBaseUrl()
         return WebClient.builder().baseUrl(lumiApiUrl)
-            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(20 * 1024 * 1024) }.build()
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }.build()
     }
 
     @Bean
