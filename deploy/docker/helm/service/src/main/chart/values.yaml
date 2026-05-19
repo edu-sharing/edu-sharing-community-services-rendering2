@@ -282,7 +282,7 @@ config:
   cache:
     cleaner:
       ## @param config.cache.cleaner.schedule Set schedule for cache cleaner
-      schedule: PT1H
+      schedule: 0 0 1 * * *
       threshold:
         ## @param config.cache.cleaner.threshold.lower Set lower threshold for cache cleaner
         lower: -0.7
@@ -454,6 +454,12 @@ config:
     region: eu-central-1
     ## @param config.s3.mode Set S3 mode [byType|byCustomer|externalBucket]
     mode: byType
+
+  webclient:
+    codec:
+      ## @param config.webclient.codec.maxInMemorySize Set a limit on the number of bytes that can be buffered by the webclient whenever the input stream needs to be aggregated.
+      maxInMemorySize: "20MB"
+
   session:
     cookie:
       ## @param config.session.cookie.samesite Set session cookie same-site
