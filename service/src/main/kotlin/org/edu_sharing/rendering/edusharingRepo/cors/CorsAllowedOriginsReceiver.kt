@@ -17,7 +17,7 @@ class CorsAllowedOriginsReceiver(
             QueueBinding(
                 value = Queue(
                     name = "",
-                    durable = "false",
+                    durable = "true",
                     autoDelete = "true"
                 ),
                 exchange = Exchange(

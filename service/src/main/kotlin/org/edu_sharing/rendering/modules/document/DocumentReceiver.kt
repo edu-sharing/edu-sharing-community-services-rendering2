@@ -32,7 +32,7 @@ class DocumentReceiver (
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.document.name}", durable = "false"),
+                value = Queue(name = "\${app.queue.document.name}", durable = "true"),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
                 key = ["\${app.queue.document.key}"]
             )

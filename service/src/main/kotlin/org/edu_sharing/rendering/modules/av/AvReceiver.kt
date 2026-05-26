@@ -41,16 +41,16 @@ class AvReceiver(
         bindings = [
             QueueBinding(
                 value = Queue(
-                    name = "\${app.queue.av.name}",
-                    durable = "false",
+                    name = $$"${app.queue.av.name}",
+                    durable = "true",
                     arguments = [Argument(
                         name = "x-max-priority",
                         value = "#{videoConverterConfig.getMaxPriority()}",
                         type = "java.lang.Integer"
                     )]
                 ),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.av.key}"]
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.av.key}"]
             )
         ],
         containerFactory = "singlePrefetchConnectionFactory"

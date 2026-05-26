@@ -34,7 +34,7 @@ class H5pReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.h5p.name}", durable = "false"),
+                value = Queue(name = "\${app.queue.h5p.name}", durable = "true"),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
                 key = ["\${app.queue.h5p.key}"]
             )

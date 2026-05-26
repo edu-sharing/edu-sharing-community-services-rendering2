@@ -29,7 +29,7 @@ class MoodleReceiver (
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.moodle.name}", durable = "false"),
+                value = Queue(name = "\${app.queue.moodle.name}", durable = "true"),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
                 key = ["\${app.queue.moodle.key}"]
             )
@@ -51,7 +51,7 @@ class MoodleReceiver (
             val url = moodleService.getUrl(
                 moodleJobMessage = message,
                 module = moduleRegistry.getRenderModule(jobEntry.module),
-                repoId = jobEntry.repoId
+                repoId = jobEntry.repoId,
             )
             subJob.message = url.first
             subJob.additionalData = mapOf("linkUrl" to url.second)
@@ -59,7 +59,11 @@ class MoodleReceiver (
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
-            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            if (exception is MoodleUploadException) {
+                subJob.errorMessage = exception.publicMessage
+            } else {
+                subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            }
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

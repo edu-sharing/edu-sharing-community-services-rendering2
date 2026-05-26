@@ -30,7 +30,7 @@ class OnyxReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.onyx.name}", durable = "false"),
+                value = Queue(name = "\${app.queue.onyx.name}", durable = "true"),
                 exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
                 key = ["\${app.queue.onyx.key}"]
             )
