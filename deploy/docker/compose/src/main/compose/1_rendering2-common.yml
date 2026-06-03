@@ -52,8 +52,13 @@ services:
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
     environment:
-      S3_HOST: rendering2-rustfs-storage
-      S3_PORT: 9000
+      S3_HOST: "${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}"
+      S3_PORT: "${RENDERING2_S3_STORAGE_PORT:-9000}"
+      app.s3.accessKeyId: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
+      app.s3.secretAccessKey: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
+      app.s3.region: eu-central-1
+      app.s3.protocol: "${RENDERING2_S3_STORAGE_PROTOCOL:-http}"
+      app.s3.bucket.mode: "${RENDERING2_S3_BUCKET_MODE:-byType}"
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
       REDIS_HOST: redis-cache
@@ -96,13 +101,9 @@ services:
       app.converter.video.resolutions: "${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"
       app.converter.audio.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma}"
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
-      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-PT1H}"
+      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
-      app.s3.accessKeyId: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
-      app.s3.secretAccessKey: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
-      app.s3.region: eu-central-1
-      app.s3.protocol: http
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -121,7 +122,10 @@ services:
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
+      app.repository.registration.id.local.externalBuckets.renderingBucket: "${RENDERING2_S3_RENDERING_BUCKET:-}"
+      app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
+      spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       spring.data.mongodb.authentication-database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.data.mongodb.username: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
@@ -158,17 +162,17 @@ services:
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
       AWS_S3_MAX_FILE_LENGTH: "${RENDERING2_LUMI_MAX_FILE_SIZE:-1000}"
       AWS_REGION: eu-central-1
-      AWS_S3_ENDPOINT: http://rendering2-rustfs-storage:9000
-      S3_HOST: rendering2-rustfs-storage
-      S3_PORT: 9000
+      AWS_S3_ENDPOINT: "${RENDERING2_S3_STORAGE_PROTOCOL:-http}://${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}:${RENDERING2_S3_STORAGE_PORT:-9000}"
+      S3_HOST: "${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}"
+      S3_PORT: "${RENDERING2_S3_STORAGE_PORT:-9000}"
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
       MONGODB_URL: "mongodb://${RENDERING2_LUMI_DATABASE_USER:-lumi}:${RENDERING2_LUMI_DATABASE_PASS:-lumi}@mongo-database:27017/${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
-      CONTENT_AWS_S3_BUCKET: lumi-contentbucket
+      CONTENT_AWS_S3_BUCKET: "${RENDERING2_LUMI_CONTENT_BUCKET:-lumi-contentbucket}"
       CONTENT_MONGO_COLLECTION: h5p
-      TEMPORARY_AWS_S3_BUCKET: lumi-tempbucket
+      TEMPORARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_TEMP_BUCKET:-lumi-tempbucket}"
       LIBRARY_MONGO_COLLECTION: h5plibraries
-      LIBRARY_AWS_S3_BUCKET: lumi-libbucket
+      LIBRARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_LIB_BUCKET:-lumi-libbucket}"
       EDUSHARING_MONGO_COLLECTION: lumiedusharing
       BASE_URL: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}/public/h5p"
       CACHE: in-memory
