@@ -29,7 +29,7 @@ class EduTrackingService(
         val authentication = SecurityContextHolder.getContext().authentication
         val userDetails = authentication.principal as JWTBasedUserDetail
         val jwtIssuer = userDetails.username
-        val headers = authHeaderProvider.getAuthHeaders().toMutableMap()
+        val headers = authHeaderProvider.getAuthHeaders(repoId).toMutableMap()
         headers["X-Edu-User-Id"] = jwtIssuer
         val client = restClientProvider.getTrackingApiClient(registration.url, headers)
         client.trackEventAsync(repoId, event, objectId, object : ApiCallback<Void> {
