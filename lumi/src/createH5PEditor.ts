@@ -3,6 +3,7 @@ import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {caching} from "cache-manager";
 import {Db} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import {LaissezFairePermissionSystem, Logger} from "@lumieducation/h5p-server";
+import * as https from "https";
 
 const log = new Logger("CreateH5PEditor")
 
@@ -41,10 +42,21 @@ export default async function createH5PEditor(
     let lock = new H5P.SimpleLockProvider();
 
     // Init S3 once
-    // Placeholder region for AWS SDK compatibility - does not do anything as MINIO does not use regions
+    const trustAllCertificates =
+        process.env.AWS_S3_TRUST_ALL_CERTIFICATES === 'true';
+
+    const region = process.env.AWS_S3_REGION || 'eu-central-1';
+
     const s3 = dbImplementations.initS3({
         forcePathStyle: true,
-        region: 'us-east-1',
+        region: region,
+        ...(trustAllCertificates
+            ? {
+                httpOptions: {
+                    agent: new https.Agent({ rejectUnauthorized: false })
+                }
+            }
+            : {})
     })
     log.info("Initiated S3 client.")
 
