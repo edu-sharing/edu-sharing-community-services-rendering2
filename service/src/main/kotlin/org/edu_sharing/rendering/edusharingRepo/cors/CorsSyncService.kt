@@ -73,7 +73,7 @@ class CorsSyncService(
             val currentCachedPatterns = repositoryRegistration.allowedOriginPatterns
 
             repositoryRegistration.lastAllowedOriginSync = about.lastCacheUpdate
-            val applications = getApplicationInfo(repositoryRegistration.url)
+            val applications = getApplicationInfo(repositoryRegistration.url, repositoryRegistration.repoId)
             applications.forEach { application ->
                 if (application.id == repositoryRegistration.repoId) {
                     allowedOriginsFromRepo.addAll(application.allowedOrigins)
@@ -119,10 +119,10 @@ class CorsSyncService(
         corsConfig.updateCorsConfiguration()
     }
 
-    private fun getApplicationInfo (url: String): List<ApplicationSimple> {
+    private fun getApplicationInfo (url: String, repoId: String): List<ApplicationSimple> {
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
-        authHeaderProvider.getAuthHeaders().forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
+        authHeaderProvider.getAuthHeaders(repoId).forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
         val renderingClient = RenderingV1Api(apiClient)
         return renderingClient.applications1
     }

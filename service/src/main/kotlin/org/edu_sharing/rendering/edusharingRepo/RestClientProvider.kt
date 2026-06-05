@@ -17,7 +17,7 @@ class RestClientProvider {
 
     fun getAdminV1Client(url: String, username: String, password: String): AdminV1Api {
         val apiClient = ApiClient()
-        apiClient.setBasePath("${url}/rest")
+        apiClient.basePath = "${url}/rest"
         apiClient.setUsername(username)
         apiClient.setPassword(password)
         val adminV1Api = AdminV1Api(apiClient)
