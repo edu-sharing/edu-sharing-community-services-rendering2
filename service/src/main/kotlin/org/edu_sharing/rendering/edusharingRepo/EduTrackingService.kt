@@ -7,6 +7,8 @@ import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Service
 class EduTrackingService(
@@ -30,7 +32,7 @@ class EduTrackingService(
         val userDetails = authentication.principal as JWTBasedUserDetail
         val jwtIssuer = userDetails.username
         val headers = authHeaderProvider.getAuthHeaders().toMutableMap()
-        headers["X-Edu-User-Id"] = jwtIssuer
+        headers["X-Edu-User-Id"] = URLEncoder.encode(jwtIssuer, StandardCharsets.UTF_8)
         val client = restClientProvider.getTrackingApiClient(registration.url, headers)
         client.trackEventAsync(repoId, event, objectId, object : ApiCallback<Void> {
 
