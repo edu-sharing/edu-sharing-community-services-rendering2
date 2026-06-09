@@ -15,6 +15,12 @@ services:
       - RUSTFS_ACCESS_KEY=rendering2
       - RUSTFS_SECRET_KEY=rendering2
       - RUST_BACKTRACE=full
+      #- RUSTFS_TLS_PATH=/opt/tls
+      #- RUSTFS_OBS_LOGGER_LEVEL=debug
+      #- RUSTFS_CORS_ALLOWED_ORIGINS=*
+      #- RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS=*
+    #volumes:
+    #  - ./tls:/opt/tls:ro
     command: [ "rustfs" ]
 
   repository-cache:

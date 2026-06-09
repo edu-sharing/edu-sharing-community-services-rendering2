@@ -1,11 +1,13 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
+import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
@@ -127,9 +129,27 @@ class MoodleUploadService() {
     }
 
     private fun getWebClient(config: Map<String, String>): WebClient {
-        return WebClient
+        val builder = WebClient
             .builder()
             .baseUrl(config["baseurl"] ?: "")
-            .build()
+
+        config["publicurl"]?.takeIf { it.isNotBlank() }?.let { publicUrl ->
+            val hostHeader = buildHostHeader(publicUrl)
+            if (hostHeader != null) {
+                builder.defaultHeader(HttpHeaders.HOST, hostHeader)
+            }
+        }
+
+        return builder.build()
+    }
+
+    private fun buildHostHeader(url: String): String? {
+        return try {
+            val uri = URI(url)
+            val host = uri.host ?: return null
+            if (uri.port != -1) "$host:${uri.port}" else host
+        } catch (_: Exception) {
+            null
+        }
     }
 }

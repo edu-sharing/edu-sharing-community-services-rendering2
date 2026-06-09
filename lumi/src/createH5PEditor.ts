@@ -4,6 +4,7 @@ import {caching} from "cache-manager";
 import {Db} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import {LaissezFairePermissionSystem, Logger} from "@lumieducation/h5p-server";
 import * as https from "https";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 
 const log = new Logger("CreateH5PEditor")
 
@@ -52,9 +53,9 @@ export default async function createH5PEditor(
         region: region,
         ...(trustAllCertificates
             ? {
-                httpOptions: {
-                    agent: new https.Agent({ rejectUnauthorized: false })
-                }
+                requestHandler: new NodeHttpHandler({
+                    httpsAgent: new https.Agent({ rejectUnauthorized: false })
+                })
             }
             : {})
     })

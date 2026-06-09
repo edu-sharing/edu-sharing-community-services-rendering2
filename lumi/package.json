@@ -16,6 +16,7 @@
     "@lumieducation/h5p-express": "^10.0.4",
     "@lumieducation/h5p-mongos3": "^10.0.4",
     "@lumieducation/h5p-server": "^10.0.4",
+    "@smithy/node-http-handler": "^3.0.0",
     "aws-sdk": "^2.1693.0",
     "body-parser": "2.2.1",
     "cache-manager": "4.1.0",
