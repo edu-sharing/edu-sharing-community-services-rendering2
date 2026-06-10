@@ -11,6 +11,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 import org.springframework.session.web.http.DefaultCookieSerializer
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.cfg.DateTimeFeature
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator
 import tools.jackson.module.kotlin.KotlinFeature
 import tools.jackson.module.kotlin.KotlinModule
 
@@ -28,10 +29,24 @@ class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
         // GenericJackson2JsonRedisSerializer (required so session values like Long/Duration round-trip).
         // The mapper itself is customized to register the Spring Security and Kotlin Jackson modules.
         // java.time support is built into jackson-databind in Jackson 3, so no explicit JavaTimeModule.
+        //
+        // SecurityJacksonModules.getModules(loader) does more than register mix-ins in Spring Security 7
+        // (Jackson 3): it activates default typing with a BasicPolymorphicTypeValidator that allow-lists
+        // only Spring Security types, and — because the customizer runs after the builder's own
+        // enableUnsafeDefaultTyping() — that restrictive validator wins. We therefore seed it with a
+        // permissive builder so session values (Long, the generated Node, the SecurityContext, ...) still
+        // round-trip; without it deserialization fails with "denied resolution" for e.g. java.lang.Long.
         return GenericJacksonJsonRedisSerializer.builder()
             .customize { mapperBuilder ->
                 mapperBuilder
-                    .addModules(SecurityJacksonModules.getModules(this.loader))
+                    .addModules(
+                        SecurityJacksonModules.getModules(
+                            this.loader,
+                            BasicPolymorphicTypeValidator.builder()
+                                .allowIfBaseType(Any::class.java)
+                                .allowIfSubType { _, _ -> true }
+                        )
+                    )
                     .addModule(
                         KotlinModule.Builder()
                             .withReflectionCacheSize(512)
