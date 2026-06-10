@@ -27,9 +27,10 @@ versions are derived from git by the `maven-git-versioning-extension` (the liter
 | `deploy` | Docker / Helm / docker-compose | [`deploy/CLAUDE.md`](deploy/CLAUDE.md) | Dockerfiles, Helm charts (`docker/helm/*`), compose files (`docker/compose/*`). |
 
 ## Build & test
-Use the Maven wrapper at **`./service/mvnw`** (Maven 3.9). It lives under `service/` (not
-the repo root) — that's why every documented command invokes `./service/mvnw`. Source for
-JVM modules lives in `src/main/kotlin`.
+The Maven wrapper lives under `service/`, so the **`service`** module is built with
+**`./service/mvnw`** (Maven 3.9). The other modules — **`document-converter`**, **`lumi`**,
+and **`deploy`** — are built with the system **`mvn`** (their build commands live in their
+module guides). Source for JVM modules lives in `src/main/kotlin`.
 
 - **Local builds must always use the `dev` profile** (`-Pdev`). Append it to every local `mvnw` invocation below.
 
@@ -40,8 +41,8 @@ JVM modules lives in `src/main/kotlin`.
 ./service/mvnw -Pdev -pl service clean compile
 # single test class
 ./service/mvnw -Pdev -pl service test -Dtest=SomeTest
-# both Spring modules
-./service/mvnw -Pdev -pl service,document-converter clean verify
+# the other modules use the system mvn, e.g. the document-converter
+mvn -Pdev -pl document-converter clean verify
 ```
 
 - The **`dev` profile** is defined in the root `pom.xml`, activated by the `DEV=true` env

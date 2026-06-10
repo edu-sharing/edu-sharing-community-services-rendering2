@@ -41,8 +41,10 @@ LibreOffice **must be installed** on the host running this service — the jodco
 (fontconfig, ttf-dejavu, msttcorefonts); local runs need a local LibreOffice.
 
 ## Build
+This module builds with the system **`mvn`** (not the `./service/mvnw` wrapper):
+
 ```bash
-./service/mvnw -Pdev -pl document-converter clean compile
-./service/mvnw -Pdev -pl document-converter clean verify
+mvn -Pdev -pl document-converter clean compile
+mvn -Pdev -pl document-converter clean verify
 ```
 No unit tests exist in this module yet — if you add behavior, add tests under `src/test`.

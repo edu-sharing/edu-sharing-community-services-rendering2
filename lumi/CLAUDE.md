@@ -51,8 +51,10 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 packages `dist/`, `h5p/`, `node_modules/`, and `config.json` into
 `...-lumi-<version>-bin.zip`.
 
+This module builds with the system **`mvn`** (not the `./service/mvnw` wrapper):
+
 ```bash
-./service/mvnw -Pdev -pl lumi clean package   # full Maven build (downloads Node + H5P core)
+mvn -Pdev -pl lumi clean package   # full Maven build (downloads Node + H5P core)
 # inside lumi/ for local dev:
 npm run build && npm run start
 ```

@@ -70,9 +70,11 @@ dotted Spring keys set as env entries.
 (See `1_rendering2-common.yml` for the authoritative, complete list.)
 
 ## Build
+This module builds with the system **`mvn`** (not the `./service/mvnw` wrapper):
+
 ```bash
-./service/mvnw -Pdev -pl deploy/docker/build/service install   # build the service image
-./service/mvnw -Pdev -pl deploy/docker/helm/service package    # package the service chart
+mvn -Pdev -pl deploy/docker/build/service install   # build the service image
+mvn -Pdev -pl deploy/docker/helm/service package    # package the service chart
 ```
 Pushing images/charts happens on `deploy` and is normally driven by CI (`.gitlab-ci.yml`),
 not run locally.
