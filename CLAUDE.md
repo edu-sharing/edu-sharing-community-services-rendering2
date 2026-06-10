@@ -23,15 +23,17 @@ Multi-module Maven build. Parent is the external `org.edu_sharing:edu_sharing-su
 ## Build & test
 Use the Maven wrapper at `./service/mvnw` (Maven 3.9). Source lives in `src/main/kotlin`.
 
+- **Local builds must always use the `dev` profile** (`-Pdev`). Append it to every local `mvnw` invocation below.
+
 ```bash
 # build + test the main service (and the reactor deps it needs)
-./service/mvnw -pl service -am clean verify
+./service/mvnw -Pdev -pl service -am clean verify
 # compile only (fast feedback)
-./service/mvnw -pl service clean compile
+./service/mvnw -Pdev -pl service clean compile
 # single test class
-./service/mvnw -pl service test -Dtest=SomeTest
+./service/mvnw -Pdev -pl service test -Dtest=SomeTest
 # both Spring modules
-./service/mvnw -pl service,document-converter clean verify
+./service/mvnw -Pdev -pl service,document-converter clean verify
 ```
 
 - **Dependencies** resolve from the edu-sharing Artifactory (`artifacts.edu-sharing.com`) via `.mvn/settings.xml`. Reads work anonymously; deploys need `MAVEN_REMOTE_*` / `MAVEN_DEPLOY_*` env vars.
