@@ -29,7 +29,7 @@ class EduTrackingService(
         val registration = repositoryRegistrationRepository.findByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found") }
         val authentication = SecurityContextHolder.getContext().authentication
-        val userDetails = authentication.principal as JWTBasedUserDetail
+        val userDetails = authentication!!.principal as JWTBasedUserDetail
         val jwtIssuer = userDetails.username
         val headers = authHeaderProvider.getAuthHeaders(repoId).toMutableMap()
         headers["X-Edu-User-Id"] = URLEncoder.encode(jwtIssuer, StandardCharsets.UTF_8)

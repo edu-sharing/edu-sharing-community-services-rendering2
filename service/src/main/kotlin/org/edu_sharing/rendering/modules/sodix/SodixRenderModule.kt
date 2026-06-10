@@ -67,7 +67,7 @@ class SodixRenderModule(
         var role = ""
         if (isPaidMedia) {
             val authentication = SecurityContextHolder.getContext().authentication
-            val userDetails = authentication.principal as JWTBasedUserDetail
+            val userDetails = authentication!!.principal as JWTBasedUserDetail
             role = userDetails.primaryAffiliation
         }
         val message = SodixJobMessage(

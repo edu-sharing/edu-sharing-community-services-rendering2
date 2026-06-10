@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.core
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.json.JsonMapper
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
@@ -44,9 +44,9 @@ class RenderController (
             //@TODO: check if signatureAlgorithm is allowed
             verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }
-        val objectMapper = ObjectMapper().apply {
-            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        }
+        val objectMapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build()
         val node = objectMapper.readValue(decodedNode.toString(Charsets.UTF_8), Node::class.java)
         nodeSessionContextRepository.saveNode(node)
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)

@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.asset
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.codec.binary.Base64
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node

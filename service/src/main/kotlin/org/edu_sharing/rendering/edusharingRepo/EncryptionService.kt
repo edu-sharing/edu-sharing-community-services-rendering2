@@ -27,7 +27,7 @@ class EncryptionService(
             .getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository registration not found for id: $repoId") }
             .signingAlgorithm
-        log.error("Using signing algorithm $algo for repository $repoId")
+        log.info("Using signing algorithm $algo for repository $repoId")
         return algo
     }
 }

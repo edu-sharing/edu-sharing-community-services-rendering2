@@ -38,7 +38,7 @@ class MoodleJobService(
         subJobRepository.save(subJob)
 
         val authentication = SecurityContextHolder.getContext().authentication
-        val userDetails = authentication.principal as JWTBasedUserDetail
+        val userDetails = authentication!!.principal as JWTBasedUserDetail
 
         val message = MoodleJobMessage(
             id = job.id.toString(),

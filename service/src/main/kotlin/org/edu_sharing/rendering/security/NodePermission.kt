@@ -2,7 +2,7 @@ package org.edu_sharing.rendering.security
 
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import tools.jackson.databind.annotation.JsonSerialize
 import java.time.LocalDateTime
 
 @JsonSerialize

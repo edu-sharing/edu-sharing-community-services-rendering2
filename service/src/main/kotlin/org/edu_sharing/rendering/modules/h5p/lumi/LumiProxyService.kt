@@ -21,7 +21,7 @@ class LumiProxyService(
     private val lumiWebClient: WebClient
 ) {
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'ReadAll')")
-    fun <T> processProxyRequest(
+    fun <T : Any> processProxyRequest(
         pathPrefix: String,
         nodeInfo: LumiNodeInfo,
         body: String?,
@@ -42,7 +42,7 @@ class LumiProxyService(
         )
     }
 
-    fun <T> processProxyRequest(
+    fun <T : Any> processProxyRequest(
         pathPrefix: String,
         body: String?,
         method: HttpMethod,

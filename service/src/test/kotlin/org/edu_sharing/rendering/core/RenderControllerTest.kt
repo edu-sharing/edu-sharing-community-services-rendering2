@@ -1,12 +1,12 @@
 package org.edu_sharing.rendering.core
 
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.test.web.servlet.MockMvc
 
 @WebMvcTest(RenderController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
-class RenderControllerTest(@Autowired val mockMvc: MockMvc) {
+class RenderControllerTest(@param:Autowired val mockMvc: MockMvc) {
 
     /*@MockkBean
     lateinit var service: RenderDataService
