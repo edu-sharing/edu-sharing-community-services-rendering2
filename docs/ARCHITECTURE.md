@@ -267,6 +267,52 @@ Roles are orthogonal — combine any subset. Common deployment modes (same image
 > Splitting `avconverter` onto its own instances is the typical way to scale media transcoding
 > independently from document/image work.
 
+### Runtime interaction between roles
+
+At runtime the roles form a pipeline around **RabbitMQ**. `controller` instances accept requests at the
+top and enqueue work; `job-manager` picks up each main job, splits it, and re-queues the pieces;
+`converter` / `avconverter` instances drain those queues and write results to S3. `master` runs to the
+side as a **single instance**, doing scheduled and administrative work that must not run in parallel.
+
+```mermaid
+flowchart TB
+    ext["edu-sharing repository / browser"]
+
+    subgraph scal["Horizontally scalable (N instances each)"]
+        direction TB
+        ctrl["controller<br/>accepts requests · verifies signatures<br/>serves cached assets · creates main jobs"]
+        rabbit{{"RabbitMQ<br/>main-job queue + per-type sub-job queues"}}
+        jm["job-manager<br/>consumes main job · downloads source<br/>creates &amp; distributes sub-jobs"]
+        conv["converter<br/>document · image · jupyter · eduhtml · h5p"]
+        avc["avconverter<br/>audio / video"]
+    end
+
+    mst["master &nbsp;(single instance)<br/>scheduler · repository registration<br/>cache cleaner · administration"]
+    s3[("S3 storage")]
+
+    ext -->|"1 render request"| ctrl
+    ctrl -->|"2 publish main job"| rabbit
+    rabbit -->|"3 deliver main job"| jm
+    jm -->|"4 publish sub-jobs"| rabbit
+    rabbit -->|"5 deliver sub-jobs"| conv
+    rabbit -->|"5 deliver A/V sub-jobs"| avc
+
+    jm --> s3
+    conv -->|"6 write rendered asset"| s3
+    avc -->|"6 write rendered asset"| s3
+    ctrl -->|"7 serve cached asset"| ext
+    ctrl -.-> s3
+
+    mst -.->|"evict on quota · housekeeping"| s3
+```
+
+- **controller** is the only role exposed to the outside; it never converts, it only routes and serves.
+- **RabbitMQ** decouples the tiers — adding more `converter`/`avconverter` instances increases throughput
+  without touching the controllers.
+- **job-manager** is the orchestrator: one main job in, many specialised sub-jobs out.
+- **master** is deliberately run **once** (scheduler, cache eviction, registration, admin) so housekeeping
+  is not duplicated.
+
 ## 8. End-to-end job flow
 
 ```mermaid
