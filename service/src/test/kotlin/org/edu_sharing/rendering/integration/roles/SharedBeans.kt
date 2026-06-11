@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.core.PingController
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
-import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
@@ -107,7 +106,6 @@ abstract class SharedBeans {
             EduHtmlRenderModule::class,
             EduHtmlRenderModuleTypeMapper::class,
             EduHtmlService::class,
-            EduTrackingService::class,
             EncryptionService::class,
             H5pJobService::class,
             H5pRenderModule::class,

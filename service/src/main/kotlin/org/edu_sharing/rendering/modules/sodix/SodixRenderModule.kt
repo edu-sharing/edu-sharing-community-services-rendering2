@@ -11,11 +11,10 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
+import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 
 @Component
@@ -66,9 +65,7 @@ class SodixRenderModule(
 
         var role = ""
         if (isPaidMedia) {
-            val authentication = SecurityContextHolder.getContext().authentication
-            val userDetails = authentication!!.principal as JWTBasedUserDetail
-            role = userDetails.primaryAffiliation
+            role = SecurityContextUtils.currentUser().primaryAffiliation
         }
         val message = SodixJobMessage(
             id = job.id.toString(),
