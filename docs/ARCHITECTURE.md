@@ -159,54 +159,130 @@ flowchart TB
 
 ## 6. Service-internal architecture
 
+Inside the `service` module the code is organised in clear layers. A request passes top-to-bottom:
+**security & session** → **controllers** → **application services** → **module dispatch** → the
+**plugin module** that handles the content type → one of three **subsystems** (job orchestration,
+storage, repository integration) → the **data stores**. The diagram shows the main beans per layer and
+how they connect.
+
 ```mermaid
 flowchart TB
-    subgraph rest["REST layer (role: controller)"]
-        rc["RenderController<br/>/public/renderdata"]
-        ac["AssetController<br/>/public/asset (+ /static)"]
-        mi["ModuleInfoController<br/>/public/modules"]
-        ji["JobInfoController<br/>/public/job"]
-        et["EduTrackingController<br/>/public/tracking"]
-        adm["AdminController<br/>/admin/repository, /admin/cache"]
-        lp["LumiProxyController<br/>/public/h5p"]
-    end
-
-    reg["ModuleRegistry<br/>dispatch by media/resource type"]
-
-    subgraph mods["Plugin modules"]
+    subgraph sec["Security & session (Spring Security + Spring Session/Redis)"]
         direction LR
-        m1["RenderModule (base)"]
-        m2["ConversionModule (async)"]
-        m3["ThirdPartyModule (ext. creds)"]
-        impl["Image · Document · Spreadsheet · Audio · Video<br/>H5p · Jupyter · Binder · Moodle · Scorm<br/>Onyx · Sodix · Ddb · EduHtml · Pdf · Html"]
+        jwt["AuthTokenFilter (JWT)<br/>+ JwtUtils"]
+        cors["CorsFilter"]
+        perm["ModulePermissionService<br/>NodePermission*SessionContextRepository"]
+        sig["signature check<br/>RepositoryPublicKeyService"]
     end
 
-    subgraph back["Backends"]
-        storage["StorageService<br/>S3StorageService + bucket strategies"]
-        queue["QueueConfig + JobReceiver<br/>RabbitMQ"]
-        session["Spring Session<br/>Redis"]
-        esrepo["edusharingRepo services<br/>registration · content transfer · signing"]
+    subgraph rest["REST controllers"]
+        rc["RenderController<br/>POST /public/renderdata · role: controller"]
+        ac["AssetController<br/>GET /public/asset (+ /static) · controller"]
+        ji["JobInfoController<br/>GET /public/job · controller"]
+        mi["ModuleInfoController<br/>GET /public/modules · controller"]
+        et["EduTrackingController<br/>/public/tracking · controller"]
+        lp["LumiProxyController<br/>/public/h5p · controller"]
+        adm["AdminController<br/>/admin/** · role: master"]
     end
 
-    rc --> reg --> mods
-    ac --> storage
-    lp --> lumiext["lumi (proxied)"]
-    mods --> storage
-    mods --> queue
-    rc --- session
-    ac --- session
-    rc --- esrepo
-    queue --- esrepo
+    subgraph svc["Application services"]
+        direction LR
+        rds["RenderDataService"]
+        ass["AssetService"]
+        jis["JobInfoService"]
+        trk["EduTrackingService"]
+        lps["LumiProxyService"]
+    end
+
+    reg["ModuleRegistry + ModuleTypeMapper<br/>resolve content type → module"]
+
+    subgraph mods["Plugin modules (implement RenderModule, optionally ConversionModule / ThirdPartyModule)"]
+        direction LR
+        sync["Direct / no-conversion<br/>Pdf · Html · Audio · Video"]
+        conv2["Conversion (async)<br/>Image · Document · Spreadsheet · Jupyter · EduHtml"]
+        tp["Third-party / embed<br/>H5p · Binder · Moodle · Scorm · Onyx · Sodix · Ddb"]
+    end
+
+    subgraph job["Job subsystem"]
+        mjc["MainJobCreationService"]
+        qc["QueueConfig · JobReceiver<br/>RenderingJob/SubJob messages"]
+        mjl["MainJobLogic<br/>sub-job completion"]
+    end
+
+    subgraph store["Storage subsystem"]
+        ss["StorageService / S3StorageService<br/>StorageManagerRegistry"]
+        bs["Bucket strategies<br/>per-customer · per-media-type · external"]
+        cc["CacheCleaner + TrackingService<br/>quota eviction · role: master"]
+    end
+
+    subgraph esr["edu-sharing integration"]
+        regsvc["RepositoryRegistrationService"]
+        ct["ContentTransferService"]
+        enc["EncryptionService / PrivatePublicKeyService"]
+        meta["MetadataService"]
+        csync["CorsSyncService/Scheduler · role: master"]
+    end
+
+    subgraph infra["Data stores & externals"]
+        direction LR
+        mongo[("MongoDB")]
+        redis[("Redis")]
+        rabbit{{"RabbitMQ"}}
+        s3[("S3 storage")]
+        repoext["edu-sharing repo"]
+        lumiext["lumi"]
+    end
+
+    sec --> rest
+    rc --> rds --> reg --> mods
+    ac --> ass --> ss
+    ji --> jis --> mjl
+    et --> trk
+    lp --> lps --> lumiext
+    adm --> regsvc
+    adm --> cc
+
+    mods --> mjc --> qc
+    mods --> ss
+    qc --> ct --> repoext
+    reg -.-> mjc
+
+    perm --- redis
+    qc --- rabbit
+    mjc --- mongo
+    mjl --- mongo
+    ss --- s3
+    cc --- mongo
+    regsvc --- mongo
+    enc --- sig
+    regsvc --- repoext
 ```
 
-**Module dispatch.** `ModuleRegistry` indexes every module by MIME type, resource type, replication source,
-and remote-repository type. Resolution order: `node.mediatype` → `repository.repositoryType` →
-`ccm:replicationsource` → `ccm:ccresourcetype` → MIME-type prefix; an unmatched node raises
-`ObjectTypeNotSupportedException`. Modules implement `RenderModule` (synchronous), and optionally
-`ConversionModule` (produces background sub-jobs) and/or `ThirdPartyModule` (external credentials, e.g. H5P).
+**Module dispatch.** `ModuleRegistry` (with `ModuleTypeMapper`) indexes every module by MIME type, resource
+type, replication source, and remote-repository type. Resolution order: `node.mediatype` →
+`repository.repositoryType` → `ccm:replicationsource` → `ccm:ccresourcetype` → MIME-type prefix; an
+unmatched node raises `ObjectTypeNotSupportedException`.
 
-**Role-gated beans.** Which of these beans actually start depends on the service's **role** — see the next
-section.
+**Module contract.** Every module implements `RenderModule.handle(node)`, which either returns ready-to-use
+`ObjectLink`s (cache hit / no conversion) or registers a job and returns a `jobId`. Modules that convert
+also implement `ConversionModule` (they create the `SubJob`s via `MainJobCreationService`); modules that
+talk to an external system implement `ThirdPartyModule` (managing external credentials, e.g. H5P/Binder).
+
+**Layer responsibilities.**
+
+| Layer | Key beans | Does |
+|---|---|---|
+| Security & session | `AuthTokenFilter`, `CorsFilter`, `SecurityConfig`, `ModulePermissionService`, `Node*SessionContextRepository` | JWT auth, CORS, request-signature verification, per-node permission checks cached in Redis-backed sessions |
+| Controllers | `RenderController`, `AssetController`, `JobInfoController`, `ModuleInfoController`, `EduTrackingController`, `LumiProxyController`, `AdminController` | Thin HTTP endpoints; delegate to a service. `/public/**` need `controller`, `/admin/**` needs `master` |
+| Application services | `RenderDataService`, `AssetService`, `JobInfoService`, `EduTrackingService`, `LumiProxyService` | Use-case logic between controller and the subsystems |
+| Dispatch & modules | `ModuleRegistry`, `ModuleTypeMapper`, the ~16 `*RenderModule`s | Pick and run the right content handler |
+| Job subsystem | `MainJobCreationService`, `QueueConfig`, `JobReceiver`, `MainJobLogic` | Create jobs, publish/consume messages, track sub-job completion |
+| Storage subsystem | `S3StorageService`, `StorageManagerRegistry`, bucket strategies, `CacheCleaner` | Read/write rendered assets, choose buckets, evict on quota |
+| edu-sharing integration | `RepositoryRegistrationService`, `ContentTransferService`, `EncryptionService`, `RepositoryPublicKeyService`, `MetadataService`, `CorsSyncService` | Register repos, fetch source content (signed), sign/verify, sync allowed CORS origins |
+
+**Role-gated beans.** Which of these beans actually start depends on the service's **role** — e.g. the
+controllers need `controller`, `AdminController`/`CacheCleaner`/`CorsSyncScheduler` need `master`, the
+converters need `converter`/`avconverter`, and `JobReceiver` needs `job-manager`. See the next section.
 
 ## 7. Service roles & deployment modes
 
