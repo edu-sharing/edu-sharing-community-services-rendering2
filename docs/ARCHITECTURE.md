@@ -315,9 +315,17 @@ flowchart TB
 
 ## 8. End-to-end job flow
 
+The **frontend** (the edu-sharing web application in the user's browser) is the client that drives the
+whole flow. It first obtains the render data and metadata from the repository over a **secured endpoint**;
+the repository returns a **signed payload**. The frontend then talks directly to the rendering service's
+controllers — `RenderController` to request the rendering, `JobInfoController` to poll an async job, and
+`AssetController` to load the result. The rendering service itself only calls back to the repository to
+**fetch the source content** for a conversion.
+
 ```mermaid
 sequenceDiagram
     autonumber
+    participant FE as Frontend (browser app)
     participant Repo as edu-sharing repo
     participant RC as RenderController
     participant Mod as RenderModule
@@ -330,18 +338,20 @@ sequenceDiagram
     participant JI as JobInfoController
     participant AC as AssetController
 
-    Repo->>RC: POST /public/renderdata (signed node + signature)
+    FE->>Repo: request render data / metadata (secured endpoint)
+    Repo-->>FE: signed node payload + signature
+    FE->>RC: POST /public/renderdata (signed node + signature)
     RC->>RC: verify signature (repo public key)
     RC->>Mod: handle(node)
     alt already cached
         Mod->>S3: lookup rendered asset
         Mod-->>RC: ObjectLink(s)
-        RC-->>Repo: links (fast path)
+        RC-->>FE: links (fast path)
     else needs conversion
         Mod->>DB: create RenderingJob (QUEUED)
         Mod->>MQ: publish RenderingJobMessage
         Mod-->>RC: jobId
-        RC-->>Repo: jobId
+        RC-->>FE: jobId
         MQ->>JR: deliver message
         JR->>DB: mark PROCESSING
         JR->>CT: download source (signed)
@@ -355,11 +365,11 @@ sequenceDiagram
         DB->>DB: all sub-jobs done → RenderingJob FINISHED
     end
 
-    Repo->>JI: GET /public/job/{jobId} (poll)
-    JI-->>Repo: FINISHED + ObjectLink(s)
-    Repo->>AC: GET /public/asset?params=…
+    FE->>JI: GET /public/job/{jobId} (poll)
+    JI-->>FE: FINISHED + ObjectLink(s)
+    FE->>AC: GET /public/asset?params=…
     AC->>S3: stream asset
-    AC-->>Repo: 200/206 + CSP header
+    AC-->>FE: 200/206 + CSP header
 ```
 
 **Sub-job fan-out.** A `ConversionModule` may split one job into several `SubJob`s — the canonical example
