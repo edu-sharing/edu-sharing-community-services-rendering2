@@ -3,7 +3,7 @@
 > **Status:** Living document · **Audience:** customers (Part A) and internal/engineering (Part B)
 > **Format:** Markdown with embedded [Mermaid](https://mermaid.js.org/) diagrams.
 > In **Confluence Cloud** the `mermaid` code blocks render natively; on **Server/Data Center**
-> install the *Mermaid Diagrams for Confluence* app (see [§11 Confluence import notes](#11-confluence-import-notes)).
+> install the *Mermaid Diagrams for Confluence* app (see [§12 Confluence import notes](#12-confluence-import-notes)).
 
 ---
 
@@ -40,20 +40,22 @@ flowchart LR
         db[("Database<br/>job tracking")]
         cache[("Cache<br/>sessions & permissions")]
         queue{{"Job queue<br/>conversions"}}
+        additional{{"Additional<br/>services"}}
     end
 
-    repo -- "asks for a preview<br/>(signed request)" --> rs
-    rs -- "fetches the source file<br/>(signed request)" --> repo
-    user -- "opens content" --> repo
-    user -- "loads preview / stream" --> rs
+    user -- "1. opens content" --> repo
+    repo -- "2. render info (signed request)" --> user
+    user -- "3. loads preview / stream" --> rs
+    rs -- "4. fetches the source file<br/>(signed request)" --> repo
 
     rs --- store
     rs --- db
     rs --- cache
     rs --- queue
+    rs --- additional
 ```
 
-**How to read it:** the repository and the user both talk to the Rendering Service. Every request between
+**How to read it:** the Rendering Service and the user both talk to the Repository. Every request between
 the repository and the service is cryptographically signed, so neither side trusts unverified input. The
 service keeps rendered files in object storage, tracks long-running conversions in a database, caches
 sessions and access permissions, and uses a queue to process heavy conversions in the background.
@@ -203,18 +205,69 @@ and remote-repository type. Resolution order: `node.mediatype` → `repository.r
 `ObjectTypeNotSupportedException`. Modules implement `RenderModule` (synchronous), and optionally
 `ConversionModule` (produces background sub-jobs) and/or `ThirdPartyModule` (external credentials, e.g. H5P).
 
-**Deployment roles.** Beans are activated by `@ConditionalOn…` annotations that read the `app.roles`
-property (comma-separated). The roles are **`master`**, **`controller`**, **`converter`**, **`job-manager`**
-(plus an AV-converter variant). This lets the same artifact run as:
+**Role-gated beans.** Which of these beans actually start depends on the service's **role** — see the next
+section.
+
+## 7. Service roles & deployment modes
+
+The `service` module ships as **one artifact**, but its beans are switched on or off by the `app.roles`
+property (a comma-separated list). Each role activates a slice of functionality through `@ConditionalOn…`
+annotations. This lets the *same* container image run as a self-contained monolith **or** be split into
+independently scalable instances — e.g. many converter workers behind one master and one API front-end.
+
+```mermaid
+flowchart TB
+    art["service artifact<br/>app.roles = …"]
+
+    subgraph roles["Roles selected via app.roles"]
+        ctrl["controller<br/>public REST API<br/>(Render, Asset, JobInfo,<br/>ModuleInfo, EduTracking, LumiProxy)"]
+        conv["converter<br/>document · image · jupyter ·<br/>eduhtml · h5p conversion + receivers"]
+        avc["avconverter<br/>audio / video conversion<br/>(resource-heavy)"]
+        jm["job-manager<br/>JobReceiver: orchestrates the main job,<br/>downloads source, creates sub-jobs"]
+        mst["master<br/>AdminController · CacheCleaner ·<br/>CorsSyncScheduler · registration"]
+    end
+
+    infra[("Shared infrastructure<br/>MongoDB · Redis · RabbitMQ · S3")]
+
+    art --> ctrl
+    art --> conv
+    art --> avc
+    art --> jm
+    art --> mst
+
+    ctrl -.-> infra
+    conv -.-> infra
+    avc -.-> infra
+    jm -.-> infra
+    mst -.-> infra
+```
+
+| Role token | Activated beans (examples) | Responsibility | Active by default\* |
+|---|---|---|---|
+| `controller` | `RenderController`, `AssetController`, `JobInfoController`, `ModuleInfoController`, `EduTrackingController`, `LumiProxyController` | Public-facing REST API + asset serving | yes |
+| `converter` | Document / Image / Jupyter / EduHtml / H5p `ConversionService` + their RabbitMQ receivers | General content conversion workers | yes |
+| `avconverter` | `AvReceiver`, `Audio`/`VideoConversionService` | Audio & video conversion (separated because it is CPU/IO-heavy) | yes |
+| `job-manager` | `JobReceiver` | Consumes the main job message: downloads the source and fans out sub-jobs | yes |
+| `master` | `AdminController`, `CacheCleaner`, `CorsSyncScheduler`, repository registration | Administration & housekeeping (cache eviction, CORS sync, repo registration) | no — must be listed |
+
+\* When `app.roles` is **empty/unset**, `controller`, `converter`, `avconverter` and `job-manager` are
+active but **`master` is not** (it requires the token explicitly). The shipped default lists all five:
+`app.roles=master,controller,converter,avconverter,job-manager`.
+
+Roles are orthogonal — combine any subset. Common deployment modes (same image, different `app.roles`):
 
 | Mode | `app.roles` | Runs |
 |---|---|---|
-| All-in-one | `master,controller,converter,job-manager` | API + workers + housekeeping |
-| API only | `controller` | Public endpoints, no async processing |
-| Worker only | `converter,job-manager` | Queue consumers + converters, no public API |
-| Master | `master` | Cache cleaner, registration, scheduled housekeeping |
+| All-in-one (default) | `master,controller,converter,avconverter,job-manager` | Everything in one instance |
+| API front-end | `controller` | Public endpoints only; conversions handled elsewhere |
+| General worker | `converter,job-manager` | Job orchestration + non-AV conversion, no public API |
+| A/V worker | `avconverter,job-manager` | Dedicated, separately scaled audio/video transcoding |
+| Master / housekeeping | `master` | Cache cleaner, CORS sync, repository registration |
 
-## 7. End-to-end job flow
+> Splitting `avconverter` onto its own instances is the typical way to scale media transcoding
+> independently from document/image work.
+
+## 8. End-to-end job flow
 
 ```mermaid
 sequenceDiagram
@@ -268,7 +321,7 @@ is `ImageRenderModule`, which renders multiple resolutions in parallel. `MainJob
 `RenderingJob` to `FINISHED` only once every `SubJob` completes. `RenderingJob` documents carry a **TTL
 index (~6h)** so completed/stale jobs expire automatically.
 
-## 8. Deployment topology
+## 9. Deployment topology
 
 ```mermaid
 flowchart TB
@@ -311,7 +364,7 @@ flowchart TB
   optional **Istio** (VirtualService/DestinationRule/Gateway), an optional **Varnish** caching sidecar,
   **HPA**, and a choice of **MinIO or RustFS** for object storage. External traffic enters only via `service`.
 
-## 9. Security model
+## 10. Security model
 
 - **Request signing.** Every `POST /public/renderdata` carries a Base64 node payload + RSA signature. The
   service verifies it against the registered repository's **public key** (`RepositoryPublicKeyService`,
@@ -325,7 +378,7 @@ flowchart TB
 - **Content-Security-Policy.** Each module supplies its own CSP header (configurable per repository,
   e.g. H5P `frame-ancestors`), applied on every `AssetController` response for safe iframe embedding.
 
-## 10. External integrations & data stores
+## 11. External integrations & data stores
 
 | System | Role | Notes |
 |---|---|---|
@@ -335,7 +388,7 @@ flowchart TB
 | **S3 (MinIO/RustFS)** | Cached rendered assets + temp conversion buckets | Bucket strategies: per-customer, per-media-type, external-customer-bucket; `CacheCleaner` evicts on quota |
 | **edu-sharing repository** | Source of content; registers with the service | Registration via `/admin/repository/register`; signed `GET /content` for source files |
 
-## 11. Confluence import notes
+## 12. Confluence import notes
 
 - **Confluence Cloud:** paste this file's content (or each `mermaid` block) into a page — Mermaid renders
   natively. Markdown can be brought in via *Insert → Markdown* or the *Markdown* macro.
