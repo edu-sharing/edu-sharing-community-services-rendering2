@@ -67,7 +67,7 @@ sessions and access permissions, and uses a queue to process heavy conversions i
 | **Office documents** | DOC(X), PPT(X), ODT, ODP, RTF, TXT | PDF or HTML preview (via LibreOffice) |
 | **Spreadsheets** | XLS(X), ODS, CSV | PDF or HTML preview |
 | **PDF / HTML** | PDF, HTML | Served directly, no conversion |
-| **H5P** | `.h5p` packages | Interactive H5P player / editor |
+| **H5P** | `.h5p` packages | Interactive H5P player |
 | **Jupyter notebooks** | `.ipynb` | Interactive HTML page |
 | **Moodle / SCORM** | Moodle activities, SCORM packages | Embedded Moodle / SCORM player |
 | **OER sources** | Sodix, DDB, EduHTML, Onyx, Binder | Embedded or linked representation |
@@ -301,8 +301,6 @@ flowchart TB
     svc --- redis
     svc --- rabbit
     svc --- s3
-    doc --- s3
-    jup --- s3
     lumi --- mongo
     lumi --- s3
 ```
