@@ -45,7 +45,7 @@ class BinderService(
         node: Node,
         module: BinderRenderModule
     ): String {
-        val url = node.properties.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]
+        val url = node.properties?.get("ccm:wwwurl")?.firstOrNull() ?: ""
         val gitService = gitServiceRegistry.getService(url)
         if (gitService == null) {
             log.warn("GitService not found for: $url")
