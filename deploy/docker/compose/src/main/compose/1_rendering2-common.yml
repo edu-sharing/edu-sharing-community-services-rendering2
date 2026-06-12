@@ -132,6 +132,7 @@ services:
       spring.mongodb.password: "${RENDERING2_SERVICE_DATABASES_PASS:-rendering}"
       server.servlet.session.cookie.same-site: "${RENDERING2_SERVICE_COOKIE_SAME_SITE:-Lax}"
       server.servlet.session.cookie.secure: "${RENDERING2_SERVICE_COOKIE_SECURE:-false}"
+      server.servlet.session.cookie.partitioned: "${RENDERING2_SERVICE_COOKIE_PARTITIONED:-true}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
     expose:

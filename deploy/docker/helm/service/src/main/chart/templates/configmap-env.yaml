@@ -73,6 +73,7 @@ data:
   "spring.redis.cluster.keyPrefix": {{ printf "%s:" (include "edusharing_common_lib.names.name" .) | quote }}
   "server.servlet.session.cookie.same-site": {{ .Values.config.session.cookie.samesite | quote}}
   "server.servlet.session.cookie.secure": {{ .Values.config.session.cookie.secure | quote}}
+  "server.servlet.session.cookie.partitioned": {{ .Values.config.session.cookie.partitioned | quote}}
   {{- range $register := .Values.config.home.registrations }}
   {{- $modules := list -}}
   {{- range $module := $register.modules }}

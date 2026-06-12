@@ -468,6 +468,8 @@ config:
       samesite: none
       ## @param config.session.cookie.secure Set session cookie secure
       secure: true
+      ## @param config.session.cookie.partitioned Set session cookie partitioned
+      partitioned: true
     nodePermissionExpirationTime:
       ## @param config.session.nodePermissionExpirationTime.audio Set session nodePermissionExpirationTime for audio
       audio: ""
