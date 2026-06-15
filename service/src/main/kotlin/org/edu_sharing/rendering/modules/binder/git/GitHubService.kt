@@ -61,7 +61,7 @@ class GitHubService(
                         .path("commit")
                         .path("committer")
                         .path("date")
-                        .asText()
+                        .asString()
                     val commitTimeStamp =
                         ZonedDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME).toInstant().epochSecond
                     return commitTimeStamp < lastModifiedInCache
