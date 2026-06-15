@@ -34,6 +34,9 @@ class S3Config {
     @Value($$"${app.s3.trustAllCertificates:false}")
     var trustAllCertificates: Boolean = false
 
+    @Value($$"${app.s3.checksumCalculationWhenRequired:false}")
+    var checksumCalculationWhenRequired: Boolean = false
+
     private val trustAllCertificatesProvider = TlsTrustManagersProvider {
         arrayOf<TrustManager>(
             object : X509TrustManager {
@@ -69,6 +72,9 @@ class S3Config {
                         ApacheHttpClient.builder()
                             .tlsTrustManagersProvider(trustAllCertificatesProvider)
                     )
+                }
+
+                if (checksumCalculationWhenRequired) {
                     requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                     responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 }
