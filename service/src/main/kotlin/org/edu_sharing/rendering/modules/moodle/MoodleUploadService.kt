@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
@@ -14,7 +15,9 @@ import java.time.Duration
 
 @Service
 @ConditionalOnConverter
-class MoodleUploadService() {
+class MoodleUploadService {
+    private val log = LoggerFactory.getLogger(MoodleUploadService::class.java)
+
     /**
      * Constructs the URL to the moodle course following these steps:
      *
@@ -148,7 +151,8 @@ class MoodleUploadService() {
             val uri = URI(url)
             val host = uri.host ?: return null
             if (uri.port != -1) "$host:${uri.port}" else host
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            log.error("Error building host header from url $url", e)
             null
         }
     }

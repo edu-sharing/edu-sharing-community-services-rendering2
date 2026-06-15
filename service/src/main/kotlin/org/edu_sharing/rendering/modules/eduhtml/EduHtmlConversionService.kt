@@ -40,8 +40,8 @@ class EduHtmlConversionService(
         } finally {
             try {
                 Files.deleteIfExists(tempZip)
-            } catch (_: Exception) {
-                log.warn("Could not delete temporary zip file: ${tempZip.toAbsolutePath()}")
+            } catch (e: Exception) {
+                log.warn("Could not delete temporary zip file: ${tempZip.toAbsolutePath()}", e)
             }
         }
     }

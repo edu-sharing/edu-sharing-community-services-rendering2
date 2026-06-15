@@ -68,8 +68,9 @@ class SodixReceiver(
             if (exception is WebClientResponseException && exception.statusCode == HttpStatus.BAD_GATEWAY) {
                 userMessage = try {
                     val jsonNode = objectMapper.readTree(exception.responseBodyAsString)
-                    jsonNode.path("error").asText(GENERIC_CONVERSION_ERROR)
-                } catch (_: Exception) {
+                    jsonNode.path("error").asString(GENERIC_CONVERSION_ERROR)
+                } catch (e: Exception) {
+                    log.error(e.message, e)
                     GENERIC_CONVERSION_ERROR
                 }
             }
