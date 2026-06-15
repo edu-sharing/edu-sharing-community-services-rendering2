@@ -61,7 +61,8 @@ class JobReceiver(
                 log.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
                 throw IllegalArgumentException("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            log.error("Error processing job ${jobEntry.id}", e)
             jobEntry.status = RenderingJobStatus.FAILED
             jobEntry.finishedTimestamp = System.currentTimeMillis()
             jobEntry.errorMessage = ERROR_PROCESSING_JOB
