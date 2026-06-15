@@ -14,15 +14,14 @@ import org.springframework.stereotype.Component
 class CacheCleaner(
     private val storageService: StorageService,
     private val storageManagerRegistry: StorageManagerRegistry,
-    @param:Value("\${app.cache.cleaner.threshold.lower}") private val lowerThreshold: Float,
-    @param:Value("\${app.cache.cleaner.threshold.upper}") private val upperThreshold: Float,
+    @param:Value($$"${app.cache.cleaner.threshold.lower}") private val lowerThreshold: Float,
+    @param:Value($$"${app.cache.cleaner.threshold.upper}") private val upperThreshold: Float,
     private val trackingService: TrackingService
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
     @Scheduled(
-        fixedDelayString = "\${app.cache.cleaner.schedule}",
-        initialDelayString = "\${app.cache.cleaner.schedule}"
+        cron = $$"${app.cache.cleaner.schedule}"
     )
     fun cleanCache() {
         log.info("Running cache cleaner...")

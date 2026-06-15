@@ -9,7 +9,10 @@ import org.springframework.stereotype.Component
 class CorsSyncScheduler(
     private val corsSyncService: CorsSyncService
 ) {
-    @Scheduled(fixedDelayString = "\${app.cors.sync.schedule}")
+    @Scheduled(
+        fixedDelayString = $$"${app.cors.sync.schedule}",
+        initialDelayString = $$"${app.cors.sync.schedule}"
+    )
     fun syncCorsConfig() {
         corsSyncService.syncAllowedOriginsWithAllRepositories()
     }

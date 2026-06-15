@@ -18,7 +18,7 @@
 
   <properties>
     <java.version>21</java.version>
-    <kotlin.version>2.3.0</kotlin.version>
+    <kotlin.version>2.4.0</kotlin.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <docker.image.name>enterprise/edu_sharing-community-services-rendering2</docker.image.name>
@@ -184,7 +184,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.20.6</version>
+        <version>2.0.5</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

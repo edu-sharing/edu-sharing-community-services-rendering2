@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.core
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.json.JsonMapper
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
@@ -39,12 +39,14 @@ class RenderController (
     ): ResponseEntity<RenderDataResponse> {
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
+        val signatureAlgorithm = body.signatureAlgorithm //String(Base64.getDecoder().decode(body.signatureAlgorithm))
         if (securityEnabled) {
-            verifySignedNode(decodedNode, decodedSignature, body.repoId)
+            //@TODO: check if signatureAlgorithm is allowed
+            verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }
-        val objectMapper = ObjectMapper().apply {
-            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        }
+        val objectMapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build()
         val node = objectMapper.readValue(decodedNode.toString(Charsets.UTF_8), Node::class.java)
         nodeSessionContextRepository.saveNode(node)
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
@@ -54,9 +56,9 @@ class RenderController (
             .body(service.getRenderModule(body, node).handle(node))
     }
 
-    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String) {
+    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String, signatureAlgorithm: String) {
         val repoPublicKey = repositoryPublicKeyService.getRepositoryKey(repoId)
-        val verify = Signature.getInstance("SHA1withRSA")
+        val verify = Signature.getInstance(signatureAlgorithm)
         verify.initVerify(repoPublicKey)
         verify.update(nodeData)
         val result = verify.verify(signature)

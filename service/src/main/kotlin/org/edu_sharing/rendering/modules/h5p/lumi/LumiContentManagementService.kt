@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiBucketInfo

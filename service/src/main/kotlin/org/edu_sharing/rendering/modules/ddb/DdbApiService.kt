@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.ddb
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
@@ -13,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import tools.jackson.databind.ObjectMapper
 
 @Service
 class DdbApiService(
@@ -89,13 +89,13 @@ class DdbApiService(
         response?.let {
             val objectMapper = ObjectMapper()
             val rootNode = objectMapper.readTree(it)
-            val ref = rootNode.path("binaries").path("binary").path("@ref").asText("")
-            val licenseLink = rootNode.path("binaries").path("binary").path("@kind").asText("")
-            val licenseGroup = rootNode.path("binaries").path("binary").path("@license_group").asText("")
+            val ref = rootNode.path("binaries").path("binary").path("@ref").asString("")
+            val licenseLink = rootNode.path("binaries").path("binary").path("@kind").asString("")
+            val licenseGroup = rootNode.path("binaries").path("binary").path("@license_group").asString("")
             if (ref.isNullOrBlank()) {
                 throw Exception("DDB API did not return valid response containing remote ref")
             }
-            val institution = rootNode.path("view").path("item").path("institution").path("name").asText("")
+            val institution = rootNode.path("view").path("item").path("institution").path("name").asString("")
             return DdbRestData(
                 binaryRef = ref,
                 institution = institution,

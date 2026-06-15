@@ -3,9 +3,8 @@ package org.edu_sharing.rendering.security
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.ObjectProvider
-import org.springframework.boot.autoconfigure.session.DefaultCookieSerializerCustomizer
-import org.springframework.boot.autoconfigure.web.ServerProperties
-import org.springframework.boot.context.properties.PropertyMapper
+import org.springframework.boot.session.autoconfigure.DefaultCookieSerializerCustomizer
+import org.springframework.boot.web.server.autoconfigure.ServerProperties
 import org.springframework.boot.web.server.Cookie
 import org.springframework.session.web.http.CookieHttpSessionIdResolver
 import org.springframework.session.web.http.DefaultCookieSerializer
@@ -26,7 +25,7 @@ import java.time.Duration
 @Component
 class CustomHttpSessionIdResolver(
     private val serverProperties: ServerProperties,
-    private val cookieSerializerCustomizers: ObjectProvider<DefaultCookieSerializerCustomizer?>
+    private val cookieSerializerCustomizers: ObjectProvider<DefaultCookieSerializerCustomizer>
 ) : HttpSessionIdResolver {
 
     private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
@@ -37,22 +36,18 @@ class CustomHttpSessionIdResolver(
     init {
         val cookie: Cookie = serverProperties.servlet.session.cookie
         val cookieSerializer = DefaultCookieSerializer()
-        val map = PropertyMapper.get().alwaysApplyingWhenNonNull()
-        map.from<String?> { cookie.name }.to { cookieName: String? -> cookieSerializer.setCookieName(cookieName) }
-        map.from<String?> { cookie.domain }.to { domainName: String? -> cookieSerializer.setDomainName(domainName) }
-        map.from<String?> { cookie.path }.to { cookiePath: String? -> cookieSerializer.setCookiePath(cookiePath) }
-        map.from<Boolean?> { cookie.httpOnly }
-            .to { useHttpOnlyCookie: Boolean? -> cookieSerializer.setUseHttpOnlyCookie(useHttpOnlyCookie!!) }
-        map.from<Boolean?> { cookie.secure }
-            .to { useSecureCookie: Boolean? -> cookieSerializer.setUseSecureCookie(useSecureCookie!!) }
-        map.from<Duration?> { cookie.maxAge }.asInt<Long?> { obj: Duration? -> obj!!.seconds }
-            .to { cookieMaxAge: Int? -> cookieSerializer.setCookieMaxAge(cookieMaxAge!!) }
-        map.from<Cookie.SameSite?> { cookie.sameSite }.`as`<String?> { obj: Cookie.SameSite? -> obj!!.attributeValue() }
-            .to { sameSite: String? -> cookieSerializer.setSameSite(sameSite) }
-        map.from<Boolean?> { cookie.partitioned }
-            .to { partitioned: Boolean? -> cookieSerializer.setPartitioned(partitioned!!) }
+        // Boot 4's PropertyMapper.Source is now non-null (T : Any) and alwaysApplyingWhenNonNull()
+        // was removed, so map the nullable cookie properties with plain null-safe Kotlin instead.
+        cookie.name?.let { cookieSerializer.setCookieName(it) }
+        cookie.domain?.let { cookieSerializer.setDomainName(it) }
+        cookie.path?.let { cookieSerializer.setCookiePath(it) }
+        cookie.httpOnly?.let { cookieSerializer.setUseHttpOnlyCookie(it) }
+        cookie.secure?.let { cookieSerializer.setUseSecureCookie(it) }
+        cookie.maxAge?.let { cookieSerializer.setCookieMaxAge(it.seconds.toInt()) }
+        cookie.sameSite?.let { cookieSerializer.setSameSite(it.attributeValue()) }
+        cookie.partitioned?.let { cookieSerializer.setPartitioned(it) }
         cookieSerializerCustomizers.orderedStream()
-            .forEach { customizer: DefaultCookieSerializerCustomizer? -> customizer!!.customize(cookieSerializer) }
+            .forEach { customizer: DefaultCookieSerializerCustomizer -> customizer.customize(cookieSerializer) }
         cookieHttpSessionIdResolver.setCookieSerializer(cookieSerializer)
     }
 

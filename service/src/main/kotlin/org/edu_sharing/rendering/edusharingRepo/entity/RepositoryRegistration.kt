@@ -24,4 +24,5 @@ data class RepositoryRegistration(
     var allowedOrigins: MutableSet<String> = mutableSetOf(),
     var allowedOriginPatterns: MutableSet<String>? = mutableSetOf(),
     var lastAllowedOriginSync: Long = 0,
+    var signingAlgorithm: String = ""
 )

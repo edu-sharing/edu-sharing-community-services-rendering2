@@ -11,7 +11,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer
 import org.springframework.data.redis.serializer.StringRedisSerializer
 
 @Configuration
@@ -47,11 +47,15 @@ class RedisConfig {
     ): RedisTemplate<String, Any> {
         val template: RedisTemplate<String, Any> = RedisTemplate()
         template.connectionFactory = redisConnectionFactory
-        template.valueSerializer = GenericJackson2JsonRedisSerializer()
+        // The legacy GenericJackson2JsonRedisSerializer() default constructor enabled
+        // permissive ("@class") default typing; preserve that behaviour explicitly.
+        template.valueSerializer = GenericJacksonJsonRedisSerializer.builder()
+            .enableUnsafeDefaultTyping()
+            .build()
 
         redisClusterConfigurationProperties?.keyPrefix?.let { prefix ->
             template.keySerializer = object : StringRedisSerializer() {
-                override fun serialize(key: String?): ByteArray? {
+                override fun serialize(key: String?): ByteArray {
                     return super.serialize(prefix + key)
                 }
             }

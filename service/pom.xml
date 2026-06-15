@@ -17,15 +17,13 @@
     <version>git</version>
 
     <properties>
-        <java.version>21</java.version>
-        <kotlin.version>2.2.20</kotlin.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <resource.delimiter>@</resource.delimiter>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>3.5.9</spring-boot.version>
+        <spring-boot.version>4.0.7</spring-boot.version>
         <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
     </properties>
 
@@ -74,14 +72,21 @@
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-bom</artifactId>
-                <version>4.11.0</version>
+                <version>5.4.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-root</artifactId>
-                <version>0.12.5</version>
+                <version>0.13.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.46.6</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -100,13 +105,13 @@
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
-      <version>3.2.3</version>
+      <version>3.3.1</version>
     </dependency>
 
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>2.13.2</version>
+      <version>2.14.0</version>
     </dependency>
 
         <dependency>
@@ -123,12 +128,12 @@
     </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <groupId>tools.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
+            <groupId>tools.jackson.module</groupId>
             <artifactId>jackson-module-kotlin</artifactId>
         </dependency>
 
@@ -145,7 +150,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
@@ -172,7 +177,7 @@
 
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
+            <artifactId>jjwt-gson</artifactId>
         </dependency>
 
         <dependency>
@@ -193,7 +198,11 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
-      <version>2.40.9</version>
+    </dependency>
+
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>apache-client</artifactId>
     </dependency>
 
     <dependency>
@@ -224,7 +233,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
         <dependency>
@@ -262,6 +271,12 @@
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
 
+        <!-- Spring Boot 4 modularized session auto-configuration (provides DefaultCookieSerializerCustomizer) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-session</artifactId>
+        </dependency>
+
         <!--
         <dependency>
           <groupId>org.springframework.boot</groupId>
@@ -274,7 +289,7 @@
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-      <version>2.8.8</version>
+      <version>3.0.3</version>
     </dependency>
 
         <!-- TESTS -->
@@ -294,6 +309,13 @@
                     <artifactId>mockito-core</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Spring Boot 4 modular @WebMvcTest slice + MockMvc support (no longer in starter-test) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -323,32 +345,31 @@
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>minio</artifactId>
+            <artifactId>testcontainers-minio</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>rabbitmq</artifactId>
+            <artifactId>testcontainers-rabbitmq</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>mongodb</artifactId>
+            <artifactId>testcontainers-mongodb</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.redis.testcontainers</groupId>
+            <groupId>com.redis</groupId>
             <artifactId>testcontainers-redis</artifactId>
-            <version>1.6.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -607,7 +628,7 @@
                         <dependency>
                             <groupId>org.springframework.boot</groupId>
                             <artifactId>spring-boot-maven-plugin</artifactId>
-                            <version>3.4.5</version>
+                            <version>${spring-boot.version}</version>
                         </dependency>
                     </dependencies>
                     <executions>

@@ -8,7 +8,7 @@ import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
-import java.util.*
+import java.time.Instant
 
 @Document
 data class RenderingJob(
@@ -29,9 +29,9 @@ data class RenderingJob(
     @ReadOnlyProperty
     @DocumentReference(lazy = true, lookup = "{'parent':?#{#self._id} }")
     var subJobs: MutableList<SubJob> = ArrayList(),
-    @Indexed(expireAfter = "86400s")
+    @Indexed(expireAfter = "6h")
     @LastModifiedDate
-    var lastModifiedDate: Date? = null,
+    var lastModifiedDate: Instant? = null,
     @Version
     val version: Int? = null,
     val conversionType: Boolean = false,

@@ -11,10 +11,12 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.stereotype.Service
+import org.springframework.util.unit.DataSize
 import org.springframework.web.reactive.function.client.WebClient
 import java.time.LocalTime
 import java.util.function.Consumer
@@ -25,6 +27,8 @@ class BinderUploadService(
     private val mainJobLogic: BinderMainJobLogic,
     private val moduleRegistry: ModuleRegistry,
     private val gitServiceRegistry: GitServiceRegistry,
+    @param:Value($$"${spring.http.codecs.max-in-memory-size}")
+    private val maxInMemorySize: DataSize
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -33,8 +37,8 @@ class BinderUploadService(
     ) {
         var binderUploadSubJob = uploadSubJob
         val type
-                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?> =
-            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?>() {}
+                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>> =
+            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
 
         try {
             val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
@@ -48,10 +52,10 @@ class BinderUploadService(
             val eventStream = binderWebClient.get()
                 .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")
                 .retrieve()
-                .bodyToFlux<ServerSentEvent<BinderSseEvent?>?>(type)
+                .bodyToFlux(type)
 
             eventStream.subscribe(
-                Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
+                Consumer { content: ServerSentEvent<BinderSseEvent>? ->
                     log.info(
                         "Time: {} - event: name[{}], id [{}], content[{}] ",
                         LocalTime.now(), content!!.event(), content.id(), content.data()
@@ -67,11 +71,10 @@ class BinderUploadService(
                     binderUploadSubJob.status = SubJobStatus.FAILED
                     binderUploadSubJob.message = "Error receiving SSE " + error?.message
                     binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
-                },
-                Runnable {
-                    log.info("SSE Server emitted completion event.")
                 }
-            )
+            ) {
+                log.info("SSE Server emitted completion event.")
+            }
         } catch (exception: Exception) {
             log.error("Error creating jupyterHub URL: ", exception)
             binderUploadSubJob.status = SubJobStatus.FAILED
@@ -85,7 +88,7 @@ class BinderUploadService(
         if (eventData.phase.isNullOrBlank()) {
             return
         }
-        var subJob =
+        val subJob =
             subJobRepository.findByIdOrNull(subJobId) ?: throw IllegalStateException("SubJob $subJobId does not exist")
         var hasBeenFinished = false
         when (eventData.phase) {
@@ -161,6 +164,9 @@ class BinderUploadService(
         }
         val config = module.getCredentials(repoId)
         val baseUrl = config["baseurl"] ?: throw IllegalArgumentException("baseurl must be provided")
-        return WebClient.builder().baseUrl(baseUrl).build()
+        return WebClient.builder()
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }
+            .baseUrl(baseUrl)
+            .build()
     }
 }

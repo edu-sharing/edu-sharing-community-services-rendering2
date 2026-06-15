@@ -44,7 +44,7 @@ abstract class AbstractIntegrationTest() {
         @JvmStatic
         fun registerProperties(registry: DynamicPropertyRegistry) {
             // MongoDB
-            registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl)
+            registry.add("spring.mongodb.uri", mongoDBContainer::getReplicaSetUrl)
 
             // MinIO
             registry.add("app.minio.url") { "http://${minioContainer.host}:${minioContainer.getMappedPort(9000)}" }
