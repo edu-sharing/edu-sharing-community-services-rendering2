@@ -1,9 +1,9 @@
 package org.edu_sharing.rendering.storage
 
-import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration
-import org.springframework.boot.actuate.health.Health
-import org.springframework.boot.actuate.health.HealthIndicator
+import org.springframework.boot.health.autoconfigure.contributor.ConditionalOnEnabledHealthIndicator
+import org.springframework.boot.health.contributor.Health
+import org.springframework.boot.health.contributor.HealthIndicator
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.stereotype.Component
 import software.amazon.awssdk.services.s3.S3Client
@@ -19,7 +19,7 @@ class S3HealthIndicator (
             s3Client.listBuckets()
             return Health.up().withDetail("status", "S3 is available").build()
         } catch (e: Exception) {
-            return Health.down().withDetail("error", e.message).build()
+            return Health.down().withDetail("error", e.message ?: "unknown error").build()
         }
     }
 }

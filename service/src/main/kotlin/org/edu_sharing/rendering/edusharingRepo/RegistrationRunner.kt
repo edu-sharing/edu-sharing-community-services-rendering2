@@ -25,7 +25,7 @@ class RegistrationRunner(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun run(args: ApplicationArguments?) {
+    override fun run(args: ApplicationArguments) {
         if (!privatePublicKeyService.hasKeyPair()) {
             privatePublicKeyService.generateApplicationKeyPair()
         }

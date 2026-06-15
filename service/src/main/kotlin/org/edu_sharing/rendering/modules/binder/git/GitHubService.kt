@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.binder.git
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.modules.binder.dto.GitDetails
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -47,7 +47,7 @@ class GitHubService(
                 .get()
                 .uri {
                     it.path("/${gitDetails.user}/${gitDetails.repo}/commits")
-                        .queryParam("path", gitDetails.filePath)
+                        .queryParam("path", gitDetails.filePath ?: "")
                         .queryParam("sha", gitDetails.branch)
                         .build()
                 }

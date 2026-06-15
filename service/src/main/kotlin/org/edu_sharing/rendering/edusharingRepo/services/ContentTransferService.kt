@@ -21,7 +21,7 @@ class ContentTransferService(
     @param:Qualifier("webApplicationContext")
     private val resourceLoader: ResourceLoader
 ) {
-    @Value("\${app.appId}")
+    @Value($$"${app.appId}")
     lateinit var appId: String
 
     companion object {
@@ -38,7 +38,7 @@ class ContentTransferService(
 
         val timeStamp = System.currentTimeMillis()
         val sigData = cacheObject.nodeId + timeStamp
-        val signed = encryptionService.sign(sigData)
+        val signed = encryptionService.sign(sigData, cacheObject.repoId)
         val returnedData = repoRegistrationService.getWebClientByRepoId(cacheObject.repoId)
             .get()
             .uri {
@@ -51,6 +51,7 @@ class ContentTransferService(
                     .queryParam("authToken",
                         URLEncoder.encode(Base64.getEncoder().encodeToString(signed), Charsets.UTF_8)
                     )
+                    .queryParam("signedAlg", encryptionService.getSigningAlg(cacheObject.repoId))
                     .queryParam("version", cacheObject.version ?: "")
                     .build(true)
                     .toUri()

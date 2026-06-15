@@ -6,10 +6,8 @@ import org.springframework.amqp.core.MessagePostProcessor
 class PriorityPostProcessor(
         val priority: Int = 0
 ): MessagePostProcessor {
-    override fun postProcessMessage(message: Message?): Message? {
-        if (message != null) {
-            message.messageProperties.priority = priority
-        }
+    override fun postProcessMessage(message: Message): Message {
+        message.messageProperties.priority = priority
         return message
     }
 }

@@ -7,7 +7,7 @@ import java.io.Serializable
 
 class NodePermissionSessionContextEvaluator(private val nodePermissionSessionContextRepository: NodePermissionSessionContextRepository) : PermissionEvaluator {
 
-    override fun hasPermission(authentication: Authentication?, targetDomainObject: Any?, permission: Any?): Boolean {
+    override fun hasPermission(authentication: Authentication, targetDomainObject: Any, permission: Any): Boolean {
         if(targetDomainObject !is String){
             throw IllegalArgumentException("targetDomainObject must be a String")
         }
@@ -20,10 +20,10 @@ class NodePermissionSessionContextEvaluator(private val nodePermissionSessionCon
     }
 
     override fun hasPermission(
-        authentication: Authentication?,
-        targetId: Serializable?,
-        targetType: String?,
-        permission: Any?
+        authentication: Authentication,
+        targetId: Serializable,
+        targetType: String,
+        permission: Any
     ): Boolean {
         if(targetId !is String){
             throw IllegalArgumentException("targetId must be a String")

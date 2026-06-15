@@ -33,7 +33,8 @@ class RepositoryRegistrationStorageService(
                 optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
                 module = localConfig?.module?.toMutableMap() ?: mutableMapOf(),
                 quota = localConfig?.quota ?: 0L,
-                buckets = localConfig?.externalBuckets
+                buckets = localConfig?.externalBuckets,
+                signingAlgorithm = "SHA1withRSA"
             )
             return Optional.of<RepositoryRegistration>(registration)
         }

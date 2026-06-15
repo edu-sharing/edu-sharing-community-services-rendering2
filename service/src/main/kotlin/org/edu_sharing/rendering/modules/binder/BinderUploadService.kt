@@ -37,8 +37,8 @@ class BinderUploadService(
     ) {
         var binderUploadSubJob = uploadSubJob
         val type
-                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?> =
-            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?>() {}
+                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>> =
+            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
 
         try {
             val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
@@ -52,10 +52,10 @@ class BinderUploadService(
             val eventStream = binderWebClient.get()
                 .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")
                 .retrieve()
-                .bodyToFlux<ServerSentEvent<BinderSseEvent?>?>(type)
+                .bodyToFlux(type)
 
             eventStream.subscribe(
-                Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
+                Consumer { content: ServerSentEvent<BinderSseEvent>? ->
                     log.info(
                         "Time: {} - event: name[{}], id [{}], content[{}] ",
                         LocalTime.now(), content!!.event(), content.id(), content.data()

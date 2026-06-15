@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.storage
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
 import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PATH
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams

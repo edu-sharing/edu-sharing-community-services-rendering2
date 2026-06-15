@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing
 import org.springframework.data.mongodb.core.MongoAction
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.WriteConcernResolver
-import java.time.OffsetDateTime
+import java.time.Instant
 import java.util.*
 
 @EnableMongoAuditing
@@ -41,6 +41,6 @@ class MongoConfig {
 
     @Bean
     fun auditingDateTimeProvider(): DateTimeProvider {
-        return DateTimeProvider { Optional.of(OffsetDateTime.now()) }
+        return DateTimeProvider { Optional.of(Instant.now()) }
     }
 }

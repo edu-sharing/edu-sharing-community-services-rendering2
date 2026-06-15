@@ -25,7 +25,7 @@ class MetadataService(
 
     fun getConfig(): RendererKeyConfig {
         return repository.findById("0")
-            .orElse(RendererKeyConfig())
+            .orElse(RendererKeyConfig())!!
 //            .orElseThrow { throw EntryNotFoundException("No config found in database.") }
     }
 
@@ -105,6 +105,7 @@ class MetadataService(
             props["protocol"] = connectionInfo.protocol
             props["host"] = connectionInfo.host
             props["port"] = connectionInfo.port.toString()
+            props["host_allow_internal_ip"] = "true"
             props["webappname"] = connectionInfo.path
             // contenturl: Used by frontend needs to be reachable from the web
             props["contenturl"] = appInfo.public.url
