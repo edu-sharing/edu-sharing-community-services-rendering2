@@ -77,7 +77,8 @@ class SecurityConfig(
                 headers.frameOptions { it.disable() }
             }.authorizeHttpRequests {
                 it.requestMatchers(
-                    "/public/modules"
+                    "/public/modules",
+                    "/public/session"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }
