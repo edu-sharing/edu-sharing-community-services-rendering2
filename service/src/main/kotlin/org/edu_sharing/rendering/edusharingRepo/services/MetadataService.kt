@@ -117,6 +117,7 @@ class MetadataService(
             props["contenturl"] = appInfo.public.url
             props["trustedclient"] = "true"
             props["public_key"] = metadata.publicKey
+            props["allow_admin_login"] = "true"
             props.storeToXML(
                 outputStream,
                 "rendering application file for application type lms",
