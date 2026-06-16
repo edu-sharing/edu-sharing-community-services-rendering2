@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -18,14 +19,17 @@ class DdbJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    @Value("\${app.queue.topicExchange}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.ddb.key}")
+    @Value($$"${app.queue.ddb.key}")
     lateinit var jobRoutingKey: String
 
     fun createJob(node: Node, module: String): String {
         val remoteId = node.remote?.id ?: throw IllegalArgumentException("Node $node does not have a remoteId")
+        log.debug("Creating DDB job for nodeId ${node.ref.id}, remoteId $remoteId, module $module")
         val job = mapper.nodeToRenderingJob(node, module, true)
         jobRepository.save(job)
         val subJob = SubJob(
@@ -34,6 +38,7 @@ class DdbJobService(
             routingKey = jobRoutingKey
         )
         subJobRepository.save(subJob)
+        log.debug("Sending DDB job message for jobId ${job.id}, remoteId $remoteId to queue $jobRoutingKey")
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, DdbJobMessage(id = job.id.toString(), remoteId = remoteId))
 
         return job.id.toString()

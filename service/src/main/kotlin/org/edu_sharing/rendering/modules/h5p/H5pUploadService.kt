@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -36,6 +36,7 @@ class H5pUploadService(
     private val log = LoggerFactory.getLogger(H5pUploadService::class.java)
 
     fun getContentId(cacheObject: CacheObject): String {
+        log.debug("Resolving H5P content id for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
         val lumiId = getLumiId(cacheObject)
         val cacheEntry = LumiNodeInfo(
             lumiId = lumiId,
@@ -43,6 +44,7 @@ class H5pUploadService(
             hash = cacheObject.hash
         )
         lumiContentManagementService.setCache(cacheEntry)
+        log.debug("H5P content id resolved: lumiId={} for nodeId={}", lumiId, cacheObject.nodeId)
         return lumiId
     }
 
@@ -80,6 +82,7 @@ class H5pUploadService(
     }
 
     private fun uploadPackage(cacheObject: CacheObject): String {
+        log.debug("Uploading H5P package to Lumi for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
         val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val originalFile = File.createTempFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_",
@@ -106,7 +109,9 @@ class H5pUploadService(
                 .bodyToMono<String>()
                 .timeout(getTimeout(cacheObject.repoId))
                 .block()
-            return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
+            val contentId = ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
+            log.debug("H5P package upload complete: lumiContentId={} for nodeId={}", contentId, cacheObject.nodeId)
+            return contentId
         } catch (exception: Exception) {
             throw exception
         } finally {

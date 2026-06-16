@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.storage.StorageService
+import org.slf4j.LoggerFactory
 
 abstract class BaseNoConversionModule(
     private val nodePermissionExpirationTime: Long?,
@@ -18,7 +19,10 @@ abstract class BaseNoConversionModule(
     private val storageService: StorageService,
     private val mainJobCreationService: MainJobCreationService
 ) : RenderModule {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Handling node ${node.ref.id} via module ${module()}, checking storage cache")
         val cacheObject = mapper.nodeToCacheObject(node)
         val link = try {
             storageService.getObjectLink(cacheObject).first
@@ -29,6 +33,9 @@ abstract class BaseNoConversionModule(
         if (link == null) {
             jobId = mainJobCreationService.getExistingJobId(cacheObject)
                 ?: mainJobCreationService.createMainJob(cacheObject, module())
+            log.debug("Node ${node.ref.id} not cached, dispatching job $jobId")
+        } else {
+            log.debug("Node ${node.ref.id} found in cache, returning immediate link")
         }
 
         return RenderDataResponse(

@@ -59,7 +59,7 @@ class LumiProxyServiceTest {
         val requestHeaders = HttpHeaders()
         requestHeaders[HttpHeaders.USER_AGENT] = "somefakeagent"
         requestHeaders[HttpHeaders.ACCEPT_ENCODING] = "UTF-8"
-        val headerIterator = Collections.enumeration(requestHeaders.keys)
+        val headerIterator = Collections.enumeration(requestHeaders.headerNames())
 
         every { request.requestURI } returns uri
         every { request.headerNames } returns headerIterator
@@ -89,8 +89,8 @@ class LumiProxyServiceTest {
         )
 
         // Assert
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_TYPE))
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_LENGTH))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_TYPE))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_LENGTH))
         assert(result.statusCode == HttpStatus.OK)
         assert(result.body == "testresponse")
 
@@ -116,7 +116,7 @@ class LumiProxyServiceTest {
         val requestHeaders = HttpHeaders()
         requestHeaders[HttpHeaders.USER_AGENT] = "somefakeagent"
         requestHeaders[HttpHeaders.ACCEPT_ENCODING] = "UTF-8"
-        val headerIterator = Collections.enumeration(requestHeaders.keys)
+        val headerIterator = Collections.enumeration(requestHeaders.headerNames())
 
         every { request.requestURI } returns uri
         every { request.headerNames } returns headerIterator
@@ -146,8 +146,8 @@ class LumiProxyServiceTest {
         )
 
         // Assert
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_TYPE))
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_LENGTH))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_TYPE))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_LENGTH))
         assert(result.statusCode == HttpStatus.OK)
         assert(result.body == "testresponse")
 

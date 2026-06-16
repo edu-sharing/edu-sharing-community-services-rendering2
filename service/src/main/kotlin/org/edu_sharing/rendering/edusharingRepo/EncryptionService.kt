@@ -15,11 +15,14 @@ class EncryptionService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun sign(toSign: String, repoId: String): ByteArray {
+        log.debug("Signing ${toSign.length}-char payload for repoId: $repoId")
         val privateKey = privatePublicKeyService.getPrivateKey()
         val dsa = Signature.getInstance(getSigningAlg(repoId))
         dsa.initSign(privateKey)
         dsa.update(toSign.toByteArray())
-        return dsa.sign()
+        val result = dsa.sign()
+        log.debug("Signature produced: ${result.size} bytes")
+        return result
     }
 
     fun getSigningAlg(repoId: String): String {
@@ -27,7 +30,7 @@ class EncryptionService(
             .getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository registration not found for id: $repoId") }
             .signingAlgorithm
-        log.error("Using signing algorithm $algo for repository $repoId")
+        log.info("Using signing algorithm $algo for repository $repoId")
         return algo
     }
 }

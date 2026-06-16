@@ -21,10 +21,12 @@ class AvConversionListener(
 
     override fun sourceInfo(p0: MultimediaInfo?) {
         log.info(p0.toString())
+        log.debug("AV source info received for subJobId=${if (::subJob.isInitialized) subJob.id else "uninitialized"}")
     }
 
     override fun progress(p0: Int) {
         if (p0 % 10 == 0 && ::subJob.isInitialized) {
+            log.debug("AV conversion progress: ${p0}% for subJobId=${subJob.id}")
             subJob.progress = p0 / 10
             subJob = subJobRepository.save(subJob)
         }

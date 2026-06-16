@@ -40,7 +40,7 @@ class ImageServiceTest {
     @Test
     fun testIsConversionObjectReturnsTrueIfInList() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         every { cacheObject.mimeType } returns "image/jpeg"
 
         // Act and assert
@@ -52,7 +52,7 @@ class ImageServiceTest {
     @Test
     fun testIsConversionObjectReturnsFalseIfNotInList() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         every { cacheObject.mimeType } returns "image/ogg"
 
         // Act and assert
@@ -64,7 +64,7 @@ class ImageServiceTest {
     @Test
     fun testGetObjectLinksReturnsNullIfNotFoundForNonConversionObject() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every { cacheObject.mimeType } returns "image/gif"
         every { storageService.getObjectLink(cacheObject) } throws ResourceNotFoundException("")

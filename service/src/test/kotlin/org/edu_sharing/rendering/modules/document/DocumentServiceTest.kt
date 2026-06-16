@@ -14,7 +14,7 @@ class DocumentServiceTest {
 
     private val storageService = mockk<StorageService>()
     private val mainJobCreationService = mockk<MainJobCreationService>()
-    private val module = mockk<DocumentRenderModule>()
+    private val module = mockk<DocumentRenderModule>(relaxed = true)
     private lateinit var underTest: DocumentService
 
     @BeforeEach
@@ -73,8 +73,8 @@ class DocumentServiceTest {
     @Test
     fun testRetrieveOrCreateJobCallsMainJobCreationServiceWithCorrectArguments() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
-        val module = mockk<DocumentRenderModule>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+        val module = mockk<DocumentRenderModule>(relaxed = true)
 
         every {mainJobCreationService.retrieveOrCreateJob(cacheObject, module)} returns "job123"
 

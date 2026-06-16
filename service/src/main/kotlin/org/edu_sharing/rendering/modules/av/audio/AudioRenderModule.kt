@@ -12,13 +12,14 @@ import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class AudioRenderModule(
-    @Value("\${app.session.audio.nodePermissionExpirationTime}")
+    @Value($$"${app.session.audio.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val audioService: AudioService,
@@ -26,22 +27,28 @@ class AudioRenderModule(
     private val amqpTemplate: AmqpTemplate
     ) : RenderModule, ConversionModule {
 
-    @Value("\${app.queue.av.key}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Value($$"${app.queue.av.key}")
     lateinit var avRoutingKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     override fun module() = "AUDIO"
 
     override fun handle(node: Node): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
+        log.debug("handle: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}")
         val objectLinks = audioService.getObjectLinks(cacheObject)
 
         if (objectLinks !== null) {
+            log.debug("Cache hit for audio nodeId=${cacheObject.nodeId}, returning direct link")
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
-        return RenderDataResponse(jobId = audioService.retrieveOrCreateJob(cacheObject, module()), module = module())
+        val jobId = audioService.retrieveOrCreateJob(cacheObject, module())
+        log.debug("Audio conversion job dispatched: jobId=$jobId for nodeId=${cacheObject.nodeId}")
+        return RenderDataResponse(jobId = jobId, module = module())
     }
 
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
@@ -56,6 +63,7 @@ class AudioRenderModule(
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
+        log.debug("Creating ${message.missingQualities.size} audio sub-jobs for jobId=${renderingJob.id}, qualities=${message.missingQualities}")
         val priority = 255
         message.missingQualities.forEach {
             val avJob = SubJob(routingKey = avRoutingKey, quality = it, parent = renderingJob, priority = priority)

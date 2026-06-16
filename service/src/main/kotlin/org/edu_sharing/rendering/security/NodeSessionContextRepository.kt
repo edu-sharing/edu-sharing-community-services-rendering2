@@ -50,7 +50,9 @@ class NodeSessionContextRepository {
         val session = getSession(false) ?: return null
         val nodes = readNodesFromSession(session) ?: return null
 
-        return nodes.firstOrNull { it.ref.id == nodeId }
+        val node = nodes.firstOrNull { it.ref.id == nodeId }
+        log.debug("Node session cache ${if (node != null) "hit" else "miss"} for nodeId=$nodeId")
+        return node
     }
 
     fun removeAll(nodeIds: List<String>) {

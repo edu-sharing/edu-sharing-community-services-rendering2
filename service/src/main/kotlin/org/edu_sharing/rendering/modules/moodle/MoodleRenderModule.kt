@@ -34,6 +34,7 @@ class MoodleRenderModule(
     override fun isOptionalModule() = true
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Handling node ${node.ref.id} via module ${module()}, creating async job")
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(),
@@ -70,6 +71,7 @@ class MoodleRenderModule(
 
         val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
 
+        log.debug("Calling Moodle ping endpoint for repoId $repoId at ${credentials.getValue("baseurl")}")
         val testResult = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
@@ -103,6 +105,7 @@ class MoodleRenderModule(
     }
 
     fun getWebserviceToken(webClient: WebClient, user: String, password: String): String {
+        log.debug("Requesting Moodle webservice token for user $user")
         val tokenResponse = webClient.get()
             .uri {
                 it.path("/login/token.php")
@@ -115,6 +118,7 @@ class MoodleRenderModule(
             .bodyToMono<MoodleTokenReply>()
             .block()
 
+        log.debug("Moodle token response received, token present: ${tokenResponse?.token != null}")
         return tokenResponse?.token ?: throw Exception("Token could not be retrieved from Moodle.")
     }
 }

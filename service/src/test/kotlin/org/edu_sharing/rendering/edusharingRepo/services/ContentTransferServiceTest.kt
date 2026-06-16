@@ -50,7 +50,7 @@ class ContentTransferServiceTest {
     @Test
     fun testGetAsInputStreamRetrievesTestDataIfTestPrefixSet() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val resource = mockk<Resource>()
         val stream = "123".byteInputStream()
         every { cacheObject.nodeId } returns "TEST_node1"
@@ -79,7 +79,7 @@ class ContentTransferServiceTest {
     @Test
     fun testAsInputStreamRetrievesAssetFromRepo() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val serverResponse = "test"
         val repoId = "repo1"
 
@@ -144,7 +144,7 @@ class ContentTransferServiceTest {
     @Test
     fun testGetAsInputStreamReplacesRepoIdAndVersionIfNull() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val serverResponse = "test"
         val repoId = "repo123"
 

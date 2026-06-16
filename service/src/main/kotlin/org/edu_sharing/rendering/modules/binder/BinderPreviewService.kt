@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.modules.binder.dto.GitDetails
 import org.edu_sharing.rendering.modules.binder.git.GitService
 import org.edu_sharing.rendering.modules.binder.git.GitServiceRegistry
 import org.edu_sharing.rendering.storage.StorageService
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.MediaType
@@ -24,16 +25,20 @@ class BinderPreviewService(
     @Qualifier("jupyterConverterWebClient")
     private val jupyterConverterWebClient: WebClient?
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Throws(IllegalStateException::class, IllegalArgumentException::class)
     fun process(
         cacheObject: CacheObject,
         module: String
     ) {
+        log.debug("Binder preview process started for nodeId={}, externalUrl={}", cacheObject.nodeId, cacheObject.externalUrl)
         val gitHubToken = getGitHubApiKey(module = module, repoId = cacheObject.repoId)
         val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
             ?: throw IllegalStateException("Now GitService registered for ${cacheObject.externalUrl}. This should NOT happen at this point")
         val gitDetails = gitService.getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
         val (objectLink, lastModifiedInCache) = getObjectLink(cacheObject)
+        log.debug("Binder preview cache check: objectLinkPresent={}, lastModifiedInCache={}", objectLink != null, lastModifiedInCache)
         if (objectLink == null || !gitService.checkIfObjectLinkIsUpToDate(lastModifiedInCache, gitDetails, gitHubToken)) {
             createAndCachePreviewHtml(
                 gitDetails = gitDetails,
@@ -56,6 +61,7 @@ class BinderPreviewService(
         if (jupyterConverterWebClient == null) {
             throw IllegalStateException("Illegal state: No jupyterConverterWebClient bean available. This should not happen at this point.")
         }
+        log.debug("Fetching notebook file from Git: user={}, repo={}, branch={}, filePath={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath)
         val inputStream = gitService.getFile(gitDetails, gitHubToken)
         val callerArguments = ConverterWebServiceArguments(
             client = jupyterConverterWebClient,

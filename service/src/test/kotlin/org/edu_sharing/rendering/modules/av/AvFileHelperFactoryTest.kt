@@ -22,7 +22,7 @@ class AvFileHelperFactoryTest {
         // Arrange
         val result = underTest.createAvFileHelper()
         result.outputFile = File("src/test/resources/fixtures/testFileWith1")
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         val inputStreamSlot = slot<InputStream>()
         justRun { storageService.putObject(cacheObject, capture(inputStreamSlot)) }

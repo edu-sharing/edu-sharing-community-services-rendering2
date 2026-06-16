@@ -103,7 +103,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     fun handleIOException(exception: IOException): ResponseEntity<String> {
         if (exception.message?.contains("reset by peer") == true) {
-            log.warn(exception.message)
+            log.warn(exception.message, exception)
         } else {
             log.error(exception.message, exception)
         }

@@ -1,19 +1,23 @@
 package org.edu_sharing.rendering.storage.bucket
 
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnStorageByCustomer
 class BucketPerCustomerStrategy : BaseBucketStrategy() {
     private val prefix = "rs2-"
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
         return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}"
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return "$prefix${cacheObject.repoId}"
+        val bucket = "$prefix${cacheObject.repoId}"
+        log.debug("Resolved bucket (per-customer strategy): repoId=${cacheObject.repoId}, bucket=$bucket")
+        return bucket
     }
 
     override fun prefixStaticPath(

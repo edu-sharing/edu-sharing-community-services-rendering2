@@ -5,6 +5,9 @@ import org.edu_sharing.rendering.asset.AssetService
 import org.edu_sharing.rendering.core.RenderController
 import org.edu_sharing.rendering.core.RenderDataService
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingController
+import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
+import org.edu_sharing.rendering.edusharingRepo.SessionTicketRepository
+import org.edu_sharing.rendering.edusharingRepo.UserBasedRestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
@@ -38,6 +41,9 @@ class ControllerRoleTest(
             CorsAllowedOriginsReceiver::class,
             CorsSyncService::class,
             EduTrackingController::class,
+            EduTrackingService::class,
+            SessionTicketRepository::class,
+            UserBasedRestClientProvider::class,
             RenderController::class,
             RenderDataService::class,
             ModuleInfoController::class,

@@ -35,10 +35,11 @@ class BinderUploadService(
     fun process(
         cacheObject: CacheObject, uploadSubJob: SubJob, module: String
     ) {
+        log.debug("Binder upload process started for nodeId={}, externalUrl={}", cacheObject.nodeId, cacheObject.externalUrl)
         var binderUploadSubJob = uploadSubJob
         val type
-                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?> =
-            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent?>?>() {}
+                : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>> =
+            object : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>>() {}
 
         try {
             val gitService = gitServiceRegistry.getService(cacheObject.externalUrl ?: "")
@@ -48,14 +49,15 @@ class BinderUploadService(
             binderUploadSubJob.message = "Initializing binder import"
             binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             val binderWebClient = getWebclient(module = module, repoId = cacheObject.repoId)
+            log.debug("Opening Binder SSE stream: /build/gh/{}/{}/{}", gitDetails.user, gitDetails.repo, gitDetails.branch)
 
             val eventStream = binderWebClient.get()
                 .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")
                 .retrieve()
-                .bodyToFlux<ServerSentEvent<BinderSseEvent?>?>(type)
+                .bodyToFlux(type)
 
             eventStream.subscribe(
-                Consumer { content: ServerSentEvent<BinderSseEvent?>? ->
+                Consumer { content: ServerSentEvent<BinderSseEvent>? ->
                     log.info(
                         "Time: {} - event: name[{}], id [{}], content[{}] ",
                         LocalTime.now(), content!!.event(), content.id(), content.data()

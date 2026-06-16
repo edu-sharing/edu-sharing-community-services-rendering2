@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.ddb
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
@@ -13,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import tools.jackson.databind.ObjectMapper
 
 @Service
 class DdbApiService(
@@ -34,6 +34,7 @@ class DdbApiService(
         remoteId: String,
         renderingJob: RenderingJob
     ) {
+        log.debug("Starting DDB API process for remoteId $remoteId, jobId ${renderingJob.id}")
         log.info("Starting DDB API communication for node")
         if (renderingJob.subJobs.isEmpty()) {
             renderingJob.status = RenderingJobStatus.FAILED
@@ -78,6 +79,7 @@ class DdbApiService(
     }
 
     private fun callRestApi(remoteId: String, apiToken: String): DdbRestData {
+        log.debug("Calling DDB REST API for remoteId $remoteId at ${DdbRenderModule.REST_API_BASE_URL}")
         val webClient = WebClient.create(DdbRenderModule.REST_API_BASE_URL)
 
         val response = webClient
@@ -89,13 +91,13 @@ class DdbApiService(
         response?.let {
             val objectMapper = ObjectMapper()
             val rootNode = objectMapper.readTree(it)
-            val ref = rootNode.path("binaries").path("binary").path("@ref").asText("")
-            val licenseLink = rootNode.path("binaries").path("binary").path("@kind").asText("")
-            val licenseGroup = rootNode.path("binaries").path("binary").path("@license_group").asText("")
+            val ref = rootNode.path("binaries").path("binary").path("@ref").asString("")
+            val licenseLink = rootNode.path("binaries").path("binary").path("@kind").asString("")
+            val licenseGroup = rootNode.path("binaries").path("binary").path("@license_group").asString("")
             if (ref.isNullOrBlank()) {
                 throw Exception("DDB API did not return valid response containing remote ref")
             }
-            val institution = rootNode.path("view").path("item").path("institution").path("name").asText("")
+            val institution = rootNode.path("view").path("item").path("institution").path("name").asString("")
             return DdbRestData(
                 binaryRef = ref,
                 institution = institution,
@@ -107,6 +109,7 @@ class DdbApiService(
     }
 
     private fun callIiifApi(binaryRef: String, apiToken: String): List<Pair<Int, Int>> {
+        log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${DdbRenderModule.IIIF_API_BASE_URL}")
         val webClient = WebClient.create(DdbRenderModule.Companion.IIIF_API_BASE_URL)
         val response = webClient
             .get()
@@ -126,6 +129,7 @@ class DdbApiService(
             if (sizes.isEmpty()) {
                 throw Exception("No sizes returned from DDB IIIF API. Cannot build image source")
             }
+            log.debug("DDB IIIF API returned ${sizes.size} size(s) for binaryRef $binaryRef")
             return sizes
         }
         throw Exception("Missing DDB IIIF API response")

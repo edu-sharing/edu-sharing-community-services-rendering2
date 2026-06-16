@@ -30,13 +30,14 @@ class OnyxReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.onyx.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.onyx.key}"]
+                value = Queue(name = $$"${app.queue.onyx.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.onyx.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
+        log.debug("Received Onyx job message for jobId ${message.id}")
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
@@ -47,9 +48,11 @@ class OnyxReceiver(
 
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
+            log.debug("Processing Onyx job ${message.id} for nodeId ${cacheObject.nodeId}")
             subJobRepository.updateStatusWithoutVersion(subJob.id, SubJobStatus.PROCESSING)
             renderingJobRepository.updateStatusWithoutVersion(jobEntry.id, RenderingJobStatus.PROCESSING)
             subJob.message = onyxUploadService.uploadTest(cacheObject)
+            log.debug("Onyx upload finished for job ${message.id}, sub-job marked FINISHED")
             subJob.status = SubJobStatus.FINISHED
             subJobRepository.save(subJob)
         } catch (exception: Exception) {

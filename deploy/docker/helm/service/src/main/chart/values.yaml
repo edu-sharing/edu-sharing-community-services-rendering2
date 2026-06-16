@@ -456,6 +456,8 @@ config:
     mode: byType
     ## @param config.s3.trustAllCertificates Set S3 trust all certificates
     trustAllCertificates: false
+    ## @param config.s3.checksumCalculationWhenRequired Set S3 checksum calculation when required
+    checksumCalculationWhenRequired: false
 
   webclient:
     codec:
@@ -468,6 +470,8 @@ config:
       samesite: none
       ## @param config.session.cookie.secure Set session cookie secure
       secure: true
+      ## @param config.session.cookie.partitioned Set session cookie partitioned
+      partitioned: true
     nodePermissionExpirationTime:
       ## @param config.session.nodePermissionExpirationTime.audio Set session nodePermissionExpirationTime for audio
       audio: ""
