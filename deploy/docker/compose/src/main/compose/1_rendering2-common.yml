@@ -137,9 +137,6 @@ services:
       server.servlet.session.cookie.partitioned: "${RENDERING2_SERVICE_COOKIE_PARTITIONED:-false}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
-      management.tracing.export.enabled: "${RENDERING2_SERVICE_TRACING_EXPORT_ENABLED:-false}"
-      management.otlp.tracing.endpoint: "${RENDERING2_SERVICE_TRACING_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}"
-      management.tracing.sampling.probability: "${RENDERING2_SERVICE_TRACING_SAMPLING_PROBABILITY:-1.0}"
     expose:
       - "8080"
     depends_on:

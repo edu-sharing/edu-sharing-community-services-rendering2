@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.context.TestPropertySource
 import org.springframework.web.reactive.function.client.WebClient
 
 /**
@@ -17,10 +16,11 @@ import org.springframework.web.reactive.function.client.WebClient
  * [WebClient.Builder] propagates the active trace context to outbound calls as a b3 header (as happens
  * in production, where a server-side observation is always in scope when a controller calls WebClient).
  *
- * b3 propagation and full sampling are configured in the shared test `application.properties`; span
- * export is enabled here so a span processor records spans (a prerequisite for header injection).
+ * This is the behaviour we keep so the Istio sidecar can stitch the trace together; the app itself
+ * exports no spans. b3 propagation and full sampling are configured in the shared test
+ * `application.properties`; the span processor that records spans (the prerequisite for header
+ * injection) is always active regardless of any export setting.
  */
-@TestPropertySource(properties = ["management.tracing.export.enabled=true"])
 class TracePropagationIntegrationTest(
     @param:Autowired private val tracer: Tracer,
     @param:Autowired private val observationRegistry: ObservationRegistry,
