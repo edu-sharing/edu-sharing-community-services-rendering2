@@ -1,9 +1,11 @@
 package org.edu_sharing.rendering.modules.moodle
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -18,7 +20,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Service
 @ConditionalOnConverter
-class MoodleUploadService() {
+class MoodleUploadService {
+    private val log = LoggerFactory.getLogger(javaClass)
+    private val objectMapper = ObjectMapper()
+
     /**
      * @param moodleJobMessage the Moodle job message
      * @param module the Moodle render module
@@ -110,7 +115,7 @@ class MoodleUploadService() {
         if (!response.has("courseId") && !response.has("restoreId")) {
             throw Exception(buildMoodleErrorMessage(response))
         }
-        if (response.has("courseId")) {
+        if (response.has("courseId") && response.get("courseId").isInt && response.get("courseId").asInt() > 0) {
             return response.get("courseId").asInt()
         }
         triggerCron(config, webClient)
@@ -161,7 +166,7 @@ class MoodleUploadService() {
         webserviceToken: String,
         message: MoodleJobMessage
     ): String {
-        val response = webClient.get()
+        val rawResponse = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_user")
@@ -175,11 +180,9 @@ class MoodleUploadService() {
                     .build()
             }
             .retrieve()
-            .bodyToMono<JsonNode>()
+            .bodyToMono<String>()
             .block()
-        if (response == null) {
-            throw Exception("Error getting user token. Response is null")
-        }
+        val response = parseMoodleResponse(rawResponse, "local_edusharing_user")
         if (!response.has("token")) {
             throw Exception(buildMoodleErrorMessage(response))
         }
@@ -233,6 +236,18 @@ class MoodleUploadService() {
         }
     }
 
+    private fun parseMoodleResponse(rawBody: String?, context: String): JsonNode {
+        if (rawBody.isNullOrBlank()) {
+            throw Exception("Empty response from moodle ($context)")
+        }
+        return try {
+            objectMapper.readTree(rawBody)
+        } catch (e: Exception) {
+            log.error("Failed to parse moodle response as JSON ($context). Raw response: {}", rawBody, e)
+            throw Exception("Invalid JSON response from moodle ($context): $rawBody", e)
+        }
+    }
+
     private fun getMoodleUploadResponse(
         moodleJobMessage: MoodleJobMessage,
         config: Map<String, String>,
@@ -246,19 +261,16 @@ class MoodleUploadService() {
                     .queryParam("wsfunction", method)
                     .queryParam("moodlewsrestformat", "json")
                     .queryParam("wstoken", webserviceToken)
-                    .queryParam("nodeId", "${moodleJobMessage.nodeId}_${moodleJobMessage.hash}")
+                    .queryParam("nodeId", moodleJobMessage.nodeId)
                     .queryParam("category", config["categoryid"] ?: "1")
                     .queryParam("title", moodleJobMessage.title)
                     .build()
             }
             .retrieve()
-            .bodyToMono<JsonNode>()
+            .bodyToMono<String>()
             .timeout(Duration.ofSeconds(config["timeout"]?.toLong() ?: 30))
             .block()
-        if (response == null) {
-            throw Exception("Error uploading course to moodle")
-        }
-        return response
+        return parseMoodleResponse(response, "wsfunction=$method")
     }
 
     private fun getStatus(
@@ -267,7 +279,7 @@ class MoodleUploadService() {
         restoreId: Int,
         config: Map<String, String>
     ): RestoreStatusDto {
-        val response = webClient.get()
+        val rawResponse = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_status")
@@ -277,12 +289,10 @@ class MoodleUploadService() {
                     .build()
             }
             .retrieve()
-            .bodyToMono<JsonNode>()
+            .bodyToMono<String>()
             .timeout(Duration.ofSeconds(config["timeout"]?.toLong() ?: 30))
             .block()
-        if (response == null) {
-            throw Exception("Error getting status from moodle")
-        }
+        val response = parseMoodleResponse(rawResponse, "local_edusharing_status")
         if (!response.has("status")) {
             throw Exception(buildMoodleErrorMessage(response))
         }
@@ -297,11 +307,15 @@ class MoodleUploadService() {
     private fun triggerCron(config: Map<String, String>, webClient: WebClient) {
         webClient.get()
             .uri {
-                it.path("/admin/cron.php?password=${config["password"]}")
+                it.path("/admin/cron.php")
+                    .queryParam("password", config["password"] ?: "")
                     .build()
             }
             .retrieve()
             .bodyToMono<String>()
-            .subscribe()
+            .subscribe(
+                { body -> log.debug("Moodle cron triggered, response: {}", body) },
+                { error -> log.error("Failed to trigger moodle cron", error) }
+            )
     }
 }

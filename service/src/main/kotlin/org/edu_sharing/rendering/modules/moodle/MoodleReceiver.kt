@@ -36,7 +36,7 @@ class MoodleReceiver (
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: MoodleJobMessage) {
-        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
+        var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
@@ -45,7 +45,7 @@ class MoodleReceiver (
         var subJob = jobEntry.subJobs.first()
         subJob.status = SubJobStatus.PROCESSING
         jobEntry.status = RenderingJobStatus.PROCESSING
-        renderingJobRepository.save(jobEntry)
+        jobEntry = renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         try {
             val url = moodleService.getUrl(
@@ -61,6 +61,8 @@ class MoodleReceiver (
             subJob.status = SubJobStatus.FAILED
             if (exception is MoodleUploadException) {
                 subJob.errorMessage = exception.publicMessage
+                jobEntry.errorMessage = exception.publicMessage
+                renderingJobRepository.save(jobEntry)
             } else {
                 subJob.errorMessage = GENERIC_CONVERSION_ERROR
             }
