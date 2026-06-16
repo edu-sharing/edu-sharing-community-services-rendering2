@@ -63,6 +63,7 @@ class SodixReceiver(
             }
             subJobRepository.save(playoutUrlSubJob)
         } catch (exception: Exception) {
+            log.error(exception.message, exception)
             val objectMapper = ObjectMapper()
             var userMessage = GENERIC_CONVERSION_ERROR
             if (exception is WebClientResponseException && exception.statusCode == HttpStatus.BAD_GATEWAY) {
