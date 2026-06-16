@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class EduHtmlRenderModule(
-    @Value("\${app.session.eduHtml.nodePermissionExpirationTime}")
+    @Value($$"${app.session.eduHtml.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val eduHtmlService: EduHtmlService,
     private val mapper: Mapper,

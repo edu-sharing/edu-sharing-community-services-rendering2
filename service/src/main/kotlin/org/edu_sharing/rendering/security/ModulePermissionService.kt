@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 class ModulePermissionService (
     private val nodePermissionSessionContextRepository: NodePermissionSessionContextRepository,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
-    @Value("\${app.security.enabled}")
+    @Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean
 ){
     private val log = LoggerFactory.getLogger(javaClass)

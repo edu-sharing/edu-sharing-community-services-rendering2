@@ -30,9 +30,9 @@ class OnyxReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.onyx.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.onyx.key}"]
+                value = Queue(name = $$"${app.queue.onyx.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.onyx.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

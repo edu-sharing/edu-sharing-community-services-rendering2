@@ -21,9 +21,9 @@ class CorsSyncService(
     private val amqpTemplate: AmqpTemplate,
     private val corsConfig: CorsConfig,
     private val authHeaderProvider: AuthHeaderProvider,
-    @Value("\${app.queue.controllerBroadcastExchange}")
+    @Value($$"${app.queue.controllerBroadcastExchange}")
     private val broadcastExchange: String,
-    @Value("\${app.appId}")
+    @Value($$"${app.appId}")
     private val appId: String,
 ) {
     private val log = org.slf4j.LoggerFactory.getLogger(javaClass)

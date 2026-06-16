@@ -29,9 +29,9 @@ class MoodleReceiver (
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.moodle.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.moodle.key}"]
+                value = Queue(name = $$"${app.queue.moodle.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.moodle.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

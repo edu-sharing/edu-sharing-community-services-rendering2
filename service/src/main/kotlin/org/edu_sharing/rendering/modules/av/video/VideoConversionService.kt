@@ -28,11 +28,11 @@ class VideoConversionService(
     private val configuredResolutions: VideoConverterConfig,
     private val storageImplementation: StorageService,
     private val subJobRepository: SubJobRepository,
-    @param:Value("\${app.converter.video.format}")
+    @param:Value($$"${app.converter.video.format}")
     private val videoFormat: String,
-    @param:Value("\${app.converter.video.ffmpegThreads}")
+    @param:Value($$"${app.converter.video.ffmpegThreads}")
     private val threads: Int,
-    @param:Value("\${app.converter.video.ffmpegPreset}")
+    @param:Value($$"${app.converter.video.ffmpegPreset}")
     private val preset: String
 ) : AvConversionService {
 

@@ -41,7 +41,7 @@ class AvReceiver(
         bindings = [
             QueueBinding(
                 value = Queue(
-                    name = "\${app.queue.av.name}",
+                    name = $$"${app.queue.av.name}",
                     durable = "false",
                     arguments = [Argument(
                         name = "x-max-priority",
@@ -49,8 +49,8 @@ class AvReceiver(
                         type = "java.lang.Integer"
                     )]
                 ),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.av.key}"]
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.av.key}"]
             )
         ],
         containerFactory = "singlePrefetchConnectionFactory"

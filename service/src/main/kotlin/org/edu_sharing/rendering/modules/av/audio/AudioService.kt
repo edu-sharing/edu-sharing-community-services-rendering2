@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service
 class AudioService(
     private val storageImplementation: StorageService,
     private val mainJobCreationService: MainJobCreationService,
-    @Value("\${app.converter.audio.bitrate}")
+    @Value($$"${app.converter.audio.bitrate}")
     private val bitrate: Int,
-    @Value("\${app.converter.audio.mimeTypes}")
+    @Value($$"${app.converter.audio.mimeTypes}")
     private val convertedAudioMimeTypes: List<String>
 ) {
     private val log = LoggerFactory.getLogger(javaClass)

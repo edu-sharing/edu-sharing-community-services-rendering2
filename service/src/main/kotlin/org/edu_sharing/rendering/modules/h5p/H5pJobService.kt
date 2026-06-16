@@ -19,12 +19,12 @@ class H5pJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    @Value("\${app.queue.h5p.key}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.h5p.key}")
     lateinit var jobRoutingKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     fun createJob(node: Node, module: String): String {

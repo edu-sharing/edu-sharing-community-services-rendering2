@@ -18,10 +18,10 @@ class VideoService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Value("\${app.converter.video.format}")
+    @Value($$"${app.converter.video.format}")
     lateinit var targetVideoFormat: String
 
-    @Value("\${app.converter.video.mimeTypes}")
+    @Value($$"${app.converter.video.mimeTypes}")
     lateinit var convertedVideoMimeTypes: List<String>
 
     /**

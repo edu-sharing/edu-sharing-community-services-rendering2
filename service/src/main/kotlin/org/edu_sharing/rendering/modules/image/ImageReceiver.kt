@@ -26,9 +26,9 @@ class ImageReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.image.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.image.key}"]
+                value = Queue(name = $$"${app.queue.image.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.image.key}"]
             )
         ],
         containerFactory = "singlePrefetchConnectionFactory"

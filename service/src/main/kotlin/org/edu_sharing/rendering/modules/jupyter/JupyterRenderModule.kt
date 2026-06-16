@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class JupyterRenderModule(
-    @Value("\${app.session.moodle.nodePermissionExpirationTime}")
+    @Value($$"${app.session.moodle.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val jupyterJobService: JupyterJobService,
@@ -27,12 +27,12 @@ class JupyterRenderModule(
     private val amqpTemplate: AmqpTemplate
 ) : RenderModule, ConversionModule {
 
-    @Value("\${app.queue.jupyter.key}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.jupyter.key}")
     lateinit var jupyterKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     override fun module() = "JUPYTER"

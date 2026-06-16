@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 @Component
 @ConditionalOnProperty(name = ["app.converter.spreadsheetToHtml.enabled"], havingValue = "true")
 class SpreadsheetRenderModule(
-    @Value("\${app.session.spreadsheet.nodePermissionExpirationTime}")
+    @Value($$"${app.session.spreadsheet.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     mapper: Mapper,

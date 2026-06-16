@@ -30,7 +30,7 @@ class RenderController (
     private val trackingService: EduTrackingService,
     private val repositoryPublicKeyService: RepositoryPublicKeyService,
     private val nodeSessionContextRepository: NodeSessionContextRepository,
-    @param:Value("\${app.security.enabled}")
+    @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
 ){
 

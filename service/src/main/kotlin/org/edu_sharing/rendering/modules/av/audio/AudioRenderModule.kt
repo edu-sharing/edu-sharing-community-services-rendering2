@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class AudioRenderModule(
-    @Value("\${app.session.audio.nodePermissionExpirationTime}")
+    @Value($$"${app.session.audio.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val audioService: AudioService,
@@ -27,12 +27,12 @@ class AudioRenderModule(
     private val amqpTemplate: AmqpTemplate
     ) : RenderModule, ConversionModule {
 
-    @Value("\${app.queue.av.key}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.av.key}")
     lateinit var avRoutingKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     override fun module() = "AUDIO"

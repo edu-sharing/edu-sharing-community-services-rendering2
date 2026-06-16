@@ -20,8 +20,8 @@ import javax.imageio.ImageIO
 class ImageConversionService (
     private val storageImplementation: StorageService,
 ){
-    @Value("\${app.converter.image.format}")
     private val log = LoggerFactory.getLogger(javaClass)
+    @Value($$"${app.converter.image.format}")
     lateinit var imageFormat: String
 
     fun convert(cacheObject: CacheObject, size: Int, sourceImage: BufferedImage) {

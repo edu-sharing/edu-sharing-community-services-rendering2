@@ -17,12 +17,12 @@ class MainJobCreationService(
     private val renderingJobRepository: RenderingJobRepository,
     private val mapper: Mapper
 ) {
-    @Value("\${app.queue.topicExchange}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.job.key}")
+    @Value($$"${app.queue.job.key}")
     lateinit var jobRoutingKey: String
 
     fun createMainJob(

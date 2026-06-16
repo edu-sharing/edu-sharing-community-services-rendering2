@@ -25,11 +25,11 @@ class VideoRenderModule (
     private val amqpTemplate: AmqpTemplate,
     private val configuredResolutions: VideoConverterConfig,
 
-    @param:Value("\${app.session.video.nodePermissionExpirationTime}")
+    @param:Value($$"${app.session.video.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
-    @param:Value("\${app.queue.av.key}")
+    @param:Value($$"${app.queue.av.key}")
     private val avRoutingKey: String,
-    @param:Value("\${app.queue.topicExchange}")
+    @param:Value($$"${app.queue.topicExchange}")
     private val topicExchangeName: String
 ): RenderModule, ConversionModule {
     private val log = LoggerFactory.getLogger(javaClass)

@@ -18,13 +18,13 @@ import org.springframework.stereotype.Component
 
 @Component
 class H5pRenderModule(
-    @Value("\${app.session.h5p.nodePermissionExpirationTime}")
+    @Value($$"${app.session.h5p.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val h5pJobService: H5pJobService,
     private val lumiContentManagementService: LumiContentManagementService,
     private val appInfo: AppInfo,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
-    @Value("\${app.security.enabled}")
+    @Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean
 ): RenderModule, ThirdPartyModule {
 

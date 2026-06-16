@@ -26,9 +26,9 @@ class BinderReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.binder.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.binder.key}"]
+                value = Queue(name = $$"${app.queue.binder.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.binder.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

@@ -23,9 +23,9 @@ class DdbReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.ddb.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.ddb.key}"]
+                value = Queue(name = $$"${app.queue.ddb.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.ddb.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

@@ -31,7 +31,7 @@ import org.springframework.web.cors.CorsConfigurationSource
 @EnableMethodSecurity
 @ConditionalOnProperty(name = ["app.security.enabled"], havingValue = "true")
 class SecurityConfig(
-    @param:Value("\${app.security.adminPassword}") var adminPassword: String
+    @param:Value($$"${app.security.adminPassword}") var adminPassword: String
 ) {
 
     @Bean

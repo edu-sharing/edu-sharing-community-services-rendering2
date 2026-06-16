@@ -30,9 +30,9 @@ class BinderPreviewReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.binderPreview.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.binderPreview.key}"]
+                value = Queue(name = $$"${app.queue.binderPreview.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.binderPreview.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

@@ -19,12 +19,12 @@ class DdbJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    @Value("\${app.queue.topicExchange}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.ddb.key}")
+    @Value($$"${app.queue.ddb.key}")
     lateinit var jobRoutingKey: String
 
     fun createJob(node: Node, module: String): String {

@@ -20,12 +20,12 @@ class MoodleJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    @Value("\${app.queue.topicExchange}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.moodle.key}")
+    @Value($$"${app.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
     fun createJob(node: Node, module: String): String? {

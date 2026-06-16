@@ -22,9 +22,9 @@ class OnyxRenderModule(
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate,
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     private val topicExchangeName: String,
-    @Value("\${app.queue.onyx.key}")
+    @Value($$"${app.queue.onyx.key}")
     private val jobRoutingKey: String
 ): RenderModule, ThirdPartyModule {
 

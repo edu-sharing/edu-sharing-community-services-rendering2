@@ -14,7 +14,7 @@ private const val PERMISSIONS = "permissions"
 
 @Component
 class NodePermissionSessionContextRepository(
-    @Value("\${app.session.nodePermissionExpirationTime}")
+    @Value($$"${app.session.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long,
     private val renderModuleRegistry: ModuleRegistry,
     private val nodeSessionContextRepository: NodeSessionContextRepository

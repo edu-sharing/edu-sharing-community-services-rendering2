@@ -31,9 +31,9 @@ class JupyterReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.jupyter.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.jupyter.key}"]
+                value = Queue(name = $$"${app.queue.jupyter.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.jupyter.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

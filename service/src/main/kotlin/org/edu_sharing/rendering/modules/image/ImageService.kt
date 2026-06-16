@@ -15,15 +15,15 @@ class ImageService(
     private val storageImplementation: StorageService,
     private val mainJobCreationService: MainJobCreationService
 ) {
-    @Value("\${app.converter.image.mimeTypes}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.converter.image.mimeTypes}")
     lateinit var convertedImageMimeTypes: List<String>
 
-    @Value("\${app.converter.image.sizes}")
+    @Value($$"${app.converter.image.sizes}")
     lateinit var targetImageSizes: List<Int>
 
-    @Value("\${app.converter.image.format}")
+    @Value($$"${app.converter.image.format}")
     lateinit var targetImageFormat: String
 
     fun isConversionObject(cacheObject: CacheObject) = convertedImageMimeTypes.contains(cacheObject.mimeType)

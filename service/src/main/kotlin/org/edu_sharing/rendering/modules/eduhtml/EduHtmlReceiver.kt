@@ -32,9 +32,9 @@ class EduHtmlReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.eduHtml.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.eduHtml.key}"]
+                value = Queue(name = $$"${app.queue.eduHtml.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.eduHtml.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )

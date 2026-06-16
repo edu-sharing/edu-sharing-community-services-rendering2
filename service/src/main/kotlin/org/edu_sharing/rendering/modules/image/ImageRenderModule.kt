@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ImageRenderModule(
-    @Value("\${app.session.image.nodePermissionExpirationTime}")
+    @Value($$"${app.session.image.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val imageService: ImageService,
@@ -26,12 +26,12 @@ class ImageRenderModule(
     private val amqpTemplate: AmqpTemplate
 ) : RenderModule, ConversionModule {
 
-    @Value("\${app.queue.image.key}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.image.key}")
     lateinit var imageRoutingKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     override fun module() = "IMAGE"

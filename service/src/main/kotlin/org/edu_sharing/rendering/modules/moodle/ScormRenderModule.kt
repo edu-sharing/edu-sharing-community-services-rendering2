@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ScormRenderModule(
-    @param:Value("\${app.session.scorm.nodePermissionExpirationTime}")
+    @param:Value($$"${app.session.scorm.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     moodleJobService: MoodleJobService,
     repositoryRegistrationStorageService: RepositoryRegistrationStorageService,

@@ -21,7 +21,7 @@ class BinderRenderModule(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val mapper: Mapper,
     private val storageService: StorageService,
-    @Value("\${app.session.moodle.nodePermissionExpirationTime}")
+    @Value($$"${app.session.moodle.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     ): RenderModule, ThirdPartyModule {
 

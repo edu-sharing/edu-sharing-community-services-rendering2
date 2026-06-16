@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class DocumentRenderModule(
-    @Value("\${app.session.document.nodePermissionExpirationTime}")
+    @Value($$"${app.session.document.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val documentService: DocumentService,
@@ -27,12 +27,12 @@ class DocumentRenderModule(
     private val amqpTemplate: AmqpTemplate
 ) : RenderModule, ConversionModule {
 
-    @Value("\${app.queue.document.key}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.queue.document.key}")
     lateinit var documentRoutingKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     override fun module() = "DOCUMENT"

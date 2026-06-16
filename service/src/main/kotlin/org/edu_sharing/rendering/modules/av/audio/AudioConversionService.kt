@@ -29,9 +29,9 @@ class AudioConversionService(
         const val MIME_TYPE = "audio/mpeg"
     }
 
-    @Value("\${app.converter.audio.bitrate}")
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Value($$"${app.converter.audio.bitrate}")
     lateinit var bitrate: String
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {

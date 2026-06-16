@@ -23,7 +23,7 @@ class LumiContentManagementService(
     private val lumiCacheRepository: LumiCacheRepository,
     private val nodeSessionContextRepo: NodeSessionContextRepository,
     @param:Lazy private val module: H5pRenderModule,
-    @param:Value("\${app.security.enabled}")
+    @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean
 ) {
     private val log = LoggerFactory.getLogger(javaClass)

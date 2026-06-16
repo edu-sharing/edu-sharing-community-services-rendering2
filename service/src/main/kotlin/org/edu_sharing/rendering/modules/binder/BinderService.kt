@@ -30,13 +30,13 @@ class BinderService(
     @Qualifier("jupyterConverterWebClient")
     private var jupyterConverterWebClient: WebClient?
 ) {
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.binder.key}")
+    @Value($$"${app.queue.binder.key}")
     lateinit var binderJobRoutingKey: String
 
-    @Value("\${app.queue.binderPreview.key}")
+    @Value($$"${app.queue.binderPreview.key}")
     lateinit var previewJobRoutingKey: String
 
     private val log = LoggerFactory.getLogger(javaClass)

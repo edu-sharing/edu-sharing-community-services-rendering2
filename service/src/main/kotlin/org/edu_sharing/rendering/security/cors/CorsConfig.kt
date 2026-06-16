@@ -13,7 +13,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @Configuration
 class CorsConfig(
     private val appInfo: AppInfo,
-    @Value("\${app.security.enabled}")
+    @Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
 ) {
     private val log = LoggerFactory.getLogger(CorsConfig::class.java)
