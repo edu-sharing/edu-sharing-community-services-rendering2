@@ -43,6 +43,7 @@ class SodixRenderModule(
     override fun isOptionalModule() = true
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Handling Sodix node ${node.ref.id}, creating async job")
         val replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0]
         val replicationSourceId = node.properties?.getOrDefault("ccm:replicationsourceid", mutableListOf(""))[0]
         if (replicationSource.isNullOrBlank() || replicationSourceId.isNullOrBlank()) {
@@ -74,6 +75,7 @@ class SodixRenderModule(
             isPaidMedia = isPaidMedia,
             role = role
         )
+        log.debug("Sending Sodix job message for jobId ${job.id}, identifier $replicationSourceId, isPaidMedia $isPaidMedia to queue $jobRoutingKey")
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 
         return RenderDataResponse(

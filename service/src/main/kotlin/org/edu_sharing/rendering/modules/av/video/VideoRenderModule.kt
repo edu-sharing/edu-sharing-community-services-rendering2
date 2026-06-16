@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -31,6 +32,8 @@ class VideoRenderModule (
     @param:Value("\${app.queue.topicExchange}")
     private val topicExchangeName: String
 ): RenderModule, ConversionModule {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun module() = "VIDEO"
 
     override fun handle(node: Node): RenderDataResponse {
@@ -41,6 +44,7 @@ class VideoRenderModule (
         if (originalHeightProperty.isNotBlank()) {
             originalHeight = originalHeightProperty.toFloat().toInt()
         }
+        log.debug("handle: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, originalHeight=$originalHeight")
 
         val objectLinks = videoService.getObjectLinks(
             cacheObject = cacheObject,
@@ -48,6 +52,7 @@ class VideoRenderModule (
         )
 
         val isConversionType = videoService.isConversionObject(cacheObject)
+        log.debug("isConversionType=$isConversionType, cachedLinks=${objectLinks?.size ?: 0} for nodeId=${cacheObject.nodeId}")
 
         // Non-conversion type and already in cache
         if (!isConversionType && objectLinks != null ) {
@@ -60,6 +65,7 @@ class VideoRenderModule (
             missingQualities = videoService.getMissingQualities(objectLinks, originalHeight ?: Int.MAX_VALUE)
             if (missingQualities.isEmpty()) {
                 // None missing, so no further action is needed
+                log.debug("All video qualities cached for nodeId=${cacheObject.nodeId}")
                 return RenderDataResponse(objectLinks = objectLinks, module = module())
             }
         }
@@ -69,6 +75,7 @@ class VideoRenderModule (
             module = module(),
             missingQualities = missingQualities
         )
+        log.debug("Video job dispatched: jobId=$jobId, missingQualities=$missingQualities for nodeId=${cacheObject.nodeId}")
         return RenderDataResponse(objectLinks = objectLinks, jobId = jobId, module = module())
     }
 
@@ -84,6 +91,7 @@ class VideoRenderModule (
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
+        log.debug("Creating ${message.missingQualities.size} video sub-jobs for jobId=${renderingJob.id}, qualities=${message.missingQualities}")
         message.missingQualities
             .map { it to configuredResolutions.getPriority(it,0) }
             .sortedByDescending { it.second }

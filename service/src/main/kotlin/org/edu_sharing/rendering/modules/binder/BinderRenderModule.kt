@@ -35,7 +35,9 @@ class BinderRenderModule(
     override fun module() = "BINDER"
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Binder handle called for nodeId={}", node.ref.id)
         val jobId = jobService.createJobs(node, this)
+        log.debug("Binder jobs created: jobId={} for nodeId={}", jobId, node.ref.id)
         return RenderDataResponse(
             jobId = jobId,
             module = module()

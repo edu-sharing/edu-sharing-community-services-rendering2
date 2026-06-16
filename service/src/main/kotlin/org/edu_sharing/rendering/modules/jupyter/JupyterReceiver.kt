@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.modules.AbstractReceiver
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -25,6 +26,8 @@ class JupyterReceiver(
     conversionService = jupyterConversionService,
     renderingJobRepository = renderingJobRepository
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @RabbitListener(
         bindings = [
             QueueBinding(
@@ -35,6 +38,7 @@ class JupyterReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
+        log.debug("Jupyter message received: jobId={}", message.id)
         super.processMessage(message)
     }
 }

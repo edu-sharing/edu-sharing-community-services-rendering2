@@ -14,6 +14,7 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.cleanUrl
+import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable
@@ -39,7 +40,10 @@ class RepositoryRegistrationService(
     private val restClientProvider: RestClientProvider
 ) : RepositoryPublicKeyService {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     fun getWebClientByRepoId(repoId: String): WebClient {
+        log.debug("Building WebClient for repoId: $repoId")
         return getWebClient(
             repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
                 .map { it.url }
@@ -56,6 +60,7 @@ class RepositoryRegistrationService(
     }
 
     private fun createRegistration(request: RegisterRepositoryRequest, force: Boolean): RepositoryRegistration {
+        log.debug("Fetching metadata from repository URL: ${request.url} (force=$force)")
         val metadata = getWebClient(request.url)
             .get()
             .uri {
@@ -84,6 +89,8 @@ class RepositoryRegistrationService(
             throw InvalidKeyException("Received metadata info is null")
         }
 
+        log.debug("Received metadata from ${request.url}: appId=${metadata.appId}, domains=${metadata.domain}")
+
         if (!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
             if (force) {
                 repositoryRegistrationStorageService.clearRegistrations()
@@ -93,6 +100,7 @@ class RepositoryRegistrationService(
         }
 
         val signatureAlgorithm = getSigningAlgorithm(request.url)
+        log.debug("Signing algorithm for ${request.url}: $signatureAlgorithm")
 
         val registration = RepositoryRegistration(
             repoId = metadata.appId,
@@ -118,7 +126,9 @@ class RepositoryRegistrationService(
     @Transactional
     @CachePut("repositoryKeys", key = "#result.id")
     fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false, useInternal: Boolean = false): RepositoryRegistration {
+        log.debug("Registering with repository at ${request.url} (force=$force, useInternal=$useInternal)")
         val registrationEntity = createRegistration(request, force)
+        log.debug("Registration entity created for repoId=${registrationEntity.repoId}; pushing metadata file to repository")
         val adminV1Api = restClientProvider.getAdminV1Client(request.url, request.username, request.password)
         metadataService.generateMetadataFile(useInternal = useInternal).use {
             adminV1Api.addApplication(it.file)
@@ -130,6 +140,7 @@ class RepositoryRegistrationService(
     @Transactional
     @CacheEvict("repositoryKeys", key = "#request.repoId")
     fun deleteRepository(request: RemoveRepositoryRequest) : RepositoryRegistration {
+        log.debug("Deleting registration for repoId=${request.repoId}")
         val entry = repositoryRegistrationStorageService.removeRegistration(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
 
@@ -140,6 +151,7 @@ class RepositoryRegistrationService(
 
     @Cacheable("repositoryKeys", key = "#repoId")
     override fun getRepositoryKey(repoId: String): PublicKey {
+        log.debug("Cache miss for repository public key, loading from storage for repoId: $repoId")
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
 
@@ -159,6 +171,7 @@ class RepositoryRegistrationService(
     }
 
     fun activateOptionalModule(request: ActivateOptionalModuleRequest) {
+        log.debug("Activating optional module '${request.module}' for repoId=${request.repoId}")
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
 
@@ -189,6 +202,7 @@ class RepositoryRegistrationService(
     }
 
     fun deactivateOptionalModule(request: DeactivateOptionalModuleRequest) {
+        log.debug("Deactivating modules ${request.modules} for repoId=${request.repoId}")
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
         registration.optionalModules.removeAll(request.modules)
@@ -196,9 +210,12 @@ class RepositoryRegistrationService(
     }
 
     private fun getSigningAlgorithm(url: String): String {
+        log.debug("Fetching signing algorithm from repository about endpoint: $url")
         val aboutApiClient = restClientProvider.getAboutApiClient(url)
         val about = aboutApiClient.about()
-        return about.defaultSignatureAlgorithm ?: "SHA1withRSA"
+        val algorithm = about.defaultSignatureAlgorithm ?: "SHA1withRSA"
+        log.debug("Repository at $url reports signing algorithm: $algorithm")
+        return algorithm
     }
 
 }

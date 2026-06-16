@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.storage
 
+import org.slf4j.LoggerFactory
 import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Component
 class StorageManagerRegistry(
     @param:Nullable private val storageManagers: List<StorageManager>,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     fun getStorageManagers() = storageManagers
 
     /**
@@ -23,6 +26,8 @@ class StorageManagerRegistry(
      * @return The corresponding {@link BucketManagement} instance, or {@code null} if no manager is found.
      */
     fun getBucketManagerByBucketName(bucketName: String, repoId: String): StorageManager? {
-        return storageManagers.firstOrNull { it.isBucketOwner(bucketName, repoId) }
+        val manager = storageManagers.firstOrNull { it.isBucketOwner(bucketName, repoId) }
+        log.debug("Resolved bucket manager for bucket=$bucketName, repoId=$repoId: ${manager?.javaClass?.simpleName ?: "none"}")
+        return manager
     }
 }

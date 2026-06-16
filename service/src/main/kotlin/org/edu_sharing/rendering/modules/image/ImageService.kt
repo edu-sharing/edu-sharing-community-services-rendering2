@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.storage.StorageService
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.math.max
@@ -15,6 +16,8 @@ class ImageService(
     private val mainJobCreationService: MainJobCreationService
 ) {
     @Value("\${app.converter.image.mimeTypes}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
     lateinit var convertedImageMimeTypes: List<String>
 
     @Value("\${app.converter.image.sizes}")
@@ -26,10 +29,12 @@ class ImageService(
     fun isConversionObject(cacheObject: CacheObject) = convertedImageMimeTypes.contains(cacheObject.mimeType)
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null): List<ObjectLink>? {
+        log.debug("getObjectLinks: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, resolution=$resolution")
         if (!isConversionObject(cacheObject)) {
             return try {
                 listOf(storageImplementation.getObjectLink(cacheObject).first)
             } catch (_: ResourceNotFoundException) {
+                log.debug("No cached object found for non-conversion image nodeId=${cacheObject.nodeId}")
                 null
             }
         }
@@ -58,12 +63,18 @@ class ImageService(
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: List<Int>): String {
-        return mainJobCreationService.getExistingJobId(cacheObject)
-            ?: mainJobCreationService.createMainJob(
+        val existingId = mainJobCreationService.getExistingJobId(cacheObject)
+        if (existingId != null) {
+            log.debug("Reusing existing job $existingId for nodeId=${cacheObject.nodeId}")
+            return existingId
+        }
+        log.debug("Creating new image job for nodeId=${cacheObject.nodeId}, missingQualities=$missingQualities")
+        return mainJobCreationService.createMainJob(
                 cacheObject = cacheObject,
                 module = module,
                 missingQualities = missingQualities,
                 isConversionType = isConversionObject(cacheObject)
             )
     }
+
 }

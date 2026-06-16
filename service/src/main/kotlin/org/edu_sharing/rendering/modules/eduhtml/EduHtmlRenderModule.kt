@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationS
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -20,10 +21,13 @@ class EduHtmlRenderModule(
     private val mapper: Mapper,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
 ) : RenderModule {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun module() = "EDUHTML"
     override fun isOptionalModule() = true
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Handling EduHTML node ${node.ref.id}, checking cache")
         val staticLink = try {
             val cacheObject = mapper.nodeToCacheObject(node)
             eduHtmlService.getObjectLink(cacheObject)
@@ -32,6 +36,7 @@ class EduHtmlRenderModule(
         }
 
         if (staticLink == null) {
+            log.debug("EduHTML node ${node.ref.id} not cached, creating async job")
             return RenderDataResponse(
                 module = module(),
                 objectLinks = mutableListOf(),
@@ -39,6 +44,7 @@ class EduHtmlRenderModule(
             )
         }
 
+        log.debug("EduHTML node ${node.ref.id} found in cache, returning immediate link")
         return RenderDataResponse(
             module = module(),
             objectLinks = mutableListOf(staticLink),

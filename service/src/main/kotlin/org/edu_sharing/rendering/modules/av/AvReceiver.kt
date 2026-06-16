@@ -56,6 +56,7 @@ class AvReceiver(
         containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SubJobMessage) {
+        log.debug("Received AV sub-job message: id=${message.id}, quality=${message.quality}")
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null) {
             log.warn("Expected main job not found: " + message.id)
@@ -68,6 +69,7 @@ class AvReceiver(
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        log.debug("Dispatching AV conversion: nodeId=${cacheObject.nodeId}, module=${jobEntry.module}, quality=${subJob.quality}")
         subJob.status = SubJobStatus.PROCESSING
         subJob = subJobRepository.save(subJob)
         try {
@@ -85,6 +87,7 @@ class AvReceiver(
                 finishedSubJob.status = SubJobStatus.FINISHED
                 finishedSubJob.progress = 100
                 subJobRepository.save(finishedSubJob)
+                log.debug("AV sub-job FINISHED: nodeId=${cacheObject.nodeId}, quality=${subJob.quality}")
             }
         } catch (exception: Exception) {
             val failedSubJob = subJobRepository.findByIdOrNull(subJob.id)
@@ -97,6 +100,7 @@ class AvReceiver(
                 failedSubJob.status = SubJobStatus.FAILED
                 failedSubJob.errorMessage = GENERIC_CONVERSION_ERROR
                 subJobRepository.save(failedSubJob)
+                log.debug("AV sub-job FAILED: nodeId=${cacheObject.nodeId}, quality=${subJob.quality}")
             }
         }
         if (mainJobLogic.processMainJob(message.id)) {

@@ -28,6 +28,7 @@ class JupyterConversionService(
         cacheObject: CacheObject,
         renderingJob: RenderingJob
     ) {
+        log.debug("Jupyter conversion started for nodeId={}, jobId={}", cacheObject.nodeId, renderingJob.id)
         var subJob = renderingJob.subJobs.first()
         try {
             subJob.status = SubJobStatus.PROCESSING
@@ -43,6 +44,7 @@ class JupyterConversionService(
     }
 
     private fun convertAndMoveToCache(cacheObject: CacheObject) {
+        log.debug("Calling Jupyter converter service for nodeId={}, targetMimeType={}", cacheObject.nodeId, module.getTargetMimetype())
         val arguments = ConverterWebServiceArguments(
             client = jupyterConverterWebClient,
             originalFileExtension = "ipynb",

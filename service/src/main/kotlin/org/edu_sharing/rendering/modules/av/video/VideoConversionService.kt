@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -42,18 +43,23 @@ class VideoConversionService(
         const val VIDEO_CRF = 24
     }
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
+        log.debug("Converting video: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, targetQuality=${subJob.quality}")
         val fileHelper = avFileHelperFactory.`object`
         fileHelper.use {
             fileHelper.initOutputTempFile(videoFormat)
             fileHelper.fetchOriginalTempFile(cacheObject)
             val multiMediaObject = MultimediaObject(fileHelper.originalFile)
             val (targetWidth, targetHeight, recheckStorage) = calculateTargetDimensions(multiMediaObject, subJob.quality)
+            log.debug("Target dimensions: ${targetWidth}x${targetHeight}, recheckStorage=$recheckStorage for nodeId=${cacheObject.nodeId}")
             val outputCacheObject = cacheObject.deepCopy()
             outputCacheObject.quality = targetHeight
             outputCacheObject.mimeType = "video/$videoFormat"
             subJob.quality = targetHeight
             if (recheckStorage && storageImplementation.objectExists(outputCacheObject)) {
+                log.debug("Video already in cache after dimension recheck: nodeId=${cacheObject.nodeId}, quality=$targetHeight")
                 subJobRepository.save(subJob)
                 return
             }
@@ -71,6 +77,7 @@ class VideoConversionService(
             }
             encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(threadArgument))
             outputCacheObject.size = fileHelper.outputFile.length()
+            log.debug("Video encoding complete: nodeId=${cacheObject.nodeId}, outputSize=${outputCacheObject.size} bytes, quality=$targetHeight")
             fileHelper.uploadToCache(outputCacheObject, mapOf(
                 "height" to targetHeight.toString(),
                 "width" to targetWidth.toString()

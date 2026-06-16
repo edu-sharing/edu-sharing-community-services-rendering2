@@ -39,6 +39,7 @@ class S3StorageService(
         inputStream: InputStream,
         metadata: Map<String, String>
     ) {
+        log.debug("PUT object: nodeId=${cacheObject.nodeId}, type=${cacheObject.type}, size=${cacheObject.size}")
         putObjectInternal(
             cacheObject = cacheObject,
             inputStream = inputStream,
@@ -142,6 +143,7 @@ class S3StorageService(
     ): InputStream {
         val bucket = getBucket(isTemp, cacheObject)
         val key = getStoragePath(isTemp, cacheObject)
+        log.debug("GET object stream: bucket=$bucket, key=$key, isTemp=$isTemp")
 
         val stream = s3Client.getObject(
             GetObjectRequest.builder()
@@ -166,6 +168,7 @@ class S3StorageService(
 
         val bucket = getBucket(isTemp, cacheObject)
         val key = getStoragePath(isTemp, cacheObject)
+        log.debug("GET object chunk stream: bucket=$bucket, key=$key, range=$rangeHeader, isTemp=$isTemp")
 
         val stream = s3Client.getObject(
             GetObjectRequest.builder()
@@ -183,6 +186,7 @@ class S3StorageService(
         cacheObject: CacheObject,
         inputStream: InputStream
     ) {
+        log.debug("PUT temp file: nodeId=${cacheObject.nodeId}, type=${cacheObject.type}, size=${cacheObject.size}")
         createBucketIfMissing(bucketStrategy.getTempBucket(cacheObject.repoId))
         val request = PutObjectRequest.builder()
             .bucket(bucketStrategy.getTempBucket(cacheObject.repoId))
@@ -331,6 +335,7 @@ class S3StorageService(
     ): InputStream {
         val bucket = bucketStrategy.getBucket(cacheObject)
         val key = bucketStrategy.getStoragePath(cacheObject, path).trimStart('/')
+        log.debug("GET static object stream: bucket=$bucket, key=$key")
 
         val stream = s3Client.getObject(
             GetObjectRequest.builder()
@@ -355,6 +360,7 @@ class S3StorageService(
         val bucket = bucketStrategy.getBucket(cacheObject)
         val key = bucketStrategy.getStoragePath(cacheObject, path).trimStart('/')
         val rangeHeader = "bytes=$offset-${offset + length - 1}"
+        log.debug("GET static object chunk stream: bucket=$bucket, key=$key, range=$rangeHeader")
 
         val stream = s3Client.getObject(
             GetObjectRequest.builder()
@@ -428,6 +434,7 @@ class S3StorageService(
         metadata: Map<String, String>
     ) {
         val bucket = bucketStrategy.getBucket(cacheObject)
+        log.debug("PUT object internal: bucket=$bucket, key=$targetPath, strategy=${bucketStrategy::class.simpleName}")
         createBucketIfMissing(bucket)
 
         val requestBuilder = PutObjectRequest.builder()
@@ -453,6 +460,7 @@ class S3StorageService(
 
         s3Client.putObject(request, body)
         val size = getDirectorySize(bucket, bucketStrategy.getCacheObjectRootPath(cacheObject))
+        log.debug("PUT object complete: bucket=$bucket, key=$targetPath, directorySize=$size bytes")
         trackingService.trackCacheObject(cacheObject, bucket, size)
     }
 

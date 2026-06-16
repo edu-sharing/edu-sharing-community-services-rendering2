@@ -21,6 +21,7 @@ class CustomSubJobRepositoryImpl(
         subJobId: ObjectId,
         status: SubJobStatus
     ) {
+        log.debug("Updating SubJob $subJobId status to $status (without version check)")
         val query = Query(Criteria.where("_id").`is`(subJobId))
         val update = Update()
         update.set("status", status.toString())

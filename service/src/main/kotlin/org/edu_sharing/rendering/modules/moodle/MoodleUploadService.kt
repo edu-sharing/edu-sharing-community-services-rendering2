@@ -30,6 +30,7 @@ class MoodleUploadService {
      * @return the constructed URL
      */
     fun getUrl(moodleJobMessage: MoodleJobMessage, module: MoodleRenderModule, repoId: String): Pair<String, String> {
+        log.debug("Getting Moodle URL for nodeId ${moodleJobMessage.nodeId}, repoId $repoId")
         val config = module.getCredentials(repoId)
         val webClient = getWebClient(config)
         val webserviceToken = config["token"] ?: module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "")
@@ -75,6 +76,7 @@ class MoodleUploadService {
         webClient: WebClient,
         webserviceToken: String
     ): Int {
+        log.debug("Uploading course to Moodle for nodeId ${moodleJobMessage.nodeId}, method ${module.getRemoteServiceMethod()}")
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("nodeid", "${moodleJobMessage.nodeId}_${moodleJobMessage.hash}")
         postParams.add("category", config["categoryid"] ?: "1")
@@ -97,6 +99,7 @@ class MoodleUploadService {
         if (courseId === null) {
             throw Exception("Error restoring course to moodle")
         }
+        log.debug("Course uploaded to Moodle, courseId $courseId")
         return courseId
     }
 
@@ -106,6 +109,7 @@ class MoodleUploadService {
         webserviceToken: String,
         message: MoodleJobMessage
     ): String {
+        log.debug("Requesting Moodle user token for courseId $courseId, user ${message.userName}")
         val postParams = LinkedMultiValueMap<String, String>()
         postParams.add("user_name", message.userName)
         postParams.add("user_givenname", message.firstName)

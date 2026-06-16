@@ -35,6 +35,7 @@ class BinderUploadService(
     fun process(
         cacheObject: CacheObject, uploadSubJob: SubJob, module: String
     ) {
+        log.debug("Binder upload process started for nodeId={}, externalUrl={}", cacheObject.nodeId, cacheObject.externalUrl)
         var binderUploadSubJob = uploadSubJob
         val type
                 : ParameterizedTypeReference<ServerSentEvent<BinderSseEvent>> =
@@ -48,6 +49,7 @@ class BinderUploadService(
             binderUploadSubJob.message = "Initializing binder import"
             binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             val binderWebClient = getWebclient(module = module, repoId = cacheObject.repoId)
+            log.debug("Opening Binder SSE stream: /build/gh/{}/{}/{}", gitDetails.user, gitDetails.repo, gitDetails.branch)
 
             val eventStream = binderWebClient.get()
                 .uri("/build/gh/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}")

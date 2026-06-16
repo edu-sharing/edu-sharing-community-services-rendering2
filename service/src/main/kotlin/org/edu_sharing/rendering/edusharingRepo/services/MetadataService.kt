@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.edusharingRepo.dom.MetadataFile
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
+import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -23,6 +24,8 @@ class MetadataService(
     private val appInfo: AppInfo
 ) : PrivatePublicKeyService {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     fun getConfig(): RendererKeyConfig {
         return repository.findById("0")
             .orElse(RendererKeyConfig())!!
@@ -41,6 +44,7 @@ class MetadataService(
 
     @CacheEvict("privateKey")
     override fun generateApplicationKeyPair() {
+        log.debug("Generating new RSA 2048-bit key pair for appId=${appInfo.appId}")
         val generator = KeyPairGenerator.getInstance("RSA")
         generator.initialize(2048)
         val keyPair = generator.generateKeyPair()
@@ -77,6 +81,7 @@ class MetadataService(
 
     @Cacheable("privateKey")
     override fun getPrivateKey(): PrivateKey {
+        log.debug("Cache miss for private key, loading from storage")
         val config = getConfig()
         val privateKey =
             config.privateKey ?: throw InvalidKeyException("No private key available. Please set up your service first")
@@ -92,6 +97,7 @@ class MetadataService(
      * @return A `MetadataFile` instance representing the generated metadata file.
      */
     fun generateMetadataFile(useInternal: Boolean): MetadataFile {
+        log.debug("Generating metadata file for appId=${appInfo.appId} (useInternal=$useInternal)")
         val file = File.createTempFile("metadata", ".xml")
 
         FileOutputStream(file).use { outputStream ->

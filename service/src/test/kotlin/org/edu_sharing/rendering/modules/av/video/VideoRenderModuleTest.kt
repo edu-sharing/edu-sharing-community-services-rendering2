@@ -54,7 +54,7 @@ class VideoRenderModuleTest {
     fun testHandleNonConversionTypeWithCache() {
         val node = mockk<Node>()
         val userData = mockk<RequestUserData>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val objectLinks = listOf(mockk<ObjectLink>())
 
         every { mapper.nodeToCacheObject(node) } returns cacheObject
@@ -75,7 +75,7 @@ class VideoRenderModuleTest {
     fun testHandleConversionTypeWithAllQualities() {
         val node = mockk<Node>()
         val userData = mockk<RequestUserData>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val objectLinks = listOf(mockk<ObjectLink>())
         val height = 1080
 
@@ -99,7 +99,7 @@ class VideoRenderModuleTest {
     fun testHandleConversionTypeWithMissingQualities() {
         val node = mockk<Node>()
         val userData = mockk<RequestUserData>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val objectLinks = listOf(mockk<ObjectLink>())
         val height = 1080
         val missingQualities = listOf(720)
@@ -126,8 +126,8 @@ class VideoRenderModuleTest {
     @Test
     fun testGetObjectLinkFromJobDataSuccess() {
         val subJob = mockk<SubJob>()
-        val renderingJob = mockk<RenderingJob>()
-        val cacheObject = mockk<CacheObject>()
+        val renderingJob = mockk<RenderingJob>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val objectLink = mockk<ObjectLink>()
 
         every { mapper.renderingJobToCacheObject(renderingJob) } returns cacheObject
@@ -144,8 +144,8 @@ class VideoRenderModuleTest {
     @Test
     fun testGetObjectLinkFromJobDataReturnsNull() {
         val subJob = mockk<SubJob>()
-        val renderingJob = mockk<RenderingJob>()
-        val cacheObject = mockk<CacheObject>()
+        val renderingJob = mockk<RenderingJob>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every { mapper.renderingJobToCacheObject(renderingJob) } returns cacheObject
         every { subJob.quality } returns 720
@@ -165,7 +165,7 @@ class VideoRenderModuleTest {
 
     @Test
     fun testCreateConversionSubJobsWithMultipleResolutions() {
-        val renderingJob = mockk<RenderingJob>()
+        val renderingJob = mockk<RenderingJob>(relaxed = true)
         val message = mockk<RenderingJobMessage>()
         val subJobs = mutableListOf<SubJob>()
         val jobId = ObjectId()
@@ -187,7 +187,7 @@ class VideoRenderModuleTest {
 
     @Test
     fun testCreateConversionSubJobsWithEmptyResolutions() {
-        val renderingJob = mockk<RenderingJob>()
+        val renderingJob = mockk<RenderingJob>(relaxed = true)
         val message = mockk<RenderingJobMessage>()
         val subJobs = mutableListOf<SubJob>()
 

@@ -41,14 +41,18 @@ class JobReceiver(
         ]
     )
     fun receiveMessage(message: RenderingJobMessage) {
+        log.debug("Received job message: id=${message.id}, missingQualities=${message.missingQualities}")
         var jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
         try {
+            log.debug("Transitioning job ${jobEntry.id} from ${jobEntry.status} to ${RenderingJobStatus.PROCESSING}")
             jobEntry.status = RenderingJobStatus.PROCESSING
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
             if (jobEntry.conversionType) {
+                log.debug("Job ${jobEntry.id} is conversion type, storing temp file for module ${jobEntry.module}")
                 storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
             } else {
+                log.debug("Job ${jobEntry.id} is non-conversion type, storing final object and marking FINISHED")
                 storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
                 jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)
@@ -56,6 +60,7 @@ class JobReceiver(
             }
             val renderModule = moduleRegistry.getRenderModule<RenderModule>(jobEntry.module)
             if (renderModule is ConversionModule) {
+                log.debug("Delegating sub-job creation for job ${jobEntry.id} to module ${jobEntry.module}")
                 renderModule.createConversionSubJobs(jobEntry, message)
             } else {
                 log.warn("Render module ${jobEntry.module} does not implement the interface ConversionModule.")
@@ -63,6 +68,7 @@ class JobReceiver(
             }
         } catch (e: Exception) {
             log.error("Error processing job ${jobEntry.id}", e)
+            log.debug("Marking job ${jobEntry.id} as ${RenderingJobStatus.FAILED} after exception")
             jobEntry.status = RenderingJobStatus.FAILED
             jobEntry.finishedTimestamp = System.currentTimeMillis()
             jobEntry.errorMessage = ERROR_PROCESSING_JOB

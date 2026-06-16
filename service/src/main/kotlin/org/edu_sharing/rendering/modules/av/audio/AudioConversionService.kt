@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -29,9 +30,12 @@ class AudioConversionService(
     }
 
     @Value("\${app.converter.audio.bitrate}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
     lateinit var bitrate: String
 
     override fun convert(cacheObject: CacheObject, subJob: SubJob) {
+        log.debug("Converting audio: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, bitrate=$bitrate")
         val listener = listenerFactory.`object`
         listener.subJob = subJob
         val attributes = initAttributes()
@@ -46,6 +50,7 @@ class AudioConversionService(
             outputCacheObject.quality = bitrate.toInt()
             outputCacheObject.size = fileHelper.outputFile.length()
             outputCacheObject.mimeType = MIME_TYPE
+            log.debug("Audio encoding complete: nodeId=${cacheObject.nodeId}, outputSize=${outputCacheObject.size} bytes, mimeType=$MIME_TYPE")
             fileHelper.uploadToCache(outputCacheObject)
         }
     }

@@ -6,6 +6,7 @@ import org.apache.logging.log4j.ThreadContext
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
@@ -20,6 +21,8 @@ import org.springframework.web.util.UriComponentsBuilder
 class LumiProxyService(
     private val lumiWebClient: WebClient
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'ReadAll')")
     fun <T : Any> processProxyRequest(
         pathPrefix: String,
@@ -52,6 +55,7 @@ class LumiProxyService(
         additionalHeaders: Map<String, String> = emptyMap()
     ): ResponseEntity<T> {
         ThreadContext.put("traceId", traceId)
+        log.debug("Lumi proxy forward: method={}, path={}, traceId={}", method.name(), request.requestURI, traceId)
 
         val requestURIPathSegments =
             request.requestURI.substringAfter(pathPrefix).split("/").stream().filter { StringUtils.isNotBlank(it) }
@@ -85,6 +89,7 @@ class LumiProxyService(
             .toEntity(responseType)
             .block()
             ?: throw ResourceNotFoundException("Called lumi with ${method.name()} $requestURIPath ${request.queryString} $body")
+        log.debug("Lumi proxy response: status={}, path={}", lumiResponse.statusCode, requestURIPath)
         val responseHeaders = HttpHeaders()
         responseHeaders.addAll(lumiResponse.headers)
         responseHeaders.set("TRACE", traceId)

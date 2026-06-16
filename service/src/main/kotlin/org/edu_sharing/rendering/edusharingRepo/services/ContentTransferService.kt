@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.edusharingRepo.services
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.utils.FluxInputStream
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
@@ -26,6 +27,7 @@ class ContentTransferService(
 
     companion object {
         private const val TEST_ID_PREFIX = "TEST_"
+        private val log = LoggerFactory.getLogger(ContentTransferService::class.java)
     }
 
     fun getAsInputStream(cacheObject: CacheObject): InputStream {
@@ -33,9 +35,11 @@ class ContentTransferService(
             val resourceName = cacheObject.nodeId.substring(TEST_ID_PREFIX.length)
             val resource = resourceLoader.getResource("classpath:$resourceName")
             cacheObject.size = resource.contentLength()
+            log.debug("Opening test resource stream for nodeId=${cacheObject.nodeId}, size=${cacheObject.size}")
             return resource.inputStream
         }
 
+        log.debug("Fetching content stream for repoId=${cacheObject.repoId}, nodeId=${cacheObject.nodeId}, version=${cacheObject.version}")
         val timeStamp = System.currentTimeMillis()
         val sigData = cacheObject.nodeId + timeStamp
         val signed = encryptionService.sign(sigData, cacheObject.repoId)

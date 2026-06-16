@@ -30,11 +30,13 @@ class DdbReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: DdbJobMessage) {
+        log.debug("Received DDB job message for jobId ${message.id}, remoteId ${message.remoteId}")
         val mainJob = mainJobLogic.getMainJobEntry(message.id)
         if (mainJob == null) {
             log.error("${this.javaClass.simpleName} received message with unknown job id ${message.id}")
             return
         }
+        log.debug("Processing DDB job ${message.id}, nodeId ${mainJob.esObjectId}")
         renderingJobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
         ddbApiService.process(message.remoteId, mainJob)
         mainJobLogic.processMainJob(mainJob.id.toString())

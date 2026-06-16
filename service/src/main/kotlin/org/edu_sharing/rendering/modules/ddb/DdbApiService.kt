@@ -34,6 +34,7 @@ class DdbApiService(
         remoteId: String,
         renderingJob: RenderingJob
     ) {
+        log.debug("Starting DDB API process for remoteId $remoteId, jobId ${renderingJob.id}")
         log.info("Starting DDB API communication for node")
         if (renderingJob.subJobs.isEmpty()) {
             renderingJob.status = RenderingJobStatus.FAILED
@@ -78,6 +79,7 @@ class DdbApiService(
     }
 
     private fun callRestApi(remoteId: String, apiToken: String): DdbRestData {
+        log.debug("Calling DDB REST API for remoteId $remoteId at ${DdbRenderModule.REST_API_BASE_URL}")
         val webClient = WebClient.create(DdbRenderModule.REST_API_BASE_URL)
 
         val response = webClient
@@ -107,6 +109,7 @@ class DdbApiService(
     }
 
     private fun callIiifApi(binaryRef: String, apiToken: String): List<Pair<Int, Int>> {
+        log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${DdbRenderModule.IIIF_API_BASE_URL}")
         val webClient = WebClient.create(DdbRenderModule.Companion.IIIF_API_BASE_URL)
         val response = webClient
             .get()
@@ -126,6 +129,7 @@ class DdbApiService(
             if (sizes.isEmpty()) {
                 throw Exception("No sizes returned from DDB IIIF API. Cannot build image source")
             }
+            log.debug("DDB IIIF API returned ${sizes.size} size(s) for binaryRef $binaryRef")
             return sizes
         }
         throw Exception("Missing DDB IIIF API response")

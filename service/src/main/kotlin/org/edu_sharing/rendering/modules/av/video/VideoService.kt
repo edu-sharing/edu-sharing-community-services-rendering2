@@ -37,11 +37,13 @@ class VideoService(
     }
 
     fun getObjectLinks(cacheObject: CacheObject, resolution: Int? = null, originalHeight: Int? = null): List<ObjectLink>? {
+        log.debug("getObjectLinks: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, resolution=$resolution, originalHeight=$originalHeight")
         // For objects not subject to conversion we simply return the link (if present, null otherwise)
         if (!isConversionObject(cacheObject)) {
             return try {
                 listOf(storageImplementation.getObjectLink(cacheObject).first)
             } catch (_: ResourceNotFoundException) {
+                log.debug("No cached object for non-conversion video nodeId=${cacheObject.nodeId}")
                 null
             }
         }
@@ -62,10 +64,12 @@ class VideoService(
     }
 
     fun getMissingQualities(availableLinks: List<ObjectLink>?, originalHeight: Int): Collection<Int> {
-        if (availableLinks === null) return targetVideoResolutions.getPossibleResolutions(originalHeight)
-        return targetVideoResolutions.getPossibleResolutions(originalHeight).filterNot {
+        val missing = if (availableLinks === null) targetVideoResolutions.getPossibleResolutions(originalHeight)
+        else targetVideoResolutions.getPossibleResolutions(originalHeight).filterNot {
             availableLinks.map { link -> link.height }.contains(it)
         }
+        log.debug("getMissingQualities: originalHeight=$originalHeight, available=${availableLinks?.size ?: 0}, missing=$missing")
+        return missing
     }
 
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: String, missingQualities: Collection<Int>): String {

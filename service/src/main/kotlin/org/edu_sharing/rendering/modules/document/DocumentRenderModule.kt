@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
@@ -27,6 +28,8 @@ class DocumentRenderModule(
 ) : RenderModule, ConversionModule {
 
     @Value("\${app.queue.document.key}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
     lateinit var documentRoutingKey: String
 
     @Value("\${app.queue.topicExchange}")
@@ -37,13 +40,17 @@ class DocumentRenderModule(
 
     override fun handle(node: Node): RenderDataResponse {
         val cacheObject = mapper.nodeToCacheObject(node)
+        log.debug("handle: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, module=${module()}")
         val objectLinks = documentService.getObjectLinks(cacheObject, this)
 
         if (objectLinks !== null) {
+            log.debug("Cache hit for document nodeId=${cacheObject.nodeId}, returning direct link")
             return RenderDataResponse(objectLinks = objectLinks, module = module())
         }
 
-        return RenderDataResponse(jobId = documentService.retrieveOrCreateJob(cacheObject, this), module = module())
+        val jobId = documentService.retrieveOrCreateJob(cacheObject, this)
+        log.debug("Document conversion job dispatched: jobId=$jobId for nodeId=${cacheObject.nodeId}")
+        return RenderDataResponse(jobId = jobId, module = module())
     }
 
     override fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? {
@@ -58,6 +65,7 @@ class DocumentRenderModule(
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
+        log.debug("Creating document sub-job for jobId=${renderingJob.id}, nodeId=${renderingJob.esObjectId}")
         val documentJob = SubJob(routingKey = documentRoutingKey, parent = renderingJob)
         subJobRepository.save(documentJob)
         renderingJob.subJobs.add(documentJob)

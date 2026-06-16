@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -32,16 +33,21 @@ class RenderController (
     @param:Value("\${app.security.enabled}")
     private val securityEnabled: Boolean,
 ){
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getRenderData(
         @RequestBody @Valid body: RenderDataRequest
     ): ResponseEntity<RenderDataResponse> {
+        log.debug("Render data request received: nodeId=${body.nodeId}, repoId=${body.repoId}, eventType=${body.eventType}, securityEnabled=$securityEnabled")
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
         val signatureAlgorithm = body.signatureAlgorithm //String(Base64.getDecoder().decode(body.signatureAlgorithm))
         if (securityEnabled) {
             //@TODO: check if signatureAlgorithm is allowed
+            log.debug("Verifying node signature: repoId=${body.repoId}, algorithm=$signatureAlgorithm, nodeDataLength=${decodedNode.size}")
             verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }
         val objectMapper = JsonMapper.builder()
@@ -51,9 +57,11 @@ class RenderController (
         nodeSessionContextRepository.saveNode(node)
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
 
+        val renderModule = service.getRenderModule(body, node)
+        log.debug("Dispatching to render module: ${renderModule::class.simpleName}, nodeId=${node.ref.id}")
         return ResponseEntity
             .ok()
-            .body(service.getRenderModule(body, node).handle(node))
+            .body(renderModule.handle(node))
     }
 
     private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String, signatureAlgorithm: String) {
@@ -65,5 +73,6 @@ class RenderController (
         if (!result) {
             throw IllegalStateException("Signature verification failed")
         }
+        log.debug("Signature verification passed: repoId=$repoId, algorithm=$signatureAlgorithm")
     }
 }

@@ -37,8 +37,9 @@ class BinderPreviewReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
+        log.debug("Binder preview message received: subJobId={}", message.subJobId)
         var previewJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
-        var mainJob = jobRepository.findByIdOrNull(previewJob.parent.id) ?: return
+        val mainJob = jobRepository.findByIdOrNull(previewJob.parent.id) ?: return
 
         jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
 
@@ -46,6 +47,7 @@ class BinderPreviewReceiver(
         previewJob = subJobRepository.save(previewJob)
 
         val cacheObject = mapper.renderingJobToCacheObject(mainJob)
+        log.debug("Binder preview processing for nodeId={}, externalUrl={}", cacheObject.nodeId, cacheObject.externalUrl)
         try {
             binderPreviewService.process(cacheObject, mainJob.module)
             previewJob.status = SubJobStatus.FINISHED

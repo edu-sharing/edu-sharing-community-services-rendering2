@@ -39,12 +39,14 @@ class SodixReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SodixJobMessage) {
+        log.debug("Received Sodix job message for jobId ${message.id}, nodeId ${message.nodeId}, identifier ${message.identifier}")
         var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
+        log.debug("Processing Sodix job ${message.id}, isPaidMedia ${message.isPaidMedia}")
         jobEntry.status = RenderingJobStatus.PROCESSING
         jobEntry = renderingJobRepository.save(jobEntry)
         var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
@@ -56,6 +58,7 @@ class SodixReceiver(
                 module = moduleRegistry.getRenderModule(jobEntry.module),
                 repoId = jobEntry.repoId,
             )
+            log.debug("Sodix content URL retrieved for job ${message.id}, marking sub-job as FINISHED")
             playoutUrlSubJob.status = SubJobStatus.FINISHED
             playoutUrlSubJob.message = playoutUrl
             if (downloadUrl != null) {

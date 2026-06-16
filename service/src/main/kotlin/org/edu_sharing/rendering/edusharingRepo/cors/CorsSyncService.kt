@@ -110,21 +110,22 @@ class CorsSyncService(
 
     fun applyKnownOrigins() {
         val allRepoConfigs = repositoryRegistrationRepository.findAll()
-        val origins = allRepoConfigs.flatMap { it.allowedOrigins }
-            .toSet()
-        val originPatterns = allRepoConfigs
-            .flatMap { it.allowedOriginPatterns ?: emptySet() }
-            .toSet()
+        val origins = allRepoConfigs.flatMap { it.allowedOrigins }.toSet()
+        val originPatterns = allRepoConfigs.flatMap { it.allowedOriginPatterns ?: emptySet() }.toSet()
+        log.debug("Applying ${origins.size} known CORS origins and ${originPatterns.size} patterns from ${allRepoConfigs.size} repositories")
         corsConfig.updateAllowedOrigins(origins)
         corsConfig.updateAllowedPatterns(originPatterns)
         corsConfig.updateCorsConfiguration()
     }
 
-    private fun getApplicationInfo (url: String, repoId: String): List<ApplicationSimple> {
+    private fun getApplicationInfo(url: String, repoId: String): List<ApplicationSimple> {
+        log.debug("Fetching application list from $url for CORS sync (repoId=$repoId)")
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         authHeaderProvider.getAuthHeaders(repoId).forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
         val renderingClient = RenderingV1Api(apiClient)
-        return renderingClient.applications1
+        val apps = renderingClient.applications1
+        log.debug("Received ${apps.size} applications from $url for CORS sync")
+        return apps
     }
 }

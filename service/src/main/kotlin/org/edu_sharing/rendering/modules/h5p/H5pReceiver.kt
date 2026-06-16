@@ -41,18 +41,21 @@ class H5pReceiver(
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
+        log.debug("H5P message received: jobId={}", message.id)
         val jobEntry = mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No matching job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
+        log.debug("H5P job looked up: esObjectId={}, status={}", jobEntry.esObjectId, jobEntry.status)
         var subJob = jobEntry.subJobs.first()
         subJob.status = SubJobStatus.PROCESSING
         jobEntry.status = RenderingJobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        log.debug("H5P calling upload service for nodeId={}", cacheObject.nodeId)
         try {
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)

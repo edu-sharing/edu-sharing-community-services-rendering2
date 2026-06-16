@@ -33,8 +33,10 @@ class CacheCleaner(
             val usedSpace = it.size.toDouble() / it.maxSize.toDouble()
             log.info("${it.location}: ${bytesToHumanReadableSize(it.size)} of ${bytesToHumanReadableSize(it.maxSize)} (${(usedSpace * 100).toLong()}%)")
 
+            log.debug("Threshold check for ${it.location}: usedRatio=${String.format("%.4f", usedSpace)}, upperThreshold=$upperThreshold, lowerThreshold=$lowerThreshold")
             if (usedSpace > upperThreshold) {
                 val maxSize = (lowerThreshold * it.maxSize).toLong()
+                log.debug("Cleanup triggered for ${it.location}: target size=${bytesToHumanReadableSize(maxSize)}")
                 val trackingIterator = trackingService.getTrackedObjectsByRepoId(it.location)
 
                 val bucketEntryGroups = trackingIterator.asSequence()
@@ -43,7 +45,9 @@ class CacheCleaner(
                     }
                     .groupBy { entry -> storageManagerRegistry.getBucketManagerByBucketName(entry.bucket, entry.repoId) }
 
+                log.debug("Deletion candidates for ${it.location}: ${bucketEntryGroups.values.sumOf { e -> e.size }} entries across ${bucketEntryGroups.size} bucket manager(s)")
                 bucketEntryGroups.forEach { (bucketManager, entries) ->
+                    log.debug("Bulk-deleting ${entries.size} entries via ${bucketManager?.javaClass?.simpleName ?: "no manager"}")
                     bucketManager?.deleteObjectsFromStorage(entries)
                     trackingService.deleteAllTrackedObjects(entries)
                 }

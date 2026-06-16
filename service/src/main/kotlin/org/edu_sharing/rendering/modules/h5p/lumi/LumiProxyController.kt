@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -17,6 +18,8 @@ class LumiProxyController(
     val lumiContentManagementService: LumiContentManagementService,
     val module: H5pRenderModule
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @GetMapping("/{contentId}")
     fun getContent(
         @PathVariable contentId: String,
@@ -24,6 +27,7 @@ class LumiProxyController(
         method: HttpMethod,
         request: HttpServletRequest,
     ): ResponseEntity<String> {
+        log.debug("Proxy getContent: contentId={}, path={}", contentId, request.requestURI)
         val nodeInfo = lumiContentManagementService.getNodeInfo(contentId)
         val cspHeader = lumiContentManagementService.getCspHeader(nodeInfo.nodeId)
         val additionalHeader = cspHeader?.let {
@@ -49,6 +53,7 @@ class LumiProxyController(
         method: HttpMethod,
         request: HttpServletRequest,
     ): ResponseEntity<ByteArray> {
+        log.debug("Proxy getContentAssets: contentId={}, path={}", contentId, request.requestURI)
         return lumiProxyService.processProxyRequest(
             H5P_BASE_PATH,
             lumiContentManagementService.getNodeInfo(contentId),
@@ -66,6 +71,7 @@ class LumiProxyController(
         method: HttpMethod,
         request: HttpServletRequest,
     ): ResponseEntity<ByteArray> {
+        log.debug("Proxy getH5PCoreAssets: path={}", request.requestURI)
         return lumiProxyService.processProxyRequest(
             H5P_BASE_PATH,
             body,

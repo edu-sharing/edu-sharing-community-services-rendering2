@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
+import org.slf4j.LoggerFactory
 import org.springframework.session.Session
 import org.springframework.session.SessionRepository
 import org.springframework.stereotype.Component
@@ -19,17 +20,24 @@ class SessionTicketRepository(
     private val sessionRepository: SessionRepository<out Session>
 ) {
 
-    fun getTicket(sessionId: String, repoId: String): String? =
-        sessionRepository.findById(sessionId)?.getAttribute(attribute(repoId))
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    fun getTicket(sessionId: String, repoId: String): String? {
+        val ticket = sessionRepository.findById(sessionId)?.getAttribute<String>(attribute(repoId))
+        log.debug("Ticket lookup for repoId=$repoId, sessionId=$sessionId: ${if (ticket != null) "hit" else "miss"}")
+        return ticket
+    }
 
     fun saveTicket(sessionId: String, repoId: String, ticket: String) {
         val session = sessionRepository.findById(sessionId) ?: return
+        log.debug("Saving ticket to session for repoId=$repoId, sessionId=$sessionId")
         session.setAttribute(attribute(repoId), ticket)
         save(session)
     }
 
     fun invalidate(sessionId: String, repoId: String) {
         val session = sessionRepository.findById(sessionId) ?: return
+        log.debug("Invalidating cached ticket for repoId=$repoId, sessionId=$sessionId")
         session.removeAttribute(attribute(repoId))
         save(session)
     }

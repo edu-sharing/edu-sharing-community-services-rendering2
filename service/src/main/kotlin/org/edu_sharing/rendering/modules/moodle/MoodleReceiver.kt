@@ -36,6 +36,7 @@ class MoodleReceiver (
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: MoodleJobMessage) {
+        log.debug("Received Moodle job message for jobId ${message.id}, nodeId ${message.nodeId}")
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
@@ -47,12 +48,14 @@ class MoodleReceiver (
         jobEntry.status = RenderingJobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
+        log.debug("Processing Moodle job ${message.id}, calling upload service for nodeId ${message.nodeId}")
         try {
             val url = moodleService.getUrl(
                 moodleJobMessage = message,
                 module = moduleRegistry.getRenderModule(jobEntry.module),
                 repoId = jobEntry.repoId
             )
+            log.debug("Moodle URL obtained for job ${message.id}, marking sub-job as FINISHED")
             subJob.message = url.first
             subJob.additionalData = mapOf("linkUrl" to url.second)
             subJob.status = SubJobStatus.FINISHED
