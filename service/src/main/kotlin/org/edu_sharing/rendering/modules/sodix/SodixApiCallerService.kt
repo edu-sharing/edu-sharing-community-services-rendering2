@@ -8,7 +8,9 @@ import org.springframework.web.reactive.function.client.bodyToMono
 
 @Service
 @ConditionalOnConverter
-class SodixApiCallerService {
+class SodixApiCallerService(
+    private val webClientBuilder: WebClient.Builder
+) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun getContentUrl(
@@ -19,8 +21,8 @@ class SodixApiCallerService {
         val config = module.getCredentials(repoId)
         val endpoint = if (sodixJobMessage.isPaidMedia) "render/paidmedia" else "render/playout"
         log.debug("Calling Sodix API endpoint $endpoint for nodeId ${sodixJobMessage.nodeId}, identifier ${sodixJobMessage.identifier}")
-        val webClient = WebClient
-            .builder()
+        val webClient = webClientBuilder
+            .clone()
             .baseUrl(config["baseurl"] ?: "")
             .build()
 

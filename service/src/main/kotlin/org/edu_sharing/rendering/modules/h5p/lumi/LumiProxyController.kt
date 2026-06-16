@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.*
 
 @RestController
 @RequestMapping(H5P_BASE_PATH)
@@ -39,7 +38,6 @@ class LumiProxyController(
             body = body,
             method = method,
             request = request,
-            traceId = UUID.randomUUID().toString(),
             responseType = String::class.java,
             additionalHeaders = additionalHeader ?: emptyMap()
         )
@@ -60,7 +58,6 @@ class LumiProxyController(
             body,
             method,
             request,
-            UUID.randomUUID().toString(),
             ByteArray::class.java
         )
     }
@@ -77,7 +74,6 @@ class LumiProxyController(
             body,
             method,
             request,
-            UUID.randomUUID().toString(),
             ByteArray::class.java
         )
     }

@@ -324,6 +324,17 @@ config:
       ## @param config.converter.video.resolutions Set resolutions for video converter
       resolutions: 480,720,1080
 
+  tracing:
+    export:
+      ## @param config.tracing.export.enabled Enable span export to a tracing backend (Jaeger via OTLP)
+      enabled: true
+    otlp:
+      ## @param config.tracing.otlp.endpoint OTLP/HTTP traces endpoint of the Jaeger collector
+      endpoint: http://jaeger-collector:4318/v1/traces
+    sampling:
+      ## @param config.tracing.sampling.probability Trace sampling probability (1.0 = all requests)
+      probability: 1.0
+
   home:
     ## @param config.home.appid Set home app id
     appid: rendering2

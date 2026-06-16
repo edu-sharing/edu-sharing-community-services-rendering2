@@ -17,8 +17,8 @@ class DocumentConverterConfig(
 ) {
 
     @Bean
-    fun documentConverterWebClient(): WebClient {
-        return WebClient.builder()
+    fun documentConverterWebClient(webClientBuilder: WebClient.Builder): WebClient {
+        return webClientBuilder.clone()
             .baseUrl(converterBaseUrl)
             .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }
             .build()

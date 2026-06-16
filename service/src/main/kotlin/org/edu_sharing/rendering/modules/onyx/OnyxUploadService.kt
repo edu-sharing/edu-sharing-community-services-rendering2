@@ -15,7 +15,8 @@ import java.io.File
 @ConditionalOnConverter
 class OnyxUploadService(
     private val module: OnyxRenderModule,
-    private val contentTransferService: ContentTransferService
+    private val contentTransferService: ContentTransferService,
+    private val webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -27,8 +28,8 @@ class OnyxUploadService(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}",
             "zip"
         )
-        val webClient = WebClient
-            .builder()
+        val webClient = webClientBuilder
+            .clone()
             .baseUrl(config["onyxresturl"] ?: "")
             .build()
         try {

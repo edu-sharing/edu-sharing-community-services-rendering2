@@ -8,12 +8,12 @@ import org.springframework.web.reactive.function.client.WebClient
 class GitHubConfig {
 
     @Bean
-    fun gitHubBinaryWebClient(): WebClient {
-        return WebClient.create("https://raw.githubusercontent.com")
+    fun gitHubBinaryWebClient(webClientBuilder: WebClient.Builder): WebClient {
+        return webClientBuilder.clone().baseUrl("https://raw.githubusercontent.com").build()
     }
 
     @Bean
-    fun gitHubRepoApiWebClient(): WebClient {
-        return WebClient.create("https://api.github.com/repos")
+    fun gitHubRepoApiWebClient(webClientBuilder: WebClient.Builder): WebClient {
+        return webClientBuilder.clone().baseUrl("https://api.github.com/repos").build()
     }
 }
