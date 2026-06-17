@@ -137,7 +137,8 @@ class AdminController(
     @GetMapping("/cache/usage")
     fun getCacheUsage(@RequestParam repoId: String): CacheUsageInfo {
         val (actualSize, buckets) = storageService.getUsedSpace(repoId)
-        val trackedSize = trackingService.getBucketAggregation().first {it.repoId == repoId}.totalSize
+
+        val trackedSize = trackingService.getBucketAggregation().firstOrNull { it.repoId == repoId }?.totalSize ?: throw IllegalArgumentException("No tracking entries found for repoId $repoId.")
         return CacheUsageInfo(
             managedBuckets = buckets,
             actualSize = actualSize,
