@@ -17,10 +17,12 @@ class MainJobLogic (
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun getMainJobEntry(jobId: String): RenderingJob? {
+        log.debug("Looking up main job by id=$jobId")
         return jobRepository.findByIdOrNull(ObjectId(jobId))
     }
 
     fun getMainJobEntry(jobId: String, status: RenderingJobStatus): RenderingJob? {
+        log.debug("Looking up main job by id=$jobId with status=$status")
         return jobRepository.findByIdAndStatus(ObjectId(jobId), status)
     }
 
@@ -37,6 +39,7 @@ class MainJobLogic (
         }
         val areSomeProcessingOrQueued = job.subJobs.any { it.status <= SubJobStatus.PROCESSING }
         if (areSomeProcessingOrQueued) {
+            log.debug("Job $jobId still has sub jobs in QUEUED or PROCESSING state, deferring aggregation")
             return false
         }
         val areAllFinished = job.subJobs.all { it.status == SubJobStatus.FINISHED }
@@ -48,6 +51,7 @@ class MainJobLogic (
         } else {
             RenderingJobStatus.PARTIALLY_FAILED
         }
+        log.debug("Aggregated sub-job statuses for job $jobId: total=${job.subJobs.size}, resolvedStatus=$jobStatus")
         jobRepository.updateStatusWithoutVersion(job.id, status = jobStatus)
         return true
     }

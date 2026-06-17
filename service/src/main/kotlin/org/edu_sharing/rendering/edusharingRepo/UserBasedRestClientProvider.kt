@@ -5,6 +5,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.api.Aut
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.TrackingV1Api
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.utils.SecurityContextUtils
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 /**
@@ -18,10 +19,15 @@ import org.springframework.stereotype.Component
 class UserBasedRestClientProvider(
     private val sessionTicketRepository: SessionTicketRepository,
     private val authHeaderProvider: AuthHeaderProvider,
+    private val tracePropagatingInterceptor: TracePropagatingInterceptor,
 ) {
 
-    fun getTrackingApiClient(url: String, repoId: String): TrackingV1Api =
-        TrackingV1Api(ticketAuthenticatedApiClient(url, repoId))
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    fun getTrackingApiClient(url: String, repoId: String): TrackingV1Api {
+        log.debug("Creating TrackingV1Api client for repoId=$repoId at $url")
+        return TrackingV1Api(ticketAuthenticatedApiClient(url, repoId))
+    }
 
     /**
      * Builds an [ApiClient] whose requests are authenticated by the [EduSharingTicketAuthInterceptor]:
@@ -41,7 +47,10 @@ class UserBasedRestClientProvider(
             authHeaderProvider = authHeaderProvider,
             authenticationApiFactory = ::getAuthenticationApiClient,
         )
-        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(interceptor).build()
+        apiClient.httpClient = apiClient.httpClient.newBuilder()
+            .addInterceptor(interceptor)
+            .addInterceptor(tracePropagatingInterceptor)
+            .build()
         return apiClient
     }
 
@@ -50,9 +59,11 @@ class UserBasedRestClientProvider(
      * [EduSharingTicketAuthInterceptor] so the appAuth call itself does not recurse back into appAuth.
      */
     fun getAuthenticationApiClient(url: String, headers: Map<String, String>): AuthenticationV1Api {
+        log.debug("Creating AuthenticationV1Api client for appAuth at $url")
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
+        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(tracePropagatingInterceptor).build()
         return AuthenticationV1Api(apiClient)
     }
 }

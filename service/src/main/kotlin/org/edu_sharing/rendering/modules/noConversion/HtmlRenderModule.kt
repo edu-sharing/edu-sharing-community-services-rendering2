@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
 @Component
 class HtmlRenderModule(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
-    @Value("\${app.session.html.nodePermissionExpirationTime}")
+    @Value($$"${app.session.html.nodePermissionExpirationTime}")
     nodePermissionExpirationTime: Long?,
     mapper: Mapper,
     storageService: StorageService,

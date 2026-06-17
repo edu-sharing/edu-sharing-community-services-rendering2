@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -16,10 +17,12 @@ class MainJobCreationService(
     private val renderingJobRepository: RenderingJobRepository,
     private val mapper: Mapper
 ) {
-    @Value("\${app.queue.topicExchange}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.job.key}")
+    @Value($$"${app.queue.job.key}")
     lateinit var jobRoutingKey: String
 
     fun createMainJob(
@@ -28,18 +31,21 @@ class MainJobCreationService(
         missingQualities: Collection<Int> = emptyList(),
         isConversionType: Boolean = false
     ): String {
+        log.debug("Creating main job for nodeId=${cacheObject.nodeId}, module=$module, conversionType=$isConversionType, missingQualities=$missingQualities")
         val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject, module, isConversionType)
         renderingJobRepository.save(renderingJob)
         val jobMessage = RenderingJobMessage(
             id = renderingJob.id.toString(),
             missingQualities = missingQualities
         )
+        log.debug("Publishing job message id=${renderingJob.id} to exchange=$topicExchangeName with routingKey=$jobRoutingKey")
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, jobMessage)
         return renderingJob.id.toString()
     }
 
     fun getExistingJobId(cacheObject: CacheObject): String? {
         val existingJobs = renderingJobRepository.findAllByEsObjectId(cacheObject.nodeId)
+        log.debug("Found ${existingJobs.size} existing job(s) for nodeId=${cacheObject.nodeId}")
         val unfinishedJob = existingJobs.firstOrNull {
             it.status != RenderingJobStatus.FINISHED && it.status != RenderingJobStatus.FAILED && it.status != RenderingJobStatus.PARTIALLY_FAILED && it.esHash == cacheObject.hash
         }
@@ -49,9 +55,11 @@ class MainJobCreationService(
     fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModule): String {
         val existingJobId = getExistingJobId(cacheObject)
         if (existingJobId != null) {
+            log.debug("Reusing existing job id=$existingJobId for nodeId=${cacheObject.nodeId}")
             return existingJobId
         }
 
+        log.debug("No reusable job found for nodeId=${cacheObject.nodeId}, creating new job with module=${module.module()}")
         return createMainJob(
             cacheObject = cacheObject,
             module = module.module(),

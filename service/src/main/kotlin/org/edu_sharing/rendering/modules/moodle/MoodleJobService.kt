@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.SecurityContextUtils
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -19,13 +20,16 @@ class MoodleJobService(
     private val subJobRepository: SubJobRepository,
     private val amqpTemplate: AmqpTemplate
 ) {
-    @Value("\${app.queue.topicExchange}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.moodle.key}")
+    @Value($$"${app.queue.moodle.key}")
     lateinit var jobRoutingKey: String
 
     fun createJob(node: Node, module: String): String? {
+        log.debug("Creating Moodle job for nodeId ${node.ref.id}, module $module")
         val job = mapper.nodeToRenderingJob(node = node, module = module, isConversionType = true)
         jobRepository.save(job)
 
@@ -48,6 +52,7 @@ class MoodleJobService(
             firstName = userDetails.firstName,
             lastName = userDetails.lastName
         )
+        log.debug("Sending Moodle job message for jobId ${job.id}, nodeId ${job.esObjectId} to queue $jobRoutingKey")
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
     }

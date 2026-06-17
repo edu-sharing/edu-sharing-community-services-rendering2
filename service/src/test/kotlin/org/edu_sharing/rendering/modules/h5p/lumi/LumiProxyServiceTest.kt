@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
+import io.micrometer.tracing.Tracer
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
@@ -32,7 +33,7 @@ class LumiProxyServiceTest {
         lumiWebClient = WebClient.builder()
             .baseUrl(mockServer.url("/").toString())
             .build()
-        underTest = LumiProxyService(lumiWebClient)
+        underTest = LumiProxyService(lumiWebClient, mockk<Tracer>(relaxed = true))
         clearAllMocks()
     }
 
@@ -53,7 +54,6 @@ class LumiProxyServiceTest {
         val body = null
         val method = HttpMethod.GET
         val request = mockk<HttpServletRequest>()
-        val traceId = "traceid"
         val responseType = String::class.java
 
         val requestHeaders = HttpHeaders()
@@ -84,7 +84,6 @@ class LumiProxyServiceTest {
             body = body,
             method = method,
             request = request,
-            traceId = traceId,
             responseType = responseType,
         )
 
@@ -110,7 +109,6 @@ class LumiProxyServiceTest {
         val body = "requestbody"
         val method = HttpMethod.POST
         val request = mockk<HttpServletRequest>()
-        val traceId = "traceid"
         val responseType = String::class.java
 
         val requestHeaders = HttpHeaders()
@@ -141,7 +139,6 @@ class LumiProxyServiceTest {
             body = body,
             method = method,
             request = request,
-            traceId = traceId,
             responseType = responseType,
         )
 

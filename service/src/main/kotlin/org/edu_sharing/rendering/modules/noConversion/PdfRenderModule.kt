@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class PdfRenderModule(
-    @Value("\${app.session.pdf.nodePermissionExpirationTime}")
+    @Value($$"${app.session.pdf.nodePermissionExpirationTime}")
     nodePermissionExpirationTime: Long?,
     mapper: Mapper,
     storageService: StorageService,

@@ -38,7 +38,13 @@ class EduSharingTicketAuthInterceptor(
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        var ticket = cachedTicket() ?: authenticateAndStore()
+        val cached = cachedTicket()
+        if (cached != null) {
+            log.debug("Using cached EDU-TICKET for repoId=$repoId, userId=$userId")
+        } else {
+            log.debug("No cached ticket found for repoId=$repoId, userId=$userId; running appAuth")
+        }
+        var ticket = cached ?: authenticateAndStore()
         var response = chain.proceed(withTicket(chain.request(), ticket))
 
         if (response.code == HttpURLConnection.HTTP_UNAUTHORIZED) {
@@ -54,12 +60,14 @@ class EduSharingTicketAuthInterceptor(
     private fun cachedTicket(): String? = sessionId?.let { ticketRepository.getTicket(it, repoId) }
 
     private fun authenticateAndStore(): String {
+        log.debug("Performing appAuth against $url for userId=$userId, repoId=$repoId")
         val headers = authHeaderProvider.getAuthHeaders(repoId)
         val ticket = try {
             authenticationApiFactory(url, headers).authenticate(userId, UserProfileAppAuth()).ticket
         } catch (e: ApiException) {
             throw IOException("appAuth against $url failed for user $userId", e)
         } ?: throw IOException("appAuth against $url returned no ticket for user $userId")
+        log.debug("appAuth succeeded for userId=$userId, repoId=$repoId; ticket stored in session")
         sessionId?.let { ticketRepository.saveTicket(it, repoId, ticket) }
         return ticket
     }

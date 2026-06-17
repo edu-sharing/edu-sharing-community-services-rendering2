@@ -20,7 +20,7 @@ import kotlin.io.path.name
 class ConversionService (
     private val converter: LocalConverter
 ){
-    @Value("\${app.supportedExtensions}")
+    @Value($$"${app.supportedExtensions}")
     lateinit var supportedExtensions: List<String>
 
     fun convert(

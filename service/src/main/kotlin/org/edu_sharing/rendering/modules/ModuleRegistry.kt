@@ -3,11 +3,13 @@ package org.edu_sharing.rendering.modules
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
+import org.slf4j.LoggerFactory
 import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 
 @Component
 class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapper>) {
+    private val log = LoggerFactory.getLogger(javaClass)
     private final val modulesByName: Map<String, RenderModule> = moduleTypeMapper
         .flatMap { it.moduleTypeAssociations() }
         .map { it.second }
@@ -42,11 +44,19 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
                 }
             }
         }
+        log.debug(
+            "Module index built: byName={}, byType={}, byRemoteRepositoryType={}, byReplicationSource={}, " +
+                "byResourceType={}, byMimeType={}, byMimeTypePrefix={}",
+            modulesByName.size, modulesByType.size, modulesByRemoteRepositoryType.size,
+            modulesByReplicationSource.size, modulesByResourceType.size,
+            moduleByMimeType.size, modulesByMimeTypePrefix.size
+        )
     }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : RenderModule> getRenderModule(moduleName: String): T {
         val result = this.modulesByName[moduleName] ?: throw ModuleNotRegisteredException(moduleName)
+        log.debug("getRenderModule by name: resolved module '{}'", moduleName)
         return result as T
     }
 
@@ -58,12 +68,16 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
         resourceType: String?,
         remoteRepositoryType: String?
     ): T {
-        val result = modulesByType[type]
-            ?: modulesByRemoteRepositoryType[remoteRepositoryType ?: ""]
-            ?: modulesByReplicationSource[replicationSource ?: ""]
-            ?: modulesByResourceType[resourceType ?: ""]
-            ?: moduleByMimeType[mimeType]
-            ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]
+        log.debug(
+            "getRenderModule lookup: type='{}', mimeType='{}', replicationSource='{}', resourceType='{}', remoteRepositoryType='{}'",
+            type, mimeType, replicationSource, resourceType, remoteRepositoryType
+        )
+        val result = modulesByType[type]?.also { log.debug("Resolved module '{}' via type='{}'", it.module(), type) }
+            ?: modulesByRemoteRepositoryType[remoteRepositoryType ?: ""]?.also { log.debug("Resolved module '{}' via remoteRepositoryType='{}'", it.module(), remoteRepositoryType) }
+            ?: modulesByReplicationSource[replicationSource ?: ""]?.also { log.debug("Resolved module '{}' via replicationSource='{}'", it.module(), replicationSource) }
+            ?: modulesByResourceType[resourceType ?: ""]?.also { log.debug("Resolved module '{}' via resourceType='{}'", it.module(), resourceType) }
+            ?: moduleByMimeType[mimeType]?.also { log.debug("Resolved module '{}' via mimeType='{}'", it.module(), mimeType) }
+            ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]?.also { log.debug("Resolved module '{}' via mimeTypePrefix='{}'", it.module(), mimeType.substringBefore("/")) }
             ?: throw ObjectTypeNotSupportedException()
         return result as T
     }

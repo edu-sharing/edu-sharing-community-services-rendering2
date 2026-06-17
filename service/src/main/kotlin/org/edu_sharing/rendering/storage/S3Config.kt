@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation
 import software.amazon.awssdk.http.TlsTrustManagersProvider
 import software.amazon.awssdk.http.apache.ApacheHttpClient
 import software.amazon.awssdk.regions.Region
@@ -31,6 +33,9 @@ class S3Config {
 
     @Value($$"${app.s3.trustAllCertificates:false}")
     var trustAllCertificates: Boolean = false
+
+    @Value($$"${app.s3.checksumCalculationWhenRequired:false}")
+    var checksumCalculationWhenRequired: Boolean = false
 
     private val trustAllCertificatesProvider = TlsTrustManagersProvider {
         arrayOf<TrustManager>(
@@ -67,6 +72,11 @@ class S3Config {
                         ApacheHttpClient.builder()
                             .tlsTrustManagersProvider(trustAllCertificatesProvider)
                     )
+                }
+
+                if (checksumCalculationWhenRequired) {
+                    requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                    responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 }
             }
             .build()

@@ -45,7 +45,7 @@ class ImageRenderModuleTest {
     @Test
     fun testHandleReturnsCachedLinksAndDoesNotCheckForMissingQualitiesWithNonConversionObjects() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val node = mockk<Node>()
 
         val linkList = listOf(ObjectLink(link = "link1"), ObjectLink(link = "link2"))
@@ -77,7 +77,7 @@ class ImageRenderModuleTest {
     fun testHandleCreatesCopyJobForMissingNonConversionObject() {
         // Arrange
         val node = mockk<Node>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every { mapperMock.nodeToCacheObject(node) } returns cacheObject
         every { imageServiceMock.getObjectLinks(cacheObject = cacheObject) } returns null
@@ -106,7 +106,7 @@ class ImageRenderModuleTest {
     fun testHandleReturnsCachedQualitiesAndCreatesJobForMissing() {
         // Arrange
         val node = mockk<Node>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         val availableLinks = listOf(ObjectLink(link = "link1"))
         val missingQualities = listOf(100, 200)
@@ -140,7 +140,7 @@ class ImageRenderModuleTest {
     fun testHandleCreatesNewJobIfAllQualitiesAreMissing() {
         // Arrange
         val node = mockk<Node>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val missingQualities = listOf(100, 200)
 
         every { mapperMock.nodeToCacheObject(node) } returns cacheObject
@@ -172,7 +172,7 @@ class ImageRenderModuleTest {
     fun testHandleReturnsAllLinksIfNoMissingQualitiesFoundForConversionObject() {
         // Arrange
         val node = mockk<Node>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         val availableLinks = listOf(ObjectLink(link = "link1"))
 
@@ -204,7 +204,7 @@ class ImageRenderModuleTest {
         // Arrange
         val subJob = mockk<SubJob>()
         val job = mockk<RenderingJob>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every { mapperMock.renderingJobToCacheObject(job) } returns cacheObject
         every { subJob.quality } returns 100
@@ -228,7 +228,7 @@ class ImageRenderModuleTest {
         // Arrange
         val subJob = mockk<SubJob>()
         val job = mockk<RenderingJob>()
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every { mapperMock.renderingJobToCacheObject(job) } returns cacheObject
         every { subJob.quality } returns 100

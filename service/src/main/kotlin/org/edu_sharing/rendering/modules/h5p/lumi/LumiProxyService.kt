@@ -1,11 +1,12 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
+import io.micrometer.tracing.Tracer
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.lang3.StringUtils
-import org.apache.logging.log4j.ThreadContext
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
@@ -18,8 +19,11 @@ import org.springframework.web.util.UriComponentsBuilder
 @ConditionalOnController
 @Service
 class LumiProxyService(
-    private val lumiWebClient: WebClient
+    private val lumiWebClient: WebClient,
+    private val tracer: Tracer
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'ReadAll')")
     fun <T : Any> processProxyRequest(
         pathPrefix: String,
@@ -27,7 +31,6 @@ class LumiProxyService(
         body: String?,
         method: HttpMethod,
         request: HttpServletRequest,
-        traceId: String,
         responseType: Class<T>,
         additionalHeaders: Map<String, String> = emptyMap()
     ): ResponseEntity<T> {
@@ -36,7 +39,6 @@ class LumiProxyService(
             body = body,
             method = method,
             request = request,
-            traceId = traceId,
             responseType = responseType,
             additionalHeaders = additionalHeaders
         )
@@ -47,11 +49,13 @@ class LumiProxyService(
         body: String?,
         method: HttpMethod,
         request: HttpServletRequest,
-        traceId: String,
         responseType: Class<T>,
         additionalHeaders: Map<String, String> = emptyMap()
     ): ResponseEntity<T> {
-        ThreadContext.put("traceId", traceId)
+        // Trace context (and the b3 header) is propagated automatically by the instrumented lumiWebClient;
+        // the explicit TRACE header is kept for the Lumi service and sourced from the active trace id.
+        val traceId = tracer.currentSpan()?.context()?.traceId()
+        log.debug("Lumi proxy forward: method={}, path={}, traceId={}", method.name(), request.requestURI, traceId)
 
         val requestURIPathSegments =
             request.requestURI.substringAfter(pathPrefix).split("/").stream().filter { StringUtils.isNotBlank(it) }
@@ -66,7 +70,7 @@ class LumiProxyService(
             headers.set(headerName, request.getHeader(headerName))
         }
 
-        headers.set("TRACE", traceId)
+        traceId?.let { headers.set("TRACE", it) }
         headers.remove(HttpHeaders.ACCEPT_ENCODING)
 
         val lumiRequest = lumiWebClient.method(method)
@@ -85,9 +89,10 @@ class LumiProxyService(
             .toEntity(responseType)
             .block()
             ?: throw ResourceNotFoundException("Called lumi with ${method.name()} $requestURIPath ${request.queryString} $body")
+        log.debug("Lumi proxy response: status={}, path={}", lumiResponse.statusCode, requestURIPath)
         val responseHeaders = HttpHeaders()
         responseHeaders.addAll(lumiResponse.headers)
-        responseHeaders.set("TRACE", traceId)
+        traceId?.let { responseHeaders.set("TRACE", it) }
         additionalHeaders.forEach { (key, value) -> responseHeaders.set(key, value) }
 
         return ResponseEntity

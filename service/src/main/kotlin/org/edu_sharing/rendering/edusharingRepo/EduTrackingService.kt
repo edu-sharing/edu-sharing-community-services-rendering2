@@ -22,12 +22,15 @@ class EduTrackingService(
 
     @Throws(IllegalArgumentException::class)
     fun trackObject(event: String, objectId: String, repoId: String) {
+        log.debug("trackObject called: event=$event, objectId=$objectId, repoId=$repoId")
         if (event == "PRERENDER" || !securityEnabled) {
+            log.debug("Skipping tracking for event=$event (PRERENDER or security disabled)")
             return
         }
         val registration = repositoryRegistrationRepository.findByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found") }
 
+        log.debug("Dispatching async tracking request to ${registration.url} for event=$event, objectId=$objectId")
         val client = userBasedRestClientProvider.getTrackingApiClient(registration.url, repoId)
         client.trackEventAsync(repoId, event, objectId, object : ApiCallback<Void> {
 

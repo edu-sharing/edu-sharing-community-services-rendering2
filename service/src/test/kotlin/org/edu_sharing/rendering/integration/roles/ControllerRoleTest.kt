@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.asset.AssetController
 import org.edu_sharing.rendering.asset.AssetService
 import org.edu_sharing.rendering.core.RenderController
 import org.edu_sharing.rendering.core.RenderDataService
+import org.edu_sharing.rendering.core.SessionController
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingController
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.SessionTicketRepository
@@ -46,6 +47,7 @@ class ControllerRoleTest(
             UserBasedRestClientProvider::class,
             RenderController::class,
             RenderDataService::class,
+            SessionController::class,
             ModuleInfoController::class,
             LumiProxyController::class,
             LumiProxyService::class,

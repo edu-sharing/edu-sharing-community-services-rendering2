@@ -30,13 +30,13 @@ class BinderService(
     @Qualifier("jupyterConverterWebClient")
     private var jupyterConverterWebClient: WebClient?
 ) {
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value("\${app.queue.binder.key}")
+    @Value($$"${app.queue.binder.key}")
     lateinit var binderJobRoutingKey: String
 
-    @Value("\${app.queue.binderPreview.key}")
+    @Value($$"${app.queue.binderPreview.key}")
     lateinit var previewJobRoutingKey: String
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -45,6 +45,7 @@ class BinderService(
         node: Node,
         module: BinderRenderModule
     ): String {
+        log.debug("Creating Binder jobs for nodeId={}", node.ref.id)
         val url = node.properties?.get("ccm:wwwurl")?.firstOrNull() ?: ""
         val gitService = gitServiceRegistry.getService(url)
         if (gitService == null) {
@@ -55,6 +56,7 @@ class BinderService(
         val job = mapper.nodeToRenderingJob(node, module.module(), true)
 
         jobRepository.save(job)
+        log.debug("Binder main job saved: jobId={} for nodeId={}", job.id, node.ref.id)
         val binderUploadSubJob = SubJob(
             status = SubJobStatus.QUEUED,
             parent = job,
@@ -64,6 +66,7 @@ class BinderService(
         amqpTemplate.convertAndSend(topicExchangeName, binderJobRoutingKey, BinderSubJobMessage(
             subJobId = binderUploadSubJob.id.toString()
         ))
+        log.debug("Binder upload sub-job enqueued: subJobId={}, routingKey={}", binderUploadSubJob.id, binderJobRoutingKey)
         createPreviewSubJob(job, module, gitService)
 
         return job.id.toString()
@@ -96,6 +99,7 @@ class BinderService(
             previewJobRoutingKey,
             BinderSubJobMessage(subJobId = previewSubJob.id.toString())
         )
+        log.debug("Binder preview sub-job enqueued: subJobId={}, routingKey={}", previewSubJob.id, previewJobRoutingKey)
     }
 
     private fun hasGitHubApiToken(module: BinderRenderModule, job: RenderingJob): Boolean {

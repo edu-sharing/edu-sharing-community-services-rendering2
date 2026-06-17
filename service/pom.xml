@@ -231,6 +231,21 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Distributed tracing: Micrometer Tracing with OpenTelemetry bridge, for b3 trace-context
+             propagation (WebClient/OkHttp/RabbitMQ) and trace ids in every log line. Spans are NOT
+             exported by the app itself — in the Istio service mesh the Envoy sidecar generates and
+             reports the spans; the app only has to propagate the b3 headers it received. The Boot 4
+             autoconfig (Tracer/Propagator) lives in spring-boot-micrometer-tracing-opentelemetry; it
+             wires the io.micrometer.tracing.otel.bridge.* classes provided by micrometer-tracing-bridge-otel. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>

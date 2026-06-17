@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.*
@@ -10,7 +11,11 @@ class AuthHeaderProvider(
     private val appId: String,
     private val encryptionService: EncryptionService
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
     fun getAuthHeaders(repoId: String): Map<String, String> {
+        log.debug("Building app-auth headers for repoId=$repoId using appId=$appId")
         val ts = System.currentTimeMillis()
         val toSign = "$appId$ts"
         val sig = encryptionService.sign(toSign, repoId)

@@ -31,8 +31,11 @@ class AuthTokenFilter(
         nodePermissionSessionContextRepository.validateSessionPermissions()
         try {
             val jwt: String? = parseJwt(request)
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+            if (jwt == null) {
+                log.debug("No JWT token found in request to ${request.requestURI}")
+            } else if (jwtUtils.validateJwtToken(jwt)) {
                 val userDetails = jwtUtils.getUserDetailsFromJwt(jwt)
+                log.debug("JWT token valid: subject=${userDetails.username}, repoId=${userDetails.repoId}")
                 val authentication = UsernamePasswordAuthenticationToken(
                     userDetails,
                     null,
@@ -42,7 +45,10 @@ class AuthTokenFilter(
                 SecurityContextHolder.getContext().authentication = authentication
                 securityContextRepository.saveContext(SecurityContextHolder.getContext(), request, response)
                 val nodePermission = jwtUtils.getNodePermissions(jwt)
+                log.debug("Node permissions saved: nodeId=${nodePermission.nodeId}, repoId=${nodePermission.repoId}")
                 nodePermissionSessionContextRepository.saveNodePermission(nodePermission)
+            } else {
+                log.debug("JWT token validation failed for request to ${request.requestURI}")
             }
         } catch (ex: Exception) {
             log.error("Cannot set user authentication", ex)

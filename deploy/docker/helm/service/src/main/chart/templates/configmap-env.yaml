@@ -41,6 +41,7 @@ data:
   "app.s3.protocol": {{ .Values.config.s3.protocol | quote }}
   "app.s3.bucket.mode": {{ .Values.config.s3.mode | quote }}
   "app.s3.trustAllCertificates": {{ .Values.config.s3.trustAllCertificates | quote }}
+  "app.s3.checksumCalculationWhenRequired": {{ .Values.config.s3.checksumCalculationWhenRequired | quote }}
   "app.session.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.default | quote }}
   "app.session.image.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.image | quote }}
   "app.session.audio.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.audio | quote }}

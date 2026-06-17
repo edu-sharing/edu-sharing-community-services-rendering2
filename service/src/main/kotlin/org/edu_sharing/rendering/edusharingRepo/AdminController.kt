@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.edusharingRepo
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
+import org.slf4j.LoggerFactory
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_INTERNAL_SERVER_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
@@ -39,6 +40,8 @@ class AdminController(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
 ) {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @GetMapping("/repository/register")
     fun registeredRepos(): List<RegistrationInfo> {
         return repositoryRegistrationService.getRegisteredRepositories()
@@ -47,6 +50,7 @@ class AdminController(
 
     @PostMapping("/repository/register")
     fun registerWithRepo(@RequestBody @Valid body: RegisterRepositoryRequest): RegistrationInfo {
+        log.debug("POST /admin/repository/register for url=${body.url}")
         validateConfigRequest(body)
         val registration = repositoryRegistrationService.registerWithRepository(body)
         corsSyncService.syncAllowedOriginsWithRepository(registration)
@@ -62,6 +66,7 @@ class AdminController(
 
     @DeleteMapping("/repository/register")
     fun deleteRepository(@RequestBody @Valid body: RemoveRepositoryRequest): RegistrationInfo {
+        log.debug("DELETE /admin/repository/register for repoId=${body.repoId}")
         validateConfigRequest(body.repoId)
         val result = toRegistrationInfo(repositoryRegistrationService.deleteRepository(body))
         corsSyncService.triggerSync()
@@ -110,6 +115,7 @@ class AdminController(
         @RequestParam nodeId: String,
         @RequestParam(required = false) hash: String?
     ): ResponseEntity<Void> {
+        log.debug("DELETE /admin/cache/remove for repoId=$repoId, nodeId=$nodeId, hash=$hash")
         if (hash != null) {
             val entry = trackingEntryRepository.findByRepoIdAndNodeIdAndHash(repoId, nodeId, hash).orElseThrow {
                 throw EntryNotFoundException("No tracking entry found for repoId $repoId, nodeId $nodeId and hash $hash.")
@@ -131,7 +137,8 @@ class AdminController(
     @GetMapping("/cache/usage")
     fun getCacheUsage(@RequestParam repoId: String): CacheUsageInfo {
         val (actualSize, buckets) = storageService.getUsedSpace(repoId)
-        val trackedSize = trackingService.getBucketAggregation().first {it.repoId == repoId}.totalSize
+
+        val trackedSize = trackingService.getBucketAggregation().firstOrNull { it.repoId == repoId }?.totalSize ?: throw IllegalArgumentException("No tracking entries found for repoId $repoId.")
         return CacheUsageInfo(
             managedBuckets = buckets,
             actualSize = actualSize,

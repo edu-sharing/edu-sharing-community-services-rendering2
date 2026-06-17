@@ -19,9 +19,9 @@ class LumiConfig(
 
 
     @Bean
-    fun lumiWebClient(): WebClient {
+    fun lumiWebClient(webClientBuilder: WebClient.Builder): WebClient {
         val lumiApiUrl = getLumiBaseUrl()
-        return WebClient.builder().baseUrl(lumiApiUrl)
+        return webClientBuilder.clone().baseUrl(lumiApiUrl)
             .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }.build()
     }
 

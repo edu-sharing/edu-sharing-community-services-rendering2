@@ -27,6 +27,7 @@ class GitHubService(
         if (gitDetails.filePath.isNullOrBlank()) {
             throw IllegalArgumentException("Could not parse file path from GitHub URL")
         }
+        log.debug("Fetching file from GitHub: user={}, repo={}, branch={}, filePath={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath)
         val stream = gitHubBinaryWebClient.get()
             .uri("/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}/${gitDetails.filePath}")
             .header("Authorization", "Bearer $token")
@@ -42,6 +43,7 @@ class GitHubService(
         gitDetails: GitDetails,
         token: String
     ): Boolean {
+        log.debug("Checking GitHub commit freshness: user={}, repo={}, branch={}, filePath={}, lastModifiedInCache={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath, lastModifiedInCache)
         try {
             val response = gitHubRepoApiWebClient
                 .get()
@@ -61,7 +63,7 @@ class GitHubService(
                         .path("commit")
                         .path("committer")
                         .path("date")
-                        .asText()
+                        .asString()
                     val commitTimeStamp =
                         ZonedDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME).toInstant().epochSecond
                     return commitTimeStamp < lastModifiedInCache

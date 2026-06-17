@@ -21,6 +21,7 @@ class CustomRenderingJobRepositoryImpl(
         jobId: ObjectId,
         status: RenderingJobStatus
     ) {
+        log.debug("Updating RenderingJob $jobId status to $status (without version check)")
         val query = Query(Criteria.where("_id").`is`(jobId))
         val update = Update()
         update.set("status", status.toString())

@@ -26,12 +26,17 @@ class RegistrationRunner(
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun run(args: ApplicationArguments) {
+        log.debug("RegistrationRunner starting; checking application key pair")
         if (!privatePublicKeyService.hasKeyPair()) {
+            log.debug("No existing key pair found; generating new key pair")
             privatePublicKeyService.generateApplicationKeyPair()
+        } else {
+            log.debug("Existing key pair present; skipping key generation")
         }
         val newRegistrations = repositoryRegistrationConfig.getAllRegistrations()
             .map {
                 val (registrationRequest, optionalModuleList, moduleSettings) = it
+                log.debug("Processing auto-registration for ${registrationRequest.url} with ${optionalModuleList.size} optional modules")
                 try {
                     val registration = repositoryRegistrationService.registerWithRepository(request = registrationRequest, force = true, useInternal = true)
                     optionalModuleList.forEach { module ->
