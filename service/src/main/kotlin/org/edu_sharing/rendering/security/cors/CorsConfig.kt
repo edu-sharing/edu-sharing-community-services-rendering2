@@ -59,7 +59,7 @@ class CorsConfig(
         config.addAllowedOrigin(appInfo.public.url.cleanUrl())
         config.addAllowedOrigin(appInfo.internal.url.cleanUrl())
         config.allowCredentials = true
-        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info")
+        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info", "X-Client-Trace-Id")
         config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
         config.addExposedHeader("Access-Control-Allow-Origin")
         config.addExposedHeader("Authentication-Info")
