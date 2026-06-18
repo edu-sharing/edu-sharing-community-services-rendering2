@@ -3,12 +3,14 @@ package org.edu_sharing.rendering.renderingJob.entity
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.CompoundIndexes
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
+import java.time.Instant
 import java.util.*
 
 @Document
@@ -28,6 +30,9 @@ data class SubJob(
     var message: String? = null,
     @DocumentReference(lazy = true)
     var parent: RenderingJob,
+    @Indexed(expireAfter = "8d")
+    @LastModifiedDate
+    var lastModifiedDate: Instant? = null,
     @Version
     val version: Int? = null,
     val priority: Int = 0,
