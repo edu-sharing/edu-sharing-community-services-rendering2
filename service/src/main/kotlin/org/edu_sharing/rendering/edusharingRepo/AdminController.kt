@@ -134,6 +134,15 @@ class AdminController(
         return ResponseEntity.noContent().build()
     }
 
+    @GetMapping("/repository/details")
+    fun repositoryDetails(@RequestParam repoId: String): RepositoryDetailInfo {
+        log.debug("GET /admin/repository/details for repoId=$repoId")
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId).orElseThrow {
+            EntryNotFoundException("No repository registration found for repoId $repoId.")
+        }
+        return toRepositoryDetailInfo(registration)
+    }
+
     @GetMapping("/cache/usage")
     fun getCacheUsage(@RequestParam repoId: String): CacheUsageInfo {
         val (actualSize, buckets) = storageService.getUsedSpace(repoId)
@@ -153,6 +162,29 @@ class AdminController(
             url = entity.url,
             publicKey = entity.publicKey,
             domains = entity.domains ?: emptyList()
+        )
+    }
+
+    private fun toRepositoryDetailInfo(entity: RepositoryRegistration): RepositoryDetailInfo {
+        return RepositoryDetailInfo(
+            repoId = entity.repoId,
+            url = entity.url,
+            domains = entity.domains ?: emptyList(),
+            optionalModules = entity.optionalModules.toList(),
+            modules = entity.module.mapValues { (_, settings) ->
+                ModuleSettingInfo(
+                    credentialKeys = settings.credentials.keys.toList(),
+                    cspHeader = settings.cspHeader
+                )
+            },
+            quota = entity.quota,
+            renderingBucket = entity.buckets?.renderingBucket,
+            tempBucket = entity.buckets?.tempBucket,
+            allowedOrigins = entity.allowedOrigins.toList(),
+            allowedOriginPatterns = entity.allowedOriginPatterns?.toList() ?: emptyList(),
+            lastAllowedOriginSync = entity.lastAllowedOriginSync,
+            signingAlgorithm = entity.signingAlgorithm,
+            publicKeyPreview = entity.publicKey.take(40) + if (entity.publicKey.length > 40) "…" else ""
         )
     }
     
