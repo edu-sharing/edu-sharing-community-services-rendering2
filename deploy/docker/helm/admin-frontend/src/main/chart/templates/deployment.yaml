@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: {{ include "edusharing_common_lib.names.name" . }}
   labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
@@ -7,7 +7,6 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels: {{ include "edusharing_common_lib.labels.app" . | nindent 6 }}
-  serviceName: {{ include "edusharing_common_lib.names.name" . }}-headless
   template:
     metadata:
       labels: {{ include "edusharing_common_lib.labels.app" . | nindent 8 }}

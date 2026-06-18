@@ -10,6 +10,14 @@ global:
 
   cluster:
 
+    cert:
+      ## @param global.cluster.cert.annotations Set global cluster cert annotations
+      annotations: {}
+
+    ingress:
+      ## @param global.cluster.ingress.ingressClassName Set global cluster ingressClass name
+      ingressClassName: "nginx"
+
     istio:
       ## @param global.cluster.istio.enabled Enable Istio Service mesh
       enabled: false
@@ -62,6 +70,31 @@ service:
   port:
     ## @param service.port.api Set port for service API
     api: 8080
+
+########################################################################################################################
+
+ingress:
+
+  ## @param ingress.enabled Enable ingress
+  enabled: true
+
+  ## @param ingress.annotations Set ingress annotations
+  annotations: {}
+
+  ## @param ingress.hosts Set ingress hosts
+  hosts:
+  - rendering.services.127.0.0.1.nip.io
+
+  ## @param ingress.tls Set TLS for ingress
+  # e.g.:
+  #  - secretName: edusharing-services-rendering2-admin-frontend-tls
+  #    hosts:
+  #    - rendering.services.127.0.0.1.nip.io
+  tls: []
+
+  ## @param ingress.paths Set paths for ingress
+  paths:
+  - /rendering-admin
 
 ########################################################################################################################
 
