@@ -1,0 +1,167 @@
+########################################################################################################################
+# GLOBAL
+########################################################################################################################
+
+## @section Global parameters
+global:
+
+  ## @param global.annotations Define global annotations
+  annotations: {}
+
+  cluster:
+
+    istio:
+      ## @param global.cluster.istio.enabled Enable Istio Service mesh
+      enabled: false
+
+    pdb:
+      ## @param global.cluster.pdb.enabled Enable PDB
+      enabled: false
+
+  image:
+    ## @param global.image.pullPolicy Set global image pullPolicy
+    pullPolicy: Always
+    ## @param global.image.pullSecrets Set global image pullSecrets
+    pullSecrets: []
+    ## @param global.image.registry Set global image container registry
+    registry: ${docker.registry}
+    ## @param global.image.repository Set global image container repository
+    repository: ${docker.repository}
+    ## @param global.image.common Set global image container common
+    common: ${docker.common}
+
+  ## @param global.password Set global password
+  password: ""
+
+  ## @param global.security Set global custom security parameters
+  security: {}
+
+########################################################################################################################
+# LOCAL
+########################################################################################################################
+
+## @section Local parameters
+## @param nameOverride Override name
+nameOverride: edusharing-services-rendering2-admin-frontend
+
+image:
+  ## @param image.name Set image name
+  name: ${docker.prefix}-deploy-docker-build-admin-frontend
+  ## @param image.tag Set image tag
+  tag: ${docker.tag}
+
+########################################################################################################################
+
+## @param replicaCount Define amount of parallel replicas to run
+replicaCount: 1
+
+########################################################################################################################
+
+service:
+
+  port:
+    ## @param service.port.api Set port for service API
+    api: 8080
+
+########################################################################################################################
+
+config:
+
+  ## @param config.base Admin-API-Basis (Context-Path des Service) -> ADMIN_API_BASE
+  base: "/rendering"
+
+  ## @param config.uiBase Pfad, unter dem die UI ausgeliefert wird -> BASE_HREF
+  uiBase: "/rendering-admin"
+
+  log:
+    ## @param config.log.level Set log level
+    level: info
+
+########################################################################################################################
+
+## @param nodeAffinity Set node affinity
+nodeAffinity: {}
+
+## @param podAntiAffinity Set pod antiaffinity
+podAntiAffinity: "soft"
+
+## @param tolerations Set tolerations
+tolerations: []
+
+########################################################################################################################
+
+## @param podAnnotations Set custom pod annotations
+podAnnotations: {}
+
+podSecurityContext:
+  ## @param podSecurityContext.fsGroup Set fs group for access
+  fsGroup: 1000
+  ## @param podSecurityContext.fsGroupChangePolicy Set change policy for fs group
+  fsGroupChangePolicy: OnRootMismatch
+
+securityContext:
+
+  ## @param securityContext.allowPrivilegeEscalation Allow privilege escalation
+  allowPrivilegeEscalation: false
+  capabilities:
+    ## @param securityContext.capabilities.drop Set drop capabilities
+    drop:
+      - ALL
+  ## @param securityContext.runAsUser Define user to run under
+  runAsUser: 1000
+
+########################################################################################################################
+
+## @param terminationGracePeriod Define grace period for termination
+terminationGracePeriod: 30
+
+startupProbe:
+  ## @param startupProbe.failureThreshold Failure threshold for startupProbe
+  failureThreshold: 30
+  ## @param startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+  initialDelaySeconds: 0
+  ## @param startupProbe.periodSeconds Period seconds for startupProbe
+  periodSeconds: 5
+  ## @param startupProbe.successThreshold Success threshold for startupProbe
+  successThreshold: 1
+  ## @param startupProbe.timeoutSeconds Timeout seconds for startupProbe
+  timeoutSeconds: 5
+
+livenessProbe:
+  ## @param livenessProbe.failureThreshold Failure threshold for livenessProbe
+  failureThreshold: 3
+  ## @param livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  initialDelaySeconds: 10
+  ## @param livenessProbe.periodSeconds Period seconds for livenessProbe
+  periodSeconds: 30
+  ## @param livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  timeoutSeconds: 5
+
+readinessProbe:
+  ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
+  failureThreshold: 3
+  ## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  initialDelaySeconds: 5
+  ## @param readinessProbe.periodSeconds Period seconds for readinessProbe
+  periodSeconds: 10
+  ## @param readinessProbe.successThreshold Set threshold for success on readiness probe
+  successThreshold: 1
+  ## @param readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  timeoutSeconds: 5
+
+########################################################################################################################
+
+resources:
+
+  limits:
+    ## @param resources.limits.cpu Set CPU limit on resources
+    cpu: 200m
+    ## @param resources.limits.memory Set memory limit on resources
+    memory: 128Mi
+  requests:
+    ## @param resources.requests.cpu Set CPU for requests on resources
+    cpu: 50m
+    ## @param resources.requests.memory Set memory for requests on resources
+    memory: 64Mi
+
+########################################################################################################################
