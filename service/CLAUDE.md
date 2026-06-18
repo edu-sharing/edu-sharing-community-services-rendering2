@@ -17,11 +17,11 @@ Package root: `org.edu_sharing.rendering` under `src/main/kotlin/org/edu_sharing
 |---|---|
 | `core` | Central request/response DTOs, exception handling (`ApiExceptionHandler`, `PublicApiException`, `ObjectTypeNotSupportedException`, …), ping. `core/annotation/` holds the role conditionals. |
 | `modules` | The plugin system. `ModuleRegistry`, `ConversionModule`/`RenderModule` interfaces, `ModuleTypeMapper`/`ModuleTypeDefinition`, `ConverterWebServiceCaller`, plus one subpackage per content type: `image`, `av/{audio,video}`, `document`, `h5p`, `jupyter`, `binder`, `moodle`, `onyx`, `sodix`, `ddb`, `eduhtml`, `noConversion`. |
-| `renderingJob` | Async jobs: Mongo `@Document` entities (`RenderingJob`, `SubJob`, statuses), repositories, and the RabbitMQ `queue/` config + receivers. |
-| `edusharingRepo` | Repository registration, public-key fetch, metadata, content transfer, encryption; admin/tracking controllers. |
+| `renderingJob` | Async jobs: Mongo `@Document` entities (`RenderingJob`, `SubJob`, statuses), repositories, and the RabbitMQ `queue/` config + receivers. Also `AdminJobController` (admin job stats/list/delete). |
+| `edusharingRepo` | Repository registration, public-key fetch, metadata, content transfer, encryption; admin/tracking controllers (`AdminController`, `AdminStorageController`). |
 | `storage` | S3 (AWS SDK v2) + bucket strategies (per-customer, per-media-type, external bucket — selected by `@ConditionalOn…` annotations). Health indicator. |
 | `security` | JWT (`AuthTokenFilter`, `JwtUtils`), node-permission session repositories, `SecurityConfig` (dual filter chains for `/public/**` and `/admin/**`), CORS. |
-| `asset` | `AssetController` (download/stream, HTTP Range support, CSP headers), `AssetService`. |
+| `asset` | `AssetController` (download/stream, HTTP Range support, CSP headers), `AssetService`; `AdminAssetController` (tracking-driven admin asset listing/deletion). |
 | `cacheCleaner` | Scheduled threshold-based cleanup of cached renderings. |
 | `config` | `AppInfo`, `RedisConfig` + the two Redis property classes, `MongoConfig`, `SessionConfig`, `SchedulingConfig`, `SpringDocConfig`, `SpringConfig`. |
 
@@ -61,8 +61,23 @@ when you add a role-gated bean, extend the matching role test.
 4. Async path: a message goes onto a RabbitMQ queue → `JobReceiver` → the module's sub-job
    receiver runs the conversion → result lands in S3 (`storage`).
 5. `RenderingJob`/`SubJob` persist in MongoDB with `WriteConcern.ACKNOWLEDGED`, optimistic
-   `@Version`, and a TTL index; less-critical writes use a weaker write concern
+   `@Version`, and a TTL index (8 days); less-critical writes use a weaker write concern
    (`MongoConfig` `WriteConcernResolver`).
+
+## Admin API (`/admin/**`)
+Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
+`@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
+`privateAPIFilterChain` (HTTP-Basic, single `ROLE_ADMIN` user `app.security.adminPassword`,
+CSRF off). springdoc groups them under the `administration` OpenAPI group (`/admin/**`).
+**Every fachlich endpoint is scoped to one `repoId`** (query param) — the UI shows only one
+repo at a time. Controllers:
+- `AdminStorageController` — `GET /admin/storage/usage` (per-repo bucket usage + quota %).
+- `AdminJobController` — `GET /admin/jobs(/stats)`, `DELETE /admin/jobs/{id}` (deletes sub-jobs
+  too; the queue self-heals as receivers drop messages without a DB entry).
+- `AdminController` — repo registration (existing) + `GET /admin/repository/details`.
+- `AdminAssetController` — **tracking-driven** (the `Tracking` collection has `repoId`; S3 keys
+  don't in `byType` mode): list grouped by nodeId, versions, delete single/by-type/all.
+  Deletions remove the S3 object **and** the `TrackingEntry` together.
 
 ## Config gotchas
 - `spring.redis.standalone.*` (→ `RedisStandaloneConfigurationProperties`) and

@@ -24,13 +24,17 @@ versions are derived from git by the `maven-git-versioning-extension` (the liter
 | `document-converter` | **Spring Boot 3.5.14**, Kotlin 2.3.0 | [`document-converter/CLAUDE.md`](document-converter/CLAUDE.md) | LibreOffice/jodconverter document → HTML/PDF. Deliberately on 3.5.x. |
 | `jupyter-converter` | Python (FastAPI) | — | `.ipynb` → HTML via nbconvert. Single-file service; not Spring/JVM. |
 | `lumi` | Node.js / TypeScript | [`lumi/CLAUDE.md`](lumi/CLAUDE.md) | H5P editor/player frontend build artifact. Not Spring/JVM. |
+| `admin-frontend` | **Angular 21** (standalone, Material) | [`admin-frontend/CLAUDE.md`](admin-frontend/CLAUDE.md) | Admin SPA (storage/jobs/repos/assets). Consumes the service's `/admin` API. Own container. Not Spring/JVM. |
 | `deploy` | Docker / Helm / docker-compose | [`deploy/CLAUDE.md`](deploy/CLAUDE.md) | Dockerfiles, Helm charts (`docker/helm/*`), compose files (`docker/compose/*`). |
 
 ## Build & test
 The Maven wrapper lives under `service/`, so the **`service`** module is built with
 **`./service/mvnw`** (Maven 3.9). The other modules — **`document-converter`**, **`lumi`**,
-and **`deploy`** — are built with the system **`mvn`** (their build commands live in their
-module guides). Source for JVM modules lives in `src/main/kotlin`.
+**`admin-frontend`**, and **`deploy`** — are built with the system **`mvn`** (their build
+commands live in their module guides). Source for JVM modules lives in `src/main/kotlin`;
+the `admin-frontend` Angular workspace lives in `admin-frontend/src/main/frontend` and is
+driven by the `frontend-maven-plugin` (Node pinned to a version available on the Artifactory
+raw mirror).
 
 - **Local builds must always use the `dev` profile** (`-Pdev`). Append it to every local `mvnw` invocation below.
 
