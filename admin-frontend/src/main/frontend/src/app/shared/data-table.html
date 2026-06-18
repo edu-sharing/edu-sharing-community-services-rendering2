@@ -1,0 +1,89 @@
+@if (searchable()) {
+  <div class="dt-toolbar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="dt-search">
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        type="search"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+        [placeholder]="searchPlaceholder()"
+      />
+    </mat-form-field>
+  </div>
+}
+
+<table class="data">
+  <thead>
+    <tr>
+      @if (expansion()) {
+        <th class="dt-expand-col"></th>
+      }
+      @for (col of columns(); track col.key) {
+        <th
+          [class.right]="col.align === 'right'"
+          [class.center]="col.align === 'center'"
+          [class.sortable]="col.sortable"
+          (click)="toggleSort(col)"
+        >
+          {{ col.label }}
+          @if (col.sortable && activeSortKey() === col.key) {
+            <mat-icon class="dt-arrow">{{ activeSortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+          }
+        </th>
+      }
+      @if (rowActions()) {
+        <th class="right">Aktion</th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of view(); track trackVal(row)) {
+      <tr>
+        @if (expansion()) {
+          <td class="dt-expand-col">
+            @if (canExpand()(row)) {
+              <button
+                matIconButton
+                (click)="toggle(row)"
+                [attr.aria-label]="isExpanded(row) ? 'Einklappen' : 'Ausklappen'"
+              >
+                <mat-icon>{{ isExpanded(row) ? 'expand_more' : 'chevron_right' }}</mat-icon>
+              </button>
+            }
+          </td>
+        }
+        @for (col of columns(); track col.key) {
+          <td [class]="cellClass(col)">
+            @switch (col.kind) {
+              @case ('bytes') { {{ cell(row, col) | bytes }} }
+              @case ('date') { {{ cell(row, col) | epoch }} }
+              @case ('badge') {
+                <span class="badge {{ col.badgeClass ? col.badgeClass(row) : '' }}">{{ cell(row, col) }}</span>
+              }
+              @default { {{ cell(row, col) }} }
+            }
+          </td>
+        }
+        @if (rowActions(); as tpl) {
+          <td class="right">
+            <ng-container [ngTemplateOutlet]="tpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </td>
+        }
+      </tr>
+      @if (expansion(); as tpl) {
+        @if (isExpanded(row)) {
+          <tr class="dt-expansion-row">
+            <td [attr.colspan]="colspan()">
+              <ng-container [ngTemplateOutlet]="tpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </td>
+          </tr>
+        }
+      }
+    } @empty {
+      <tr>
+        <td [attr.colspan]="colspan()" class="muted">Keine Einträge.</td>
+      </tr>
+    }
+  </tbody>
+</table>

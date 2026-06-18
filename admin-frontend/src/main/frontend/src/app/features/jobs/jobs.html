@@ -1,0 +1,60 @@
+<h1>Jobs</h1>
+
+<div class="toolbar">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
+      <mat-option value="">Alle</mat-option>
+      @for (s of statuses; track s) {
+        <mat-option [value]="s">{{ s }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  <span class="muted note">TTL: ältere Jobs werden automatisch entfernt.</span>
+</div>
+
+<div class="card">
+  <app-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    trackKey="id"
+    [initialSort]="{ key: 'creationTimestamp', dir: 'desc' }"
+    [expansion]="subJobsTpl"
+    [canExpand]="hasSubJobs"
+    [rowActions]="actionsTpl"
+    searchPlaceholder="Jobs durchsuchen…"
+  />
+
+  @if (jobs(); as p) {
+    <div class="pager">
+      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Zurück</button>
+      <span class="muted">Seite {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} Jobs</span>
+      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Weiter</button>
+    </div>
+  }
+</div>
+
+<ng-template #actionsTpl let-job>
+  <button matButton class="warn-btn" (click)="deleteJob(job.id)">
+    <mat-icon>delete</mat-icon> Löschen
+  </button>
+</ng-template>
+
+<ng-template #subJobsTpl let-job>
+  <table class="data sub">
+    <thead>
+      <tr><th>Routing-Key</th><th>Status</th><th>Qualität</th><th>Fortschritt</th><th>Fehler</th></tr>
+    </thead>
+    <tbody>
+      @for (sub of job.subJobs; track sub.id) {
+        <tr>
+          <td class="mono">{{ sub.routingKey }}</td>
+          <td><span class="badge badge-{{ sub.status.toLowerCase() }}">{{ sub.status }}</span></td>
+          <td>{{ sub.quality }}</td>
+          <td>{{ sub.progress }}%</td>
+          <td class="err">{{ sub.errorMessage ?? '' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</ng-template>

@@ -1,0 +1,94 @@
+<h1>Assets</h1>
+
+<div class="card types-card">
+  <div class="card-head">
+    <h2>Typen</h2>
+    <button matButton="outlined" class="warn-btn" (click)="deleteAll()">
+      <mat-icon>delete_forever</mat-icon> Alle Assets löschen
+    </button>
+  </div>
+  <app-data-table
+    [columns]="typeColumns"
+    [rows]="types()"
+    trackKey="type"
+    [initialSort]="{ key: 'totalSize', dir: 'desc' }"
+    [rowActions]="typeActionsTpl"
+    searchPlaceholder="Typen durchsuchen…"
+  />
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+      <mat-label>Filter Typ</mat-label>
+      <mat-select [value]="filterType() ?? ''" (selectionChange)="setFilterType($event.value)">
+        <mat-option value="">Alle</mat-option>
+        @for (t of types(); track t.type) {
+          <mat-option [value]="t.type">{{ t.type }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <span class="muted note">Einträge sind nach Node gebündelt – aufklappen zeigt die Versionen.</span>
+  </div>
+
+  <app-data-table
+    [columns]="nodeColumns"
+    [rows]="nodeRows()"
+    trackKey="nodeId"
+    [initialSort]="{ key: 'lastAccessed', dir: 'desc' }"
+    [expansion]="versionsTpl"
+    [rowActions]="nodeActionsTpl"
+    (expanded)="onExpandNode($event)"
+    searchPlaceholder="Assets durchsuchen…"
+  />
+
+  @if (nodes(); as p) {
+    <div class="pager">
+      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Zurück</button>
+      <span class="muted">Seite {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} Nodes</span>
+      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Weiter</button>
+    </div>
+  }
+</div>
+
+<ng-template #typeActionsTpl let-type>
+  <button matButton class="warn-btn" (click)="deleteByType(type.type)">
+    <mat-icon>delete</mat-icon> Typ löschen
+  </button>
+</ng-template>
+
+<ng-template #nodeActionsTpl let-node>
+  <button matButton class="warn-btn" (click)="deleteNode(node)">
+    <mat-icon>delete</mat-icon> Alle löschen
+  </button>
+</ng-template>
+
+<ng-template #versionsTpl let-node>
+  @if (versionsByNode()[node.nodeId]; as versions) {
+    <table class="data sub">
+      <thead>
+        <tr><th>Hash</th><th>Typ</th><th>Bucket</th><th class="right">Größe</th><th>Zuletzt</th><th class="right">Aktion</th></tr>
+      </thead>
+      <tbody>
+        @for (v of versions; track v.hash + v.bucket) {
+          <tr>
+            <td class="mono">{{ v.hash }}</td>
+            <td>{{ v.type }}</td>
+            <td class="mono">{{ v.bucket }}</td>
+            <td class="right">{{ v.size | bytes }}</td>
+            <td>{{ v.lastAccessed | epoch }}</td>
+            <td class="right">
+              <button matButton class="warn-btn" (click)="deleteVersion(node, v)">
+                <mat-icon>delete</mat-icon> Löschen
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted">Keine Versionen.</td></tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <p class="muted">Lade Versionen…</p>
+  }
+</ng-template>

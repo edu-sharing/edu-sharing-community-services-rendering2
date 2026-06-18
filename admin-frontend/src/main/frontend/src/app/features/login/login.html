@@ -1,0 +1,35 @@
+<div class="login-wrap">
+  <mat-card class="login-card" appearance="outlined">
+    <div class="brand">
+      <mat-icon>display_settings</mat-icon>
+      <span>Rendering&nbsp;Admin</span>
+    </div>
+    <p class="muted">Bitte mit dem Admin-Passwort anmelden.</p>
+
+    <form (ngSubmit)="submit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Benutzer</mat-label>
+        <input matInput name="username" [(ngModel)]="username" autocomplete="username" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Passwort</mat-label>
+        <input
+          matInput
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          autocomplete="current-password"
+        />
+      </mat-form-field>
+
+      @if (error()) {
+        <div class="error">{{ error() }}</div>
+      }
+
+      <button matButton="filled" type="submit" [disabled]="loading() || !password">
+        {{ loading() ? 'Anmelden…' : 'Anmelden' }}
+      </button>
+    </form>
+  </mat-card>
+</div>

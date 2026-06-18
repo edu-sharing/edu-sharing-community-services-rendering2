@@ -1,0 +1,23 @@
+h1 { margin: 0 0 18px; }
+h2 { margin: 0; font-size: 16px; }
+
+.card { margin-bottom: 18px; }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.note { margin-left: auto; font-size: 12px; }
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+table.sub { margin: 4px 0; }
+table.sub th { border-bottom-width: 1px; }

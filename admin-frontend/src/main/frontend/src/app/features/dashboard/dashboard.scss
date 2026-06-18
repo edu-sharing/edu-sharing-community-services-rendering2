@@ -1,0 +1,56 @@
+h1 { margin: 0 0 18px; }
+h2 { margin: 0; font-size: 16px; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.tile { display: flex; flex-direction: column; gap: 4px; }
+.tile-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--es-text-muted-solid);
+}
+.tile-value { font-size: 30px; font-weight: 700; }
+.tile-value.danger { color: var(--es-danger); }
+.tile-sub { font-size: 12px; }
+
+.subjobs { margin-bottom: 18px; }
+.subjobs h2 { margin: 0 0 12px; font-size: 16px; }
+.subjob-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.subjob-row .total { margin-left: 6px; }
+
+.storage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.overall { margin-bottom: 16px; }
+.bar {
+  height: 14px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .4s ease;
+}
+.overall-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 13px;
+}

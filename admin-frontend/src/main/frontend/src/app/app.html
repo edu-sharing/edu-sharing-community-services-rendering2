@@ -1,0 +1,63 @@
+@if (auth.isAuthenticated()) {
+  <div class="layout">
+    <mat-toolbar class="topbar">
+      <span class="brand">
+        <mat-icon class="brand-mark">display_settings</mat-icon>
+        <span class="brand-title">Rendering&nbsp;Admin</span>
+      </span>
+
+      <span class="spacer"></span>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field repo-field">
+        <mat-label>Repository</mat-label>
+        <mat-select
+          [value]="repoCtx.activeRepoId() ?? ''"
+          (selectionChange)="onRepoChange($event.value)"
+          [disabled]="!repoCtx.hasRepos()"
+        >
+          @if (!repoCtx.hasRepos()) {
+            <mat-option value="">– keine Repos registriert –</mat-option>
+          }
+          @for (repo of repoCtx.repos(); track repo.repoId) {
+            <mat-option [value]="repo.repoId">{{ repo.repoId }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field interval-field">
+        <mat-label>Aktualisierung</mat-label>
+        <mat-select
+          [value]="settings.pollIntervalMs()"
+          (selectionChange)="onIntervalChange($event.value)"
+        >
+          @for (opt of settings.intervalOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button matIconButton aria-label="Abmelden" title="Abmelden" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <nav class="sidenav">
+      <a routerLink="/dashboard" routerLinkActive="active"><mat-icon>dashboard</mat-icon> Dashboard</a>
+      <a routerLink="/assets" routerLinkActive="active"><mat-icon>folder</mat-icon> Assets</a>
+      <a routerLink="/jobs" routerLinkActive="active"><mat-icon>sync</mat-icon> Jobs</a>
+      <a routerLink="/repo" routerLinkActive="active"><mat-icon>dns</mat-icon> Repository</a>
+    </nav>
+
+    <main class="content">
+      @if (repoCtx.activeRepoId()) {
+        <router-outlet />
+      } @else {
+        <div class="card empty">
+          Kein Repository ausgewählt. Bitte oben ein Repository wählen.
+        </div>
+      }
+    </main>
+  </div>
+} @else {
+  <router-outlet />
+}

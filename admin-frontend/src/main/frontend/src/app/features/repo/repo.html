@@ -1,0 +1,63 @@
+<h1>Repository</h1>
+
+@if (detail(); as r) {
+  <div class="card">
+    <h2>{{ r.repoId }}</h2>
+    <dl class="props">
+      <dt>URL</dt><dd class="mono">{{ r.url }}</dd>
+      <dt>Domains</dt><dd>{{ r.domains.length ? r.domains.join(', ') : '–' }}</dd>
+      <dt>Quota</dt>
+      <dd>@if (r.quota > 0) { {{ r.quota | bytes }} } @else { <span class="muted">kein Limit</span> }</dd>
+      <dt>Signing-Algorithmus</dt><dd>{{ r.signingAlgorithm || '–' }}</dd>
+      <dt>Rendering-Bucket</dt><dd class="mono">{{ r.renderingBucket ?? '–' }}</dd>
+      <dt>Temp-Bucket</dt><dd class="mono">{{ r.tempBucket ?? '–' }}</dd>
+      <dt>Public Key</dt><dd class="mono">{{ r.publicKeyPreview }}</dd>
+      <dt>Letzter CORS-Sync</dt><dd>{{ r.lastAllowedOriginSync | epoch }}</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Optionale Module</h2>
+    @if (r.optionalModules.length) {
+      <div class="chips">
+        @for (m of r.optionalModules; track m) {
+          <span class="chip">{{ m }}</span>
+        }
+      </div>
+    } @else {
+      <p class="muted">Keine optionalen Module aktiviert.</p>
+    }
+  </div>
+
+  <div class="card">
+    <h2>Modul-Einstellungen</h2>
+    <table class="data">
+      <thead>
+        <tr><th>Modul</th><th>Credential-Schlüssel</th><th>CSP-Header</th></tr>
+      </thead>
+      <tbody>
+        @for (entry of moduleEntries(); track entry[0]) {
+          <tr>
+            <td>{{ entry[0] }}</td>
+            <td class="mono">{{ entry[1].credentialKeys.length ? entry[1].credentialKeys.join(', ') : '–' }}</td>
+            <td class="mono csp">{{ entry[1].cspHeader ?? '–' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="muted">Keine Modul-Einstellungen.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>CORS</h2>
+    <dl class="props">
+      <dt>Allowed Origins</dt>
+      <dd>{{ r.allowedOrigins.length ? r.allowedOrigins.join(', ') : '–' }}</dd>
+      <dt>Origin Patterns</dt>
+      <dd>{{ r.allowedOriginPatterns.length ? r.allowedOriginPatterns.join(', ') : '–' }}</dd>
+    </dl>
+  </div>
+} @else {
+  <div class="card muted">Lade Repository-Details…</div>
+}

@@ -1,0 +1,94 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: var(--es-nav-width) 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'topbar topbar'
+    'sidenav content';
+  min-height: 100vh;
+}
+
+/* Brand-Navy-Toolbar (exakt edu-sharing), unabhängig vom Material-Primary-Ton. */
+mat-toolbar.topbar {
+  grid-area: topbar;
+  gap: 18px;
+  background: var(--es-primary);
+  color: #fff;
+}
+mat-toolbar.topbar button[matIconButton] {
+  color: #fff;
+}
+
+.spacer { flex: 1 1 auto; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.brand-mark {
+  color: var(--es-accent);
+}
+.brand-title { font-size: 16px; }
+
+.topbar-field {
+  margin: 0;
+}
+.repo-field { width: 240px; }
+.interval-field { width: 130px; }
+.repo-selector label,
+.interval-selector label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  opacity: .8;
+}
+.repo-selector select { min-width: 220px; }
+.interval-selector select { min-width: 80px; }
+
+.sidenav {
+  grid-area: sidenav;
+  background: var(--es-surface);
+  border-right: 1px solid var(--es-border);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidenav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: var(--es-radius-sm);
+  color: var(--es-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+.sidenav a mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+.sidenav a:hover { background: #f0f3f7; text-decoration: none; }
+.sidenav a.active {
+  background: var(--es-primary);
+  color: #fff;
+}
+
+.content {
+  grid-area: content;
+  padding: 22px 26px;
+  overflow: auto;
+}
+
+.empty {
+  color: var(--es-text-muted-solid);
+  text-align: center;
+}

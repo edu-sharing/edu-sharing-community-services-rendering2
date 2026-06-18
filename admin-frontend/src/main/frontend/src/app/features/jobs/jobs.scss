@@ -1,0 +1,23 @@
+h1 { margin: 0 0 18px; }
+
+.note { margin-left: auto; font-size: 12px; }
+
+.err {
+  max-width: 280px;
+  color: var(--es-danger);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subrow td { background: #fafbfc; }
+table.sub { margin: 4px 0; }
+table.sub th { border-bottom-width: 1px; }
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}

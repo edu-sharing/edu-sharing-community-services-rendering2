@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+
+.dt-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+.dt-search {
+  min-width: 260px;
+}
+
+table.data th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+table.data th.sortable:hover {
+  color: var(--es-text);
+}
+.dt-arrow {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-left: 2px;
+  color: var(--es-accent);
+}
+
+.dt-expand-col {
+  width: 48px;
+  text-align: center;
+}
+
+.dt-expansion-row > td {
+  background: #fafbfc;
+  padding: 8px 12px 12px;
+}
+
+.center {
+  text-align: center;
+}
