@@ -173,6 +173,7 @@ abstract class SharedBeans {
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
             "permissionEvaluator",
+            "writeConcernResolver",
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans
