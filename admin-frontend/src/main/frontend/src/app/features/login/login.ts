@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
-import { AdminApiService } from '../../core/admin-api.service';
+import { RepositoryService } from '../../api/services';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
@@ -17,7 +17,7 @@ import { AuthService } from '../../core/auth.service';
 })
 export class Login {
   private readonly auth = inject(AuthService);
-  private readonly api = inject(AdminApiService);
+  private readonly api = inject(RepositoryService);
   private readonly router = inject(Router);
 
   protected username = 'admin';
@@ -29,7 +29,7 @@ export class Login {
     this.error.set(null);
     this.loading.set(true);
     this.auth.login(this.username, this.password);
-    this.api.listRepos().subscribe({
+    this.api.registeredRepos().subscribe({
       next: () => {
         this.loading.set(false);
         this.router.navigate(['/dashboard']);

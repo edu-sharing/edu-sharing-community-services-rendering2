@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
 import org.slf4j.LoggerFactory
@@ -27,6 +28,7 @@ import kotlin.math.abs
 @RestController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
+@Tag(name = "repository")
 @ConditionalOnMaster
 @ConditionalOnProperty(name = ["app.repository.registration.enabled"], havingValue = "true")
 class AdminController(

@@ -307,6 +307,16 @@
       <version>3.0.3</version>
     </dependency>
 
+    <!-- Jackson 2 Kotlin module for swagger-core's (Jackson 2) ObjectMapper, so springdoc
+         detects Kotlin non-null properties and emits them as `required` in the OpenAPI schema
+         (see SpringDocConfig.modelResolver). The app itself runs on Jackson 3; this is only for
+         the swagger-core model introspection used to build the spec. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-kotlin</artifactId>
+      <version>2.21.4</version>
+    </dependency>
+
         <!-- TESTS -->
 
 

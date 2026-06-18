@@ -2,9 +2,9 @@ import { Component, computed, inject } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
-import { AdminApiService } from '../../core/admin-api.service';
+import { JobsService, StorageService } from '../../api/services';
+import { BucketUsageInfo } from '../../api/models';
 import { BytesPipe } from '../../core/format';
-import { BucketUsageInfo } from '../../core/models';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
 import { Column, DataTable } from '../../shared/data-table';
@@ -16,7 +16,8 @@ import { Column, DataTable } from '../../shared/data-table';
   styleUrl: './dashboard.scss',
 })
 export class Dashboard {
-  private readonly api = inject(AdminApiService);
+  private readonly storageApi = inject(StorageService);
+  private readonly jobsApi = inject(JobsService);
   private readonly repoCtx = inject(RepoContextService);
   private readonly poll = inject(PollingService);
   private readonly repoId$ = toObservable(this.repoCtx.activeRepoId);
@@ -24,7 +25,7 @@ export class Dashboard {
   protected readonly storage = toSignal(
     combineLatest([this.repoId$, this.poll.ticks$]).pipe(
       switchMap(([repoId]) =>
-        repoId ? this.api.storageUsage(repoId).pipe(catchError(() => of(null))) : of(null),
+        repoId ? this.storageApi.getStorageUsage({ repoId }).pipe(catchError(() => of(null))) : of(null),
       ),
     ),
     { initialValue: null },
@@ -33,7 +34,7 @@ export class Dashboard {
   protected readonly stats = toSignal(
     combineLatest([this.repoId$, this.poll.ticks$]).pipe(
       switchMap(([repoId]) =>
-        repoId ? this.api.jobStats(repoId).pipe(catchError(() => of(null))) : of(null),
+        repoId ? this.jobsApi.getJobStats({ repoId }).pipe(catchError(() => of(null))) : of(null),
       ),
     ),
     { initialValue: null },

@@ -74,10 +74,18 @@ in every POM is intentional; do not "fix" it. Rules (`.mvn/maven-git-versioning-
 CI uses a separate `.mvn/maven-git-versioning-extension-ci.xml` (no feature-branch special-casing).
 
 ## CI/CD
-`.gitlab-ci.yml`: image `maven:3.9.9-eclipse-temurin-21`, Docker-in-Docker, a single
-`deploy` stage that runs `mvn $MAVEN_CLI -s .mvn/settings.xml deploy`. This builds and
-pushes the per-module Docker images (`docker-maven-plugin`) and Helm charts
-(`helm-maven-plugin`). `$MAVEN_CLI` injects the Docker/Helm registry URLs, deploy repos,
+`.gitlab-ci.yml`: image `maven:3.9.9-eclipse-temurin-21`, Docker-in-Docker, two stages run
+in order:
+- **`verify`** — `verify:admin-api-contract` runs the `AdminOpenApiContractTest` (service
+  module) and **fails the pipeline if the committed admin OpenAPI spec drifts** from what the
+  current backend code produces. The `admin-frontend` client is generated from that spec
+  (`admin-frontend/src/main/frontend/openapi/admin-api.json`), so this guards against a stale
+  contract. Runs before `deploy`, blocking it on drift.
+- **`deploy`** — runs `mvn $MAVEN_CLI -s .mvn/settings.xml deploy`. This builds and
+  pushes the per-module Docker images (`docker-maven-plugin`) and Helm charts
+  (`helm-maven-plugin`).
+
+`$MAVEN_CLI` injects the Docker/Helm registry URLs, deploy repos,
 and `-Dversioning.configFile=maven-git-versioning-extension-ci.xml`. surefire-reports are
 retained as artifacts on failure.
 

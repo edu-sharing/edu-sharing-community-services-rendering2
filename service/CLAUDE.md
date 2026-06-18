@@ -68,7 +68,13 @@ when you add a role-gated bean, extend the matching role test.
 Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
 `@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
 `privateAPIFilterChain` (HTTP-Basic, single `ROLE_ADMIN` user `app.security.adminPassword`,
-CSRF off). springdoc groups them under the `administration` OpenAPI group (`/admin/**`).
+CSRF off). springdoc groups them under the `administration` OpenAPI group (`/admin/**`); each
+controller carries a `@Tag` (`repository`/`jobs`/`assets`/`storage`) that names the generated
+`admin-frontend` client service. That client is generated from a committed snapshot of this
+group's spec — `AdminOpenApiContractTest` regenerates/verifies it (see Testing); keep the two
+in sync (the CI `verify` stage fails on drift). `SpringDocConfig` registers a Kotlin-aware
+swagger `ModelResolver` (Jackson 2 `jackson-module-kotlin`) so non-null Kotlin DTO properties
+are emitted as `required` — without it every generated TS field would be optional.
 **Every fachlich endpoint is scoped to one `repoId`** (query param) — the UI shows only one
 repo at a time. Controllers:
 - `AdminStorageController` — `GET /admin/storage/usage` (per-repo bucket usage + quota %).
@@ -105,6 +111,12 @@ serialization, keep `SessionConfigTest` green (it asserts the Kotlin/Security ro
 - **Integration**: extend `AbstractIntegrationTest` — Testcontainers 2.0 spins up Mongo,
   Redis, RabbitMQ, and MinIO and registers their endpoints via `@DynamicPropertyRegistry`.
   **Requires a running Docker daemon.**
+- **Admin OpenAPI contract**: `AdminOpenApiContractTest` boots the context, fetches the
+  `administration` group spec, normalizes volatile fields (`servers`, `info.version`) and
+  compares to the committed `admin-frontend/src/main/frontend/openapi/admin-api.json`. Run with
+  `-Dopenapi.spec.update=true` to (re)write that file. (The springdoc group config lives in
+  `src/main/resources/application.properties`; the test mirrors it in the test
+  `application.properties` since the latter shadows main on the test classpath.)
 - **Slices**: `@WebMvcTest` controllers exclude `SecurityAutoConfiguration` and use `MockMvc`.
 - **Mocking**: `@MockkBean` (springmockk) for Kotlin beans; OkHttp `mockwebserver` for
   outbound HTTP; `spring-rabbit-test` for AMQP.

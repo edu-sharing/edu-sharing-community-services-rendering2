@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.asset
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.edu_sharing.rendering.asset.dto.AssetDeletionResult
 import org.edu_sharing.rendering.asset.dto.AssetInfo
 import org.edu_sharing.rendering.asset.dto.AssetNode
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
+@Tag(name = "assets")
 @ConditionalOnMaster
 class AdminAssetController(
     private val trackingEntryRepository: TrackingEntryRepository,

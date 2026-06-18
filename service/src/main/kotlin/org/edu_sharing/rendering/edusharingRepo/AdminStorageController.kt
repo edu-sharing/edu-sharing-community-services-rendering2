@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
+@Tag(name = "storage")
 @ConditionalOnMaster
 class AdminStorageController(
     private val trackingService: TrackingService,

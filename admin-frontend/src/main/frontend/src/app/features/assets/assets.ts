@@ -6,9 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { combineLatest, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
-import { AdminApiService } from '../../core/admin-api.service';
+import { AssetsService } from '../../api/services';
+import { AssetInfo, AssetNode, AssetTypeInfo } from '../../api/models';
 import { BytesPipe, EpochPipe } from '../../core/format';
-import { AssetInfo, AssetNode, AssetTypeInfo } from '../../core/models';
 import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
@@ -24,7 +24,7 @@ import { Column, DataTable } from '../../shared/data-table';
   styleUrl: './assets.scss',
 })
 export class Assets {
-  private readonly api = inject(AdminApiService);
+  private readonly api = inject(AssetsService);
   private readonly repoCtx = inject(RepoContextService);
   private readonly poll = inject(PollingService);
   private readonly notify = inject(NotificationService);
@@ -48,7 +48,9 @@ export class Assets {
     ]).pipe(
       switchMap(([repoId, type, page]) =>
         repoId
-          ? this.api.listAssetNodes(repoId, type, page, this.size).pipe(catchError(() => of(null)))
+          ? this.api
+              .listAssetNodes({ repoId, type: type ?? undefined, page, size: this.size })
+              .pipe(catchError(() => of(null)))
           : of(null),
       ),
     ),
@@ -58,7 +60,7 @@ export class Assets {
   protected readonly types = toSignal(
     combineLatest([this.repoId$, toObservable(this.refreshTick), this.poll.ticks$]).pipe(
       switchMap(([repoId]) =>
-        repoId ? this.api.assetTypes(repoId).pipe(catchError(() => of([]))) : of([]),
+        repoId ? this.api.listAssetTypes({ repoId }).pipe(catchError(() => of([]))) : of([]),
       ),
     ),
     { initialValue: [] as AssetTypeInfo[] },
@@ -107,7 +109,7 @@ export class Assets {
   private loadVersions(nodeId: string): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    this.api.listAssetVersions(repoId, nodeId).subscribe({
+    this.api.listAssetVersions({ repoId, nodeId }).subscribe({
       next: (versions) => this.versionsByNode.update((m) => ({ ...m, [nodeId]: versions })),
       error: () => this.versionsByNode.update((m) => ({ ...m, [nodeId]: [] })),
     });
@@ -122,7 +124,7 @@ export class Assets {
     const repoId = this.repoId;
     if (!repoId) return;
     if (!confirm(`Delete version (hash ${version.hash}) of node ${node.nodeId}?`)) return;
-    this.api.deleteAssetVersion(repoId, node.nodeId, version.hash).subscribe({
+    this.api.deleteAsset({ repoId, nodeId: node.nodeId, hash: version.hash }).subscribe({
       next: () => {
         this.loadVersions(node.nodeId);
         this.refreshTick.update((v) => v + 1);
@@ -135,7 +137,7 @@ export class Assets {
     const repoId = this.repoId;
     if (!repoId) return;
     if (!confirm(`Delete all ${node.versionCount} version(s) of node ${node.nodeId}?`)) return;
-    this.api.deleteAssetNode(repoId, node.nodeId).subscribe({
+    this.api.deleteAsset({ repoId, nodeId: node.nodeId }).subscribe({
       next: () => this.bumpRefresh(),
       error: () => this.notify.error('Deletion failed.'),
     });
@@ -151,7 +153,7 @@ export class Assets {
       if (answer !== null) this.notify.error('Input does not match — aborted.');
       return;
     }
-    this.api.deleteAssetsByType(repoId, type).subscribe({
+    this.api.deleteAssetsByType({ repoId, type }).subscribe({
       next: (r) => {
         this.bumpRefresh();
         this.notify.success(`${r.deleted} assets deleted.`);
@@ -170,7 +172,7 @@ export class Assets {
       if (answer !== null) this.notify.error('Input does not match — aborted.');
       return;
     }
-    this.api.deleteAllAssets(repoId).subscribe({
+    this.api.deleteAllAssets({ repoId }).subscribe({
       next: (r) => {
         this.bumpRefresh();
         this.notify.success(`${r.deleted} assets deleted.`);

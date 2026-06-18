@@ -6,12 +6,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { combineLatest, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
-import { AdminApiService } from '../../core/admin-api.service';
-import { JobListItem, RenderingJobStatus } from '../../core/models';
+import { JobsService } from '../../api/services';
+import { JobListItem } from '../../api/models';
 import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
 import { Column, DataTable } from '../../shared/data-table';
+
+/** Job status union, derived from the generated contract (the enum is inlined in the spec). */
+type RenderingJobStatus = NonNullable<JobListItem['status']>;
 
 @Component({
   selector: 'app-jobs',
@@ -20,7 +23,7 @@ import { Column, DataTable } from '../../shared/data-table';
   styleUrl: './jobs.scss',
 })
 export class Jobs {
-  private readonly api = inject(AdminApiService);
+  private readonly api = inject(JobsService);
   private readonly repoCtx = inject(RepoContextService);
   private readonly poll = inject(PollingService);
   private readonly notify = inject(NotificationService);
@@ -44,7 +47,9 @@ export class Jobs {
     ]).pipe(
       switchMap(([repoId, status, page]) =>
         repoId
-          ? this.api.listJobs(repoId, status, page, this.size).pipe(catchError(() => of(null)))
+          ? this.api
+              .listJobs({ repoId, status: status ?? undefined, page, size: this.size })
+              .pipe(catchError(() => of(null)))
           : of(null),
       ),
     ),
@@ -84,7 +89,7 @@ export class Jobs {
     if (!confirm(`Really delete job ${id}? The job and its sub-jobs will be removed.`)) {
       return;
     }
-    this.api.deleteJob(id).subscribe({
+    this.api.deleteJob({ id }).subscribe({
       next: () => {
         this.refreshTick.update((v) => v + 1);
         this.notify.success('Job deleted.');

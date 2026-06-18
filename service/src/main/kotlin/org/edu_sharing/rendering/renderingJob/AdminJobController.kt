@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.renderingJob
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/admin")
 @SecurityRequirement(name = "basicAuth")
+@Tag(name = "jobs")
 @ConditionalOnMaster
 class AdminJobController(
     private val renderingJobRepository: RenderingJobRepository,

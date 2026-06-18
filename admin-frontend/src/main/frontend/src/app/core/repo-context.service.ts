@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { AdminApiService } from './admin-api.service';
-import { RegistrationInfo } from './models';
+import { RepositoryService } from '../api/services';
+import { RegistrationInfo } from '../api/models';
 
 const STORAGE_KEY = 'rs2-admin-active-repo';
 
@@ -11,7 +11,7 @@ const STORAGE_KEY = 'rs2-admin-active-repo';
  */
 @Injectable({ providedIn: 'root' })
 export class RepoContextService {
-  private readonly api = inject(AdminApiService);
+  private readonly api = inject(RepositoryService);
 
   private readonly _repos = signal<RegistrationInfo[]>([]);
   private readonly _activeRepoId = signal<string | null>(localStorage.getItem(STORAGE_KEY));
@@ -24,7 +24,7 @@ export class RepoContextService {
 
   /** Loads the repo list and ensures a valid active repoId is set. */
   loadRepos(): void {
-    this.api.listRepos().subscribe({
+    this.api.registeredRepos().subscribe({
       next: (repos) => {
         this._repos.set(repos);
         const current = this._activeRepoId();
