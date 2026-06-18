@@ -39,8 +39,8 @@ export class Login {
         this.auth.logout();
         this.error.set(
           err?.status === 401
-            ? 'Anmeldung fehlgeschlagen – Passwort prüfen.'
-            : 'Verbindung zum Service fehlgeschlagen.',
+            ? 'Sign-in failed — check the password.'
+            : 'Failed to connect to the service.',
         );
       },
     });

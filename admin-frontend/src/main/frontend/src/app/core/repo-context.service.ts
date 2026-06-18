@@ -5,9 +5,9 @@ import { RegistrationInfo } from './models';
 const STORAGE_KEY = 'rs2-admin-active-repo';
 
 /**
- * Die "große Klammer": hält die aktive repoId, auf die ALLE Ansichten gescopt sind.
- * Es ist immer höchstens eine repoId aktiv. Die Liste der wählbaren Repos wird einmalig
- * geladen (Topbar-Selektor); die Auswahl wird in localStorage persistiert.
+ * The overarching scope: holds the active repoId that ALL views are scoped to. At most one
+ * repoId is ever active. The list of selectable repos is loaded once (topbar selector); the
+ * selection is persisted in localStorage.
  */
 @Injectable({ providedIn: 'root' })
 export class RepoContextService {
@@ -22,7 +22,7 @@ export class RepoContextService {
   readonly loaded = this._loaded.asReadonly();
   readonly hasRepos = computed(() => this._repos().length > 0);
 
-  /** Lädt die Repo-Liste und stellt sicher, dass eine gültige aktive repoId gesetzt ist. */
+  /** Loads the repo list and ensures a valid active repoId is set. */
   loadRepos(): void {
     this.api.listRepos().subscribe({
       next: (repos) => {

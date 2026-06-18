@@ -8,12 +8,12 @@ export interface IntervalOption {
 }
 
 /**
- * Persistente UI-Einstellungen. Aktuell: das Polling-Intervall (0 = aus).
+ * Persistent UI settings. Currently: the polling interval (0 = off).
  */
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   readonly intervalOptions: IntervalOption[] = [
-    { label: 'Aus', value: 0 },
+    { label: 'Off', value: 0 },
     { label: '2 s', value: 2000 },
     { label: '5 s', value: 5000 },
     { label: '10 s', value: 10000 },

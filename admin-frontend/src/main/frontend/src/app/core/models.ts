@@ -1,6 +1,6 @@
-// TypeScript-Modelle, die exakt den Backend-DTOs der /admin-API entsprechen.
-// (Alternativ können diese aus dem OpenAPI-`administration`-Contract generiert werden –
-//  siehe Plan; hier handgepflegt, damit das Gerüst ohne laufendes Backend baut.)
+// TypeScript models that mirror the backend DTOs of the /admin API exactly.
+// (Alternatively these could be generated from the OpenAPI `administration` contract —
+//  see plan; hand-maintained here so the scaffold builds without a running backend.)
 
 export type RenderingJobStatus =
   | 'QUEUED' | 'PROCESSING' | 'FINISHED' | 'FAILED' | 'PARTIALLY_FAILED';

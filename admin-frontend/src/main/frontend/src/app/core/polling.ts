@@ -1,14 +1,14 @@
 import { Observable } from 'rxjs';
 
 /**
- * Liefert einen Tick-Stream für die Live-Aktualisierung (Polling).
+ * Provides a tick stream for live updates (polling).
  *
- * - Emittiert sofort (Tick 0) und danach alle `intervalMs`.
- * - Pausiert automatisch, solange der Tab im Hintergrund ist (`document.hidden`),
- *   und nimmt beim Zurückwechseln den Betrieb wieder auf.
+ * - Emits immediately (tick 0) and then every `intervalMs`.
+ * - Automatically pauses while the tab is in the background (`document.hidden`),
+ *   and resumes when switching back.
  *
- * Bewusst als eigenständiger Baustein gekapselt, damit später eine SSE-Quelle den
- * Polling-Stream ersetzen kann, ohne die Feature-Komponenten zu ändern (siehe Plan).
+ * Deliberately encapsulated as a standalone building block so that an SSE source can later
+ * replace the polling stream without changing the feature components (see plan).
  */
 export function visibilityTimer(intervalMs: number): Observable<number> {
   return new Observable<number>((subscriber) => {
@@ -40,5 +40,5 @@ export function visibilityTimer(intervalMs: number): Observable<number> {
   });
 }
 
-/** Standard-Polling-Intervall des Dashboards in Millisekunden. */
+/** Default polling interval of the dashboard in milliseconds. */
 export const DEFAULT_POLL_INTERVAL_MS = 5000;

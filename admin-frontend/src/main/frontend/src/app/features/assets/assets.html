@@ -2,9 +2,9 @@
 
 <div class="card types-card">
   <div class="card-head">
-    <h2>Typen</h2>
+    <h2>Types</h2>
     <button matButton="outlined" class="warn-btn" (click)="deleteAll()">
-      <mat-icon>delete_forever</mat-icon> Alle Assets löschen
+      <mat-icon>delete_forever</mat-icon> Delete all assets
     </button>
   </div>
   <app-data-table
@@ -13,22 +13,22 @@
     trackKey="type"
     [initialSort]="{ key: 'totalSize', dir: 'desc' }"
     [rowActions]="typeActionsTpl"
-    searchPlaceholder="Typen durchsuchen…"
+    searchPlaceholder="Search types…"
   />
 </div>
 
 <div class="card">
   <div class="toolbar">
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-      <mat-label>Filter Typ</mat-label>
+      <mat-label>Filter type</mat-label>
       <mat-select [value]="filterType() ?? ''" (selectionChange)="setFilterType($event.value)">
-        <mat-option value="">Alle</mat-option>
+        <mat-option value="">All</mat-option>
         @for (t of types(); track t.type) {
           <mat-option [value]="t.type">{{ t.type }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
-    <span class="muted note">Einträge sind nach Node gebündelt – aufklappen zeigt die Versionen.</span>
+    <span class="muted note">Entries are bundled by node — expand to see the versions.</span>
   </div>
 
   <app-data-table
@@ -39,27 +39,27 @@
     [expansion]="versionsTpl"
     [rowActions]="nodeActionsTpl"
     (expanded)="onExpandNode($event)"
-    searchPlaceholder="Assets durchsuchen…"
+    searchPlaceholder="Search assets…"
   />
 
   @if (nodes(); as p) {
     <div class="pager">
-      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Zurück</button>
-      <span class="muted">Seite {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} Nodes</span>
-      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Weiter</button>
+      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Previous</button>
+      <span class="muted">Page {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} nodes</span>
+      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Next</button>
     </div>
   }
 </div>
 
 <ng-template #typeActionsTpl let-type>
   <button matButton class="warn-btn" (click)="deleteByType(type.type)">
-    <mat-icon>delete</mat-icon> Typ löschen
+    <mat-icon>delete</mat-icon> Delete type
   </button>
 </ng-template>
 
 <ng-template #nodeActionsTpl let-node>
   <button matButton class="warn-btn" (click)="deleteNode(node)">
-    <mat-icon>delete</mat-icon> Alle löschen
+    <mat-icon>delete</mat-icon> Delete all
   </button>
 </ng-template>
 
@@ -67,7 +67,7 @@
   @if (versionsByNode()[node.nodeId]; as versions) {
     <table class="data sub">
       <thead>
-        <tr><th>Hash</th><th>Typ</th><th>Bucket</th><th class="right">Größe</th><th>Zuletzt</th><th class="right">Aktion</th></tr>
+        <tr><th>Hash</th><th>Type</th><th>Bucket</th><th class="right">Size</th><th>Last accessed</th><th class="right">Action</th></tr>
       </thead>
       <tbody>
         @for (v of versions; track v.hash + v.bucket) {
@@ -79,16 +79,16 @@
             <td>{{ v.lastAccessed | epoch }}</td>
             <td class="right">
               <button matButton class="warn-btn" (click)="deleteVersion(node, v)">
-                <mat-icon>delete</mat-icon> Löschen
+                <mat-icon>delete</mat-icon> Delete
               </button>
             </td>
           </tr>
         } @empty {
-          <tr><td colspan="6" class="muted">Keine Versionen.</td></tr>
+          <tr><td colspan="6" class="muted">No versions.</td></tr>
         }
       </tbody>
     </table>
   } @else {
-    <p class="muted">Lade Versionen…</p>
+    <p class="muted">Loading versions…</p>
   }
 </ng-template>

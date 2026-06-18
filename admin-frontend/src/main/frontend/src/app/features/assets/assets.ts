@@ -35,7 +35,7 @@ export class Assets {
   protected readonly size = 50;
   private readonly refreshTick = signal(0);
 
-  /** Geladene Versionen je nodeId (lazy beim Aufklappen). */
+  /** Loaded versions per nodeId (lazy, on expand). */
   protected readonly versionsByNode = signal<Record<string, AssetInfo[]>>({});
 
   protected readonly nodes = toSignal(
@@ -68,17 +68,17 @@ export class Assets {
 
   protected readonly nodeColumns: Column[] = [
     { key: 'nodeId', label: 'Node', sortable: true, cssClass: 'mono' },
-    { key: 'type', label: 'Typ', sortable: true },
-    { key: 'versionCount', label: 'Versionen', sortable: true, align: 'right', kind: 'number' },
-    { key: 'size', label: 'Neueste', sortable: true, align: 'right', kind: 'bytes' },
-    { key: 'totalSize', label: 'Gesamt', sortable: true, align: 'right', kind: 'bytes' },
-    { key: 'lastAccessed', label: 'Zuletzt', sortable: true, kind: 'date' },
+    { key: 'type', label: 'Type', sortable: true },
+    { key: 'versionCount', label: 'Versions', sortable: true, align: 'right', kind: 'number' },
+    { key: 'size', label: 'Latest', sortable: true, align: 'right', kind: 'bytes' },
+    { key: 'totalSize', label: 'Total', sortable: true, align: 'right', kind: 'bytes' },
+    { key: 'lastAccessed', label: 'Last accessed', sortable: true, kind: 'date' },
   ];
 
   protected readonly typeColumns: Column[] = [
-    { key: 'type', label: 'Typ', sortable: true, cssClass: 'mono' },
-    { key: 'count', label: 'Anzahl', sortable: true, align: 'right', kind: 'number' },
-    { key: 'totalSize', label: 'Größe', sortable: true, align: 'right', kind: 'bytes' },
+    { key: 'type', label: 'Type', sortable: true, cssClass: 'mono' },
+    { key: 'count', label: 'Count', sortable: true, align: 'right', kind: 'number' },
+    { key: 'totalSize', label: 'Size', sortable: true, align: 'right', kind: 'bytes' },
   ];
 
   private get repoId(): string | null {
@@ -99,7 +99,7 @@ export class Assets {
     this.page.update((p) => (p + 1 < total ? p + 1 : p));
   }
 
-  /** Lädt beim Aufklappen die Versionen einer nodeId nach. */
+  /** Lazily loads the versions of a nodeId on expand. */
   onExpandNode(node: AssetNode): void {
     this.loadVersions(node.nodeId);
   }
@@ -121,23 +121,23 @@ export class Assets {
   deleteVersion(node: AssetNode, version: AssetInfo): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    if (!confirm(`Version (hash ${version.hash}) von Node ${node.nodeId} löschen?`)) return;
+    if (!confirm(`Delete version (hash ${version.hash}) of node ${node.nodeId}?`)) return;
     this.api.deleteAssetVersion(repoId, node.nodeId, version.hash).subscribe({
       next: () => {
         this.loadVersions(node.nodeId);
         this.refreshTick.update((v) => v + 1);
       },
-      error: () => this.notify.error('Löschen fehlgeschlagen.'),
+      error: () => this.notify.error('Deletion failed.'),
     });
   }
 
   deleteNode(node: AssetNode): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    if (!confirm(`Alle ${node.versionCount} Version(en) von Node ${node.nodeId} löschen?`)) return;
+    if (!confirm(`Delete all ${node.versionCount} version(s) of node ${node.nodeId}?`)) return;
     this.api.deleteAssetNode(repoId, node.nodeId).subscribe({
       next: () => this.bumpRefresh(),
-      error: () => this.notify.error('Löschen fehlgeschlagen.'),
+      error: () => this.notify.error('Deletion failed.'),
     });
   }
 
@@ -145,18 +145,18 @@ export class Assets {
     const repoId = this.repoId;
     if (!repoId) return;
     const answer = prompt(
-      `Alle Assets vom Typ "${type}" in Repo ${repoId} löschen.\nZum Bestätigen den Typ-Namen exakt eingeben:`,
+      `Delete all assets of type "${type}" in repo ${repoId}.\nTo confirm, type the type name exactly:`,
     );
     if (answer !== type) {
-      if (answer !== null) this.notify.error('Eingabe stimmt nicht – Abbruch.');
+      if (answer !== null) this.notify.error('Input does not match — aborted.');
       return;
     }
     this.api.deleteAssetsByType(repoId, type).subscribe({
       next: (r) => {
         this.bumpRefresh();
-        this.notify.success(`${r.deleted} Assets gelöscht.`);
+        this.notify.success(`${r.deleted} assets deleted.`);
       },
-      error: () => this.notify.error('Löschen fehlgeschlagen.'),
+      error: () => this.notify.error('Deletion failed.'),
     });
   }
 
@@ -164,18 +164,18 @@ export class Assets {
     const repoId = this.repoId;
     if (!repoId) return;
     const answer = prompt(
-      `ALLE Assets von Repo ${repoId} unwiderruflich löschen.\nZum Bestätigen die repoId exakt eingeben:`,
+      `Irreversibly delete ALL assets of repo ${repoId}.\nTo confirm, type the repoId exactly:`,
     );
     if (answer !== repoId) {
-      if (answer !== null) this.notify.error('Eingabe stimmt nicht – Abbruch.');
+      if (answer !== null) this.notify.error('Input does not match — aborted.');
       return;
     }
     this.api.deleteAllAssets(repoId).subscribe({
       next: (r) => {
         this.bumpRefresh();
-        this.notify.success(`${r.deleted} Assets gelöscht.`);
+        this.notify.success(`${r.deleted} assets deleted.`);
       },
-      error: () => this.notify.error('Löschen fehlgeschlagen.'),
+      error: () => this.notify.error('Deletion failed.'),
     });
   }
 }

@@ -1,24 +1,24 @@
 import { InjectionToken } from '@angular/core';
 
 /**
- * Laufzeit-Konfiguration, die der statische Server (server.mjs) beim Ausliefern in die
- * index.html injiziert (`window.RS2_ADMIN_CONFIG`). Dadurch funktioniert dasselbe Image
- * hinter unterschiedlichen Proxys (nginx-proxy via VIRTUAL_*, externe Apache2-Config, …),
- * ohne dass die Pfade einkompiliert werden müssen.
+ * Runtime configuration that the static server (server.mjs) injects into index.html when
+ * serving it (`window.RS2_ADMIN_CONFIG`). This lets the same image run behind different
+ * proxies (nginx-proxy via VIRTUAL_*, an external Apache2 config, …) without the paths
+ * having to be compiled in.
  */
 interface Rs2AdminConfig {
   apiBase?: string;
 }
 
 /**
- * Basis-URL-Präfix vor `/admin/...`.
+ * Base URL prefix in front of `/admin/...`.
  *
- * - Wert kommt zur Laufzeit aus `window.RS2_ADMIN_CONFIG.apiBase` (gesetzt vom Container,
- *   typischerweise auf den Context-Path des Service, z.B. `/rendering`).
- * - Im lokalen `ng serve` ist das Fenster-Objekt nicht gesetzt → Default `''`; dort übernimmt
- *   der Angular-Dev-Proxy (`proxy.conf.json`) die Weiterleitung von `/admin` an den Service.
+ * - The value comes at runtime from `window.RS2_ADMIN_CONFIG.apiBase` (set by the container,
+ *   typically to the service's context path, e.g. `/rendering`).
+ * - In a local `ng serve` the window object is not set → default `''`; there the Angular dev
+ *   proxy (`proxy.conf.json`) handles forwarding `/admin` to the service.
  *
- * Ein evtl. vorhandener Schrägstrich am Ende wird entfernt, damit `${base}/admin` sauber bleibt.
+ * A trailing slash, if present, is stripped so that `${base}/admin` stays clean.
  */
 export const ADMIN_API_BASE = new InjectionToken<string>('ADMIN_API_BASE', {
   providedIn: 'root',

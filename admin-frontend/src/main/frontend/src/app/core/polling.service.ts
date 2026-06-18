@@ -6,9 +6,9 @@ import { visibilityTimer } from './polling';
 import { SettingsService } from './settings.service';
 
 /**
- * Liefert einen reaktiven Tick-Stream fürs Live-Polling. Das Intervall folgt der
- * SettingsService-Einstellung (0 = aus → einmaliger Tick, kein Repeat). Bei Intervallwechsel
- * wird der Timer neu aufgesetzt; im Hintergrund-Tab pausiert er (siehe visibilityTimer).
+ * Provides a reactive tick stream for live polling. The interval follows the SettingsService
+ * setting (0 = off → a single tick, no repeat). On an interval change the timer is set up
+ * anew; it pauses while the tab is in the background (see visibilityTimer).
  */
 @Injectable({ providedIn: 'root' })
 export class PollingService {

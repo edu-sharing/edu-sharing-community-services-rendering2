@@ -24,7 +24,7 @@ export class App {
   protected readonly settings = inject(SettingsService);
 
   constructor() {
-    // Repo-Liste laden, sobald der Admin authentifiziert ist.
+    // Load the repo list as soon as the admin is authenticated.
     effect(() => {
       if (this.auth.isAuthenticated() && !this.repoCtx.loaded()) {
         this.repoCtx.loadRepos();

@@ -34,7 +34,7 @@ npx ng serve            # dev server :4200 (uses proxy.conf.json)
   Vite dev server does not reliably prepend a path in `target`, hence the explicit `pathRewrite`).
 
 ## Architecture
-- **repoId is the "große Klammer".** `RepoContextService` holds exactly one active `repoId`
+- **repoId is the overarching scope.** `RepoContextService` holds exactly one active `repoId`
   (global topbar selector, persisted in localStorage). Every feature view reads it and scopes
   all API calls to it — the UI never shows more than one repoId at a time.
 - **Feature views** (lazy standalone components under `src/app/features/`): `dashboard`,
@@ -71,6 +71,8 @@ npx ng serve            # dev server :4200 (uses proxy.conf.json)
 - Custom chrome uses `--es-*` CSS variables (`styles.scss`); Material components use the
   `--mat-sys-*` tokens. For destructive buttons use `class="warn-btn"` (locally remaps
   `--mat-sys-primary` to the danger color).
+- **UI and code language is English** — all user-facing strings, comments and identifiers
+  are in English. Keep new contributions English too.
 
 ## Deployment
 Built artifact → `deploy/docker/build/admin-frontend` (node:21-alpine + `server.mjs`,

@@ -6,7 +6,7 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
 /**
- * Hängt den Basic-Auth-Header an jede Anfrage und leitet bei 401 zurück zum Login.
+ * Adds the Basic-Auth header to every request and redirects back to login on a 401.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-/** Dünner Wrapper um MatSnackBar für Erfolgs-/Fehlermeldungen. */
+/** Thin wrapper around MatSnackBar for success/error messages. */
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly snackBar = inject(MatSnackBar);

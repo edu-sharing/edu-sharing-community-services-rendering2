@@ -4,13 +4,13 @@
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
     <mat-label>Status</mat-label>
     <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
-      <mat-option value="">Alle</mat-option>
+      <mat-option value="">All</mat-option>
       @for (s of statuses; track s) {
         <mat-option [value]="s">{{ s }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
-  <span class="muted note">TTL: ältere Jobs werden automatisch entfernt.</span>
+  <span class="muted note">TTL: older jobs are removed automatically.</span>
 </div>
 
 <div class="card">
@@ -22,28 +22,28 @@
     [expansion]="subJobsTpl"
     [canExpand]="hasSubJobs"
     [rowActions]="actionsTpl"
-    searchPlaceholder="Jobs durchsuchen…"
+    searchPlaceholder="Search jobs…"
   />
 
   @if (jobs(); as p) {
     <div class="pager">
-      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Zurück</button>
-      <span class="muted">Seite {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} Jobs</span>
-      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Weiter</button>
+      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Previous</button>
+      <span class="muted">Page {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} jobs</span>
+      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Next</button>
     </div>
   }
 </div>
 
 <ng-template #actionsTpl let-job>
   <button matButton class="warn-btn" (click)="deleteJob(job.id)">
-    <mat-icon>delete</mat-icon> Löschen
+    <mat-icon>delete</mat-icon> Delete
   </button>
 </ng-template>
 
 <ng-template #subJobsTpl let-job>
   <table class="data sub">
     <thead>
-      <tr><th>Routing-Key</th><th>Status</th><th>Qualität</th><th>Fortschritt</th><th>Fehler</th></tr>
+      <tr><th>Routing key</th><th>Status</th><th>Quality</th><th>Progress</th><th>Error</th></tr>
     </thead>
     <tbody>
       @for (sub of job.subJobs; track sub.id) {

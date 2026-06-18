@@ -3,9 +3,9 @@ import { Injectable, computed, signal } from '@angular/core';
 const STORAGE_KEY = 'rs2-admin-credentials';
 
 /**
- * Hält die HTTP-Basic-Credentials des einzelnen Admin-Users (siehe Plan: Auth über den
- * bestehenden Basic-Auth-Admin). Der Header wird vom AuthInterceptor an jede Anfrage gehängt.
- * Credentials liegen in sessionStorage (überleben Reloads, nicht aber das Schließen des Tabs).
+ * Holds the HTTP-Basic credentials of the single admin user (see plan: auth via the existing
+ * Basic-Auth admin). The header is attached to every request by the AuthInterceptor.
+ * Credentials live in sessionStorage (survive reloads, but not closing the tab).
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {

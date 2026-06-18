@@ -4,16 +4,16 @@
       <mat-icon>display_settings</mat-icon>
       <span>Rendering&nbsp;Admin</span>
     </div>
-    <p class="muted">Bitte mit dem Admin-Passwort anmelden.</p>
+    <p class="muted">Please sign in with the admin password.</p>
 
     <form (ngSubmit)="submit()">
       <mat-form-field appearance="outline">
-        <mat-label>Benutzer</mat-label>
+        <mat-label>Username</mat-label>
         <input matInput name="username" [(ngModel)]="username" autocomplete="username" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Passwort</mat-label>
+        <mat-label>Password</mat-label>
         <input
           matInput
           type="password"
@@ -28,7 +28,7 @@
       }
 
       <button matButton="filled" type="submit" [disabled]="loading() || !password">
-        {{ loading() ? 'Anmelden…' : 'Anmelden' }}
+        {{ loading() ? 'Signing in…' : 'Sign in' }}
       </button>
     </form>
   </mat-card>

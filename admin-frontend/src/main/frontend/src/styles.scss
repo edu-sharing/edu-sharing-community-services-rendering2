@@ -1,11 +1,11 @@
 @use '@angular/material' as mat;
 @use './theme-colors' as es-theme;
 
-/* Angular-Material-Theme (M3). Die Paletten sind aus den edu-sharing-Seed-Farben
-   generiert (primary #25364f, tertiary #f29400, siehe theme-colors.scss) – dadurch sind
-   ALLE abgeleiteten Tokens (Fokus, Auswahl, Ripples, Container …) konsistent navy/orange
-   statt der Material-Default-Azure. Fonts (Roboto, Material Icons) werden lokal gehostet
-   (@fontsource, in angular.json eingebunden), KEIN CDN. */
+/* Angular Material theme (M3). The palettes are generated from the edu-sharing seed colors
+   (primary #25364f, tertiary #f29400, see theme-colors.scss) — so ALL derived tokens (focus,
+   selection, ripples, containers …) are consistently navy/orange instead of the Material
+   default azure. Fonts (Roboto, Material Icons) are hosted locally (@fontsource, wired in
+   angular.json), NO CDN. */
 html {
   color-scheme: light;
   @include mat.theme((
@@ -19,8 +19,8 @@ html {
   ));
 }
 
-/* Ligatur-Klasse für die mat-icon-Standard-Schrift (Material Icons). @fontsource liefert
-   nur das @font-face; die Icon-Darstellung (Ligaturen) definieren wir hier lokal. */
+/* Ligature class for the default mat-icon font (Material Icons). @fontsource only ships the
+   @font-face; we define the icon rendering (ligatures) here locally. */
 .material-icons,
 .mat-icon.material-icons {
   font-family: 'Material Icons';
@@ -38,16 +38,16 @@ html {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Globales Theme – Farbschema an edu-sharing angelehnt.
-   HINWEIS: Die exakten Hex-Werte sollten aus dem CSS der laufenden edu-sharing-Instanz
-   übernommen/feinjustiert werden (siehe Plan). Alles ist über CSS-Custom-Properties
-   zentral steuerbar. */
+/* Global theme — color scheme modeled on edu-sharing.
+   NOTE: the exact hex values should be taken/fine-tuned from the CSS of the running
+   edu-sharing instance (see plan). Everything is centrally controllable via CSS custom
+   properties. */
 
 :root {
-  --es-primary: #25364f;        /* edu-sharing Dunkelblau (Topbar/Navigation) */
+  --es-primary: #25364f;        /* edu-sharing dark blue (topbar/navigation) */
   --es-primary-600: #2f435f;
   --es-primary-700: #1b2840;
-  --es-accent: #f29400;         /* edu-sharing Akzent-Orange (CTAs/Highlights) */
+  --es-accent: #f29400;         /* edu-sharing accent orange (CTAs/highlights) */
   --es-accent-600: #d97f00;
 
   --es-bg: #f4f6f9;
@@ -91,7 +91,7 @@ h1, h2, h3 { color: var(--es-text); font-weight: 600; }
 a { color: var(--es-info); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* --- Wiederverwendbare leichte UI-Bausteine --- */
+/* --- Reusable lightweight UI building blocks --- */
 
 .card {
   background: var(--es-surface);
@@ -184,15 +184,15 @@ select.input, input.input {
   color: var(--es-text);
 }
 
-/* --- Angular-Material-Integration --- */
+/* --- Angular Material integration --- */
 
-/* Rote (destruktive) Material-Buttons: lokales Remappen des Primary-Tokens, das die
-   filled/outlined/text-Varianten für Hintergrund bzw. Text/Outline verwenden. */
+/* Red (destructive) Material buttons: locally remap the primary token that the
+   filled/outlined/text variants use for background resp. text/outline. */
 .warn-btn {
   --mat-sys-primary: var(--es-danger);
 }
 
-/* Material-Buttons mit Icon + Label: etwas Abstand zwischen Icon und Text. */
+/* Material buttons with icon + label: a little spacing between icon and text. */
 button[matButton] mat-icon {
   margin-right: 6px;
   font-size: 18px;
@@ -200,12 +200,12 @@ button[matButton] mat-icon {
   height: 18px;
 }
 
-/* Kompaktes Filterfeld in den Toolbars. */
+/* Compact filter field in the toolbars. */
 .filter-field {
   min-width: 200px;
 }
 
-/* Snackbar-Akzente. */
+/* Snackbar accents. */
 .snack-success {
   --mdc-snackbar-container-color: var(--es-success);
   --mat-snack-bar-button-color: #fff;
@@ -217,19 +217,19 @@ button[matButton] mat-icon {
   --mdc-snackbar-supporting-text-color: #fff;
 }
 
-/* Kompakte, auf dem dunklen Toolbar lesbare mat-select-Felder (Topbar). Die Token-Overrides
-   vererben sich als CSS-Custom-Properties in die Material-Komponente. Das Dropdown-Panel
-   bleibt im hellen Default (gut lesbar). */
+/* Compact mat-select fields readable on the dark toolbar (topbar). The token overrides
+   inherit into the Material component as CSS custom properties. The dropdown panel stays in
+   the light default (well readable). */
 .topbar-field {
   @include mat.form-field-density(-5);
 
-  /* M3 leitet Label-/Outline-/Textfarben aus den System-Tokens ab. Diese lokal auf helle
-     Werte setzen, damit alles (auch das fokussierte Label, das sonst --mat-sys-primary nutzt)
-     auf dem Navy-Toolbar gut lesbar ist. Das Dropdown-Panel liegt im globalen Overlay und
-     bleibt davon unberührt (heller Default). */
-  --mat-sys-on-surface: #fff;                       /* Trigger-/Eingabetext */
-  --mat-sys-on-surface-variant: rgba(255, 255, 255, 0.85); /* Label + Outline (ruhend), Pfeil */
-  --mat-sys-primary: #fff;                          /* Fokus: Label, Outline, Caret */
+  /* M3 derives label/outline/text colors from the system tokens. Set these locally to light
+     values so everything (including the focused label, which otherwise uses --mat-sys-primary)
+     is well readable on the navy toolbar. The dropdown panel lives in the global overlay and
+     stays unaffected (light default). */
+  --mat-sys-on-surface: #fff;                       /* trigger/input text */
+  --mat-sys-on-surface-variant: rgba(255, 255, 255, 0.85); /* label + outline (resting), arrow */
+  --mat-sys-primary: #fff;                          /* focus: label, outline, caret */
 
   --mat-select-enabled-trigger-text-color: #fff;
   --mat-select-disabled-trigger-text-color: rgba(255, 255, 255, 0.5);

@@ -33,7 +33,7 @@
         </th>
       }
       @if (rowActions()) {
-        <th class="right">Aktion</th>
+        <th class="right">Action</th>
       }
     </tr>
   </thead>
@@ -46,7 +46,7 @@
               <button
                 matIconButton
                 (click)="toggle(row)"
-                [attr.aria-label]="isExpanded(row) ? 'Einklappen' : 'Ausklappen'"
+                [attr.aria-label]="isExpanded(row) ? 'Collapse' : 'Expand'"
               >
                 <mat-icon>{{ isExpanded(row) ? 'expand_more' : 'chevron_right' }}</mat-icon>
               </button>
@@ -82,7 +82,7 @@
       }
     } @empty {
       <tr>
-        <td [attr.colspan]="colspan()" class="muted">Keine Einträge.</td>
+        <td [attr.colspan]="colspan()" class="muted">No entries.</td>
       </tr>
     }
   </tbody>

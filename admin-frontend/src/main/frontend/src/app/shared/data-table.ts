@@ -10,9 +10,9 @@ import { BytesPipe, EpochPipe } from '../core/format';
 export type ColumnKind = 'text' | 'number' | 'bytes' | 'date' | 'badge';
 
 /**
- * Spalten-Definition. Bewusst lose typisiert (`any`-Accessoren), damit die nicht-generische
- * Tabelle im Template mit beliebigen Zeilentypen bindbar ist (Angular kann generische
- * Komponenten-Typargumente im Template nicht aus Inputs ableiten).
+ * Column definition. Deliberately loosely typed (`any` accessors) so the non-generic table is
+ * bindable in the template with arbitrary row types (Angular cannot infer a component's generic
+ * type arguments from inputs in the template).
  */
 export interface Column {
   key: string;
@@ -20,13 +20,13 @@ export interface Column {
   sortable?: boolean;
   align?: 'left' | 'right' | 'center';
   kind?: ColumnKind;
-  /** Accessor für Anzeige/Sortierung/Suche; Default row[key]. */
+  /** Accessor for display/sorting/search; defaults to row[key]. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value?: (row: any) => unknown;
-  /** CSS-Klasse für die Badge-Darstellung (kind = 'badge'). */
+  /** CSS class for the badge rendering (kind = 'badge'). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   badgeClass?: (row: any) => string;
-  /** Zusätzliche CSS-Klasse für die Zelle (z.B. 'mono'). */
+  /** Additional CSS class for the cell (e.g. 'mono'). */
   cssClass?: string;
 }
 
@@ -39,9 +39,9 @@ export interface SortConfig {
 }
 
 /**
- * Leichtgewichtige, wiederverwendbare Tabelle mit Volltextsuche und Spalten-Sortierung
- * (client-seitig über die übergebenen Zeilen). Optional aufklappbare Zeilen (Expansion) und
- * eine Aktions-Spalte – beide über projizierte `ng-template`s mit `$implicit = row`.
+ * Lightweight, reusable table with full-text search and column sorting (client-side over the
+ * passed rows). Optionally expandable rows (expansion) and an action column — both via
+ * projected `ng-template`s with `$implicit = row`.
  */
 @Component({
   selector: 'app-data-table',
@@ -56,14 +56,14 @@ export class DataTable {
   readonly columns = input.required<Column[]>();
   readonly rows = input.required<Row[]>();
   readonly searchable = input(true);
-  readonly searchPlaceholder = input('Suchen…');
+  readonly searchPlaceholder = input('Search…');
   readonly trackKey = input('id');
   readonly initialSort = input<SortConfig | null>(null);
   readonly expansion = input<TemplateRef<{ $implicit: Row }> | null>(null);
   readonly rowActions = input<TemplateRef<{ $implicit: Row }> | null>(null);
-  /** Bestimmt, ob eine Zeile aufklappbar ist (Default: alle, sofern Expansion gesetzt). */
+  /** Determines whether a row is expandable (default: all, provided expansion is set). */
   readonly canExpand = input<(row: Row) => boolean>(() => true);
-  /** Wird ausgelöst, wenn eine Zeile NEU aufgeklappt wird (z.B. um Detaildaten nachzuladen). */
+  /** Emitted when a row is NEWLY expanded (e.g. to lazily load detail data). */
   readonly expanded = output<Row>();
 
   protected readonly query = signal('');

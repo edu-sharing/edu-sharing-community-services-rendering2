@@ -53,7 +53,7 @@ export class Dashboard {
 
   protected readonly bucketColumns: Column[] = [
     { key: 'name', label: 'Bucket', sortable: true, cssClass: 'mono' },
-    { key: 'size', label: 'Größe', sortable: true, align: 'right', kind: 'bytes' },
+    { key: 'size', label: 'Size', sortable: true, align: 'right', kind: 'bytes' },
   ];
 
   barColor(percent: number | null): string {

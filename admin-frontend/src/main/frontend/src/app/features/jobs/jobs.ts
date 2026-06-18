@@ -54,14 +54,14 @@ export class Jobs {
   protected readonly rows = computed<JobListItem[]>(() => this.jobs()?.content ?? []);
 
   protected readonly columns: Column[] = [
-    { key: 'module', label: 'Modul', sortable: true },
+    { key: 'module', label: 'Module', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true, kind: 'badge',
       badgeClass: (r) => `badge-${r.status.toLowerCase()}`,
     },
     { key: 'esObjectId', label: 'Node', sortable: true, cssClass: 'mono' },
-    { key: 'creationTimestamp', label: 'Erstellt', sortable: true, kind: 'date' },
-    { key: 'errorMessage', label: 'Fehler', cssClass: 'err' },
+    { key: 'creationTimestamp', label: 'Created', sortable: true, kind: 'date' },
+    { key: 'errorMessage', label: 'Error', cssClass: 'err' },
   ];
 
   protected readonly hasSubJobs = (job: JobListItem): boolean => job.subJobs.length > 0;
@@ -81,15 +81,15 @@ export class Jobs {
   }
 
   deleteJob(id: string): void {
-    if (!confirm(`Job ${id} wirklich löschen? Der Job und seine Sub-Jobs werden entfernt.`)) {
+    if (!confirm(`Really delete job ${id}? The job and its sub-jobs will be removed.`)) {
       return;
     }
     this.api.deleteJob(id).subscribe({
       next: () => {
         this.refreshTick.update((v) => v + 1);
-        this.notify.success('Job gelöscht.');
+        this.notify.success('Job deleted.');
       },
-      error: () => this.notify.error('Löschen fehlgeschlagen.'),
+      error: () => this.notify.error('Deletion failed.'),
     });
   }
 }

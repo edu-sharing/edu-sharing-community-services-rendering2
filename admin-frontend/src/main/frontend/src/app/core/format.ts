@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-/** Formatiert Bytes menschenlesbar (KB/MB/GB/TB, Basis 1024). */
+/** Formats bytes in a human-readable way (KB/MB/GB/TB, base 1024). */
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes == null) {
     return '–';

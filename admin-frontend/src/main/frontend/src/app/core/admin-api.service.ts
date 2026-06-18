@@ -9,8 +9,8 @@ import {
 } from './models';
 
 /**
- * Typed-Client für die /admin-Endpoints des Rendering-Service. Alle fachlichen Endpoints
- * sind auf eine repoId gescopt (siehe Plan – repoId als "große Klammer").
+ * Typed client for the /admin endpoints of the rendering service. All domain endpoints
+ * are scoped to a single repoId (see plan — repoId as the overarching scope).
  */
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
@@ -63,7 +63,7 @@ export class AdminApiService {
     return this.http.get<AssetPage>(`${this.base}/assets`, { params });
   }
 
-  /** Nach nodeId gebündelte Asset-Liste (neueste Version je Node). */
+  /** Asset list bundled by nodeId (latest version per node). */
   listAssetNodes(repoId: string, type: string | null, page: number, size: number): Observable<AssetNodePage> {
     let params = new HttpParams().set('repoId', repoId).set('page', page).set('size', size);
     if (type) {
@@ -72,7 +72,7 @@ export class AdminApiService {
     return this.http.get<AssetNodePage>(`${this.base}/assets/nodes`, { params });
   }
 
-  /** Alle Versionen einer nodeId (für die aufklappbare Detailsicht). */
+  /** All versions of a nodeId (for the expandable detail view). */
   listAssetVersions(repoId: string, nodeId: string): Observable<AssetInfo[]> {
     return this.http.get<AssetInfo[]>(`${this.base}/assets/versions`, {
       params: new HttpParams().set('repoId', repoId).set('nodeId', nodeId),
@@ -85,14 +85,14 @@ export class AdminApiService {
     });
   }
 
-  /** Einzelne Version (mit hash) löschen. */
+  /** Delete a single version (by hash). */
   deleteAssetVersion(repoId: string, nodeId: string, hash: string): Observable<AssetDeletionResult> {
     return this.http.delete<AssetDeletionResult>(`${this.base}/assets`, {
       params: new HttpParams().set('repoId', repoId).set('nodeId', nodeId).set('hash', hash),
     });
   }
 
-  /** Alle Versionen einer nodeId löschen (hash weggelassen). */
+  /** Delete all versions of a nodeId (hash omitted). */
   deleteAssetNode(repoId: string, nodeId: string): Observable<AssetDeletionResult> {
     return this.http.delete<AssetDeletionResult>(`${this.base}/assets`, {
       params: new HttpParams().set('repoId', repoId).set('nodeId', nodeId),
