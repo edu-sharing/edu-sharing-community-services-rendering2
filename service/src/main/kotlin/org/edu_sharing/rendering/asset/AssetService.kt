@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.CachedObjectDetails
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.storage.StaticStorageService
+import org.slf4j.LoggerFactory
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 import java.io.InputStream
@@ -17,14 +18,17 @@ class AssetService(
     private val storageImplementation: StaticStorageService,
     private val mapper: Mapper,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
     private val defaultChunkSize = 2000000L
 
     @PreAuthorize("hasPermission(#assetParams.nodeId, 'ReadAll')")
     fun getAsset(assetParams: AssetLinkParams, range: String): ReadableAsset {
+        log.debug("Getting asset: nodeId=${assetParams.nodeId}, repoId=${assetParams.repoId}, rangeHeader='$range'")
         val cacheObject = mapper.assetLinkParamsToCacheObject(assetParams)
         val fileDetails = storageImplementation.getFileProperties(cacheObject)
 
         if (range.isBlank()) {
+            log.debug("Serving full asset: nodeId=${assetParams.nodeId}, mimeType=${fileDetails.mimeType}, fileSize=${fileDetails.size}")
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
@@ -33,6 +37,7 @@ class AssetService(
         }
 
         val longRange = parseRange(range, fileDetails.size)
+        log.debug("Serving asset chunk: nodeId=${assetParams.nodeId}, range=${longRange.first}-${longRange.last}, fileSize=${fileDetails.size}")
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject = cacheObject,
             length = longRange.last - longRange.first + 1,
@@ -49,8 +54,10 @@ class AssetService(
         cacheObject: CacheObject,
         path: String
     ): ReadableAsset {
+        log.debug("Getting static asset: nodeId=${cacheObject.nodeId}, path=$path, rangePresent=${range.isNotBlank()}")
         val fileDetails = storageImplementation.getFileProperties(cacheObject, path)
         if (range.isBlank()) {
+            log.debug("Serving full static asset: nodeId=${cacheObject.nodeId}, mimeType=${fileDetails.mimeType}, fileSize=${fileDetails.size}")
             return ReadableAsset(
                 mimeType = fileDetails.mimeType,
                 fileSize = fileDetails.size,
@@ -59,6 +66,7 @@ class AssetService(
         }
 
         val longRange = parseRange(range, fileDetails.size)
+        log.debug("Serving static asset chunk: nodeId=${cacheObject.nodeId}, range=${longRange.first}-${longRange.last}, fileSize=${fileDetails.size}")
         val objectChunkStream = storageImplementation.getObjectChunkStream(
             cacheObject = cacheObject,
             path = path,
@@ -108,6 +116,7 @@ class AssetService(
 
         val actualEnd = minOf(endLong, fileSize - 1)
 
+        log.debug("Parsed range header '$range': resolved to bytes $startLong-$actualEnd (fileSize=$fileSize)")
         return LongRange(startLong, actualEnd)
     }
 }

@@ -13,6 +13,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
@@ -25,14 +26,19 @@ class JobInfoService(
     private val moduleRegistry: ModuleRegistry
 ) {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     // we can't call this inside getJobInfo because we need to check permissions which is done by the surrounding proxy
     fun getRenderingJob(jobId: String): RenderingJob {
+        log.debug("Looking up rendering job by id=$jobId")
         return jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
     }
 
     @PreAuthorize("hasPermission(#job.esObjectId, 'ReadAll')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
+        log.debug("Fetching job info for job ${job.id}, status=${job.status}, conversionType=${job.conversionType}, subJobs=${job.subJobs.size}")
         if (isMainJobQueuedOrCopying(job)) {
+            log.debug("Job ${job.id} is still QUEUED or copying (no sub jobs), returning early status")
             return JobInfoReply(
                 jobs = mutableListOf(JobProgressInfo(status = SubJobStatus.fromRenderingJobStatus(job.status))),
                 status = job.status,
@@ -43,6 +49,7 @@ class JobInfoService(
         val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
 
         if (!job.conversionType || job.subJobs.isEmpty()) {
+            log.debug("Job ${job.id} has no sub jobs, building job info from main job data")
             return getJobInfoForJobWithoutSubJobs(renderingJob = job, renderModule = renderModule)
         }
 

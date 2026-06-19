@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationS
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
@@ -13,6 +14,8 @@ class DdbRenderModule(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val jobService: DdbJobService
 ) : RenderModule, ThirdPartyModule {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     companion object {
         private val requiredCredentialKeys = setOf("apiToken")
@@ -27,7 +30,9 @@ class DdbRenderModule(
     override fun module() = "DDB"
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Handling DDB node ${node.ref.id}, remoteId ${node.remote?.id}, creating async job")
         val jobId = jobService.createJob(node, module())
+        log.debug("DDB job created with jobId $jobId for node ${node.ref.id}")
         return RenderDataResponse(jobId = jobId, module = module())
     }
 

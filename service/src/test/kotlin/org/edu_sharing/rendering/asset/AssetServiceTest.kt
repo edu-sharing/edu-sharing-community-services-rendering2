@@ -30,8 +30,8 @@ class AssetServiceTest {
     @Test
     fun testGetAssetReturnsFullStreamIfNoRangeSet() {
         // Arrange
-        val assetParams = mockk<AssetLinkParams>()
-        val cacheObject = mockk<CacheObject>()
+        val assetParams = mockk<AssetLinkParams>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val fileDetails = CachedObjectDetails(
             size = 3L,
             mimeType = "application/pdf",
@@ -60,8 +60,8 @@ class AssetServiceTest {
     @Test
     fun testGetAssetReturnsChunkIfValidRangeIsSet() {
         // Arrange
-        val assetParams = mockk<AssetLinkParams>()
-        val cacheObject = mockk<CacheObject>()
+        val assetParams = mockk<AssetLinkParams>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val fileDetails = CachedObjectDetails(
             size = 4000000,
             mimeType = "video/mp4",
@@ -104,8 +104,8 @@ class AssetServiceTest {
     @Test
     fun testGetAssetReturnsChunkIfValidRangeIsSetByChromeStandards() {
         // Arrange
-        val assetParams = mockk<AssetLinkParams>()
-        val cacheObject = mockk<CacheObject>()
+        val assetParams = mockk<AssetLinkParams>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val fileDetails = CachedObjectDetails(
             size = 4000000,
             mimeType = "video/mp4",
@@ -148,8 +148,8 @@ class AssetServiceTest {
     @Test
     fun testGetAssetReturnsChunkWithDefaultSizeIfNoRangeEndSet() {
         // Arrange
-        val assetParams = mockk<AssetLinkParams>()
-        val cacheObject = mockk<CacheObject>()
+        val assetParams = mockk<AssetLinkParams>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val fileDetails = CachedObjectDetails(
             size = 4000000,
             mimeType = "video/mp4",
@@ -192,8 +192,8 @@ class AssetServiceTest {
     @Test
     fun testGetAssetReturnsAllRemainingBytesIfEndExceedsFileSize() {
         // Arrange
-        val assetParams = mockk<AssetLinkParams>()
-        val cacheObject = mockk<CacheObject>()
+        val assetParams = mockk<AssetLinkParams>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val fileDetails = CachedObjectDetails(
             size = 400000,
             mimeType = "video/mp4",
@@ -236,8 +236,8 @@ class AssetServiceTest {
     @Test
     fun testGetAssetReturnsChunkWithDefaultSizeIfEndSmallerStart() {
         // Arrange
-        val assetParams = mockk<AssetLinkParams>()
-        val cacheObject = mockk<CacheObject>()
+        val assetParams = mockk<AssetLinkParams>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val fileDetails = CachedObjectDetails(
             size = 4000000,
             mimeType = "video/mp4",
@@ -284,7 +284,7 @@ class AssetServiceTest {
             size = 3L,
             mimeType = "application/pdf",
         )
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val stream = mockk<InputStream>()
         val request = mockk<HttpServletRequest>()
 
@@ -322,7 +322,7 @@ class AssetServiceTest {
         )
         val stream = mockk<InputStream>()
         val range = "bytes=100000-400000"
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
 
         every { storageService.getFileProperties(any(), "myuri") } returns fileDetails

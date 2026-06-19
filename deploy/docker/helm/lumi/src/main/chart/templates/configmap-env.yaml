@@ -6,7 +6,9 @@ metadata:
 data:
   AWS_S3_MAX_FILE_LENGTH: {{ .Values.config.files.maxsize | quote }}
   AWS_S3_ENDPOINT: {{ (printf "%s://%s:%d" .Values.config.s3.protocol .Values.config.s3.host (.Values.config.s3.port | int)) | quote }}
-  AWS_REGION: {{ .Values.config.s3.region | quote }}
+  AWS_S3_REGION: {{ .Values.config.s3.region | quote }}
+  AWS_S3_TRUST_ALL_CERTIFICATES: {{ .Values.config.s3.trustAllCertificates | quote }}
+  AWS_S3_CHECKSUM_CALCULATION_WHEN_REQUIRED: {{ .Values.config.s3.checksumCalculationWhenRequired | quote }}
   BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}

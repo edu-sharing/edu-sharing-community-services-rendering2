@@ -1,3 +1,4 @@
+import { traceContextMiddleware } from "./traceContext";
 import express from 'express';
 import bodyParser from 'body-parser';
 
@@ -102,6 +103,9 @@ const start = async () => {
     h5pPlayer.setRenderer(eduSharingPlayer)
 
     const app = express();
+
+    // Must run first so the adopted trace id is in scope for every downstream middleware/handler log.
+    app.use(traceContextMiddleware);
 
     const promBundle = require("express-prom-bundle");
     const metricsMiddleware = promBundle({

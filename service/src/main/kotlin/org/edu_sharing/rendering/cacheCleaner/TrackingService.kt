@@ -90,13 +90,14 @@ class TrackingService(
                     bucket = bucket,
                     binarySize = cacheObject.size
                 )
-            )
+            )!!
         try {
             trackingEntry.lastAccessed = Date()
             if (size != null) {
                 trackingEntry.binarySize = size
             }
             trackingEntryRepository.save(trackingEntry)
+            log.debug("Tracked cache object: nodeId=${cacheObject.nodeId}, bucket=$bucket, binarySize=${trackingEntry.binarySize}")
         } catch (_: DuplicateKeyException) {
             log.warn("tracking entry for node id ${cacheObject.nodeId} already exists.")
         } catch (exception: MongoException) {

@@ -26,30 +26,34 @@ class ImageReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.image.name}", durable = "false"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.image.key}"]
+                value = Queue(name = $$"${app.queue.image.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.image.key}"]
             )
         ],
         containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SubJobMessage) {
+        log.debug("Received image sub-job message: id=${message.id}")
         val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null) {
             log.warn("Expected main job not found: " + message.id)
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        log.debug("Processing image job for nodeId=${cacheObject.nodeId}, subJobCount=${jobEntry.subJobs.size}")
         val sourceImage = conversionService.fetchSourceImage(cacheObject)
         jobEntry.subJobs.forEach {
             var subJob = it
+            log.debug("Converting image sub-job: quality=${subJob.quality} for nodeId=${cacheObject.nodeId}")
             try {
                 subJob.status = SubJobStatus.PROCESSING
                 subJob = subJobRepository.save(subJob)
                 conversionService.convert(cacheObject, subJob.quality, sourceImage)
                 subJob.status = SubJobStatus.FINISHED
+                log.debug("Image sub-job FINISHED: quality=${subJob.quality} for nodeId=${cacheObject.nodeId}")
             } catch (exception: Exception) {
-                log.warn(exception.message)
+                log.warn(exception.message, exception)
                 subJob.status = SubJobStatus.FAILED
             }
             subJobRepository.save(subJob)

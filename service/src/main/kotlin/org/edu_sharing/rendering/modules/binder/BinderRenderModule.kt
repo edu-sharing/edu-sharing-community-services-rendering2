@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.storage.StorageService
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -20,9 +21,11 @@ class BinderRenderModule(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val mapper: Mapper,
     private val storageService: StorageService,
-    @Value("\${app.session.moodle.nodePermissionExpirationTime}")
+    @Value($$"${app.session.moodle.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     ): RenderModule, ThirdPartyModule {
+
+    private val log = LoggerFactory.getLogger(BinderRenderModule::class.java)
 
     companion object {
         private val requiredCredentialKeys = setOf("baseurl")
@@ -32,7 +35,9 @@ class BinderRenderModule(
     override fun module() = "BINDER"
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Binder handle called for nodeId={}", node.ref.id)
         val jobId = jobService.createJobs(node, this)
+        log.debug("Binder jobs created: jobId={} for nodeId={}", jobId, node.ref.id)
         return RenderDataResponse(
             jobId = jobId,
             module = module()
@@ -68,7 +73,8 @@ class BinderRenderModule(
         cacheObject.mimeType = MediaType.TEXT_HTML_VALUE
         return try {
             storageService.getObjectLink(cacheObject).first
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            log.error("Error getting object link from job data", e)
             null
         }
     }

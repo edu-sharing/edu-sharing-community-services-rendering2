@@ -88,7 +88,7 @@ class DocumentRenderModuleTest {
     fun testGetObjectLinkFromJobDataReturnsObjectLinkReturnedFromService() {
         // Arrange
         val linkList = listOf(ObjectLink(link = "mylink"))
-        val mockRenderingJob = mockk<RenderingJob>()
+        val mockRenderingJob = mockk<RenderingJob>(relaxed = true)
         val subJobMock = mockk<SubJob>()
 
         every { mockMapper.renderingJobToCacheObject(mockRenderingJob) } returns cacheObject
@@ -109,7 +109,7 @@ class DocumentRenderModuleTest {
     @Test
     fun testGetObjectLinkFromJobDataReturnsNullReturnedFromService() {
         // Arrange
-        val mockRenderingJob = mockk<RenderingJob>()
+        val mockRenderingJob = mockk<RenderingJob>(relaxed = true)
         val subJobMock = mockk<SubJob>()
 
         every { mockMapper.renderingJobToCacheObject(mockRenderingJob) } returns cacheObject
@@ -143,7 +143,7 @@ class DocumentRenderModuleTest {
         // Arrange
         underTest.documentRoutingKey = "documentRoutingKey"
         underTest.topicExchangeName = "topicExchangeName"
-        val mockRenderingJob = mockk<RenderingJob>()
+        val mockRenderingJob = mockk<RenderingJob>(relaxed = true)
         val mockRenderingJobMessage = mockk<RenderingJobMessage>()
         val documentSubJobSlot = slot<SubJob>()
         val messageSlot = slot<SubJobMessage>()

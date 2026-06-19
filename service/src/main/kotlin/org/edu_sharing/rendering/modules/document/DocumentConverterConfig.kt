@@ -4,17 +4,23 @@ import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.util.unit.DataSize
 import org.springframework.web.reactive.function.client.WebClient
 
 @ConditionalOnConverter
 @Configuration
-class DocumentConverterConfig {
-    @Value("\${app.documentConverter.host}")
-    lateinit var converterBaseUrl: String
+class DocumentConverterConfig(
+    @param:Value($$"${app.documentConverter.host}")
+    private val converterBaseUrl: String,
+    @param:Value($$"${spring.http.codecs.max-in-memory-size}")
+    private val maxInMemorySize: DataSize
+) {
 
     @Bean
-    fun documentConverterWebClient(): WebClient {
-        return WebClient.builder().baseUrl(converterBaseUrl)
-            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(20 * 1024 * 1024) }.build()
+    fun documentConverterWebClient(webClientBuilder: WebClient.Builder): WebClient {
+        return webClientBuilder.clone()
+            .baseUrl(converterBaseUrl)
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }
+            .build()
     }
 }

@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.storage.bucket
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
@@ -9,12 +10,14 @@ import org.springframework.stereotype.Component
 class ExternalBucketStrategy(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
 ): BaseBucketStrategy() {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
         return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}"
     }
 
     override fun getBucket(cacheObject: CacheObject): String {
-        return repositoryRegistrationStorageService
+        val bucket = repositoryRegistrationStorageService
             .getRegistrationByRepoId(cacheObject.repoId)
             .orElseThrow {
                 IllegalArgumentException("Unknown repository identifier ${cacheObject.repoId} provided")
@@ -22,6 +25,8 @@ class ExternalBucketStrategy(
             .buckets
             ?.renderingBucket
             ?: throw IllegalArgumentException("No bucket ID configured for repository ${cacheObject.repoId}")
+        log.debug("Resolved bucket (external strategy): repoId=${cacheObject.repoId}, bucket=$bucket")
+        return bucket
     }
 
     override fun prefixStaticPath(
@@ -51,7 +56,7 @@ class ExternalBucketStrategy(
     }
 
     override fun getTempBucket(repoId: String): String {
-        return repositoryRegistrationStorageService
+        val bucket = repositoryRegistrationStorageService
             .getRegistrationByRepoId(repoId)
             .orElseThrow {
                 IllegalArgumentException("Unknown repository identifier $repoId provided")
@@ -59,5 +64,7 @@ class ExternalBucketStrategy(
             .buckets
             ?.tempBucket
             ?: throw IllegalArgumentException("No temp bucket ID configured for repository $repoId")
+        log.debug("Resolved temp bucket (external strategy): repoId=$repoId, bucket=$bucket")
+        return bucket
     }
 }

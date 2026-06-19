@@ -1,7 +1,7 @@
 package org.edu_sharing.rendering.core
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.json.JsonMapper
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import jakarta.validation.Valid
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -29,39 +30,49 @@ class RenderController (
     private val trackingService: EduTrackingService,
     private val repositoryPublicKeyService: RepositoryPublicKeyService,
     private val nodeSessionContextRepository: NodeSessionContextRepository,
-    @param:Value("\${app.security.enabled}")
+    @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
 ){
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getRenderData(
         @RequestBody @Valid body: RenderDataRequest
     ): ResponseEntity<RenderDataResponse> {
+        log.debug("Render data request received: nodeId=${body.nodeId}, repoId=${body.repoId}, eventType=${body.eventType}, securityEnabled=$securityEnabled")
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
+        val signatureAlgorithm = body.signatureAlgorithm //String(Base64.getDecoder().decode(body.signatureAlgorithm))
         if (securityEnabled) {
-            verifySignedNode(decodedNode, decodedSignature, body.repoId)
+            //@TODO: check if signatureAlgorithm is allowed
+            log.debug("Verifying node signature: repoId=${body.repoId}, algorithm=$signatureAlgorithm, nodeDataLength=${decodedNode.size}")
+            verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }
-        val objectMapper = ObjectMapper().apply {
-            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        }
+        val objectMapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build()
         val node = objectMapper.readValue(decodedNode.toString(Charsets.UTF_8), Node::class.java)
         nodeSessionContextRepository.saveNode(node)
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
 
+        val renderModule = service.getRenderModule(body, node)
+        log.debug("Dispatching to render module: ${renderModule::class.simpleName}, nodeId=${node.ref.id}")
         return ResponseEntity
             .ok()
-            .body(service.getRenderModule(body, node).handle(node))
+            .body(renderModule.handle(node))
     }
 
-    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String) {
+    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String, signatureAlgorithm: String) {
         val repoPublicKey = repositoryPublicKeyService.getRepositoryKey(repoId)
-        val verify = Signature.getInstance("SHA1withRSA")
+        val verify = Signature.getInstance(signatureAlgorithm)
         verify.initVerify(repoPublicKey)
         verify.update(nodeData)
         val result = verify.verify(signature)
         if (!result) {
             throw IllegalStateException("Signature verification failed")
         }
+        log.debug("Signature verification passed: repoId=$repoId, algorithm=$signatureAlgorithm")
     }
 }

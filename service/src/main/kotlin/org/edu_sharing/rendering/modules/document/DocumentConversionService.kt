@@ -30,6 +30,7 @@ class DocumentConversionService(
     private val log = LoggerFactory.getLogger(this.javaClass)
 
     override fun process(cacheObject: CacheObject, renderingJob: RenderingJob) {
+        log.debug("process: nodeId=${cacheObject.nodeId}, module=${renderingJob.module}")
         var subJob = renderingJob.subJobs.first()
         subJob.status = SubJobStatus.PROCESSING
         subJob = subJobRepository.save(subJob)
@@ -39,6 +40,7 @@ class DocumentConversionService(
                 moduleRegistry.getRenderModule(renderingJob.module)
             )
             subJob.status = SubJobStatus.FINISHED
+            log.debug("Document conversion FINISHED: nodeId=${cacheObject.nodeId}")
         } catch (exception: Exception) {
             log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${exception.message}",exception)
             subJob.status = SubJobStatus.FAILED
@@ -50,6 +52,7 @@ class DocumentConversionService(
     }
 
     private fun convertAndMoveToCache(cacheObject: CacheObject, module: DocumentRenderModule) {
+        log.debug("convertAndMoveToCache: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, targetMimeType=${module.getTargetMimetype()}, module=${module.module()}")
         val urlParams =
             if (spreadsheetRenderModule != null && module.module() == spreadsheetRenderModule.module()) mapOf("format" to "html") else emptyMap()
         val arguments = ConverterWebServiceArguments(

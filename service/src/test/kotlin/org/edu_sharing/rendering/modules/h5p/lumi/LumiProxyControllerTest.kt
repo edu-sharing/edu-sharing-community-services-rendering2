@@ -8,8 +8,8 @@ import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -62,7 +62,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                traceId = any(),
                 responseType = String::class.java,
                 additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
@@ -82,7 +81,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         assert(result.response.contentAsString == "mycontent")
         assert(result.response.headerNames.size == 2)
-        assert(result.response.getHeaderValue("Content-Length") == 9L)
+        assert(result.response.getHeader("Content-Length") == "9")
         assert(result.response.getHeaderValue("Content-Type") == "text/html")
 
         verifySequence {
@@ -94,7 +93,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                traceId = any(),
                 responseType = String::class.java,
                 additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
@@ -127,7 +125,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         } returns responseEntity
@@ -146,7 +143,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         assert(result.response.contentAsString == "mycontent")
         assert(result.response.headerNames.size == 2)
-        assert(result.response.getHeaderValue("Content-Length") == 9L)
+        assert(result.response.getHeader("Content-Length") == "9")
         assert(result.response.getHeaderValue("Content-Type") == "text/html")
 
         verifySequence {
@@ -157,7 +154,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         }
@@ -183,7 +179,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         } returns responseEntity
@@ -202,7 +197,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
 
         assert(result.response.contentAsString == "mycontent")
         assert(result.response.headerNames.size == 2)
-        assert(result.response.getHeaderValue("Content-Length") == 9L)
+        assert(result.response.getHeader("Content-Length") == "9")
         assert(result.response.getHeaderValue("Content-Type") == "text/javascript")
 
         verify(exactly = 1) {
@@ -211,7 +206,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         }

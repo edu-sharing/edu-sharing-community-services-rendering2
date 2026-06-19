@@ -1,6 +1,6 @@
 package org.edu_sharing.rendering.modules.binder.git
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.modules.binder.dto.GitDetails
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -27,6 +27,7 @@ class GitHubService(
         if (gitDetails.filePath.isNullOrBlank()) {
             throw IllegalArgumentException("Could not parse file path from GitHub URL")
         }
+        log.debug("Fetching file from GitHub: user={}, repo={}, branch={}, filePath={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath)
         val stream = gitHubBinaryWebClient.get()
             .uri("/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}/${gitDetails.filePath}")
             .header("Authorization", "Bearer $token")
@@ -42,12 +43,13 @@ class GitHubService(
         gitDetails: GitDetails,
         token: String
     ): Boolean {
+        log.debug("Checking GitHub commit freshness: user={}, repo={}, branch={}, filePath={}, lastModifiedInCache={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath, lastModifiedInCache)
         try {
             val response = gitHubRepoApiWebClient
                 .get()
                 .uri {
                     it.path("/${gitDetails.user}/${gitDetails.repo}/commits")
-                        .queryParam("path", gitDetails.filePath)
+                        .queryParam("path", gitDetails.filePath ?: "")
                         .queryParam("sha", gitDetails.branch)
                         .build()
                 }
@@ -61,7 +63,7 @@ class GitHubService(
                         .path("commit")
                         .path("committer")
                         .path("date")
-                        .asText()
+                        .asString()
                     val commitTimeStamp =
                         ZonedDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME).toInstant().epochSecond
                     return commitTimeStamp < lastModifiedInCache

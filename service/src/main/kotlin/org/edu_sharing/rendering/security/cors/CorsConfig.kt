@@ -13,7 +13,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @Configuration
 class CorsConfig(
     private val appInfo: AppInfo,
-    @Value("\${app.security.enabled}")
+    @Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
 ) {
     private val log = LoggerFactory.getLogger(CorsConfig::class.java)
@@ -59,7 +59,7 @@ class CorsConfig(
         config.addAllowedOrigin(appInfo.public.url.cleanUrl())
         config.addAllowedOrigin(appInfo.internal.url.cleanUrl())
         config.allowCredentials = true
-        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info")
+        config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info", "X-Client-Trace-Id")
         config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
         config.addExposedHeader("Access-Control-Allow-Origin")
         config.addExposedHeader("Authentication-Info")

@@ -11,11 +11,10 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
+import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 
 @Component
@@ -44,6 +43,7 @@ class SodixRenderModule(
     override fun isOptionalModule() = true
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("Handling Sodix node ${node.ref.id}, creating async job")
         val replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0]
         val replicationSourceId = node.properties?.getOrDefault("ccm:replicationsourceid", mutableListOf(""))[0]
         if (replicationSource.isNullOrBlank() || replicationSourceId.isNullOrBlank()) {
@@ -66,9 +66,7 @@ class SodixRenderModule(
 
         var role = ""
         if (isPaidMedia) {
-            val authentication = SecurityContextHolder.getContext().authentication
-            val userDetails = authentication.principal as JWTBasedUserDetail
-            role = userDetails.primaryAffiliation
+            role = SecurityContextUtils.currentUser().primaryAffiliation
         }
         val message = SodixJobMessage(
             id = job.id.toString(),
@@ -77,6 +75,7 @@ class SodixRenderModule(
             isPaidMedia = isPaidMedia,
             role = role
         )
+        log.debug("Sending Sodix job message for jobId ${job.id}, identifier $replicationSourceId, isPaidMedia $isPaidMedia to queue $jobRoutingKey")
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 
         return RenderDataResponse(

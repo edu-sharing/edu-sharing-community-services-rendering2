@@ -1,12 +1,13 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiBucketInfo
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeHashResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
@@ -22,10 +23,13 @@ class LumiContentManagementService(
     private val lumiCacheRepository: LumiCacheRepository,
     private val nodeSessionContextRepo: NodeSessionContextRepository,
     @param:Lazy private val module: H5pRenderModule,
-    @param:Value("\${app.security.enabled}")
+    @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     fun getNodeInfo(contentId: String): LumiNodeInfo {
+        log.debug("Looking up Lumi node info for contentId={}", contentId)
         return lumiCacheRepository.findById(contentId).orElseGet{ retrieveNodeInfo(contentId) }
     }
 
@@ -41,6 +45,7 @@ class LumiContentManagementService(
     }
 
     private fun retrieveNodeInfo(contentId: String) : LumiNodeInfo {
+        log.debug("Retrieving Lumi node info from remote for contentId={}", contentId)
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
@@ -83,6 +88,7 @@ class LumiContentManagementService(
     }
 
     fun deleteContent(trackingEntry: TrackingEntry) {
+        log.debug("Deleting Lumi content for nodeId={}, hash={}", trackingEntry.nodeId, trackingEntry.hash)
         lumiWebClient.delete()
             .uri {
                 UriComponentsBuilder.fromUri(it.build())

@@ -50,7 +50,7 @@ class ContentTransferServiceTest {
     @Test
     fun testGetAsInputStreamRetrievesTestDataIfTestPrefixSet() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val resource = mockk<Resource>()
         val stream = "123".byteInputStream()
         every { cacheObject.nodeId } returns "TEST_node1"
@@ -79,8 +79,9 @@ class ContentTransferServiceTest {
     @Test
     fun testAsInputStreamRetrievesAssetFromRepo() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val serverResponse = "test"
+        val repoId = "repo1"
 
         val signedSlot = slot<String>()
 
@@ -88,7 +89,8 @@ class ContentTransferServiceTest {
         every { cacheObject.repoId } returns "repo1"
         every { cacheObject.version } returns "1.2"
         every { repositoryRegistrationService.getWebClientByRepoId("repo1") } returns eduSharingWebClient
-        every { encryptionService.sign(capture(signedSlot)) } returns "test".toByteArray()
+        every { encryptionService.sign(capture(signedSlot), repoId) } returns "test".toByteArray()
+        every { encryptionService.getSigningAlg(repoId) } returns "SHA512withRSA"
 
         excludeRecords {
             cacheObject.nodeId
@@ -132,8 +134,9 @@ class ContentTransferServiceTest {
         }
 
         verifySequence {
-            encryptionService.sign(any())
+            encryptionService.sign(any(), repoId)
             repositoryRegistrationService.getWebClientByRepoId("repo1")
+            encryptionService.getSigningAlg(repoId)
         }
         confirmVerified(resourceLoader, repositoryRegistrationService)
     }
@@ -141,14 +144,16 @@ class ContentTransferServiceTest {
     @Test
     fun testGetAsInputStreamReplacesRepoIdAndVersionIfNull() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
         val serverResponse = "test"
+        val repoId = "repo123"
 
         every { cacheObject.nodeId } returns "node1"
         every { cacheObject.repoId } returns "repo123"
         every { cacheObject.version } returns null
         every { repositoryRegistrationService.getWebClientByRepoId("repo123") } returns eduSharingWebClient
-        every { encryptionService.sign(any()) } returns "test".toByteArray()
+        every { encryptionService.sign(any(), repoId) } returns "test".toByteArray()
+        every { encryptionService.getSigningAlg(repoId) } returns "SHA512withRSA"
 
         excludeRecords {
             cacheObject.nodeId

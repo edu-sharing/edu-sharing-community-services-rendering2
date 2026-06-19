@@ -14,7 +14,7 @@ private const val PERMISSIONS = "permissions"
 
 @Component
 class NodePermissionSessionContextRepository(
-    @Value("\${app.session.nodePermissionExpirationTime}")
+    @Value($$"${app.session.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long,
     private val renderModuleRegistry: ModuleRegistry,
     private val nodeSessionContextRepository: NodeSessionContextRepository
@@ -58,6 +58,9 @@ class NodePermissionSessionContextRepository(
         val nodePermissions = readNodePermissionsFromSession(session) ?: return
         val now = LocalDateTime.now()
         val allExpiredNodeIds = nodePermissions.filter { now.isAfter(it.lastAccessDate.plusSeconds(getExpirationTime(it))) }.map { it.nodeId }
+        if (allExpiredNodeIds.isNotEmpty()) {
+            log.debug("Expiring ${allExpiredNodeIds.size} node permission(s) from session: $allExpiredNodeIds")
+        }
         nodePermissions.removeAll { it.nodeId in allExpiredNodeIds }
         nodeSessionContextRepository.removeAll(allExpiredNodeIds)
         if (nodePermissions.isEmpty()) {
@@ -70,16 +73,24 @@ class NodePermissionSessionContextRepository(
     fun saveNodePermission(nodePermission: NodePermission) {
         val session = getSession(true) ?: return
         val nodePermissions = readNodePermissionsFromSession(session) ?: mutableListOf()
-        nodePermissions.removeAll { it.nodeId == nodePermission.nodeId }
+        nodePermissions.removeAll { it.nodeId == nodePermission.nodeId && it.repoId == nodePermission.repoId }
         nodePermissions.add(nodePermission)
         session.setAttribute(PERMISSIONS, nodePermissions)
     }
 
     fun hasPermission(nodeId: String, permission: String): Boolean {
-        val session = getSession(false) ?: return false
-        val nodePermissions = readNodePermissionsFromSession(session) ?: return false
+        val session = getSession(false) ?: run {
+            log.debug("Permission check for nodeId=$nodeId: denied (no session)")
+            return false
+        }
+        val nodePermissions = readNodePermissionsFromSession(session) ?: run {
+            log.debug("Permission check for nodeId=$nodeId: denied (no permissions in session)")
+            return false
+        }
 
-        return nodePermissions.firstOrNull { it.nodeId == nodeId }?.hasPermission(permission) == true
+        val result = nodePermissions.firstOrNull { it.nodeId == nodeId }?.hasPermission(permission) == true
+        log.debug("Permission check for nodeId=$nodeId, permission=$permission: ${if (result) "allowed" else "denied"}")
+        return result
     }
 
     fun getNodePermission(nodeId: String): NodePermission? {

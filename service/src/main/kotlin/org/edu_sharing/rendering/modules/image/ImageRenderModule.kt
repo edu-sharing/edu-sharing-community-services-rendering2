@@ -11,13 +11,14 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class ImageRenderModule(
-    @Value("\${app.session.image.nodePermissionExpirationTime}")
+    @Value($$"${app.session.image.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val mapper: Mapper,
     private val imageService: ImageService,
@@ -25,10 +26,12 @@ class ImageRenderModule(
     private val amqpTemplate: AmqpTemplate
 ) : RenderModule, ConversionModule {
 
-    @Value("\${app.queue.image.key}")
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Value($$"${app.queue.image.key}")
     lateinit var imageRoutingKey: String
 
-    @Value("\${app.queue.topicExchange}")
+    @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
     override fun module() = "IMAGE"
@@ -37,6 +40,7 @@ class ImageRenderModule(
         val cacheObject = mapper.nodeToCacheObject(node)
         val objectLinks = imageService.getObjectLinks(cacheObject)
         val isConversionType = imageService.isConversionObject(cacheObject)
+        log.debug("handle: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, isConversionType=$isConversionType, cachedLinks=${objectLinks?.size ?: 0}")
 
         // Non-conversion type and already in cache
         if (!isConversionType && objectLinks != null ) {
@@ -49,11 +53,13 @@ class ImageRenderModule(
             missingQualities = imageService.getMissingQualities(objectLinks)
             if (missingQualities.isEmpty()) {
                 // None missing, so no further action is needed
+                log.debug("All image qualities cached for nodeId=${cacheObject.nodeId}")
                 return RenderDataResponse(objectLinks = objectLinks, module = module())
             }
         }
 
         val jobId = imageService.retrieveOrCreateJob(cacheObject, module(), missingQualities)
+        log.debug("Image job dispatched: jobId=$jobId, missingQualities=$missingQualities for nodeId=${cacheObject.nodeId}")
         return RenderDataResponse(objectLinks = objectLinks, jobId = jobId, module = module())
     }
 
@@ -69,6 +75,7 @@ class ImageRenderModule(
         renderingJob: RenderingJob,
         message: RenderingJobMessage
     ) {
+        log.debug("Creating ${message.missingQualities.size} image sub-jobs for jobId=${renderingJob.id}, qualities=${message.missingQualities}")
         message.missingQualities.forEach {
             val imageJob = SubJob(routingKey = imageRoutingKey, quality = it, parent = renderingJob)
             renderingJob.subJobs.add(imageJob)

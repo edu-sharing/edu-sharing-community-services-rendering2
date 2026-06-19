@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
+import io.micrometer.tracing.Tracer
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
@@ -32,7 +33,7 @@ class LumiProxyServiceTest {
         lumiWebClient = WebClient.builder()
             .baseUrl(mockServer.url("/").toString())
             .build()
-        underTest = LumiProxyService(lumiWebClient)
+        underTest = LumiProxyService(lumiWebClient, mockk<Tracer>(relaxed = true))
         clearAllMocks()
     }
 
@@ -53,13 +54,12 @@ class LumiProxyServiceTest {
         val body = null
         val method = HttpMethod.GET
         val request = mockk<HttpServletRequest>()
-        val traceId = "traceid"
         val responseType = String::class.java
 
         val requestHeaders = HttpHeaders()
         requestHeaders[HttpHeaders.USER_AGENT] = "somefakeagent"
         requestHeaders[HttpHeaders.ACCEPT_ENCODING] = "UTF-8"
-        val headerIterator = Collections.enumeration(requestHeaders.keys)
+        val headerIterator = Collections.enumeration(requestHeaders.headerNames())
 
         every { request.requestURI } returns uri
         every { request.headerNames } returns headerIterator
@@ -84,13 +84,12 @@ class LumiProxyServiceTest {
             body = body,
             method = method,
             request = request,
-            traceId = traceId,
             responseType = responseType,
         )
 
         // Assert
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_TYPE))
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_LENGTH))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_TYPE))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_LENGTH))
         assert(result.statusCode == HttpStatus.OK)
         assert(result.body == "testresponse")
 
@@ -110,13 +109,12 @@ class LumiProxyServiceTest {
         val body = "requestbody"
         val method = HttpMethod.POST
         val request = mockk<HttpServletRequest>()
-        val traceId = "traceid"
         val responseType = String::class.java
 
         val requestHeaders = HttpHeaders()
         requestHeaders[HttpHeaders.USER_AGENT] = "somefakeagent"
         requestHeaders[HttpHeaders.ACCEPT_ENCODING] = "UTF-8"
-        val headerIterator = Collections.enumeration(requestHeaders.keys)
+        val headerIterator = Collections.enumeration(requestHeaders.headerNames())
 
         every { request.requestURI } returns uri
         every { request.headerNames } returns headerIterator
@@ -141,13 +139,12 @@ class LumiProxyServiceTest {
             body = body,
             method = method,
             request = request,
-            traceId = traceId,
             responseType = responseType,
         )
 
         // Assert
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_TYPE))
-        assert(result.headers.containsKey(HttpHeaders.CONTENT_LENGTH))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_TYPE))
+        assert(result.headers.containsHeader(HttpHeaders.CONTENT_LENGTH))
         assert(result.statusCode == HttpStatus.OK)
         assert(result.body == "testresponse")
 
