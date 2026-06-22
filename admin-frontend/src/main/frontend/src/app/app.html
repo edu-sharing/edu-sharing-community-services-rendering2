@@ -7,6 +7,19 @@
         <span class="brand-title">Rendering&nbsp;Admin</span>
       </span>
 
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field contrast-field">
+        <mat-label>Contrast</mat-label>
+        <mat-select
+          panelClass="topbar-select-panel"
+          [value]="settings.contrastMode()"
+          (selectionChange)="onContrastChange($event.value)"
+        >
+          @for (opt of settings.contrastOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
       <span class="spacer"></span>
 
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field repo-field">
@@ -34,19 +47,6 @@
           (selectionChange)="onIntervalChange($event.value)"
         >
           @for (opt of settings.intervalOptions; track opt.value) {
-            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field contrast-field">
-        <mat-label>Contrast</mat-label>
-        <mat-select
-          panelClass="topbar-select-panel"
-          [value]="settings.contrastMode()"
-          (selectionChange)="onContrastChange($event.value)"
-        >
-          @for (opt of settings.contrastOptions; track opt.value) {
             <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
           }
         </mat-select>

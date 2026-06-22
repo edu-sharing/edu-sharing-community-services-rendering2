@@ -34,6 +34,7 @@
 mat-toolbar.topbar {
   grid-area: topbar;
   gap: 18px;
+  padding-left: 0;
   background: var(--es-primary);
   color: #fff;
 }
@@ -44,6 +45,11 @@ mat-toolbar.topbar button[matIconButton] {
 .spacer { flex: 1 1 auto; }
 
 .brand {
+  /* Span exactly the sidenav column so the next control lines up with the sidebar's right edge.
+     Subtract the toolbar gap (18px) since the gap is added after the brand. */
+  width: calc(var(--es-nav-width) - 18px);
+  box-sizing: border-box;
+  padding-left: 16px;
   display: flex;
   align-items: center;
   gap: 10px;
