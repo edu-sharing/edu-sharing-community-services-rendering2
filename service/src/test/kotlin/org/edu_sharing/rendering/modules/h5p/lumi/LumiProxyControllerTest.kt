@@ -62,7 +62,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                traceId = any(),
                 responseType = String::class.java,
                 additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
@@ -94,7 +93,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                traceId = any(),
                 responseType = String::class.java,
                 additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
@@ -127,7 +125,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         } returns responseEntity
@@ -157,7 +154,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         }
@@ -183,7 +179,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         } returns responseEntity
@@ -211,7 +206,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 captureNullable(bodySlot),
                 capture(methodSlot),
                 capture(requestSlot),
-                any(),
                 ByteArray::class.java
             )
         }

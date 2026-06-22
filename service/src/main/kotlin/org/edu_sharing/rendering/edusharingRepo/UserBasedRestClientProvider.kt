@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component
 class UserBasedRestClientProvider(
     private val sessionTicketRepository: SessionTicketRepository,
     private val authHeaderProvider: AuthHeaderProvider,
+    private val tracePropagatingInterceptor: TracePropagatingInterceptor,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -46,7 +47,10 @@ class UserBasedRestClientProvider(
             authHeaderProvider = authHeaderProvider,
             authenticationApiFactory = ::getAuthenticationApiClient,
         )
-        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(interceptor).build()
+        apiClient.httpClient = apiClient.httpClient.newBuilder()
+            .addInterceptor(interceptor)
+            .addInterceptor(tracePropagatingInterceptor)
+            .build()
         return apiClient
     }
 
@@ -59,6 +63,7 @@ class UserBasedRestClientProvider(
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
+        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(tracePropagatingInterceptor).build()
         return AuthenticationV1Api(apiClient)
     }
 }

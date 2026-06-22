@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.ServicesRenderingService2Application
+import org.edu_sharing.rendering.cacheCleaner.CustomTrackingEntryRepositoryImpl
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.config.*
 import org.edu_sharing.rendering.core.PingController
@@ -9,6 +10,7 @@ import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
+import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
@@ -88,6 +90,7 @@ abstract class SharedBeans {
             CustomHttpSessionIdResolver::class,
             CustomRenderingJobRepositoryImpl::class,
             CustomSubJobRepositoryImpl::class,
+            CustomTrackingEntryRepositoryImpl::class,
             GitHubConfig::class,
             GitHubService::class,
             GitServiceRegistry::class,
@@ -161,15 +164,18 @@ abstract class SharedBeans {
             SpringConfig::class,
             SpringDocConfig::class,
             StorageManagerRegistry::class,
+            TracePropagatingInterceptor::class,
             TrackingService::class,
             VideoConverterConfig::class,
             VideoRenderModule::class,
             VideoService::class,
+            WebClientConfig::class,
         )
 
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
             "permissionEvaluator",
+            "writeConcernResolver",
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans

@@ -201,6 +201,22 @@
         <classifier>bin</classifier>
         <type>zip</type>
       </dependency>
+
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>edu_sharing-community-services-rendering2-admin-frontend</artifactId>
+        <version>${project.version}</version>
+        <classifier>bin</classifier>
+        <type>zip</type>
+      </dependency>
+
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>edu_sharing-community-services-rendering2-deploy-docker-helm-admin-frontend</artifactId>
+        <version>${project.version}</version>
+        <type>tar.gz</type>
+        <classifier>bin</classifier>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -239,5 +255,6 @@
     <module>document-converter</module>
     <module>jupyter-converter</module>
     <module>lumi</module>
+    <module>admin-frontend</module>
   </modules>
 </project>

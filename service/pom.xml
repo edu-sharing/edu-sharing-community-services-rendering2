@@ -231,6 +231,21 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Distributed tracing: Micrometer Tracing with OpenTelemetry bridge, for b3 trace-context
+             propagation (WebClient/OkHttp/RabbitMQ) and trace ids in every log line. Spans are NOT
+             exported by the app itself — in the Istio service mesh the Envoy sidecar generates and
+             reports the spans; the app only has to propagate the b3 headers it received. The Boot 4
+             autoconfig (Tracer/Propagator) lives in spring-boot-micrometer-tracing-opentelemetry; it
+             wires the io.micrometer.tracing.otel.bridge.* classes provided by micrometer-tracing-bridge-otel. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
@@ -290,6 +305,16 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>3.0.3</version>
+    </dependency>
+
+    <!-- Jackson 2 Kotlin module for swagger-core's (Jackson 2) ObjectMapper, so springdoc
+         detects Kotlin non-null properties and emits them as `required` in the OpenAPI schema
+         (see SpringDocConfig.modelResolver). The app itself runs on Jackson 3; this is only for
+         the swagger-core model introspection used to build the spec. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-kotlin</artifactId>
+      <version>2.21.4</version>
     </dependency>
 
         <!-- TESTS -->

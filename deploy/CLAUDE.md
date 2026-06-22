@@ -16,9 +16,9 @@ in sync:
 deploy/docker/
 ├── compose/        # resource-filtered docker-compose YAML (Maven Resources Plugin)
 ├── build/          # per-module Dockerfiles + docker-maven-plugin
-│   ├── service/  document-converter/  jupyter-converter/  lumi/
+│   ├── service/  document-converter/  jupyter-converter/  lumi/  admin-frontend/
 └── helm/           # per-module Helm charts + helm-maven-plugin
-    ├── bundle/   service/  document-converter/  jupyter-converter/  lumi/
+    ├── bundle/   service/  document-converter/  jupyter-converter/  lumi/  admin-frontend/
 ```
 
 ## Compose
@@ -26,9 +26,17 @@ deploy/docker/
 the base stack; the others override per profile (e.g. `dev` mounts local JARs and sets
 `-Dspring.profiles.active=docker`). Services: `mongo-database`, `rendering2-rustfs-storage`
 (S3-compatible), `rendering2-message-queue` (RabbitMQ), `redis-cache`, `rendering2-service`,
-`rendering2-document-converter`, `rendering2-lumi`, `rendering2-jupyter-converter`.
+`rendering2-document-converter`, `rendering2-lumi`, `rendering2-jupyter-converter`,
+`rendering2-admin-frontend`.
 Values use `${RENDERING2_*}` env overrides with defaults; Maven resource filtering
 substitutes `${docker.*}` build properties.
+
+The **`rendering2-admin-frontend`** service shares the service's `VIRTUAL_HOST` and is routed
+at a separate path (`VIRTUAL_PATH=/rendering-admin/`, env `RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH`)
+so the SPA is same-origin with the `/admin` API (no CORS). It also publishes a host port
+(`RENDERING2_ADMIN_FRONTEND_PORT_HTTP`, default `10400`) for external Apache2 routing. Its
+container env `BASE_HREF` (UI path) and `ADMIN_API_BASE` (service context-path, e.g. `/rendering`)
+configure the static server at runtime — see [`../admin-frontend/CLAUDE.md`](../admin-frontend/CLAUDE.md).
 
 ## Dockerfiles (`build/<module>/src/main/build/Dockerfile`)
 - **service** & **document-converter**: Amazon Corretto 21-alpine, Spring Boot layered-jar
@@ -36,6 +44,9 @@ substitutes `${docker.*}` build properties.
   The document-converter image additionally installs **LibreOffice + fonts**.
 - **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000.
 - **jupyter-converter**: `python:3.13` (Poetry install in a builder stage), runs `python -m main`.
+- **admin-frontend**: `node:21-alpine`, serves the static Angular build via a dependency-free
+  `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
+  prefix, injects `BASE_HREF`/`ADMIN_API_BASE` into `index.html` at request time). Exposes 8080.
 
 `docker-maven-plugin` builds images on `install` and pushes on `deploy`, naming them from the
 root POM's `docker.registry` / `docker.repository` / `docker.prefix` and the git-derived `docker.tag`.
@@ -66,6 +77,7 @@ dotted Spring keys set as env entries.
 | `server.servlet.context-path` | (direct) | `/rendering` |
 | `app.session.<module>.nodePermissionExpirationTime` | (direct) | empty = not cached |
 | `RENDERING2_LUMI_DATABASE_{NAME,USER}` | lumi Mongo db/user | `lumi` |
+| `BASE_HREF` / `ADMIN_API_BASE` (admin-frontend container) | static server, **not** Spring | `/rendering-admin/` / `/rendering` |
 
 (See `1_rendering2-common.yml` for the authoritative, complete list.)
 

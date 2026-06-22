@@ -37,7 +37,8 @@ class RepositoryRegistrationService(
     private val appInfo: AppInfo,
     private val moduleRegistry: ModuleRegistry,
     private val metadataService: MetadataService,
-    private val restClientProvider: RestClientProvider
+    private val restClientProvider: RestClientProvider,
+    private val webClientBuilder: WebClient.Builder
 ) : RepositoryPublicKeyService {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -52,8 +53,8 @@ class RepositoryRegistrationService(
     }
 
     private fun getWebClient(url: String): WebClient {
-        return WebClient
-            .builder()
+        return webClientBuilder
+            .clone()
             .baseUrl(url)
             .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024 * 1024) }
             .build()

@@ -22,6 +22,8 @@ class QueueConfig {
         factory.setPrefetchCount(1)
         factory.setConcurrentConsumers(1)
         factory.setMessageConverter(messageConverter)
+        // Continue the trace across the async queue boundary (reads trace context from message headers).
+        factory.setObservationEnabled(true)
         return factory
     }
 
@@ -37,6 +39,8 @@ class QueueConfig {
     fun amqpTemplate(connectionFactory: ConnectionFactory, messageConverter: MessageConverter): AmqpTemplate {
         val template = RabbitTemplate(connectionFactory)
         template.messageConverter = messageConverter
+        // Inject the current trace context into message headers when publishing.
+        template.setObservationEnabled(true)
         return template
     }
 }

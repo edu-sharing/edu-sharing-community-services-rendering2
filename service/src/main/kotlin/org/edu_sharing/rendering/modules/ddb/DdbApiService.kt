@@ -18,7 +18,8 @@ import tools.jackson.databind.ObjectMapper
 class DdbApiService(
     private val renderingJobRepository: RenderingJobRepository,
     private val moduleRegistry: ModuleRegistry,
-    private val subJobRepository: SubJobRepository
+    private val subJobRepository: SubJobRepository,
+    private val webClientBuilder: WebClient.Builder
 ) {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
@@ -80,7 +81,7 @@ class DdbApiService(
 
     private fun callRestApi(remoteId: String, apiToken: String): DdbRestData {
         log.debug("Calling DDB REST API for remoteId $remoteId at ${DdbRenderModule.REST_API_BASE_URL}")
-        val webClient = WebClient.create(DdbRenderModule.REST_API_BASE_URL)
+        val webClient = webClientBuilder.clone().baseUrl(DdbRenderModule.REST_API_BASE_URL).build()
 
         val response = webClient
             .get()
@@ -110,7 +111,7 @@ class DdbApiService(
 
     private fun callIiifApi(binaryRef: String, apiToken: String): List<Pair<Int, Int>> {
         log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${DdbRenderModule.IIIF_API_BASE_URL}")
-        val webClient = WebClient.create(DdbRenderModule.Companion.IIIF_API_BASE_URL)
+        val webClient = webClientBuilder.clone().baseUrl(DdbRenderModule.Companion.IIIF_API_BASE_URL).build()
         val response = webClient
             .get()
             .uri {

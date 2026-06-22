@@ -12,7 +12,6 @@ import org.springframework.security.access.expression.method.DefaultMethodSecuri
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
-import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.core.userdetails.User
@@ -77,7 +76,8 @@ class SecurityConfig(
                 headers.frameOptions { it.disable() }
             }.authorizeHttpRequests {
                 it.requestMatchers(
-                    "/public/modules"
+                    "/public/modules",
+                    "/public/session"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }
@@ -105,7 +105,11 @@ class SecurityConfig(
                 it.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 it.requestMatchers("/actuator/health/*", "/actuator/prometheus", "/ping").permitAll()
                 it.anyRequest().authenticated()
-            }.httpBasic(Customizer.withDefaults())
+            }
+            // Bei 401 nur den Status zurückgeben, KEIN `WWW-Authenticate: Basic` (wie der
+            // public-Chain): sonst löst der Browser bei jedem 401 auf /admin seinen nativen
+            // Login-Dialog aus. Das Admin-Frontend behandelt die Anmeldung selbst (Login-Seite).
+            .httpBasic { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
             .build()
     }
 

@@ -409,3 +409,10 @@ edusharing_services_rendering2_service:
       region: *storageConfigRegion
 
 ########################################################################################################################
+
+edusharing_services_rendering2_admin_frontend:
+
+  ## @param edusharing_services_rendering2_admin_frontend.enabled Enable rendering2 admin frontend
+  enabled: true
+
+########################################################################################################################

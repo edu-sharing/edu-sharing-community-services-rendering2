@@ -1,0 +1,107 @@
+@if (searchable()) {
+  <div class="dt-toolbar">
+    <!-- Leading controls (e.g. filter dropdowns), projected by the host next to the search. -->
+    <ng-content select="[dt-filters]" />
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="dt-search">
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+      <input
+        matInput
+        type="search"
+        [ngModel]="query()"
+        (ngModelChange)="onQueryInput($event)"
+        [placeholder]="searchPlaceholder()"
+        [attr.aria-label]="searchPlaceholder()"
+      />
+    </mat-form-field>
+    <span class="dt-toolbar-spacer"></span>
+    <!-- Trailing controls (e.g. action buttons / notes), right-aligned. -->
+    <ng-content select="[dt-actions]" />
+  </div>
+}
+
+<div class="dt-scroll" [style.max-height]="maxHeight()">
+<table class="data">
+  <thead>
+    <tr>
+      @if (expansion()) {
+        <th scope="col" class="dt-expand-col" aria-label="Expand row"></th>
+      }
+      @for (col of columns(); track col.key) {
+        <th
+          scope="col"
+          [class.right]="col.align === 'right'"
+          [class.center]="col.align === 'center'"
+          [class.sortable]="col.sortable"
+          [attr.aria-sort]="col.sortable
+            ? (activeSortKey() === col.key ? (activeSortDir() === 'asc' ? 'ascending' : 'descending') : 'none')
+            : null"
+        >
+          @if (col.sortable) {
+            <button type="button" class="dt-sort-btn" (click)="toggleSort(col)">
+              {{ col.label }}
+              @if (activeSortKey() === col.key) {
+                <mat-icon class="dt-arrow" aria-hidden="true">{{ activeSortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+              }
+            </button>
+          } @else {
+            {{ col.label }}
+          }
+        </th>
+      }
+      @if (rowActions()) {
+        <th scope="col" class="right">Action</th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of view(); track trackVal(row)) {
+      <tr>
+        @if (expansion()) {
+          <td class="dt-expand-col">
+            @if (canExpand()(row)) {
+              <button
+                matIconButton
+                (click)="toggle(row)"
+                [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
+                [attr.aria-expanded]="isExpanded(row)"
+              >
+                <mat-icon aria-hidden="true">{{ isExpanded(row) ? 'expand_more' : 'chevron_right' }}</mat-icon>
+              </button>
+            }
+          </td>
+        }
+        @for (col of columns(); track col.key) {
+          <td [class]="cellClass(col)">
+            @switch (col.kind) {
+              @case ('bytes') { {{ cell(row, col) | bytes }} }
+              @case ('date') { {{ cell(row, col) | epoch }} }
+              @case ('badge') {
+                <span class="badge {{ col.badgeClass ? col.badgeClass(row) : '' }}">{{ cell(row, col) }}</span>
+              }
+              @default { {{ cell(row, col) }} }
+            }
+          </td>
+        }
+        @if (rowActions(); as tpl) {
+          <td class="right">
+            <ng-container [ngTemplateOutlet]="tpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </td>
+        }
+      </tr>
+      @if (expansion(); as tpl) {
+        @if (isExpanded(row)) {
+          <tr class="dt-expansion-row">
+            <td [attr.colspan]="colspan()">
+              <ng-container [ngTemplateOutlet]="tpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </td>
+          </tr>
+        }
+      }
+    } @empty {
+      <tr>
+        <td [attr.colspan]="colspan()" class="muted">No entries.</td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>
