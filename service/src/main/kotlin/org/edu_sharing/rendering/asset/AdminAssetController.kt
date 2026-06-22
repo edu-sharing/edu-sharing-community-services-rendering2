@@ -77,11 +77,14 @@ class AdminAssetController(
     fun listAssetNodes(
         @RequestParam repoId: String,
         @RequestParam(required = false) type: String?,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) sort: String?,
+        @RequestParam(required = false, defaultValue = "desc") dir: String,
         @RequestParam(required = false, defaultValue = "0") page: Int,
         @RequestParam(required = false, defaultValue = "20") size: Int
     ): AssetNodePage {
-        log.debug("GET /admin/assets/nodes for repoId=$repoId, type=$type, page=$page, size=$size")
-        val result = trackingEntryRepository.aggregateNodes(repoId, type, page, size)
+        log.debug("GET /admin/assets/nodes for repoId=$repoId, type=$type, search=$search, sort=$sort, dir=$dir, page=$page, size=$size")
+        val result = trackingEntryRepository.aggregateNodes(repoId, type, search, sort, dir, page, size)
         val totalPages = if (size > 0) ((result.total + size - 1) / size).toInt() else 0
         return AssetNodePage(
             content = result.content.map {
@@ -115,9 +118,14 @@ class AdminAssetController(
     }
 
     @GetMapping("/assets/types")
-    fun listAssetTypes(@RequestParam repoId: String): List<AssetTypeInfo> {
-        log.debug("GET /admin/assets/types for repoId=$repoId")
-        return trackingEntryRepository.aggregateTypesByRepoId(repoId)
+    fun listAssetTypes(
+        @RequestParam repoId: String,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) sort: String?,
+        @RequestParam(required = false, defaultValue = "desc") dir: String
+    ): List<AssetTypeInfo> {
+        log.debug("GET /admin/assets/types for repoId=$repoId, search=$search, sort=$sort, dir=$dir")
+        return trackingEntryRepository.aggregateTypes(repoId, search, sort, dir)
             .map { AssetTypeInfo(type = it.type, count = it.count, totalSize = it.totalSize) }
     }
 

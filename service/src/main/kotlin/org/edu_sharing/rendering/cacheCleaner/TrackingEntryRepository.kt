@@ -25,11 +25,4 @@ interface TrackingEntryRepository: MongoRepository<TrackingEntry, ObjectId>, Cus
         "{\$project: { _id: 0, repoId: '\$_id', totalSize: 1, buckets: 1 } }"
     )
     fun getBucketAggregation(): List<BucketAggregation>
-
-    @Aggregation(
-        "{\$match: { repoId: ?0 } }",
-        "{\$group: { _id: '\$type', count: { \$sum: 1 }, totalSize: { \$sum: '\$binarySize' } } }",
-        "{\$project: { _id: 0, type: '\$_id', count: 1, totalSize: 1 } }"
-    )
-    fun aggregateTypesByRepoId(repoId: String): List<AssetTypeAggregation>
 }

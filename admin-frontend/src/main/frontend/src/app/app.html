@@ -11,6 +11,7 @@
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field repo-field">
         <mat-label>Repository</mat-label>
         <mat-select
+          panelClass="topbar-select-panel"
           [value]="repoCtx.activeRepoId() ?? ''"
           (selectionChange)="onRepoChange($event.value)"
           [disabled]="!repoCtx.hasRepos()"
@@ -27,6 +28,7 @@
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field interval-field">
         <mat-label>Refresh</mat-label>
         <mat-select
+          panelClass="topbar-select-panel"
           [value]="settings.pollIntervalMs()"
           (selectionChange)="onIntervalChange($event.value)"
         >
@@ -35,6 +37,16 @@
           }
         </mat-select>
       </mat-form-field>
+
+      <button
+        matIconButton
+        aria-label="Refresh now"
+        title="Refresh now"
+        [disabled]="!repoCtx.activeRepoId()"
+        (click)="onRefresh()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
 
       <button matIconButton aria-label="Log out" title="Log out" (click)="logout()">
         <mat-icon>logout</mat-icon>

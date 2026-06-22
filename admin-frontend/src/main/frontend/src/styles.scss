@@ -237,3 +237,24 @@ button[matButton] mat-icon {
   --mat-select-enabled-arrow-color: rgba(255, 255, 255, 0.85);
   --mat-select-focused-arrow-color: #fff;
 }
+
+/* Options panel of the topbar selects. The trigger sits on the dark toolbar (light text via
+   .topbar-field above), but the dropdown panel floats in the global CDK overlay — so it does
+   NOT inherit those light tokens. Force explicitly readable dark-on-light option colors so the
+   entries (repo ids, refresh intervals) are legible. The panel carries the `panelClass`. */
+.topbar-select-panel {
+  background: var(--es-surface);
+
+  --mat-option-label-text-color: var(--es-text);
+  --mat-option-selected-state-label-text-color: var(--es-accent-600);
+  --mat-option-hover-state-layer-color: rgba(37, 54, 79, 0.06);
+  --mat-option-focus-state-layer-color: rgba(37, 54, 79, 0.10);
+  --mat-option-selected-state-layer-color: rgba(242, 148, 0, 0.12);
+
+  .mat-mdc-option {
+    color: var(--es-text);
+  }
+  .mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+    color: var(--es-accent-600);
+  }
+}

@@ -4,9 +4,24 @@ interface CustomTrackingEntryRepository {
     /**
      * Aggregiert die Tracking-Einträge eines Repos nach nodeId (paginiert). Pro nodeId werden
      * die Daten der neuesten Version (höchstes lastAccessed) sowie Anzahl und Gesamtgröße aller
-     * Versionen geliefert.
+     * Versionen geliefert. Optionale Freitextsuche (`search`, Regex über nodeId/type/hash) und
+     * serverseitige Sortierung (`sort`-Spaltenschlüssel + `dir` asc/desc).
      */
-    fun aggregateNodes(repoId: String, type: String?, page: Int, size: Int): NodeAggregationResult
+    fun aggregateNodes(
+        repoId: String,
+        type: String?,
+        search: String?,
+        sort: String?,
+        dir: String,
+        page: Int,
+        size: Int
+    ): NodeAggregationResult
+
+    /**
+     * Aggregiert die Asset-Kennzahlen je Typ innerhalb eines Repos. Optionale Freitextsuche
+     * (`search`, Regex über den Typnamen) und serverseitige Sortierung (`sort` + `dir`).
+     */
+    fun aggregateTypes(repoId: String, search: String?, sort: String?, dir: String): List<AssetTypeAggregation>
 }
 
 data class NodeAggregationResult(

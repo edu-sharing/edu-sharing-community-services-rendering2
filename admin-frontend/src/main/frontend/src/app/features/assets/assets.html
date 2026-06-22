@@ -1,46 +1,49 @@
 <h1>Assets</h1>
 
 <div class="card types-card">
-  <div class="card-head">
-    <h2>Types</h2>
-    <button matButton="outlined" class="warn-btn" (click)="deleteAll()">
-      <mat-icon>delete_forever</mat-icon> Delete all assets
-    </button>
-  </div>
+  <h2>Types</h2>
   <app-data-table
     [columns]="typeColumns"
     [rows]="types()"
     trackKey="type"
+    [serverSide]="true"
     [initialSort]="{ key: 'totalSize', dir: 'desc' }"
     [rowActions]="typeActionsTpl"
     searchPlaceholder="Search types…"
-  />
+    (sortChange)="onTypeSort($event)"
+    (queryChange)="onTypeSearch($event)"
+  >
+    <button dt-actions matButton="outlined" class="warn-btn" (click)="deleteAll()">
+      <mat-icon>delete_forever</mat-icon> Delete all assets
+    </button>
+  </app-data-table>
 </div>
 
 <div class="card">
-  <div class="toolbar">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-      <mat-label>Filter type</mat-label>
-      <mat-select [value]="filterType() ?? ''" (selectionChange)="setFilterType($event.value)">
-        <mat-option value="">All</mat-option>
-        @for (t of types(); track t.type) {
-          <mat-option [value]="t.type">{{ t.type }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <span class="muted note">Entries are bundled by node — expand to see the versions.</span>
-  </div>
-
   <app-data-table
     [columns]="nodeColumns"
     [rows]="nodeRows()"
     trackKey="nodeId"
+    [serverSide]="true"
     [initialSort]="{ key: 'lastAccessed', dir: 'desc' }"
     [expansion]="versionsTpl"
     [rowActions]="nodeActionsTpl"
     (expanded)="onExpandNode($event)"
     searchPlaceholder="Search assets…"
-  />
+    (sortChange)="onNodeSort($event)"
+    (queryChange)="onNodeSearch($event)"
+  >
+    <mat-form-field dt-filters appearance="outline" subscriptSizing="dynamic" class="filter-field">
+      <mat-label>Filter type</mat-label>
+      <mat-select [value]="filterType() ?? ''" (selectionChange)="setFilterType($event.value)">
+        <mat-option value="">All</mat-option>
+        @for (t of filterTypes(); track t.type) {
+          <mat-option [value]="t.type">{{ t.type }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <span dt-actions class="muted note">Entries are bundled by node — expand to see the versions.</span>
+  </app-data-table>
 
   @if (nodes(); as p) {
     <div class="pager">

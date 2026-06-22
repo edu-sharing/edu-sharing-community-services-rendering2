@@ -9,10 +9,11 @@ import { catchError, switchMap } from 'rxjs/operators';
 import { AssetsService } from '../../api/services';
 import { AssetInfo, AssetNode, AssetTypeInfo } from '../../api/models';
 import { BytesPipe, EpochPipe } from '../../core/format';
+import { ConfirmService } from '../../core/confirm.service';
 import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
-import { Column, DataTable } from '../../shared/data-table';
+import { Column, DataTable, SortConfig } from '../../shared/data-table';
 
 @Component({
   selector: 'app-assets',
@@ -28,12 +29,21 @@ export class Assets {
   private readonly repoCtx = inject(RepoContextService);
   private readonly poll = inject(PollingService);
   private readonly notify = inject(NotificationService);
+  private readonly confirm = inject(ConfirmService);
   private readonly repoId$ = toObservable(this.repoCtx.activeRepoId);
 
   protected readonly filterType = signal<string | null>(null);
   protected readonly page = signal(0);
   protected readonly size = 50;
   private readonly refreshTick = signal(0);
+
+  // Server-side sort + search per table (defaults mirror each table's initialSort).
+  private readonly nodeSort = signal('lastAccessed');
+  private readonly nodeDir = signal<'asc' | 'desc'>('desc');
+  private readonly nodeSearch = signal('');
+  private readonly typeSort = signal('totalSize');
+  private readonly typeDir = signal<'asc' | 'desc'>('desc');
+  private readonly typeSearch = signal('');
 
   /** Loaded versions per nodeId (lazy, on expand). */
   protected readonly versionsByNode = signal<Record<string, AssetInfo[]>>({});
@@ -42,14 +52,25 @@ export class Assets {
     combineLatest([
       this.repoId$,
       toObservable(this.filterType),
+      toObservable(this.nodeSort),
+      toObservable(this.nodeDir),
+      toObservable(this.nodeSearch),
       toObservable(this.page),
       toObservable(this.refreshTick),
       this.poll.ticks$,
     ]).pipe(
-      switchMap(([repoId, type, page]) =>
+      switchMap(([repoId, type, sort, dir, search, page]) =>
         repoId
           ? this.api
-              .listAssetNodes({ repoId, type: type ?? undefined, page, size: this.size })
+              .listAssetNodes({
+                repoId,
+                type: type ?? undefined,
+                sort,
+                dir,
+                search: search || undefined,
+                page,
+                size: this.size,
+              })
               .pipe(catchError(() => of(null)))
           : of(null),
       ),
@@ -58,15 +79,32 @@ export class Assets {
   );
 
   protected readonly types = toSignal(
-    combineLatest([this.repoId$, toObservable(this.refreshTick), this.poll.ticks$]).pipe(
-      switchMap(([repoId]) =>
-        repoId ? this.api.listAssetTypes({ repoId }).pipe(catchError(() => of([]))) : of([]),
+    combineLatest([
+      this.repoId$,
+      toObservable(this.typeSort),
+      toObservable(this.typeDir),
+      toObservable(this.typeSearch),
+      toObservable(this.refreshTick),
+      this.poll.ticks$,
+    ]).pipe(
+      switchMap(([repoId, sort, dir, search]) =>
+        repoId
+          ? this.api
+              .listAssetTypes({ repoId, sort, dir, search: search || undefined })
+              .pipe(catchError(() => of([])))
+          : of([]),
       ),
     ),
     { initialValue: [] as AssetTypeInfo[] },
   );
 
   protected readonly nodeRows = computed<AssetNode[]>(() => this.nodes()?.content ?? []);
+
+  /** Type names for the node filter dropdown — always stable, sorted by name (so it doesn't
+   *  reorder while polling and regardless of how the Types table itself is sorted). */
+  protected readonly filterTypes = computed<AssetTypeInfo[]>(() =>
+    [...this.types()].sort((a, b) => a.type.localeCompare(b.type)),
+  );
 
   protected readonly nodeColumns: Column[] = [
     { key: 'nodeId', label: 'Node', sortable: true, cssClass: 'mono' },
@@ -90,6 +128,26 @@ export class Assets {
   setFilterType(value: string): void {
     this.filterType.set(value || null);
     this.page.set(0);
+  }
+
+  onNodeSort(s: SortConfig): void {
+    this.nodeSort.set(s.key);
+    this.nodeDir.set(s.dir);
+    this.page.set(0);
+  }
+
+  onNodeSearch(q: string): void {
+    this.nodeSearch.set(q);
+    this.page.set(0);
+  }
+
+  onTypeSort(s: SortConfig): void {
+    this.typeSort.set(s.key);
+    this.typeDir.set(s.dir);
+  }
+
+  onTypeSearch(q: string): void {
+    this.typeSearch.set(q);
   }
 
   prevPage(): void {
@@ -123,61 +181,89 @@ export class Assets {
   deleteVersion(node: AssetNode, version: AssetInfo): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    if (!confirm(`Delete version (hash ${version.hash}) of node ${node.nodeId}?`)) return;
-    this.api.deleteAsset({ repoId, nodeId: node.nodeId, hash: version.hash }).subscribe({
-      next: () => {
-        this.loadVersions(node.nodeId);
-        this.refreshTick.update((v) => v + 1);
-      },
-      error: () => this.notify.error('Deletion failed.'),
-    });
+    this.confirm
+      .confirm({
+        title: 'Delete version',
+        message: `Delete version (hash ${version.hash}) of node ${node.nodeId}?`,
+        confirmLabel: 'Delete',
+        destructive: true,
+      })
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.api.deleteAsset({ repoId, nodeId: node.nodeId, hash: version.hash }).subscribe({
+          next: () => {
+            this.loadVersions(node.nodeId);
+            this.refreshTick.update((v) => v + 1);
+          },
+          error: () => this.notify.error('Deletion failed.'),
+        });
+      });
   }
 
   deleteNode(node: AssetNode): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    if (!confirm(`Delete all ${node.versionCount} version(s) of node ${node.nodeId}?`)) return;
-    this.api.deleteAsset({ repoId, nodeId: node.nodeId }).subscribe({
-      next: () => this.bumpRefresh(),
-      error: () => this.notify.error('Deletion failed.'),
-    });
+    this.confirm
+      .confirm({
+        title: 'Delete node',
+        message: `Delete all ${node.versionCount} version(s) of node ${node.nodeId}?`,
+        confirmLabel: 'Delete',
+        destructive: true,
+      })
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.api.deleteAsset({ repoId, nodeId: node.nodeId }).subscribe({
+          next: () => this.bumpRefresh(),
+          error: () => this.notify.error('Deletion failed.'),
+        });
+      });
   }
 
   deleteByType(type: string): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    const answer = prompt(
-      `Delete all assets of type "${type}" in repo ${repoId}.\nTo confirm, type the type name exactly:`,
-    );
-    if (answer !== type) {
-      if (answer !== null) this.notify.error('Input does not match — aborted.');
-      return;
-    }
-    this.api.deleteAssetsByType({ repoId, type }).subscribe({
-      next: (r) => {
-        this.bumpRefresh();
-        this.notify.success(`${r.deleted} assets deleted.`);
-      },
-      error: () => this.notify.error('Deletion failed.'),
-    });
+    this.confirm
+      .confirm({
+        title: 'Delete all assets of a type',
+        message: `Delete all assets of type "${type}" in repo ${repoId}. This cannot be undone.`,
+        confirmLabel: 'Delete type',
+        destructive: true,
+        confirmToken: type,
+        tokenHint: 'Type the type name to confirm',
+      })
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.api.deleteAssetsByType({ repoId, type }).subscribe({
+          next: (r) => {
+            this.bumpRefresh();
+            this.notify.success(`${r.deleted} assets deleted.`);
+          },
+          error: () => this.notify.error('Deletion failed.'),
+        });
+      });
   }
 
   deleteAll(): void {
     const repoId = this.repoId;
     if (!repoId) return;
-    const answer = prompt(
-      `Irreversibly delete ALL assets of repo ${repoId}.\nTo confirm, type the repoId exactly:`,
-    );
-    if (answer !== repoId) {
-      if (answer !== null) this.notify.error('Input does not match — aborted.');
-      return;
-    }
-    this.api.deleteAllAssets({ repoId }).subscribe({
-      next: (r) => {
-        this.bumpRefresh();
-        this.notify.success(`${r.deleted} assets deleted.`);
-      },
-      error: () => this.notify.error('Deletion failed.'),
-    });
+    this.confirm
+      .confirm({
+        title: 'Delete ALL assets',
+        message: `Irreversibly delete ALL assets of repo ${repoId}. This cannot be undone.`,
+        confirmLabel: 'Delete all',
+        destructive: true,
+        confirmToken: repoId,
+        tokenHint: 'Type the repoId to confirm',
+      })
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.api.deleteAllAssets({ repoId }).subscribe({
+          next: (r) => {
+            this.bumpRefresh();
+            this.notify.success(`${r.deleted} assets deleted.`);
+          },
+          error: () => this.notify.error('Deletion failed.'),
+        });
+      });
   }
 }

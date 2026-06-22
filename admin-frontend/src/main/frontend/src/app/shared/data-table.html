@@ -1,18 +1,24 @@
 @if (searchable()) {
   <div class="dt-toolbar">
+    <!-- Leading controls (e.g. filter dropdowns), projected by the host next to the search. -->
+    <ng-content select="[dt-filters]" />
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="dt-search">
       <mat-icon matPrefix>search</mat-icon>
       <input
         matInput
         type="search"
         [ngModel]="query()"
-        (ngModelChange)="query.set($event)"
+        (ngModelChange)="onQueryInput($event)"
         [placeholder]="searchPlaceholder()"
       />
     </mat-form-field>
+    <span class="dt-toolbar-spacer"></span>
+    <!-- Trailing controls (e.g. action buttons / notes), right-aligned. -->
+    <ng-content select="[dt-actions]" />
   </div>
 }
 
+<div class="dt-scroll" [style.max-height]="maxHeight()">
 <table class="data">
   <thead>
     <tr>
@@ -87,3 +93,4 @@
     }
   </tbody>
 </table>
+</div>

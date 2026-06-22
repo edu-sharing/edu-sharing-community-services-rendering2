@@ -31,6 +31,7 @@ export class Login {
     this.auth.login(this.username, this.password);
     this.api.registeredRepos().subscribe({
       next: () => {
+        this.auth.markVerified();
         this.loading.set(false);
         this.router.navigate(['/dashboard']);
       },

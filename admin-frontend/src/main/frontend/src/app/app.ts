@@ -6,6 +6,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
+import { PollingService } from './core/polling.service';
 import { RepoContextService } from './core/repo-context.service';
 import { SettingsService } from './core/settings.service';
 
@@ -22,6 +23,7 @@ export class App {
   protected readonly auth = inject(AuthService);
   protected readonly repoCtx = inject(RepoContextService);
   protected readonly settings = inject(SettingsService);
+  private readonly poll = inject(PollingService);
 
   constructor() {
     // Load the repo list as soon as the admin is authenticated.
@@ -38,6 +40,10 @@ export class App {
 
   onIntervalChange(value: number): void {
     this.settings.setPollInterval(value);
+  }
+
+  onRefresh(): void {
+    this.poll.refresh();
   }
 
   logout(): void {

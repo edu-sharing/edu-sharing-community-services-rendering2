@@ -1,29 +1,30 @@
 <h1>Jobs</h1>
 
-<div class="toolbar">
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-    <mat-label>Status</mat-label>
-    <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
-      <mat-option value="">All</mat-option>
-      @for (s of statuses; track s) {
-        <mat-option [value]="s">{{ s }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-  <span class="muted note">TTL: older jobs are removed automatically.</span>
-</div>
-
 <div class="card">
   <app-data-table
     [columns]="columns"
     [rows]="rows()"
     trackKey="id"
+    [serverSide]="true"
     [initialSort]="{ key: 'creationTimestamp', dir: 'desc' }"
     [expansion]="subJobsTpl"
     [canExpand]="hasSubJobs"
     [rowActions]="actionsTpl"
     searchPlaceholder="Search jobs…"
-  />
+    (sortChange)="onSort($event)"
+    (queryChange)="onSearch($event)"
+  >
+    <mat-form-field dt-filters appearance="outline" subscriptSizing="dynamic" class="filter-field">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
+        <mat-option value="">All</mat-option>
+        @for (s of statuses; track s) {
+          <mat-option [value]="s">{{ s }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <span dt-actions class="muted note">TTL: older jobs are removed automatically.</span>
+  </app-data-table>
 
   @if (jobs(); as p) {
     <div class="pager">

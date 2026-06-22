@@ -12,7 +12,6 @@
       <dt>Rendering bucket</dt><dd class="mono">{{ r.renderingBucket ?? '–' }}</dd>
       <dt>Temp bucket</dt><dd class="mono">{{ r.tempBucket ?? '–' }}</dd>
       <dt>Public Key</dt><dd class="mono">{{ r.publicKeyPreview }}</dd>
-      <dt>Last CORS sync</dt><dd>{{ r.lastAllowedOriginSync | epoch }}</dd>
     </dl>
   </div>
 
@@ -56,6 +55,8 @@
       <dd>{{ r.allowedOrigins.length ? r.allowedOrigins.join(', ') : '–' }}</dd>
       <dt>Origin Patterns</dt>
       <dd>{{ r.allowedOriginPatterns.length ? r.allowedOriginPatterns.join(', ') : '–' }}</dd>
+      <dt>Last CORS sync</dt>
+      <dd>{{ r.lastAllowedOriginSync | epoch }}</dd>
     </dl>
   </div>
 } @else {

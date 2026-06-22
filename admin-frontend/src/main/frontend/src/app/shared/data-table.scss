@@ -2,13 +2,37 @@
   display: block;
 }
 
+/* Single toolbar row above the table: leading controls (filters) + search on the left,
+   trailing controls (actions / notes) pushed to the right by the spacer. */
 .dt-toolbar {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dt-toolbar-spacer {
+  flex: 1 1 auto;
 }
 .dt-search {
   min-width: 260px;
+}
+
+/* Scrollable table area: capped to `maxHeight` (set inline) so the body scrolls within the card
+   while the toolbar above and the pager below stay put. Short tables don't scroll. */
+.dt-scroll {
+  overflow: auto;
+}
+
+/* Keep the header visible while the body scrolls inside .dt-scroll (sticky relative to that
+   container). A solid background is required so body rows don't show through (the global `th`
+   has none). Scoped to this component, so nested sub-tables (versions/module settings) are
+   unaffected. */
+table.data thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--es-surface);
 }
 
 table.data th.sortable {

@@ -1,10 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, TemplateRef, computed, input, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { BytesPipe, EpochPipe } from '../core/format';
 
 export type ColumnKind = 'text' | 'number' | 'bytes' | 'date' | 'badge';
@@ -58,13 +61,37 @@ export class DataTable {
   readonly searchable = input(true);
   readonly searchPlaceholder = input('Search…');
   readonly trackKey = input('id');
+  /**
+   * Max height of the scrollable table area (any CSS length). The toolbar and the sticky header
+   * stay visible while the body scrolls within this height; short tables don't scroll. Default
+   * caps the table to most of the viewport so the header stays in view.
+   */
+  readonly maxHeight = input('60vh');
   readonly initialSort = input<SortConfig | null>(null);
   readonly expansion = input<TemplateRef<{ $implicit: Row }> | null>(null);
   readonly rowActions = input<TemplateRef<{ $implicit: Row }> | null>(null);
   /** Determines whether a row is expandable (default: all, provided expansion is set). */
   readonly canExpand = input<(row: Row) => boolean>(() => true);
+  /**
+   * Server-side mode: the table does NOT filter/sort the rows itself (they are shown as passed,
+   * already searched/sorted by the backend). Instead it emits `sortChange`/`queryChange` so the
+   * host can re-query. Default `false` keeps the client-side behaviour (small, fully-loaded lists).
+   */
+  readonly serverSide = input(false);
   /** Emitted when a row is NEWLY expanded (e.g. to lazily load detail data). */
   readonly expanded = output<Row>();
+  /** (server-side) Emitted when the user changes the sort column/direction. */
+  readonly sortChange = output<SortConfig>();
+  /** (server-side) Emitted (debounced) when the search text changes. */
+  readonly queryChange = output<string>();
+
+  private readonly querySubject = new Subject<string>();
+
+  constructor() {
+    this.querySubject
+      .pipe(debounceTime(300), takeUntilDestroyed())
+      .subscribe((q) => this.queryChange.emit(q));
+  }
 
   protected readonly query = signal('');
   private readonly sortKey = signal<string | null>(null);
@@ -77,8 +104,15 @@ export class DataTable {
   );
 
   protected readonly view = computed<Row[]>(() => {
+    const data = this.rows() ?? [];
+    // Server-side: rows are already searched + sorted by the backend — show them verbatim.
+    if (this.serverSide()) return data;
+    return this.clientView(data);
+  });
+
+  private clientView(rows: Row[]): Row[] {
     const cols = this.columns();
-    let data = this.rows() ?? [];
+    let data = rows;
 
     const q = this.query().trim().toLowerCase();
     if (q) {
@@ -101,7 +135,7 @@ export class DataTable {
       });
     }
     return data;
-  });
+  }
 
   protected readonly colspan = computed(
     () => this.columns().length + (this.expansion() ? 1 : 0) + (this.rowActions() ? 1 : 0),
@@ -121,13 +155,17 @@ export class DataTable {
 
   protected toggleSort(col: Column): void {
     if (!col.sortable) return;
-    if (this.activeSortKey() === col.key) {
-      this.sortDir.set(this.activeSortDir() === 'asc' ? 'desc' : 'asc');
-      this.sortKey.set(col.key);
-    } else {
-      this.sortKey.set(col.key);
-      this.sortDir.set('asc');
-    }
+    const dir: 'asc' | 'desc' =
+      this.activeSortKey() === col.key && this.activeSortDir() === 'asc' ? 'desc' : 'asc';
+    this.sortKey.set(col.key);
+    this.sortDir.set(dir);
+    if (this.serverSide()) this.sortChange.emit({ key: col.key, dir });
+  }
+
+  /** Search input handler — drives the client filter and (server-side) the debounced re-query. */
+  protected onQueryInput(value: string): void {
+    this.query.set(value);
+    if (this.serverSide()) this.querySubject.next(value);
   }
 
   protected trackVal(row: Row): unknown {

@@ -46,6 +46,16 @@ class AdminJobController(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    companion object {
+        // Whitelist: Frontend-Spaltenschlüssel -> sortierbares Mongo-Feld.
+        private val JOB_SORT_FIELDS = mapOf(
+            "module" to "module",
+            "status" to "status",
+            "esObjectId" to "esObjectId",
+            "creationTimestamp" to "creationTimestamp",
+        )
+    }
+
     @GetMapping("/jobs/stats")
     fun getJobStats(@RequestParam repoId: String): JobStatsInfo {
         log.debug("GET /admin/jobs/stats for repoId=$repoId")
@@ -74,16 +84,18 @@ class AdminJobController(
     fun listJobs(
         @RequestParam repoId: String,
         @RequestParam(required = false) status: RenderingJobStatus?,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) sort: String?,
+        @RequestParam(required = false, defaultValue = "desc") dir: String,
         @RequestParam(required = false, defaultValue = "0") page: Int,
         @RequestParam(required = false, defaultValue = "20") size: Int
     ): JobPage {
-        log.debug("GET /admin/jobs for repoId=$repoId, status=$status, page=$page, size=$size")
-        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "creationTimestamp"))
-        val result: Page<RenderingJob> = if (status != null) {
-            renderingJobRepository.findByRepoIdAndStatus(repoId, status, pageable)
-        } else {
-            renderingJobRepository.findByRepoId(repoId, pageable)
-        }
+        log.debug("GET /admin/jobs for repoId=$repoId, status=$status, search=$search, sort=$sort, dir=$dir, page=$page, size=$size")
+        // Whitelist gegen beliebige Sort-Eingaben; Default wie bisher: neueste zuerst.
+        val sortField = JOB_SORT_FIELDS[sort] ?: "creationTimestamp"
+        val direction = if (dir.equals("asc", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
+        val pageable = PageRequest.of(page, size, Sort.by(direction, sortField))
+        val result: Page<RenderingJob> = renderingJobRepository.findJobsPage(repoId, status, search, pageable)
         return JobPage(
             content = result.content.map { toJobListItem(it) },
             page = result.number,

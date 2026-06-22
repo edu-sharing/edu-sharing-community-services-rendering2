@@ -8,10 +8,11 @@ import { combineLatest, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { JobsService } from '../../api/services';
 import { JobListItem } from '../../api/models';
+import { ConfirmService } from '../../core/confirm.service';
 import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
-import { Column, DataTable } from '../../shared/data-table';
+import { Column, DataTable, SortConfig } from '../../shared/data-table';
 
 /** Job status union, derived from the generated contract (the enum is inlined in the spec). */
 type RenderingJobStatus = NonNullable<JobListItem['status']>;
@@ -27,6 +28,7 @@ export class Jobs {
   private readonly repoCtx = inject(RepoContextService);
   private readonly poll = inject(PollingService);
   private readonly notify = inject(NotificationService);
+  private readonly confirm = inject(ConfirmService);
   private readonly repoId$ = toObservable(this.repoCtx.activeRepoId);
 
   protected readonly statuses: RenderingJobStatus[] =
@@ -35,20 +37,35 @@ export class Jobs {
   protected readonly status = signal<RenderingJobStatus | null>(null);
   protected readonly page = signal(0);
   protected readonly size = 50;
+  // Server-side sort + search (defaults mirror the table's initialSort / backend default).
+  private readonly sort = signal('creationTimestamp');
+  private readonly dir = signal<'asc' | 'desc'>('desc');
+  private readonly search = signal('');
   private readonly refreshTick = signal(0);
 
   protected readonly jobs = toSignal(
     combineLatest([
       this.repoId$,
       toObservable(this.status),
+      toObservable(this.sort),
+      toObservable(this.dir),
+      toObservable(this.search),
       toObservable(this.page),
       toObservable(this.refreshTick),
       this.poll.ticks$,
     ]).pipe(
-      switchMap(([repoId, status, page]) =>
+      switchMap(([repoId, status, sort, dir, search, page]) =>
         repoId
           ? this.api
-              .listJobs({ repoId, status: status ?? undefined, page, size: this.size })
+              .listJobs({
+                repoId,
+                status: status ?? undefined,
+                sort,
+                dir,
+                search: search || undefined,
+                page,
+                size: this.size,
+              })
               .pipe(catchError(() => of(null)))
           : of(null),
       ),
@@ -76,6 +93,17 @@ export class Jobs {
     this.page.set(0);
   }
 
+  onSort(s: SortConfig): void {
+    this.sort.set(s.key);
+    this.dir.set(s.dir);
+    this.page.set(0);
+  }
+
+  onSearch(q: string): void {
+    this.search.set(q);
+    this.page.set(0);
+  }
+
   prevPage(): void {
     this.page.update((p) => Math.max(0, p - 1));
   }
@@ -86,15 +114,22 @@ export class Jobs {
   }
 
   deleteJob(id: string): void {
-    if (!confirm(`Really delete job ${id}? The job and its sub-jobs will be removed.`)) {
-      return;
-    }
-    this.api.deleteJob({ id }).subscribe({
-      next: () => {
-        this.refreshTick.update((v) => v + 1);
-        this.notify.success('Job deleted.');
-      },
-      error: () => this.notify.error('Deletion failed.'),
-    });
+    this.confirm
+      .confirm({
+        title: 'Delete job',
+        message: `Really delete job ${id}? The job and its sub-jobs will be removed.`,
+        confirmLabel: 'Delete',
+        destructive: true,
+      })
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.api.deleteJob({ id }).subscribe({
+          next: () => {
+            this.refreshTick.update((v) => v + 1);
+            this.notify.success('Job deleted.');
+          },
+          error: () => this.notify.error('Deletion failed.'),
+        });
+      });
   }
 }
