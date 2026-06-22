@@ -165,6 +165,12 @@ table.data tr:hover td { background: #fafbfc; }
 
 .muted { color: var(--es-text-muted-solid); }
 .right { text-align: right; }
+.center { text-align: center; }
+/* Header alignment must follow the column's `align`: the base `table.data th` rule
+   (left) outranks the bare `.right`/`.center` helpers, so headers would stay left while
+   their cells move — keep header and cells aligned by matching that specificity. */
+table.data th.right { text-align: right; }
+table.data th.center { text-align: center; }
 .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
 
 .toolbar {
