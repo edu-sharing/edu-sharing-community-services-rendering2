@@ -1,15 +1,23 @@
 <div class="login-wrap">
   <mat-card class="login-card" appearance="outlined">
     <div class="brand">
-      <mat-icon>display_settings</mat-icon>
+      <mat-icon aria-hidden="true">display_settings</mat-icon>
       <span>Rendering&nbsp;Admin</span>
     </div>
+    <h1 class="login-title">Admin sign in</h1>
     <p class="muted">Please sign in with the admin password.</p>
 
     <form (ngSubmit)="submit()">
       <mat-form-field appearance="outline">
         <mat-label>Username</mat-label>
-        <input matInput name="username" [(ngModel)]="username" autocomplete="username" />
+        <input
+          matInput
+          name="username"
+          [(ngModel)]="username"
+          autocomplete="username"
+          [attr.aria-invalid]="error() ? 'true' : null"
+          [attr.aria-describedby]="error() ? 'login-error' : null"
+        />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
@@ -20,11 +28,13 @@
           name="password"
           [(ngModel)]="password"
           autocomplete="current-password"
+          [attr.aria-invalid]="error() ? 'true' : null"
+          [attr.aria-describedby]="error() ? 'login-error' : null"
         />
       </mat-form-field>
 
       @if (error()) {
-        <div class="error">{{ error() }}</div>
+        <div class="error" id="login-error" role="alert">{{ error() }}</div>
       }
 
       <button matButton="filled" type="submit" [disabled]="loading() || !password">

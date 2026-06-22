@@ -264,3 +264,48 @@ button[matButton] mat-icon {
     color: var(--es-accent-600);
   }
 }
+
+/* --- Accessibility: reduced motion (WCAG 2.3.3 / 2.2.2) --- */
+/* Respect the OS "reduce motion" preference: neutralize transitions/animations app-wide
+   (e.g. the storage bar fill, button transitions, the skip-link reveal). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Accessibility: high-contrast (WCAG AA) color overrides --- */
+/* Applied on <html> by the app when the contrast mode is `high`, or `auto` + the OS requests
+   `prefers-contrast: more` (see SettingsService). The deliberate brand identity (navy topbar,
+   orange brand-mark) is untouched; only derived tones that fall short of AA on light surfaces
+   are strengthened here. */
+html.contrast-high {
+  /* Muted text reaches ≥4.5:1 even on the app background (--es-bg). */
+  --es-text-muted-solid: #5a6b82;
+
+  /* Links: darker blue + always underlined (not color alone). */
+  a {
+    color: #1a5f9c;
+    text-decoration: underline;
+  }
+
+  /* Status badges: keep the tinted backgrounds but darken the 11px text to ≥4.5:1. */
+  .badge-processing { color: #1c5a8f; }
+  .badge-finished { color: #1e7a41; }
+  .badge-failed { color: #b42531; }
+  .badge-partially_failed { color: #8a5a00; }
+
+  /* Selected dropdown option: darker orange for sufficient contrast. */
+  .topbar-select-panel {
+    --mat-option-selected-state-label-text-color: #b35f00;
+
+    .mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+      color: #b35f00;
+    }
+  }
+}

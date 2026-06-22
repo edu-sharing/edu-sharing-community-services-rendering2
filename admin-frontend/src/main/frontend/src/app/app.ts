@@ -8,7 +8,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
 import { PollingService } from './core/polling.service';
 import { RepoContextService } from './core/repo-context.service';
-import { SettingsService } from './core/settings.service';
+import { ContrastMode, SettingsService } from './core/settings.service';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +32,16 @@ export class App {
         this.repoCtx.loadRepos();
       }
     });
+
+    // Apply the high-contrast (WCAG-AA) theme overrides on <html> when active. The semantic /
+    // keyboard a11y fixes are always on; only the color overrides are gated behind this class.
+    effect(() => {
+      document.documentElement.classList.toggle('contrast-high', this.settings.highContrastActive());
+    });
+  }
+
+  onContrastChange(mode: ContrastMode): void {
+    this.settings.setContrastMode(mode);
   }
 
   onRepoChange(repoId: string): void {

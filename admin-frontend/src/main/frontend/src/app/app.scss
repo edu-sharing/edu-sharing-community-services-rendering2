@@ -3,6 +3,23 @@
   min-height: 100vh;
 }
 
+/* Keyboard skip link: off-screen until focused, then revealed in the top-left over the topbar. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 1000;
+  padding: 8px 14px;
+  background: var(--es-surface);
+  color: var(--es-text);
+  border-radius: var(--es-radius-sm);
+  box-shadow: var(--es-shadow-lg);
+  transition: top .15s ease;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
 .layout {
   display: grid;
   grid-template-columns: var(--es-nav-width) 1fr;
@@ -42,6 +59,7 @@ mat-toolbar.topbar button[matIconButton] {
 }
 .repo-field { width: 240px; }
 .interval-field { width: 130px; }
+.contrast-field { width: 120px; }
 .repo-selector label,
 .interval-selector label {
   font-size: 12px;
@@ -77,6 +95,10 @@ mat-toolbar.topbar button[matIconButton] {
   height: 20px;
 }
 .sidenav a:hover { background: #f0f3f7; text-decoration: none; }
+.sidenav a:focus-visible {
+  outline: 2px solid var(--es-primary);
+  outline-offset: -2px;
+}
 .sidenav a.active {
   background: var(--es-primary);
   color: #fff;
@@ -87,6 +109,9 @@ mat-toolbar.topbar button[matIconButton] {
   padding: 22px 26px;
   overflow: auto;
 }
+/* The main region is focused programmatically via the skip link; suppress the focus ring there
+   (it is a scroll container, not an interactive control). */
+.content:focus { outline: none; }
 
 .empty {
   color: var(--es-text-muted-solid);

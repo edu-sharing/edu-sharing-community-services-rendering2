@@ -62,7 +62,14 @@
   @if (storage(); as s) {
     @if (s.usedPercent != null) {
       <div class="overall">
-        <div class="bar">
+        <div
+          class="bar"
+          role="progressbar"
+          [attr.aria-valuenow]="s.usedPercent > 100 ? 100 : +s.usedPercent.toFixed(0)"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="'Storage usage ' + s.usedPercent.toFixed(1) + ' %'"
+        >
           <div
             class="bar-fill"
             [style.width.%]="s.usedPercent > 100 ? 100 : s.usedPercent"

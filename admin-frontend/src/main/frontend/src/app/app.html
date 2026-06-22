@@ -1,8 +1,9 @@
 @if (auth.isAuthenticated()) {
   <div class="layout">
-    <mat-toolbar class="topbar">
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <mat-toolbar class="topbar" role="banner">
       <span class="brand">
-        <mat-icon class="brand-mark">display_settings</mat-icon>
+        <mat-icon class="brand-mark" aria-hidden="true">display_settings</mat-icon>
         <span class="brand-title">Rendering&nbsp;Admin</span>
       </span>
 
@@ -38,6 +39,19 @@
         </mat-select>
       </mat-form-field>
 
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field contrast-field">
+        <mat-label>Contrast</mat-label>
+        <mat-select
+          panelClass="topbar-select-panel"
+          [value]="settings.contrastMode()"
+          (selectionChange)="onContrastChange($event.value)"
+        >
+          @for (opt of settings.contrastOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
       <button
         matIconButton
         aria-label="Refresh now"
@@ -53,14 +67,14 @@
       </button>
     </mat-toolbar>
 
-    <nav class="sidenav">
-      <a routerLink="/dashboard" routerLinkActive="active"><mat-icon>dashboard</mat-icon> Dashboard</a>
-      <a routerLink="/assets" routerLinkActive="active"><mat-icon>folder</mat-icon> Assets</a>
-      <a routerLink="/jobs" routerLinkActive="active"><mat-icon>sync</mat-icon> Jobs</a>
-      <a routerLink="/repo" routerLinkActive="active"><mat-icon>dns</mat-icon> Repository</a>
+    <nav class="sidenav" aria-label="Primary">
+      <a routerLink="/dashboard" routerLinkActive="active"><mat-icon aria-hidden="true">dashboard</mat-icon> Dashboard</a>
+      <a routerLink="/assets" routerLinkActive="active"><mat-icon aria-hidden="true">folder</mat-icon> Assets</a>
+      <a routerLink="/jobs" routerLinkActive="active"><mat-icon aria-hidden="true">sync</mat-icon> Jobs</a>
+      <a routerLink="/repo" routerLinkActive="active"><mat-icon aria-hidden="true">dns</mat-icon> Repository</a>
     </nav>
 
-    <main class="content">
+    <main class="content" id="main" tabindex="-1">
       @if (repoCtx.activeRepoId()) {
         <router-outlet />
       } @else {

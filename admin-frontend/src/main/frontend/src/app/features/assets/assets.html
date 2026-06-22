@@ -14,7 +14,7 @@
     (queryChange)="onTypeSearch($event)"
   >
     <button dt-actions matButton="outlined" class="warn-btn" (click)="deleteAll()">
-      <mat-icon>delete_forever</mat-icon> Delete all assets
+      <mat-icon aria-hidden="true">delete_forever</mat-icon> Delete all assets
     </button>
   </app-data-table>
 </div>
@@ -55,14 +55,14 @@
 </div>
 
 <ng-template #typeActionsTpl let-type>
-  <button matButton class="warn-btn" (click)="deleteByType(type.type)">
-    <mat-icon>delete</mat-icon> Delete type
+  <button matButton class="warn-btn" [attr.aria-label]="'Delete type ' + type.type" (click)="deleteByType(type.type)">
+    <mat-icon aria-hidden="true">delete</mat-icon> Delete type
   </button>
 </ng-template>
 
 <ng-template #nodeActionsTpl let-node>
-  <button matButton class="warn-btn" (click)="deleteNode(node)">
-    <mat-icon>delete</mat-icon> Delete all
+  <button matButton class="warn-btn" [attr.aria-label]="'Delete all assets of node ' + node.nodeId" (click)="deleteNode(node)">
+    <mat-icon aria-hidden="true">delete</mat-icon> Delete all
   </button>
 </ng-template>
 
@@ -70,7 +70,7 @@
   @if (versionsByNode()[node.nodeId]; as versions) {
     <table class="data sub">
       <thead>
-        <tr><th>Hash</th><th>Type</th><th>Bucket</th><th class="right">Size</th><th>Last accessed</th><th class="right">Action</th></tr>
+        <tr><th scope="col">Hash</th><th scope="col">Type</th><th scope="col">Bucket</th><th scope="col" class="right">Size</th><th scope="col">Last accessed</th><th scope="col" class="right">Action</th></tr>
       </thead>
       <tbody>
         @for (v of versions; track v.hash + v.bucket) {
@@ -81,8 +81,8 @@
             <td class="right">{{ v.size | bytes }}</td>
             <td>{{ v.lastAccessed | epoch }}</td>
             <td class="right">
-              <button matButton class="warn-btn" (click)="deleteVersion(node, v)">
-                <mat-icon>delete</mat-icon> Delete
+              <button matButton class="warn-btn" [attr.aria-label]="'Delete version ' + v.hash" (click)="deleteVersion(node, v)">
+                <mat-icon aria-hidden="true">delete</mat-icon> Delete
               </button>
             </td>
           </tr>

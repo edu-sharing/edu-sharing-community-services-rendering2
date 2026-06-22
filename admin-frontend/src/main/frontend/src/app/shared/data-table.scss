@@ -36,11 +36,33 @@ table.data thead th {
 }
 
 table.data th.sortable {
-  cursor: pointer;
   user-select: none;
+  padding: 0;
 }
-table.data th.sortable:hover {
+/* The sortable header trigger is a real <button> for keyboard operability; reset it to
+   inherit the header look (font/color/alignment) and span the full cell so the whole
+   header stays clickable as before. */
+.dt-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+table.data th.sortable.right .dt-sort-btn { justify-content: flex-end; }
+table.data th.sortable.center .dt-sort-btn { justify-content: center; }
+.dt-sort-btn:hover {
   color: var(--es-text);
+}
+.dt-sort-btn:focus-visible {
+  outline: 2px solid var(--es-primary);
+  outline-offset: -2px;
 }
 .dt-arrow {
   font-size: 16px;

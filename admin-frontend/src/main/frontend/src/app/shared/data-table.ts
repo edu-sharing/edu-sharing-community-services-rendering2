@@ -69,6 +69,12 @@ export class DataTable {
   readonly maxHeight = input('60vh');
   readonly initialSort = input<SortConfig | null>(null);
   readonly expansion = input<TemplateRef<{ $implicit: Row }> | null>(null);
+  /**
+   * Action column template (icon/text buttons), `$implicit = row`. For accessibility the
+   * action buttons MUST carry a row-specific `aria-label` (e.g. `'Delete job ' + row.id`) so
+   * screen readers announce which row an action affects — a bare "Delete" repeated per row is
+   * ambiguous.
+   */
   readonly rowActions = input<TemplateRef<{ $implicit: Row }> | null>(null);
   /** Determines whether a row is expandable (default: all, provided expansion is set). */
   readonly canExpand = input<(row: Row) => boolean>(() => true);
