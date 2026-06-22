@@ -23,6 +23,7 @@
         }
       </mat-select>
     </mat-form-field>
+    <app-date-range-filter dt-filters label="Created" (rangeChange)="onCreatedRange($event)" />
     <span dt-actions class="muted note">TTL: older jobs are removed automatically.</span>
   </app-data-table>
 

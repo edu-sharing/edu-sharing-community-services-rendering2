@@ -87,15 +87,17 @@ class AdminJobController(
         @RequestParam(required = false) search: String?,
         @RequestParam(required = false) sort: String?,
         @RequestParam(required = false, defaultValue = "desc") dir: String,
+        @RequestParam(required = false) createdFrom: Long?,
+        @RequestParam(required = false) createdTo: Long?,
         @RequestParam(required = false, defaultValue = "0") page: Int,
         @RequestParam(required = false, defaultValue = "20") size: Int
     ): JobPage {
-        log.debug("GET /admin/jobs for repoId=$repoId, status=$status, search=$search, sort=$sort, dir=$dir, page=$page, size=$size")
+        log.debug("GET /admin/jobs for repoId=$repoId, status=$status, search=$search, sort=$sort, dir=$dir, createdFrom=$createdFrom, createdTo=$createdTo, page=$page, size=$size")
         // Whitelist gegen beliebige Sort-Eingaben; Default wie bisher: neueste zuerst.
         val sortField = JOB_SORT_FIELDS[sort] ?: "creationTimestamp"
         val direction = if (dir.equals("asc", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
         val pageable = PageRequest.of(page, size, Sort.by(direction, sortField))
-        val result: Page<RenderingJob> = renderingJobRepository.findJobsPage(repoId, status, search, pageable)
+        val result: Page<RenderingJob> = renderingJobRepository.findJobsPage(repoId, status, search, createdFrom, createdTo, pageable)
         return JobPage(
             content = result.content.map { toJobListItem(it) },
             page = result.number,

@@ -5,7 +5,8 @@ interface CustomTrackingEntryRepository {
      * Aggregiert die Tracking-Einträge eines Repos nach nodeId (paginiert). Pro nodeId werden
      * die Daten der neuesten Version (höchstes lastAccessed) sowie Anzahl und Gesamtgröße aller
      * Versionen geliefert. Optionale Freitextsuche (`search`, Regex über nodeId/type/hash) und
-     * serverseitige Sortierung (`sort`-Spaltenschlüssel + `dir` asc/desc).
+     * serverseitige Sortierung (`sort`-Spaltenschlüssel + `dir` asc/desc). Optional auf einen
+     * Zeitraum eingegrenzt (`accessedFrom`/`accessedTo`, epoch-ms, inklusiv, gegen `lastAccessed`).
      */
     fun aggregateNodes(
         repoId: String,
@@ -13,6 +14,8 @@ interface CustomTrackingEntryRepository {
         search: String?,
         sort: String?,
         dir: String,
+        accessedFrom: Long?,
+        accessedTo: Long?,
         page: Int,
         size: Int
     ): NodeAggregationResult

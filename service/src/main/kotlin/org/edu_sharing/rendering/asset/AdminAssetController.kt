@@ -80,11 +80,13 @@ class AdminAssetController(
         @RequestParam(required = false) search: String?,
         @RequestParam(required = false) sort: String?,
         @RequestParam(required = false, defaultValue = "desc") dir: String,
+        @RequestParam(required = false) accessedFrom: Long?,
+        @RequestParam(required = false) accessedTo: Long?,
         @RequestParam(required = false, defaultValue = "0") page: Int,
         @RequestParam(required = false, defaultValue = "20") size: Int
     ): AssetNodePage {
-        log.debug("GET /admin/assets/nodes for repoId=$repoId, type=$type, search=$search, sort=$sort, dir=$dir, page=$page, size=$size")
-        val result = trackingEntryRepository.aggregateNodes(repoId, type, search, sort, dir, page, size)
+        log.debug("GET /admin/assets/nodes for repoId=$repoId, type=$type, search=$search, sort=$sort, dir=$dir, accessedFrom=$accessedFrom, accessedTo=$accessedTo, page=$page, size=$size")
+        val result = trackingEntryRepository.aggregateNodes(repoId, type, search, sort, dir, accessedFrom, accessedTo, page, size)
         val totalPages = if (size > 0) ((result.total + size - 1) / size).toInt() else 0
         return AssetNodePage(
             content = result.content.map {

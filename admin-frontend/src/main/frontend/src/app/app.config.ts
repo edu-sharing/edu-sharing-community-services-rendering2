@@ -1,5 +1,6 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 
@@ -15,6 +16,8 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
+    // Native Date adapter for MatDatepicker + MatTimepicker (used by the date-range filter).
+    provideNativeDateAdapter(),
     // Root URL for the generated ng-openapi-gen client. Operation paths already include
     // `/admin/...`, so the rootUrl is the bare ADMIN_API_BASE (runtime-injected, see api.config.ts).
     // The authInterceptor adds HTTP-Basic and handles 401 for these requests transparently.

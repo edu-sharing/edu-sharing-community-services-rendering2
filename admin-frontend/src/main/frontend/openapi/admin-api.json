@@ -466,6 +466,22 @@
             "default" : "desc"
           }
         }, {
+          "name" : "createdFrom",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "createdTo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
           "name" : "page",
           "in" : "query",
           "required" : false,
@@ -866,6 +882,22 @@
           "schema" : {
             "type" : "string",
             "default" : "desc"
+          }
+        }, {
+          "name" : "accessedFrom",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "accessedTo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }, {
           "name" : "page",

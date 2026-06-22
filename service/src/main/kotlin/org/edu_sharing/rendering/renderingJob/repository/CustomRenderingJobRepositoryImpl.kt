@@ -25,6 +25,8 @@ class CustomRenderingJobRepositoryImpl(
         repoId: String,
         status: RenderingJobStatus?,
         search: String?,
+        createdFrom: Long?,
+        createdTo: Long?,
         pageable: Pageable
     ): Page<RenderingJob> {
         val criteria = Criteria.where("repoId").`is`(repoId)
@@ -39,6 +41,14 @@ class CustomRenderingJobRepositoryImpl(
                 Criteria.where("errorMessage").regex(q, "i"),
                 Criteria.where("status").regex(q, "i"),
             )
+        }
+        if (createdFrom != null || createdTo != null) {
+            // Einzelne Criteria für creationTimestamp bauen (gte/lte), nicht zweimal .and(<selber key>) –
+            // das würde an den Limitierungen des BSON-Dokuments scheitern.
+            val ts = Criteria.where("creationTimestamp")
+            if (createdFrom != null) ts.gte(createdFrom)
+            if (createdTo != null) ts.lte(createdTo)
+            criteria.andOperator(ts)
         }
         val total = mongoTemplate.count(Query(criteria), RenderingJob::class.java)
         val content = mongoTemplate.find(Query(criteria).with(pageable), RenderingJob::class.java)

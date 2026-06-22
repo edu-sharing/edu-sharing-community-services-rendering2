@@ -13,13 +13,14 @@ import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
 import { Column, DataTable, SortConfig } from '../../shared/data-table';
+import { DateRange, DateRangeFilter } from '../../shared/date-range-filter';
 
 /** Job status union, derived from the generated contract (the enum is inlined in the spec). */
 type RenderingJobStatus = NonNullable<JobListItem['status']>;
 
 @Component({
   selector: 'app-jobs',
-  imports: [DataTable, MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule],
+  imports: [DataTable, DateRangeFilter, MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule],
   templateUrl: './jobs.html',
   styleUrl: './jobs.scss',
 })
@@ -41,6 +42,9 @@ export class Jobs {
   private readonly sort = signal('creationTimestamp');
   private readonly dir = signal<'asc' | 'desc'>('desc');
   private readonly search = signal('');
+  // Server-side date range (epoch-ms) on creationTimestamp; null ⇒ no constraint.
+  private readonly createdFrom = signal<number | null>(null);
+  private readonly createdTo = signal<number | null>(null);
   private readonly refreshTick = signal(0);
 
   protected readonly jobs = toSignal(
@@ -50,11 +54,13 @@ export class Jobs {
       toObservable(this.sort),
       toObservable(this.dir),
       toObservable(this.search),
+      toObservable(this.createdFrom),
+      toObservable(this.createdTo),
       toObservable(this.page),
       toObservable(this.refreshTick),
       this.poll.ticks$,
     ]).pipe(
-      switchMap(([repoId, status, sort, dir, search, page]) =>
+      switchMap(([repoId, status, sort, dir, search, createdFrom, createdTo, page]) =>
         repoId
           ? this.api
               .listJobs({
@@ -63,6 +69,8 @@ export class Jobs {
                 sort,
                 dir,
                 search: search || undefined,
+                createdFrom: createdFrom ?? undefined,
+                createdTo: createdTo ?? undefined,
                 page,
                 size: this.size,
               })
@@ -101,6 +109,12 @@ export class Jobs {
 
   onSearch(q: string): void {
     this.search.set(q);
+    this.page.set(0);
+  }
+
+  onCreatedRange(r: DateRange): void {
+    this.createdFrom.set(r.from);
+    this.createdTo.set(r.to);
     this.page.set(0);
   }
 

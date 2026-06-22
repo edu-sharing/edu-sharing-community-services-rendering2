@@ -14,11 +14,12 @@ import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
 import { Column, DataTable, SortConfig } from '../../shared/data-table';
+import { DateRange, DateRangeFilter } from '../../shared/date-range-filter';
 
 @Component({
   selector: 'app-assets',
   imports: [
-    DataTable, BytesPipe, EpochPipe,
+    DataTable, DateRangeFilter, BytesPipe, EpochPipe,
     MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule,
   ],
   templateUrl: './assets.html',
@@ -41,6 +42,9 @@ export class Assets {
   private readonly nodeSort = signal('lastAccessed');
   private readonly nodeDir = signal<'asc' | 'desc'>('desc');
   private readonly nodeSearch = signal('');
+  // Server-side date range (epoch-ms) on lastAccessed; null ⇒ no constraint.
+  private readonly accessedFrom = signal<number | null>(null);
+  private readonly accessedTo = signal<number | null>(null);
   private readonly typeSort = signal('totalSize');
   private readonly typeDir = signal<'asc' | 'desc'>('desc');
   private readonly typeSearch = signal('');
@@ -55,11 +59,13 @@ export class Assets {
       toObservable(this.nodeSort),
       toObservable(this.nodeDir),
       toObservable(this.nodeSearch),
+      toObservable(this.accessedFrom),
+      toObservable(this.accessedTo),
       toObservable(this.page),
       toObservable(this.refreshTick),
       this.poll.ticks$,
     ]).pipe(
-      switchMap(([repoId, type, sort, dir, search, page]) =>
+      switchMap(([repoId, type, sort, dir, search, accessedFrom, accessedTo, page]) =>
         repoId
           ? this.api
               .listAssetNodes({
@@ -68,6 +74,8 @@ export class Assets {
                 sort,
                 dir,
                 search: search || undefined,
+                accessedFrom: accessedFrom ?? undefined,
+                accessedTo: accessedTo ?? undefined,
                 page,
                 size: this.size,
               })
@@ -138,6 +146,12 @@ export class Assets {
 
   onNodeSearch(q: string): void {
     this.nodeSearch.set(q);
+    this.page.set(0);
+  }
+
+  onAccessedRange(r: DateRange): void {
+    this.accessedFrom.set(r.from);
+    this.accessedTo.set(r.to);
     this.page.set(0);
   }
 

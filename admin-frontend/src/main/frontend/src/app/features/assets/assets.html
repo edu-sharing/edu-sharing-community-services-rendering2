@@ -42,6 +42,7 @@
         }
       </mat-select>
     </mat-form-field>
+    <app-date-range-filter dt-filters label="Last accessed" (rangeChange)="onAccessedRange($event)" />
     <span dt-actions class="muted note">Entries are bundled by node — expand to see the versions.</span>
   </app-data-table>
 

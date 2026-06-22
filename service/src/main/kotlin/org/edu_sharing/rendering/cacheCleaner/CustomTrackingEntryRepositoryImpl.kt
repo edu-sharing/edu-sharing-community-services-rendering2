@@ -51,6 +51,8 @@ class CustomTrackingEntryRepositoryImpl(
         search: String?,
         sort: String?,
         dir: String,
+        accessedFrom: Long?,
+        accessedTo: Long?,
         page: Int,
         size: Int
     ): NodeAggregationResult {
@@ -65,6 +67,14 @@ class CustomTrackingEntryRepositoryImpl(
                 Criteria.where("type").regex(q, "i"),
                 Criteria.where("hash").regex(q, "i"),
             )
+        }
+        if (accessedFrom != null || accessedTo != null) {
+            // lastAccessed ist als java.util.Date gespeichert -> epoch-ms in Date wandeln.
+            // Einzelne Criteria bauen (gte/lte), nicht zweimal .and(<selber key>).
+            val la = Criteria.where("lastAccessed")
+            if (accessedFrom != null) la.gte(Date(accessedFrom))
+            if (accessedTo != null) la.lte(Date(accessedTo))
+            criteria.andOperator(la)
         }
 
         val sortField = NODE_SORT_FIELDS[sort] ?: "lastAccessed"
