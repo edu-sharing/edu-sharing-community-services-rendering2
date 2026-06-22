@@ -187,5 +187,23 @@ services:
     expose:
       - "3000"
 
+  rendering2-admin-frontend:
+    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
+    environment:
+      PORT: 8080
+      # Pfad, unter dem die UI ausgeliefert wird (eigener Pfad am selben Host wie der Service).
+      BASE_HREF: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
+      # Admin-API liegt am Context-Path des Service -> same-origin, kein CORS.
+      ADMIN_API_BASE: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
+      # Routing über nginx-proxy (VIRTUAL_*); externe Apache2-Deployments routen denselben
+      # Pfad selbst auf diesen Container und ignorieren diese Variablen.
+      VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
+      VIRTUAL_PATH: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
+      VIRTUAL_PORT: 8080
+    expose:
+      - "8080"
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_ADMIN_FRONTEND_PORT_HTTP:-10400}:8080"
+
 volumes:
   rendering2-rustfs-storage-volume-data:

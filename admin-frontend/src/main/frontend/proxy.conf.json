@@ -1,0 +1,8 @@
+{
+  "/admin": {
+    "target": "http://repository.127.0.0.1.nip.io",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/admin": "/rendering/admin" }
+  }
+}

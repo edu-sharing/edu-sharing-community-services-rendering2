@@ -64,3 +64,8 @@ dependencies:
     version: ${helm.chart.version}
     alias: edusharing_services_rendering2_service
     condition: edusharing_services_rendering2_service.enabled
+
+  - name: ${helm.prefix}-admin-frontend
+    version: ${helm.chart.version}
+    alias: edusharing_services_rendering2_admin_frontend
+    condition: edusharing_services_rendering2_admin_frontend.enabled

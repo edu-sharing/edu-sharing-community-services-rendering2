@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.ServicesRenderingService2Application
+import org.edu_sharing.rendering.cacheCleaner.CustomTrackingEntryRepositoryImpl
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.config.*
 import org.edu_sharing.rendering.core.PingController
@@ -89,6 +90,7 @@ abstract class SharedBeans {
             CustomHttpSessionIdResolver::class,
             CustomRenderingJobRepositoryImpl::class,
             CustomSubJobRepositoryImpl::class,
+            CustomTrackingEntryRepositoryImpl::class,
             GitHubConfig::class,
             GitHubService::class,
             GitServiceRegistry::class,
@@ -173,6 +175,7 @@ abstract class SharedBeans {
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
             "permissionEvaluator",
+            "writeConcernResolver",
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans

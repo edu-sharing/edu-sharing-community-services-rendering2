@@ -1,0 +1,55 @@
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="drf-range">
+  <mat-label>{{ label() || 'Date range' }}</mat-label>
+  <mat-date-range-input [rangePicker]="picker">
+    <input
+      matStartDate
+      [ngModel]="fromDate()"
+      (ngModelChange)="fromDate.set($event); emit()"
+      [ngModelOptions]="{ standalone: true }"
+      placeholder="Start date"
+      aria-label="Start date"
+    />
+    <input
+      matEndDate
+      [ngModel]="toDate()"
+      (ngModelChange)="toDate.set($event); emit()"
+      [ngModelOptions]="{ standalone: true }"
+      placeholder="End date"
+      aria-label="End date"
+    />
+  </mat-date-range-input>
+  <mat-datepicker-toggle matSuffix [for]="picker" />
+  <mat-date-range-picker #picker />
+</mat-form-field>
+
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="drf-time">
+  <mat-label>Start time</mat-label>
+  <input
+    matInput
+    [matTimepicker]="fromTp"
+    [ngModel]="fromTime()"
+    (ngModelChange)="fromTime.set($event); emit()"
+    placeholder="00:00"
+  />
+  <mat-timepicker-toggle matSuffix [for]="fromTp" />
+  <mat-timepicker #fromTp />
+</mat-form-field>
+
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="drf-time">
+  <mat-label>End time</mat-label>
+  <input
+    matInput
+    [matTimepicker]="toTp"
+    [ngModel]="toTime()"
+    (ngModelChange)="toTime.set($event); emit()"
+    placeholder="23:59"
+  />
+  <mat-timepicker-toggle matSuffix [for]="toTp" />
+  <mat-timepicker #toTp />
+</mat-form-field>
+
+@if (hasValue()) {
+  <button matIconButton type="button" aria-label="Clear date range" (click)="clear()">
+    <mat-icon aria-hidden="true">close</mat-icon>
+  </button>
+}
