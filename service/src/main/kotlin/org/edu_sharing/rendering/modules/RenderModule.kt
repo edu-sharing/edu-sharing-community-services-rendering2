@@ -14,4 +14,10 @@ interface RenderModule {
     fun getNodePermissionExpirationTime(): Long? = null
     fun isOptionalModule(): Boolean = false
     fun getCspHeader(repoId: String): String? = null
+
+    /**
+     * When true, a node matched via ccm:replicationsource is skipped if it has local content,
+     * letting dispatch fall through to mimetype resolution (see OMEGA / FWU).
+     */
+    fun fallsThroughOnLocalContent(): Boolean = false
 }

@@ -1,94 +1,83 @@
 package org.edu_sharing.rendering.modules
 
-import io.mockk.junit5.MockKExtension
-import io.mockk.mockk
-import org.junit.jupiter.api.extension.ExtendWith
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Content
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
+import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.junit.jupiter.api.Test
+import kotlin.test.assertSame
 
-@ExtendWith(MockKExtension::class)
 class ModuleRegistryTest {
-    private val moduleTypeMapperByType = mockk<ModuleTypeMapper>()
-    private val moduleTypeMapperByPrefix = mockk<ModuleTypeMapper>()
-    private val moduleTypeMapperByMimeType = mockk<ModuleTypeMapper>()
-    private val moduleTypeMapperEmpty = mockk<ModuleTypeMapper>()
 
-    private val moduleByType = mockk<RenderModule>()
-    private val moduleByPrefix = mockk<RenderModule>()
-    private val moduleByMimeType = mockk<RenderModule>()
-    private val moduleEmpty = mockk<RenderModule>()
-
-    lateinit var underTest: ModuleRegistry
-
-    /*@BeforeEach
-    fun setUp() {
-        every { moduleTypeMapperByType.moduleTypeAssociations() } returns listOf(
-            ModuleTypeDefinition(type = "file-any") to moduleByType
-        )
-
-        every { moduleTypeMapperByMimeType.moduleTypeAssociations() } returns listOf(
-            ModuleTypeDefinition(mimeTypePrefix = "prefix-any", mimeTypeSuffix = "suffix-with-prefix") to moduleByMimeType
-        )
-
-        every { moduleTypeMapperByPrefix.moduleTypeAssociations() } returns listOf(
-            ModuleTypeDefinition(mimeTypePrefix = "prefix-any") to moduleByPrefix
-        )
-
-        every { moduleTypeMapperEmpty.moduleTypeAssociations() } returns listOf(
-            ModuleTypeDefinition() to moduleEmpty
-        )
-
-        every { moduleByType.module() } returns "typeModule"
-        every { moduleByPrefix.module() } returns "prefixModule"
-        every { moduleByMimeType.module() } returns "suffixModule"
-        every { moduleEmpty.module() } returns "emptyModule"
-
-        underTest = ModuleRegistry(listOf(
-            moduleTypeMapperByType,
-            moduleTypeMapperByPrefix,
-            moduleTypeMapperByMimeType,
-            moduleTypeMapperEmpty
-        ))
+    private fun stubModule(name: String, fallsThrough: Boolean = false) = object : RenderModule {
+        override fun module() = name
+        override fun handle(node: Node) = RenderDataResponse(module = name)
+        override fun fallsThroughOnLocalContent() = fallsThrough
     }
 
-    @Test
-    fun testGetModuleTypeMapperReturnsExpectedList() {
-        // Act
-        val result = underTest.getModuleTypeMapperList()
-
-        // Assert
-        assert(result == listOf(moduleTypeMapperByType, moduleTypeMapperByPrefix, moduleTypeMapperByMimeType, moduleTypeMapperEmpty))
-    }
-
-    @Test
-    fun testModuleByNameReturnsExpected() {
-        // Act and assert
-        assertTrue(underTest.getRenderModule<RenderModule>("typeModule") == moduleByType)
-        assertTrue(underTest.getRenderModule<RenderModule>("prefixModule") == moduleByPrefix)
-        assertTrue(underTest.getRenderModule<RenderModule>("suffixModule") == moduleByMimeType)
-        assertThrows<ModuleNotRegisteredException> { underTest.getRenderModule<RenderModule>("nonsenseModule") }
-    }
-
-    @Test
-    fun testGetRenderModuleByMappingReturnsExpected() {
-        // Act and assert
-        assertTrue(underTest.getRenderModule<RenderModule>(
-            type = "file-any",
-            mimeType = "prefix-any/suffix-any",
-            replicationSource = "") == moduleByType)
-        assertTrue(underTest.getRenderModule<RenderModule>(
-            type = "file-nonsense",
-            mimeType = "prefix-any/suffix-with-prefix",
-            replicationSource = "") == moduleByMimeType)
-        assertTrue(underTest.getRenderModule<RenderModule>(
-            type = "file-nonsense",
-            mimeType = "prefix-any/nonsense",
-            replicationSource = ""
-        ) == moduleByPrefix)
-        assertThrows<ObjectTypeNotSupportedException> {
-            underTest.getRenderModule<RenderModule>(
-                type = "file-nonsense",
-                mimeType = "prefix-nonsense/nonsense",
-                replicationSource = ""
-            )
+    private fun mapperOf(vararg associations: Pair<ModuleTypeDefinition, RenderModule>) =
+        object : ModuleTypeMapper {
+            override fun moduleTypeAssociations() = associations.toList()
         }
-    }*/
+
+    private val omega = stubModule("OMEGA", fallsThrough = true)
+    private val sodix = stubModule("SODIX") // does NOT opt into fall-through
+    private val image = stubModule("IMAGE")
+
+    private val underTest = ModuleRegistry(
+        listOf(
+            mapperOf(ModuleTypeDefinition(replicationSource = "DE.FWU") to omega),
+            mapperOf(ModuleTypeDefinition(replicationSource = "SODIX") to sodix),
+            mapperOf(ModuleTypeDefinition(mimeTypePrefix = "image") to image),
+        )
+    )
+
+    private fun node(
+        replicationSource: String? = null,
+        mimetype: String = "image/png",
+        location: String? = null,
+        hash: String? = null,
+    ): Node {
+        val props = mutableMapOf<String, MutableList<String>>()
+        replicationSource?.let { props["ccm:replicationsource"] = mutableListOf(it) }
+        location?.let { props["cclom:location"] = mutableListOf(it) }
+        val n = Node().mimetype(mimetype).properties(props)
+        hash?.let { n.content(Content().hash(it)) }
+        return n
+    }
+
+    @Test
+    fun fwuNodeWithLocalContentFallsThroughToMimetypeModule() {
+        // local content = no cclom:location AND a content hash present
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(replicationSource = "DE.FWU", location = null, hash = "abc123")
+        )
+        assertSame(image, resolved)
+    }
+
+    @Test
+    fun fwuNodeWithExternalLocationDoesNotFallThrough() {
+        // cclom:location present => not local content => OMEGA handles it
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(replicationSource = "DE.FWU", location = "http://external/stream", hash = "abc123")
+        )
+        assertSame(omega, resolved)
+    }
+
+    @Test
+    fun fwuNodeWithoutContentHashDoesNotFallThrough() {
+        // no content hash => not local content => OMEGA handles it
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(replicationSource = "DE.FWU", location = null, hash = null)
+        )
+        assertSame(omega, resolved)
+    }
+
+    @Test
+    fun nonOptInReplicationSourceModuleIsNotSkippedOnLocalContent() {
+        // SODIX does not opt into fall-through: even with local content it still resolves to SODIX
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(replicationSource = "SODIX", location = null, hash = "abc123")
+        )
+        assertSame(sodix, resolved)
+    }
 }
