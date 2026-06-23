@@ -12,4 +12,4 @@ services:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
 
   rendering2-admin-frontend:
-    image: "${docker.repository}/${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
