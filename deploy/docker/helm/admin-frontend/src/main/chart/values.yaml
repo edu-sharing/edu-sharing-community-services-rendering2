@@ -21,6 +21,10 @@ global:
     istio:
       ## @param global.cluster.istio.enabled Enable Istio Service mesh
       enabled: false
+      gateway:
+        selector:
+          ## @param global.cluster.istio.gateway.selector.app Set global cluster Istio selector app
+          app: istio-ingressgateway
 
     pdb:
       ## @param global.cluster.pdb.enabled Enable PDB
@@ -75,6 +79,14 @@ service:
 
 ingress:
 
+  # Public-Toggle fuer die externe Erreichbarkeit der Admin-UI.
+  # true  -> oeffentlich erreichbar: nginx-Ingress (ohne Istio) bzw. Istio Gateway +
+  #          externe VirtualService (mit Istio).
+  # false -> nur clusterintern erreichbar (ClusterIP-Service + interne Mesh-VirtualService).
+  # WICHTIG: Die SPA ruft die Admin-API same-origin unter ADMIN_API_BASE (config.base, z.B.
+  # /rendering -> /rendering/admin) RELATIV zum eigenen Host auf. Bei oeffentlicher Erreichbarkeit
+  # muessen hosts/tls/annotations/global.cluster.ingress.ingressClassName daher IDENTISCH zum
+  # service-Chart sein (gleicher Public-Host, UI-Pfad /rendering-admin), sonst 404/CORS.
   ## @param ingress.enabled Enable ingress
   enabled: true
 
@@ -82,6 +94,7 @@ ingress:
   annotations: {}
 
   ## @param ingress.hosts Set ingress hosts
+  # Muss dem Public-Host des service-Charts entsprechen (same-origin mit der /admin-API).
   hosts:
   - rendering.services.127.0.0.1.nip.io
 
