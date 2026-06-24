@@ -6,8 +6,8 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.security.jwt.JWTBasedUserDetail
 import org.edu_sharing.rendering.utils.SecurityContextUtils
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -18,15 +18,18 @@ class MoodleJobService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
-    private val amqpTemplate: AmqpTemplate,
-    @param:Value($$"${app.queue.topicExchange}")
-    val topicExchangeName: String,
-    @param:Value($$"${app.queue.moodle.key}")
-    val jobRoutingKey: String,
-    @param:Value($$"${app.security.enabled}")
-    private val securityEnabled: Boolean
+    private val amqpTemplate: AmqpTemplate
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Value($$"${app.queue.topicExchange}")
+    lateinit var topicExchangeName: String
+
+    @Value($$"${app.queue.moodle.key}")
+    lateinit var jobRoutingKey: String
+
     fun createJob(node: Node, module: String): String? {
+        log.debug("Creating Moodle job for nodeId ${node.ref.id}, module $module")
         val job = mapper.nodeToRenderingJob(node = node, module = module, isConversionType = true)
         jobRepository.save(job)
 
@@ -37,32 +40,19 @@ class MoodleJobService(
         )
         subJobRepository.save(subJob)
 
-        val userDetails: JWTBasedUserDetail = if (securityEnabled) {
-            SecurityContextUtils.currentUser()
-        } else {
-            // For local testing only
-            JWTBasedUserDetail(
-                username = "admin",
-                email = "admin@edu-sharing.net",
-                firstName = "Admin",
-                lastName = "User",
-                notBefore = Date(),
-                expirationDate = Date(),
-                repoId = "local",
-                primaryAffiliation = "admin"
-            )
-        }
+        val userDetails = SecurityContextUtils.currentUser()
 
         val message = MoodleJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
             hash = node.content?.hash ?: "",
-            title = node.title ?: node.name,
+            title = node.title ?: "",
             userName = userDetails.username,
             userEmail = userDetails.email.ifBlank { getFallbackMail() },
             firstName = userDetails.firstName,
             lastName = userDetails.lastName
         )
+        log.debug("Sending Moodle job message for jobId ${job.id}, nodeId ${job.esObjectId} to queue $jobRoutingKey")
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
     }

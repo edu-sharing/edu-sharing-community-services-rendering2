@@ -1,0 +1,98 @@
+<h1>Dashboard</h1>
+
+<div class="tiles">
+  <div class="card tile">
+    <div class="tile-label">In queue</div>
+    <div class="tile-value">{{ queueCount() }}</div>
+    <div class="tile-sub muted">
+      {{ stats()?.queued ?? 0 }} queued · {{ stats()?.processing ?? 0 }} processing
+    </div>
+  </div>
+
+  <div class="card tile">
+    <div class="tile-label">Failed</div>
+    <div class="tile-value" [class.danger]="failedCount() > 0">{{ failedCount() }}</div>
+    <div class="tile-sub muted">
+      {{ stats()?.failed ?? 0 }} failed · {{ stats()?.partiallyFailed ?? 0 }} partial
+    </div>
+  </div>
+
+  <div class="card tile">
+    <div class="tile-label">Finished</div>
+    <div class="tile-value">{{ stats()?.finished ?? 0 }}</div>
+    <div class="tile-sub muted">of {{ stats()?.total ?? 0 }} jobs</div>
+  </div>
+
+  <div class="card tile">
+    <div class="tile-label">Total used</div>
+    <div class="tile-value">{{ storage()?.totalSize | bytes }}</div>
+    <div class="tile-sub muted">
+      @if (storage()?.quota != null) {
+        Quota {{ storage()?.quota | bytes }}
+      } @else {
+        no quota limit
+      }
+    </div>
+  </div>
+</div>
+
+@if (stats()?.subJobs; as sub) {
+  <div class="card subjobs">
+    <h2>Sub-Jobs</h2>
+    <div class="subjob-row">
+      <span class="badge badge-queued">queued {{ sub.queued }}</span>
+      <span class="badge badge-processing">processing {{ sub.processing }}</span>
+      <span class="badge badge-finished">finished {{ sub.finished }}</span>
+      <span class="badge badge-failed">failed {{ sub.failed }}</span>
+      <span class="muted total">total {{ sub.total }}</span>
+    </div>
+  </div>
+}
+
+<div class="card storage">
+  <div class="storage-head">
+    <h2>Storage usage</h2>
+    @if (storage()?.exact) {
+      <span class="badge badge-finished">exact</span>
+    } @else {
+      <span class="badge badge-queued">tracked</span>
+    }
+  </div>
+
+  @if (storage(); as s) {
+    @if (s.usedPercent != null) {
+      <div class="overall">
+        <div
+          class="bar"
+          role="progressbar"
+          [attr.aria-valuenow]="s.usedPercent > 100 ? 100 : +s.usedPercent.toFixed(0)"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="'Storage usage ' + s.usedPercent.toFixed(1) + ' %'"
+        >
+          <div
+            class="bar-fill"
+            [style.width.%]="s.usedPercent > 100 ? 100 : s.usedPercent"
+            [style.background]="barColor(s.usedPercent)"
+          ></div>
+        </div>
+        <div class="overall-meta">
+          <strong>{{ s.usedPercent.toFixed(1) }}%</strong>
+          <span class="muted">{{ s.totalSize | bytes }} / {{ s.quota | bytes }}</span>
+        </div>
+      </div>
+    } @else {
+      <p class="muted">No quota limit configured — only the absolute usage is shown.</p>
+    }
+
+    <app-data-table
+      [columns]="bucketColumns"
+      [rows]="buckets()"
+      trackKey="name"
+      [initialSort]="{ key: 'size', dir: 'desc' }"
+      searchPlaceholder="Search buckets…"
+    />
+  } @else {
+    <p class="muted">Loading storage data…</p>
+  }
+</div>

@@ -24,11 +24,13 @@ class BinderMainJobLogic(
      * Does nothing otherwise
      */
     fun processMainJob(mainJobId: String) {
+        log.debug("Processing binder main job: jobId={}", mainJobId)
         try {
-            var mainJob = jobRepository.findByIdOrNull(ObjectId(mainJobId))
+            val mainJob = jobRepository.findByIdOrNull(ObjectId(mainJobId))
                 ?: throw IllegalStateException("Main job not found")
             val subJobStatus = mainJob.subJobs.map {it.status}
             if (subJobStatus.any { it < SubJobStatus.FINISHED }) {
+                log.debug("Binder main job {} still has unfinished sub-jobs, skipping status update", mainJobId)
                 return
             }
             val statusToSet = if (subJobStatus.toSet().size == 2 || subJobStatus.all {it == SubJobStatus.FINISHED }) {
@@ -36,6 +38,7 @@ class BinderMainJobLogic(
             } else {
                 RenderingJobStatus.FAILED
             }
+            log.debug("Binder main job {} resolved to status={}", mainJobId, statusToSet)
             jobRepository.updateStatusWithoutVersion(mainJob.id, statusToSet)
         } catch (exception: Exception) {
             log.error("Error processing main job $mainJobId", exception)

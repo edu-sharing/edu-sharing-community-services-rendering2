@@ -46,10 +46,12 @@ class AssetController(
     ): ResponseEntity<Resource> {
         val decoded = Base64().decode(URLDecoder.decode(assetParams, Charsets.UTF_8)).decodeToString()
         val assetLinkParams = ObjectMapper().readValue(decoded, AssetLinkParams::class.java)
+        log.debug("Asset request: nodeId=${assetLinkParams.nodeId}, repoId=${assetLinkParams.repoId}, rangePresent=${range.isNotBlank()}")
         val asset = assetService.getAsset(assetLinkParams, range)
         var doEncodeData = false
         if (asset.mimeType == "application/pdf") {
             doEncodeData = !nodePermissionSessionContextRepository.hasPermission(assetLinkParams.nodeId, "DownloadContent")
+            log.debug("PDF asset: nodeId=${assetLinkParams.nodeId}, encodeForDownloadRestriction=$doEncodeData")
         }
         val node = nodeSessionRepo.getNode(assetLinkParams.nodeId) ?: throw IllegalStateException("Node not found in session for asset with nodeId: ${assetLinkParams.nodeId}")
         return prepareResponse(asset = asset,doEncodeData = doEncodeData, node = node, repoId = assetLinkParams.repoId)
@@ -61,6 +63,7 @@ class AssetController(
         request: HttpServletRequest
     ): ResponseEntity<Resource> {
         val (cacheObject, path) = storageService.getCacheObjectFromStaticPath(request.requestURI.substringAfter("$ROOT_REQUEST_PATH$STATIC_ASSET_PATH"))
+        log.debug("Static asset request: nodeId=${cacheObject.nodeId}, repoId=${cacheObject.repoId}, path=$path, rangePresent=${range.isNotBlank()}")
         val asset = assetService.getStaticAsset(range, cacheObject, path)
         val node = nodeSessionRepo.getNode(cacheObject.nodeId) ?: throw IllegalStateException("Node not found in session for asset with nodeId: ${cacheObject.nodeId}")
         return prepareResponse(asset = asset, node = node, repoId = cacheObject.repoId)
@@ -79,6 +82,7 @@ class AssetController(
             additionalHeaders["Content-Security-Policy"] = cspHeader
         }
         val isPartial = asset.range.isNotEmpty()
+        log.debug("Preparing asset response: mimeType=${asset.mimeType}, isPartial=$isPartial, fileSize=${asset.fileSize}, chunkSize=${asset.chunkSize}, hasCsp=${cspHeader != null}")
         val response = ResponseEntity
             .status(if (asset.range != "") HttpStatus.PARTIAL_CONTENT else HttpStatus.OK)
             .header(HttpHeaders.CONTENT_TYPE, if (!doEncodeData) asset.mimeType else MediaType.APPLICATION_OCTET_STREAM_VALUE)

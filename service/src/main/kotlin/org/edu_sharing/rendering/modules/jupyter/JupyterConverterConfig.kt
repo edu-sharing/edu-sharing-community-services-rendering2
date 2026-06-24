@@ -18,8 +18,8 @@ class JupyterConverterConfig(
 ) {
 
     @Bean
-    fun jupyterConverterWebClient(): WebClient {
-        return WebClient.builder()
+    fun jupyterConverterWebClient(webClientBuilder: WebClient.Builder): WebClient {
+        return webClientBuilder.clone()
             .baseUrl(converterBaseUrl)
             .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }
             .build()

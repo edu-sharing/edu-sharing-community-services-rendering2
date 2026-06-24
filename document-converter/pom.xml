@@ -124,6 +124,15 @@
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
+    <!-- Distributed tracing: adopt the b3 trace context the rendering service / Istio sidecar sends, so
+         the same trace id appears in this service's log lines. The tracing autoconfig ships with the
+         actuator starter; this bridge enables it. No span exporter is added on purpose — in the Istio
+         service mesh the Envoy sidecar generates and reports the spans; this service only needs the id. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-otel</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

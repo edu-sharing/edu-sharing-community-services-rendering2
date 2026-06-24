@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing
 import org.springframework.data.mongodb.core.MongoAction
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.WriteConcernResolver
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter
 import java.time.Instant
 import java.util.*
 
@@ -19,6 +20,7 @@ import java.util.*
 @Configuration
 class MongoConfig {
 
+    @Bean
     fun writeConcernResolver(): WriteConcernResolver {
         return WriteConcernResolver { action: MongoAction? ->
             when {
@@ -33,8 +35,8 @@ class MongoConfig {
     }
 
     @Bean
-    fun mongoTemplate(mongoDatabaseFactory: MongoDatabaseFactory): MongoTemplate {
-        val mongoTemplate = MongoTemplate(mongoDatabaseFactory)
+    fun mongoTemplate(mongoDatabaseFactory: MongoDatabaseFactory, converter: MappingMongoConverter): MongoTemplate {
+        val mongoTemplate = MongoTemplate(mongoDatabaseFactory, converter)
         mongoTemplate.setWriteConcernResolver(writeConcernResolver())
         return mongoTemplate
     }

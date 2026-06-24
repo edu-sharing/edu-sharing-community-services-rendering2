@@ -1,0 +1,311 @@
+@use '@angular/material' as mat;
+@use './theme-colors' as es-theme;
+
+/* Angular Material theme (M3). The palettes are generated from the edu-sharing seed colors
+   (primary #25364f, tertiary #f29400, see theme-colors.scss) — so ALL derived tokens (focus,
+   selection, ripples, containers …) are consistently navy/orange instead of the Material
+   default azure. Fonts (Roboto, Material Icons) are hosted locally (@fontsource, wired in
+   angular.json), NO CDN. */
+html {
+  color-scheme: light;
+  @include mat.theme((
+    color: (
+      theme-type: light,
+      primary: es-theme.$primary-palette,
+      tertiary: es-theme.$tertiary-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+/* Ligature class for the default mat-icon font (Material Icons). @fontsource only ships the
+   @font-face; we define the icon rendering (ligatures) here locally. */
+.material-icons,
+.mat-icon.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Global theme — color scheme modeled on edu-sharing.
+   NOTE: the exact hex values should be taken/fine-tuned from the CSS of the running
+   edu-sharing instance (see plan). Everything is centrally controllable via CSS custom
+   properties. */
+
+:root {
+  --es-primary: #25364f;        /* edu-sharing dark blue (topbar/navigation) */
+  --es-primary-600: #2f435f;
+  --es-primary-700: #1b2840;
+  --es-accent: #f29400;         /* edu-sharing accent orange (CTAs/highlights) */
+  --es-accent-600: #d97f00;
+
+  --es-bg: #f4f6f9;
+  --es-surface: #ffffff;
+  --es-border: #e3e8ef;
+  --es-text: #1f2733;
+  --es-text-muted-solid: #6b7785;
+
+  --es-success: #2e9e5b;
+  --es-warning: #e0a800;
+  --es-danger: #d64550;
+  --es-info: #3b82c4;
+
+  --es-radius: 10px;
+  --es-radius-sm: 6px;
+  --es-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --es-shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.12);
+
+  --es-topbar-height: 60px;
+  --es-nav-width: 220px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  background: var(--es-bg);
+  color: var(--es-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1, h2, h3 { color: var(--es-text); font-weight: 600; }
+
+a { color: var(--es-info); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* --- Reusable lightweight UI building blocks --- */
+
+.card {
+  background: var(--es-surface);
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  box-shadow: var(--es-shadow);
+  padding: 18px 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--es-surface);
+  color: var(--es-text);
+  transition: background .12s ease, border-color .12s ease;
+}
+.btn:hover { background: #f0f3f7; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-primary { background: var(--es-primary); color: #fff; border-color: var(--es-primary); }
+.btn-primary:hover { background: var(--es-primary-700); }
+
+.btn-accent { background: var(--es-accent); color: #fff; border-color: var(--es-accent); }
+.btn-accent:hover { background: var(--es-accent-600); }
+
+.btn-danger { background: var(--es-danger); color: #fff; border-color: var(--es-danger); }
+.btn-danger:hover { filter: brightness(0.93); }
+
+.btn-sm { padding: 4px 9px; font-size: 12px; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.badge-queued { background: #eef2f7; color: #5a6b82; }
+.badge-processing { background: #e6f0fb; color: var(--es-info); }
+.badge-finished { background: #e7f5ec; color: var(--es-success); }
+.badge-failed { background: #fbe9ea; color: var(--es-danger); }
+.badge-partially_failed { background: #fff3df; color: var(--es-warning); }
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.data th {
+  text-align: left;
+  padding: 9px 12px;
+  color: var(--es-text-muted-solid);
+  font-weight: 600;
+  border-bottom: 2px solid var(--es-border);
+  white-space: nowrap;
+}
+table.data td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--es-border);
+  vertical-align: middle;
+}
+table.data tr:hover td { background: #fafbfc; }
+
+.muted { color: var(--es-text-muted-solid); }
+.right { text-align: right; }
+.center { text-align: center; }
+/* Header alignment must follow the column's `align`: the base `table.data th` rule
+   (left) outranks the bare `.right`/`.center` helpers, so headers would stay left while
+   their cells move — keep header and cells aligned by matching that specificity. */
+table.data th.right { text-align: right; }
+table.data th.center { text-align: center; }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+select.input, input.input {
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  padding: 7px 10px;
+  font-size: 13px;
+  background: var(--es-surface);
+  color: var(--es-text);
+}
+
+/* --- Angular Material integration --- */
+
+/* Red (destructive) Material buttons: locally remap the primary token that the
+   filled/outlined/text variants use for background resp. text/outline. */
+.warn-btn {
+  --mat-sys-primary: var(--es-danger);
+}
+
+/* Material buttons with icon + label: a little spacing between icon and text. */
+button[matButton] mat-icon {
+  margin-right: 6px;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+/* Compact filter field in the toolbars. */
+.filter-field {
+  min-width: 200px;
+}
+
+/* Snackbar accents. */
+.snack-success {
+  --mdc-snackbar-container-color: var(--es-success);
+  --mat-snack-bar-button-color: #fff;
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+.snack-error {
+  --mdc-snackbar-container-color: var(--es-danger);
+  --mat-snack-bar-button-color: #fff;
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+
+/* Compact mat-select fields readable on the dark toolbar (topbar). The token overrides
+   inherit into the Material component as CSS custom properties. The dropdown panel stays in
+   the light default (well readable). */
+.topbar-field {
+  @include mat.form-field-density(-5);
+
+  /* M3 derives label/outline/text colors from the system tokens. Set these locally to light
+     values so everything (including the focused label, which otherwise uses --mat-sys-primary)
+     is well readable on the navy toolbar. The dropdown panel lives in the global overlay and
+     stays unaffected (light default). */
+  --mat-sys-on-surface: #fff;                       /* trigger/input text */
+  --mat-sys-on-surface-variant: rgba(255, 255, 255, 0.85); /* label + outline (resting), arrow */
+  --mat-sys-primary: #fff;                          /* focus: label, outline, caret */
+
+  --mat-select-enabled-trigger-text-color: #fff;
+  --mat-select-disabled-trigger-text-color: rgba(255, 255, 255, 0.5);
+  --mat-select-placeholder-text-color: rgba(255, 255, 255, 0.7);
+  --mat-select-enabled-arrow-color: rgba(255, 255, 255, 0.85);
+  --mat-select-focused-arrow-color: #fff;
+}
+
+/* Options panel of the topbar selects. The trigger sits on the dark toolbar (light text via
+   .topbar-field above), but the dropdown panel floats in the global CDK overlay — so it does
+   NOT inherit those light tokens. Force explicitly readable dark-on-light option colors so the
+   entries (repo ids, refresh intervals) are legible. The panel carries the `panelClass`. */
+.topbar-select-panel {
+  background: var(--es-surface);
+
+  --mat-option-label-text-color: var(--es-text);
+  --mat-option-selected-state-label-text-color: var(--es-accent-600);
+  --mat-option-hover-state-layer-color: rgba(37, 54, 79, 0.06);
+  --mat-option-focus-state-layer-color: rgba(37, 54, 79, 0.10);
+  --mat-option-selected-state-layer-color: rgba(242, 148, 0, 0.12);
+
+  .mat-mdc-option {
+    color: var(--es-text);
+  }
+  .mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+    color: var(--es-accent-600);
+  }
+}
+
+/* --- Accessibility: reduced motion (WCAG 2.3.3 / 2.2.2) --- */
+/* Respect the OS "reduce motion" preference: neutralize transitions/animations app-wide
+   (e.g. the storage bar fill, button transitions, the skip-link reveal). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Accessibility: high-contrast (WCAG AA) color overrides --- */
+/* Applied on <html> by the app when the contrast mode is `high`, or `auto` + the OS requests
+   `prefers-contrast: more` (see SettingsService). The deliberate brand identity (navy topbar,
+   orange brand-mark) is untouched; only derived tones that fall short of AA on light surfaces
+   are strengthened here. */
+html.contrast-high {
+  /* Muted text reaches ≥4.5:1 even on the app background (--es-bg). */
+  --es-text-muted-solid: #5a6b82;
+
+  /* Links: darker blue + always underlined (not color alone). */
+  a {
+    color: #1a5f9c;
+    text-decoration: underline;
+  }
+
+  /* Status badges: keep the tinted backgrounds but darken the 11px text to ≥4.5:1. */
+  .badge-processing { color: #1c5a8f; }
+  .badge-finished { color: #1e7a41; }
+  .badge-failed { color: #b42531; }
+  .badge-partially_failed { color: #8a5a00; }
+
+  /* Selected dropdown option: darker orange for sufficient contrast. */
+  .topbar-select-panel {
+    --mat-option-selected-state-label-text-color: #b35f00;
+
+    .mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+      color: #b35f00;
+    }
+  }
+}

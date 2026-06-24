@@ -23,18 +23,20 @@ class DdbReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.ddb.name}", durable = "true"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.ddb.key}"]
+                value = Queue(name = $$"${app.queue.ddb.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.ddb.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: DdbJobMessage) {
+        log.debug("Received DDB job message for jobId ${message.id}, remoteId ${message.remoteId}")
         val mainJob = mainJobLogic.getMainJobEntry(message.id)
         if (mainJob == null) {
             log.error("${this.javaClass.simpleName} received message with unknown job id ${message.id}")
             return
         }
+        log.debug("Processing DDB job ${message.id}, nodeId ${mainJob.esObjectId}")
         renderingJobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
         ddbApiService.process(message.remoteId, mainJob)
         mainJobLogic.processMainJob(mainJob.id.toString())

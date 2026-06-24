@@ -48,9 +48,18 @@ export default async function createH5PEditor(
 
     const region = process.env.AWS_S3_REGION || 'eu-central-1';
 
+    const checksumCalculationWhenRequired =
+        process.env.AWS_S3_CHECKSUM_CALCULATION_WHEN_REQUIRED === 'true';
+
     const s3 = dbImplementations.initS3({
         forcePathStyle: true,
         region: region,
+        ...(checksumCalculationWhenRequired
+            ? {
+                requestChecksumCalculation: "WHEN_REQUIRED",
+                responseChecksumValidation: "WHEN_REQUIRED"
+            }
+            : {}),
         ...(trustAllCertificates
             ? {
                 requestHandler: new NodeHttpHandler({

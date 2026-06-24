@@ -12,28 +12,33 @@ import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.utils.combinePath
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
 class H5pRenderModule(
-    @Value("\${app.session.h5p.nodePermissionExpirationTime}")
+    @Value($$"${app.session.h5p.nodePermissionExpirationTime}")
     private val nodePermissionExpirationTime: Long?,
     private val h5pJobService: H5pJobService,
     private val lumiContentManagementService: LumiContentManagementService,
     private val appInfo: AppInfo,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
-    @Value("\${app.security.enabled}")
+    @Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean
 ): RenderModule, ThirdPartyModule {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun module() = "H5P"
 
     override fun isOptionalModule() = true
 
     override fun handle(node: Node): RenderDataResponse {
+        log.debug("H5P handle called for nodeId={}, hash={}", node.ref.id, node.content?.hash)
         val cachedLumiContentId = lumiContentManagementService.getContentId(node.ref.id, node.content?.hash ?: "")
         if (cachedLumiContentId != null) {
+            log.debug("H5P cache hit for nodeId={}, lumiContentId={}", node.ref.id, cachedLumiContentId)
             return RenderDataResponse(
                 module = module(),
                 objectLinks = mutableListOf(

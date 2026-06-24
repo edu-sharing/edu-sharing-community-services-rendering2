@@ -10,9 +10,9 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class CorsFilter(
-    @Value("\${app.security.allowedOriginPatterns}")
+    @Value($$"${app.security.allowedOriginPatterns}")
     private val allowedPatterns: List<String>,
-    @Value("\${app.security.allowedOrigins}")
+    @Value($$"${app.security.allowedOrigins}")
     private val allowedOrigins: List<String>
 ): OncePerRequestFilter() {
     override fun doFilterInternal(

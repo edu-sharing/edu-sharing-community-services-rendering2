@@ -33,7 +33,7 @@ class EduHtmlServiceTest {
 
     private lateinit var underTest: EduHtmlService
 
-    val node = mockk<Node>()
+    val node = mockk<Node>(relaxed = true)
 
     @BeforeEach
     fun setup() {
@@ -101,7 +101,7 @@ class EduHtmlServiceTest {
     fun testGetObjectLinkReturnsObjectLinkToIndexPathIfCached() {
         // Arrange
         val objectLink = ObjectLink(link = "mylink")
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every {
             storageMock.objectExists(cacheObject, "index.html")
@@ -124,7 +124,7 @@ class EduHtmlServiceTest {
     @Test
     fun testGetObjectLinkThrowsExceptionIfGetFilePropertiesFails() {
         // Arrange
-        val cacheObject = mockk<CacheObject>()
+        val cacheObject = mockk<CacheObject>(relaxed = true)
 
         every {
             storageMock.objectExists(cacheObject, "index.html")

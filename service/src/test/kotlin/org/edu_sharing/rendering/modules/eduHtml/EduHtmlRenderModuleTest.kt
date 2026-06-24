@@ -39,7 +39,7 @@ class EduHtmlRenderModuleTest {
     @Test
     fun testHandleReturnsLinkIfCached() {
         // Arrange
-        val node = mockk<Node>()
+        val node = mockk<Node>(relaxed = true)
         val cacheObject = mockk<CacheObject>()
         every { mapper.nodeToCacheObject(node) } returns cacheObject
         every { eduHtmlServiceMock.getObjectLink(cacheObject = cacheObject) } returns ObjectLink(link = "mylink")
@@ -61,7 +61,7 @@ class EduHtmlRenderModuleTest {
     @Test
     fun testHandleCreatesNewJobIfNotCachedAndReturnsJobId() {
         // Arrange
-        val node = mockk<Node>()
+        val node = mockk<Node>(relaxed = true)
         val cacheObject = mockk<CacheObject>()
         every { mapper.nodeToCacheObject(node) } returns cacheObject
         every { eduHtmlServiceMock.getObjectLink(cacheObject) } throws ResourceNotFoundException("testException")

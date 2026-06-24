@@ -24,6 +24,21 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
+            <id>edusharing_rendering2_admin-frontend</id>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <includeArtifactIds>
+                edu_sharing-community-services-rendering2-deploy-docker-helm-admin-frontend
+              </includeArtifactIds>
+              <type>tar.gz</type>
+              <classifier>bin</classifier>
+              <outputDirectory>${project.build.directory}/chart/charts/${helm.prefix}-admin-frontend</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
             <id>edusharing_rendering2_document_converter</id>
             <goals>
               <goal>unpack-dependencies</goal>
@@ -160,6 +175,13 @@
   </build>
 
   <dependencies>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>edu_sharing-community-services-rendering2-deploy-docker-helm-admin-frontend</artifactId>
+      <type>tar.gz</type>
+      <classifier>bin</classifier>
+    </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>

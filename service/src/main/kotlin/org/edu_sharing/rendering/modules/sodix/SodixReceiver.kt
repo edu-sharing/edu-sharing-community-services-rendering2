@@ -32,19 +32,21 @@ class SodixReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.sodix.name}", durable = "true"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
+                value = Queue(name = $$"${app.queue.sodix.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.sodix.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: SodixJobMessage) {
+        log.debug("Received Sodix job message for jobId ${message.id}, nodeId ${message.nodeId}, identifier ${message.identifier}")
         var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
             return
         }
+        log.debug("Processing Sodix job ${message.id}, isPaidMedia ${message.isPaidMedia}")
         jobEntry.status = RenderingJobStatus.PROCESSING
         jobEntry = renderingJobRepository.save(jobEntry)
         var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
@@ -56,6 +58,7 @@ class SodixReceiver(
                 module = moduleRegistry.getRenderModule(jobEntry.module),
                 repoId = jobEntry.repoId,
             )
+            log.debug("Sodix content URL retrieved for job ${message.id}, marking sub-job as FINISHED")
             playoutUrlSubJob.status = SubJobStatus.FINISHED
             playoutUrlSubJob.message = playoutUrl
             if (downloadUrl != null) {
@@ -63,13 +66,15 @@ class SodixReceiver(
             }
             subJobRepository.save(playoutUrlSubJob)
         } catch (exception: Exception) {
+            log.error(exception.message, exception)
             val objectMapper = ObjectMapper()
             var userMessage = GENERIC_CONVERSION_ERROR
             if (exception is WebClientResponseException && exception.statusCode == HttpStatus.BAD_GATEWAY) {
                 userMessage = try {
                     val jsonNode = objectMapper.readTree(exception.responseBodyAsString)
-                    jsonNode.path("error").asText(GENERIC_CONVERSION_ERROR)
-                } catch (_: Exception) {
+                    jsonNode.path("error").asString(GENERIC_CONVERSION_ERROR)
+                } catch (e: Exception) {
+                    log.error(e.message, e)
                     GENERIC_CONVERSION_ERROR
                 }
             }

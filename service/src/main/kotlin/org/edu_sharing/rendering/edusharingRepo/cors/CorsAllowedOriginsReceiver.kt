@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo.cors
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMasterOrController
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Component
 class CorsAllowedOriginsReceiver(
     private val corsSyncService: CorsSyncService
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @RabbitListener(
         bindings = [
             QueueBinding(
@@ -21,7 +25,7 @@ class CorsAllowedOriginsReceiver(
                     autoDelete = "true"
                 ),
                 exchange = Exchange(
-                    name = "\${app.queue.controllerBroadcastExchange}",
+                    name = $$"${app.queue.controllerBroadcastExchange}",
                     type = "fanout"
                 )
             )
@@ -29,6 +33,7 @@ class CorsAllowedOriginsReceiver(
         containerFactory = "singlePrefetchConnectionFactory"
     )
     fun handleBroadcast(message: String) {
-       corsSyncService.applyKnownOrigins()
+        log.debug("Received CORS broadcast message; applying known origins")
+        corsSyncService.applyKnownOrigins()
     }
 }

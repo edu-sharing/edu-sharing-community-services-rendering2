@@ -20,6 +20,7 @@ abstract class AbstractReceiver(
     private val log = LoggerFactory.getLogger(this.javaClass)
 
     protected fun processMessage(message: RenderingJobMessage) {
+        log.debug("Received message for job id='{}'", message.id)
         var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(
@@ -28,9 +29,11 @@ abstract class AbstractReceiver(
             )
             return
         }
+        log.debug("Job id='{}' found with {} sub-job(s), transitioning to status PROCESSING", message.id, jobEntry.subJobs.size)
         jobEntry.status = RenderingJobStatus.PROCESSING
         jobEntry = renderingJobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        log.debug("Dispatching job id='{}' to ConversionService.process()", message.id)
         conversionService.process(cacheObject, jobEntry)
         mainJobLogic.processMainJob(message.id)
     }

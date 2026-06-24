@@ -51,6 +51,12 @@ abstract class AbstractIntegrationTest() {
             registry.add("app.minio.user") { "minioadmin" }
             registry.add("app.minio.password") { "minioadmin" }
 
+            // S3 client (S3Config binds app.s3.*) – point it at the MinIO testcontainer so that
+            // storage operations (e.g. admin asset deletion) actually hit a real S3 backend.
+            registry.add("app.s3.url") { "http://${minioContainer.host}:${minioContainer.getMappedPort(9000)}" }
+            registry.add("app.s3.accessKeyId") { "minioadmin" }
+            registry.add("app.s3.secretAccessKey") { "minioadmin" }
+
             // RabbitMQ
             registry.add("spring.rabbitmq.host", rabbitMQContainer::getHost)
             registry.add("spring.rabbitmq.port", rabbitMQContainer::getAmqpPort)

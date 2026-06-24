@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -20,19 +21,23 @@ class BinderReceiver(
     private val jobRepository: RenderingJobRepository,
     private val mapper: Mapper
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "\${app.queue.binder.name}", durable = "true"),
-                exchange = Exchange(name = "\${app.queue.topicExchange}", type = "topic"),
-                key = ["\${app.queue.binder.key}"]
+                value = Queue(name = $$"${app.queue.binder.name}", durable = "false"),
+                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                key = [$$"${app.queue.binder.key}"]
             )
         ], containerFactory = "singlePrefetchConnectionFactory"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
-        var uploadSubJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
-        var mainJob = jobRepository.findByIdOrNull(uploadSubJob.parent.id) ?: return
+        log.debug("Binder upload message received: subJobId={}", message.subJobId)
+        val uploadSubJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
+        val mainJob = jobRepository.findByIdOrNull(uploadSubJob.parent.id) ?: return
 
+        log.debug("Binder upload sub-job looked up: mainJobId={}, esObjectId={}", mainJob.id, mainJob.esObjectId)
         jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
 
         uploadService.process(

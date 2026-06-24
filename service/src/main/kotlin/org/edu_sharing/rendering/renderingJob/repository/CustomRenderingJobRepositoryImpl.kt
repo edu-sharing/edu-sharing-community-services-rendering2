@@ -4,11 +4,15 @@ import org.bson.types.ObjectId
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.Pageable
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Repository
+import java.util.regex.Pattern
 
 @Repository
 class CustomRenderingJobRepositoryImpl(
@@ -17,10 +21,45 @@ class CustomRenderingJobRepositoryImpl(
 
     private val log = LoggerFactory.getLogger(CustomRenderingJobRepositoryImpl::class.java)
 
+    override fun findJobsPage(
+        repoId: String,
+        status: RenderingJobStatus?,
+        search: String?,
+        createdFrom: Long?,
+        createdTo: Long?,
+        pageable: Pageable
+    ): Page<RenderingJob> {
+        val criteria = Criteria.where("repoId").`is`(repoId)
+        if (status != null) {
+            criteria.and("status").`is`(status)
+        }
+        if (!search.isNullOrBlank()) {
+            val q = Pattern.quote(search)
+            criteria.orOperator(
+                Criteria.where("module").regex(q, "i"),
+                Criteria.where("esObjectId").regex(q, "i"),
+                Criteria.where("errorMessage").regex(q, "i"),
+                Criteria.where("status").regex(q, "i"),
+            )
+        }
+        if (createdFrom != null || createdTo != null) {
+            // Einzelne Criteria für creationTimestamp bauen (gte/lte), nicht zweimal .and(<selber key>) –
+            // das würde an den Limitierungen des BSON-Dokuments scheitern.
+            val ts = Criteria.where("creationTimestamp")
+            if (createdFrom != null) ts.gte(createdFrom)
+            if (createdTo != null) ts.lte(createdTo)
+            criteria.andOperator(ts)
+        }
+        val total = mongoTemplate.count(Query(criteria), RenderingJob::class.java)
+        val content = mongoTemplate.find(Query(criteria).with(pageable), RenderingJob::class.java)
+        return PageImpl(content, pageable, total)
+    }
+
     override fun updateStatusWithoutVersion(
         jobId: ObjectId,
         status: RenderingJobStatus
     ) {
+        log.debug("Updating RenderingJob $jobId status to $status (without version check)")
         val query = Query(Criteria.where("_id").`is`(jobId))
         val update = Update()
         update.set("status", status.toString())

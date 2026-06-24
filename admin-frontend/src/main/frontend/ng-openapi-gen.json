@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/ng-openapi-gen/ng-openapi-gen-schema.json",
+  "input": "openapi/admin-api.json",
+  "output": "src/app/api",
+  "enumStyle": "alias",
+  "services": true,
+  "promises": false,
+  "ignoreUnusedModels": false
+}
