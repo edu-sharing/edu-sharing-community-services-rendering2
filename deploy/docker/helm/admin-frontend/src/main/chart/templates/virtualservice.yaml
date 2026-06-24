@@ -13,5 +13,29 @@ spec:
     - destination:
         host: {{ include "edusharing_common_lib.names.name" . }}
       weight: 100
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "edusharing_common_lib.names.name" . }}-external
+  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+spec:
+  hosts: {{ toYaml .Values.ingress.hosts | nindent 4 }}
+  gateways:
+  - {{ include "edusharing_common_lib.names.name" . }}
+  http:
+  {{- range $path := .Values.ingress.paths }}
+  - match:
+    - uri:
+        prefix: {{ $path }}
+    route:
+    - destination:
+        host: {{ include "edusharing_common_lib.names.name" $ }}
+        port:
+          number: {{ $.Values.service.port.api }}
+      weight: 100
+  {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
