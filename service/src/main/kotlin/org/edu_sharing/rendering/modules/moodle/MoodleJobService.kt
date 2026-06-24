@@ -46,13 +46,18 @@ class MoodleJobService(
             id = job.id.toString(),
             nodeId = job.esObjectId,
             hash = node.content?.hash ?: "",
-            title = node.title ?: "",
+            title = node.title ?: node.name,
             userName = userDetails.username,
             userEmail = userDetails.email.ifBlank { getFallbackMail() },
             firstName = userDetails.firstName,
             lastName = userDetails.lastName
         )
-        log.debug("Sending Moodle job message for jobId ${job.id}, nodeId ${job.esObjectId} to queue $jobRoutingKey")
+        log.debug(
+            "Sending Moodle job message for jobId {}, nodeId {} to queue {}",
+            job.id,
+            job.esObjectId,
+            jobRoutingKey
+        )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
         return job.id.toString()
     }
