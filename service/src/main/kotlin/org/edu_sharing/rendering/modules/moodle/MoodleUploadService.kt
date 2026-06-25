@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -20,7 +21,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Service
 @ConditionalOnConverter
-class MoodleUploadService {
+class MoodleUploadService(
+    @param:Qualifier("longRunningWebClientBuilder")
+    private val webClientBuilder: WebClient.Builder
+) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val objectMapper = ObjectMapper()
 
@@ -192,8 +196,8 @@ class MoodleUploadService {
     }
 
     private fun getWebClient(config: Map<String, String>): WebClient {
-        val builder = WebClient
-            .builder()
+        val builder = webClientBuilder
+            .clone()
             .baseUrl(config["baseurl"] ?: "")
 
         config["publicurl"]?.takeIf { it.isNotBlank() }?.let { publicUrl ->
