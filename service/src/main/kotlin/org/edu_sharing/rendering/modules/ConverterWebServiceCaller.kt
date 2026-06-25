@@ -61,8 +61,6 @@ class ConverterWebServiceCaller(
             resultInputStream.use {
                 storageImplementation.putObject(convertedCacheObject, resultInputStream)
             }
-        } catch (exception: Exception) {
-            throw exception
         } finally {
             originalFile.delete()
         }
