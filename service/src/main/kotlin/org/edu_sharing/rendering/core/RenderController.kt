@@ -32,6 +32,8 @@ class RenderController (
     private val nodeSessionContextRepository: NodeSessionContextRepository,
     @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
+    @param:Value($$"#{'\${app.security.allowed-signature-algorithms:SHA256withRSA,SHA512withRSA}'.split(',')}")
+    private val allowedSignatureAlgorithms: List<String>,
 ){
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -44,9 +46,11 @@ class RenderController (
         log.debug("Render data request received: nodeId=${body.nodeId}, repoId=${body.repoId}, eventType=${body.eventType}, securityEnabled=$securityEnabled")
         val decodedNode = Base64.getDecoder().decode(body.securedNode)
         val decodedSignature = Base64.getDecoder().decode(body.signature)
-        val signatureAlgorithm = body.signatureAlgorithm //String(Base64.getDecoder().decode(body.signatureAlgorithm))
+        val signatureAlgorithm = body.signatureAlgorithm
         if (securityEnabled) {
-            //@TODO: check if signatureAlgorithm is allowed
+            require(signatureAlgorithm in allowedSignatureAlgorithms) {
+                "Signature algorithm '$signatureAlgorithm' is not allowed"
+            }
             log.debug("Verifying node signature: repoId=${body.repoId}, algorithm=$signatureAlgorithm, nodeDataLength=${decodedNode.size}")
             verifySignedNode(decodedNode, decodedSignature, body.repoId,signatureAlgorithm)
         }

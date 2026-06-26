@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.client.MultipartBodyBuilder
 import org.springframework.stereotype.Service
@@ -16,6 +17,7 @@ import java.io.File
 class OnyxUploadService(
     private val module: OnyxRenderModule,
     private val contentTransferService: ContentTransferService,
+    @param:Qualifier("longRunningWebClientBuilder")
     private val webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)

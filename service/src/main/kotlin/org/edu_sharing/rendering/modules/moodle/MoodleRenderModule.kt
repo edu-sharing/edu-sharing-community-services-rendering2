@@ -26,8 +26,8 @@ class MoodleRenderModule(
     private val log = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        private val requiredCredentialKeys = setOf("baseurl", "timeout", "categoryid")
-        private val optionalCredentialKeys = setOf("user", "password", "token", "submitUserDetails", "publicurl")
+        private val requiredCredentialKeys = setOf("baseurl", "timeout", "categoryid", "password")
+        private val optionalCredentialKeys = setOf("user", "token", "submitUserDetails", "publicurl")
     }
 
     override fun module() = "MOODLE"
