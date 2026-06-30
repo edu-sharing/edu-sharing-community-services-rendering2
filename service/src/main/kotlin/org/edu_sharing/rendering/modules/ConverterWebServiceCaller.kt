@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules
 
-import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
@@ -9,6 +8,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.client.MultipartBodyBuilder
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
+import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.File
 
@@ -45,7 +45,7 @@ class ConverterWebServiceCaller(
                 }.contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
-                .bodyToMono(ByteArray::class.java)
+                .bodyToMono<ByteArray>()
                 .block()
             log.debug(
                 "Converter service responded: path='{}', responseSize={} bytes",

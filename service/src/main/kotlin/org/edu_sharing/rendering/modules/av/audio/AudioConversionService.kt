@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService
+import org.edu_sharing.rendering.modules.av.AvConversionTimeoutGuard
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
 import org.slf4j.LoggerFactory
@@ -19,7 +20,8 @@ import ws.schild.jave.encode.EncodingAttributes
 @Service
 class AudioConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,
-    private val encoder: Encoder,
+    private val encoderFactory: ObjectFactory<Encoder>,
+    private val timeoutGuard: AvConversionTimeoutGuard,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>
 ) : AvConversionService {
     companion object {
@@ -38,6 +40,7 @@ class AudioConversionService(
         log.debug("Converting audio: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, bitrate=$bitrate")
         val listener = listenerFactory.`object`
         listener.subJob = subJob
+        val encoder = encoderFactory.`object`
         val attributes = initAttributes()
 
         val fileHelper = avFileHelperFactory.`object`
@@ -45,7 +48,9 @@ class AudioConversionService(
             fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
             val multiMediaObject = MultimediaObject(fileHelper.originalFile)
-            encoder.encode(multiMediaObject, fileHelper.outputFile, attributes, listener)
+            timeoutGuard.runEncode(encoder, subJob.id) {
+                encoder.encode(multiMediaObject, fileHelper.outputFile, attributes, listener)
+            }
             val outputCacheObject = cacheObject.deepCopy()
             outputCacheObject.quality = bitrate.toInt()
             outputCacheObject.size = fileHelper.outputFile.length()

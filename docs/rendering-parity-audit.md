@@ -115,6 +115,8 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Impact:** A captured `(securedNode, signature)` pair is valid **forever** and can be replayed indefinitely. The OLD design specifically signed-in `ts` and bounded its age to defeat replay. This is a genuine security regression, not a presentation concern.
 - **Recommendation:** Include a repository-provided timestamp (and ideally nonce) in the signed payload and re-introduce the `message_offset_ms` / `message_send_offset_ms` window (with per-repo override). At minimum verify a freshness claim. Verify whether the JWT (see C2) is meant to carry this — if the JWT is the freshness mechanism, document it explicitly, because the node-signature path is reachable independently.
 
+MZ: This is fine!
+
 #### C2. Signature algorithm is attacker-controlled in the node-signature path
 - **Severity:** Critical
 - **OLD:** algorithm is **hard-coded** to `sha1WithRSAEncryption` in `validate_signature.php` (line 35). The client cannot choose it.
@@ -123,12 +125,16 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Note:** elsewhere the algorithm is server-derived and sensible — `EncryptionService.getSigningAlg()` reads `registration.signingAlgorithm`, and `RepositoryRegistrationService.getSigningAlgorithm()` defaults to `SHA1withRSA` from the repo `/about` endpoint. So the fix is to validate `body.signatureAlgorithm` against (or simply replace it with) the registered repo algorithm.
 - **Recommendation:** Resolve the algorithm from the repository registration (as the content-fetch path already does) and reject any client-supplied value that doesn't match an allow-list. Remove the TODO by implementing it.
 
+MZ: Fixed in Commit 072e61627a5ad49be9e4be4b9e1387a53f8fb529.
+
 #### C3. Concurrent-render de-duplication / locking semantics changed (possible duplicate work & races)
 - **Severity:** Critical (correctness/robustness)
 - **OLD:** `index.php` + `ESRender/Module/Base.php`. Heavy machinery: `instanceExists()`, `instanceLock()`, `instanceUnlock()`, an `ESOBJECT_LOCK` table, a **busy-wait loop** (poll every 200 ms up to 60 s) when another request holds the lock, and a `register_shutdown_function` that on fatal error unlocks the instance and deletes the DB row. `instanceExists()` also self-heals: if the DB row exists but the cache file is missing, it deletes the DB row and returns false (cache-invalidation by file presence). Cache key = `rep_id + content_hash + object_id` (version deliberately *not* part of existence check since 5.1 — same content across versions reuses cache).
 - **NEW:** `renderingJob/MainJobCreationService.kt` `getExistingJobId()` reuses an existing job only if it is *not* FINISHED/FAILED/PARTIALLY_FAILED **and** `esHash == cacheObject.hash`. There is **no lock + wait**; two simultaneous requests for the same uncached node can both find "no unfinished job" and both create a job/enqueue conversion. There is no shutdown-hook cleanup of a stuck in-progress entry; `MainJobLogic` instead relies on sub-job status aggregation, and the queue "self-heals" by dropping messages with no DB entry (`JobReceiver` returns on `findByIdOrNull(...) ?: return`).
 - **Impact:** Different model, mostly defensible for an async-job design, but (a) the *content-hash-based, version-agnostic* cache-reuse rule from OLD is only partially reproduced, and (b) there's no mutual exclusion, so duplicate conversions for the same node under load are possible. Confirm this is acceptable / idempotent at the storage layer.
 - **Recommendation:** Verify the storage/job layer is idempotent for concurrent identical jobs; if not, add a uniqueness guard (e.g. unique index on nodeId+hash+module for in-flight jobs). Confirm the OLD "missing cache file ⇒ invalidate DB row" self-healing is covered by S3 existence checks in the modules (this audit didn't trace every module's cache-hit check — needs verification per module).
+
+MZ: Check this!
 
 ---
 
@@ -163,6 +169,8 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Impact:** Several whole content classes (saved searches, directories/collections, LTI tools, YouTube/Pixabay/LearningApps/dmglib/FWU external URLs, QTI, scenario) that OLD rendered now hit `ObjectTypeNotSupportedException`. Some of these may be deliberately out-of-scope for v2 / handled by the repo frontend, but that needs to be confirmed item-by-item; at least the *generic-doc fallback* difference (error vs. download) is a real regression for long-tail mimetypes.
 - **Recommendation:** Produce an explicit decision per OLD route (port vs. intentionally drop). Re-introduce a generic fallback (doc/download) instead of throwing for unknown types, or document why an error is now correct. Confirm `audio/mp4` and the office→doc VIEWER_JS downgrade are intentionally simplified.
 
+MZ: Check this! revoked, dmglib. Prio 1
+
 #### H2. License / access gating (`hasContentLicense`, collection-reference access logic) is LOST
 - **Severity:** High
 - **OLD:** `index.php` lines 143–162 computes `Config::set('hasContentLicense', …)` with subtle, version-dependent rules:
@@ -174,12 +182,16 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Impact:** The nuanced "you may *see* the node but not its licensed content, so we downgrade to a neutral doc viewer + warning" behavior is gone. If the JWT `ReadAll` is computed by the repository with the same collection/license semantics, the *access decision* may be preserved, but the **downgrade-to-doc + license-warning UX** is not, and the repo-side computation needs verification.
 - **Recommendation:** Confirm the repository's JWT `permissions=ReadAll` is computed with the exact collection_io_reference/originalRestrictedAccess/accessEffective rules; if not, port them. Decide where the "no content license ⇒ neutral viewer + warning" behavior now lives (frontend?) and document it.
 
+MZ: This is fine, checked with TS.
+
 #### H3. DataProtection / GDPR handler not ported (but OLD was already disabled)
 - **Severity:** High (verify intent) — likely **Intentionally dropped**, but worth confirming
 - **OLD:** `ESRender/DataProtectionRegulation/DataProtectionHandler.php` + `Handler.php`. `index.php` constructs `DataProtectionHandler` and calls `handle()`; if it returns content, rendering stops and a consent dialog wraps the embed. Logic: `RemoteObjectType` classifies the node (YouTube/Vimeo/Prezi/H5P/video/iframe/audio/image/generic), `getHandlerDetails()` returns provider name + privacy URL for matching providers, gated by `DATAPROTECTIONREGULATION_CONFIG['enabled']` (default **false**) and an optional module allow-list and URL regex map. **However** `Handler::getApplyDataProtectionRegulationsDialog()` has an unconditional `return '';` at the very top (line 15), and `getConfig()` defaults `enabled=false`, so in practice the dialog content was empty/disabled in this checkout.
 - **NEW:** No equivalent. Grep for data-protection/consent: none. CSP handling exists (`getCspHeader`, `RepositoryRegistrationService.setCspHeader`) but that is a different concern.
 - **Impact:** If any deployment enabled `DATAPROTECTIONREGULATION_CONFIG`, the consent gate before embedding 3rd-party content (YouTube/Vimeo/etc.) is gone. Given the OLD code path was effectively disabled, this is probably an intentional drop, but the `RemoteObjectType` provider-classification (YouTube/Vimeo/Prezi/H5P detection by URL) was also the basis for routing and is not reproduced.
 - **Recommendation:** Confirm GDPR consent is now a frontend responsibility. If 3rd-party-embed consent is still required by product/legal, re-implement.
+
+MZ: This is fine.
 
 #### H4. Sequence (children) handling not ported
 - **Severity:** High (verify intent)
@@ -188,12 +200,16 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Impact:** Multi-part "sequence" objects lose their child-navigation. Likely now a frontend concern, but the service no longer surfaces children at all.
 - **Recommendation:** Confirm the frontend gets children from the repo directly; otherwise port.
 
+MZ: Check this! Prio 1.
+
 #### H5. Object tracking on every render replaced by event-conditional async tracking
 - **Severity:** High → Medium (behavioral)
 - **OLD:** `ESRender/Application.php trackObject()` is called **at the end of every successful render** (`index.php` line 431) and writes an `ESTRACK` DB row keyed by the internal ESOBJECT id. Always runs (best-effort, swallows errors).
 - **NEW:** `core/RenderController.kt` calls `trackingService.trackObject(objectId, event, repoId)` **before** dispatch. `EduTrackingService.trackObject` (`edusharingRepo/EduTrackingService.kt`) **skips entirely** when `event == "PRERENDER"` **or** `!securityEnabled`, and otherwise fires an **async** `trackEventAsync` to the *repository* (not a local DB). Default event is `VIEW_MATERIAL`.
 - **Impact:** (a) Tracking now happens *before* the render succeeds (OLD tracked only on success). (b) With `app.security.enabled=false` (the test/dev profile) **nothing is tracked**. (c) Tracking moved from a local table to a repo callback. Probably intended (the repo owns analytics now), but the "track only on success" and "always track" semantics changed.
 - **Recommendation:** Confirm tracking-before-dispatch is acceptable (a failed render now still records a view). Document the `securityEnabled=false ⇒ no tracking` behavior.
+
+MZ: Check this! When do we track the event? Prio 2.
 
 ---
 
@@ -206,11 +222,15 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Impact:** The consumer presumably chooses presentation from the returned links, so most modes are moot. But `prerender` (warm-the-cache without rendering) and `locked` (content still converting) were *functional* signals. NEW conveys "still converting" via `jobId` + job status, which is a reasonable substitute — verify the prerender warm-up path exists (a render request that only triggers caching).
 - **Recommendation:** Confirm there's a way to "prerender"/warm cache without a full client render, matching OLD `display=null`.
 
+MZ: Display modes have been deprecated.
+
 #### M2. Display/render request flags (`showMetadata`, `showDownloadButton`, `showDownloadAdvice`, `forcePreview`, `width`, `height`, `backLink`, `base64Preview`) are gone
 - **Severity:** Medium
 - **OLD:** `index.php` lines 127–141 read these into `Config`; `Module/Base.php` / `ContentNode/Abstract.php` use them to control footer/metadata/preview rendering and dimensions; `ESObject::getPreviewUrl()` honors `Config::get('base64Preview')`.
 - **NEW:** None present (grep: zero hits). `RenderDataRequest` carries only `nodeId, repoId, securedNode, signature, signatureAlgorithm, eventType`.
 - **Impact:** Presentation flags — almost certainly **intentionally dropped** (frontend decides). Listed for completeness; low real risk but confirm the frontend no longer expects the service to honor `forcePreview`/`showMetadata`.
+
+MZ: This is now part of the web component.
 
 #### M3. Metadata handler reduced to passthrough — fine, but note `metadataHTML` source
 - **Severity:** Medium → Info
@@ -218,11 +238,15 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **NEW:** No metadata rendering in the service; presumably the frontend uses repo metadata directly. `application/esmain/metadata.php` (the app **registration** metadata XML, different thing) **is** reproduced by `edusharingRepo/services/MetadataService.generateMetadataFile()` — that part is well covered (appid/type/public_key/host/port/contenturl/trustedclient, plus added `host_allow_internal_ip`, `webappname`, `allow_admin_login`). OLD `type` = (from config) vs NEW hardcodes `RENDERINGSERVICE_2` — intended version bump.
 - **Recommendation:** None beyond confirming the frontend renders metadata. Good parity on the registration-metadata file.
 
+MZ: This is now part of the web component.
+
 #### M4. Outbound tracing-header propagation differs
 - **Severity:** Medium
 - **OLD:** `Helper/GuzzleHelper.php addTracing()` copies inbound `X-B3-*`, `X-OT-*`, `X-Request-Id`, `X-Client-Trace-Id` headers onto every outbound content fetch (manual B3 propagation), plus per-request proxy selection (`ProxyHelper`).
 - **NEW:** Tracing is via Micrometer/OTel (see user memory `boot4-tracing-wiring.md`) and `edusharingRepo/TracePropagatingInterceptor.kt`. Verify it propagates the same span context to the **content-fetch WebClient** (`ContentTransferService` uses `repoRegistrationService.getWebClientByRepoId`). The CLAUDE memory notes "no WebClient autoconfig" — so the trace interceptor must be wired onto that builder explicitly.
 - **Recommendation:** Confirm `TracePropagatingInterceptor` (or the OTel WebClient instrumentation) is attached to the `WebClient.Builder` used by `RepositoryRegistrationService.getWebClient()` and the per-user client; otherwise outbound spans/trace headers to the repo are lost (regression vs OLD manual B3). Also confirm proxy config parity (`ProxyHelper`).
+
+MZ: Tracing is now handled differently.
 
 #### M5. Content-fetch signed payload parity — OK, but algorithm source differs
 - **Severity:** Medium → Info (parity mostly OK)
@@ -231,12 +255,16 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **Impact:** Mostly equivalent and arguably improved. The revoked-version omission is the only concrete behavioral gap (tied to H1).
 - **Recommendation:** Decide whether `version` should still be dropped for revoked nodes; otherwise revoked-content fetch URL differs from OLD.
 
+MZ: This is fine.
+
 #### M6. Error handling / i18n fallback simplified
 - **Severity:** Medium → Low
 - **OLD:** `index.php` has a rich catch ladder mapping each exception type to a localized template (`/error/default`) with an `i18nName` (`invalid_parameters`, `encryption`, `internal`, …). `init-language.php` picks locale from `language` param, **falls back to DE** if the locale file is missing (note: index.php fallback is DE, not EN, even though default param is `en`).
 - **NEW:** `core/exception/ApiExceptionHandler.kt` (+ `ErrorStrings.kt`, `PublicApiException`, etc.) returns JSON error bodies. There is no per-language localization of error text in the service; i18n is the frontend's job.
 - **Impact:** Expected for a JSON API. Confirm the frontend maps the new error codes/exceptions to the OLD `i18nName` keys so localized messages survive. The OLD DE-fallback quirk is irrelevant now.
 - **Recommendation:** Ensure `ObjectTypeNotSupportedException`, signature failures, etc. carry stable machine-readable codes the frontend can localize (the OLD `i18nName` set: `invalid_parameters`, `encryption`, `internal`).
+
+MZ: This is fine. Handled in FE.
 
 ---
 
@@ -247,10 +275,14 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **OLD:** `application/esmain/metadata.php` + `Helper/AppPropertyHelper.php`: if `public_key` empty, generate an OpenSSL keypair and persist into `homeApplication.properties.xml`.
 - **NEW:** `edusharingRepo/services/MetadataService.generateApplicationKeyPair()` (RSA 2048) + `hasKeyPair()`; stored in Mongo `RendererKeyConfig`. Triggered via registration flow. Parity good; keypair now 2048-bit RSA explicitly (OLD used OpenSSL defaults). Confirm a startup/registration path calls `generateApplicationKeyPair()` when `!hasKeyPair()` (analogous to OLD's lazy generation) — see `RegistrationRunner.kt`.
 
+MZ: This is fine.
+
 #### L2. Signature `sig_token` path (no-node signing) not reproduced
 - **Severity:** Low
 - **OLD:** `validate_signature.php` supports signing a standalone `sig_token` (≥32 chars) when no node is present (used by `version.php` and other non-node endpoints).
 - **NEW:** The render API always has a node. The `version.php`/licenses endpoint (third-party dependency listing) has no NEW analog beyond actuator/`/ping`. Likely intentional; the OLD version endpoint required a valid signature to expose dependency licenses — confirm the NEW info endpoints don't need equivalent gating.
+
+MZ: This is fine.
 
 #### L3. Validators (ObjectId/SessionId/etc. regexes) — relaxed
 - **Severity:** Low
@@ -258,15 +290,21 @@ PHP→Kotlin parity audit of the edu-sharing rendering service. Source of truth 
 - **NEW:** `RenderDataRequest` fields are `@NotNull` only — no format validation on `nodeId`/`repoId`. Spring Security + signature verification are the real guards. Low risk (IDs flow into parameterized Mongo/HTTP, not SQL), but stricter input validation was present OLD-side.
 - **Recommendation:** Optionally add `@Pattern` validation on `nodeId`/`repoId` to match OLD constraints (defense in depth).
 
+MZ: Check this! Might be a useful safeguard! Prio 2.
+
 #### L4. Plugin lifecycle hooks (pre/post LoadRepository, SslVerification, RetrieveObjectProperties, Instanciate, Process, TrackObject) — dropped
 - **Severity:** Low/Info — likely intentional
 - **OLD:** `ESRender/Plugin/Interface.php` + `Abstract.php` define ~16 lifecycle hooks; `index.php` invokes them around each stage; concrete plugins (`Sodix`, `DDB`, `Serlo`, `Omega`, `Arix`, `NetMath`, `UniTube`, `SetDefaultUsername`, `Edunex`) customized rendering per integration. Loaded from `conf/plugins.conf.php`.
 - **NEW:** No plugin hook system. Per-integration behavior is instead a first-class *module* (`sodix`, `ddb`, plus `onyx`, `binder`, `eduhtml`, `jupyter`, `thirdParty`). This is a cleaner design; the extensibility surface changed from "hooks" to "modules". Confirm every OLD plugin's behavior that mattered (e.g. Sodix/DDB request rewriting, SetDefaultUsername, Omega/Arix/NetMath/UniTube/Serlo/Edunex remote-object handling) is either ported into a module or deliberately dropped. **Several OLD plugins (Serlo, Omega, Arix, NetMath, UniTube, Edunex, SetDefaultUsername) have no obvious NEW counterpart** — needs an explicit port/drop decision.
 
+MZ: This is fine. Plugins are now modules.
+
 #### L5. CORS hardening (improvement, note for parity)
 - **Severity:** Info
 - **OLD:** `application/esmain/index.php` sends `Access-Control-Allow-Origin: *` + `Allow-Methods/Headers: *` unconditionally (wide open).
 - **NEW:** `security/cors/*` + `edusharingRepo/cors/*` sync allowed origins per registered repository (`CorsSyncService`, `CorsAllowedOriginsReceiver`). This is a hardening improvement, not a regression. Confirm legitimate repo origins are correctly synced so embeds don't break.
+
+MZ: This is fine.
 
 ---
 
@@ -307,11 +345,15 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **Impact**: Browsers that only play VP8/WebM lose a fallback. The comment in the old conf ("select mp4 & webm OR only mp4") shows webm was an intentional, configurable second output.
 - **Recommendation**: Confirm with product whether webm is still required (modern browsers all play H.264, so this may be a deliberate simplification). If dropped intentionally, note it; otherwise the libvpx parameter set above must be reproduced.
 
+MZ: Checked. All modern browsers are fine with MPEG-4/H.264 [Can I use mp4](https://caniuse.com/mpeg4)
+
 #### [High] Image target resolutions changed (640/1280/1920 + original → 800/1280/1920)
 - **OLD**: `mod_picture.php:35-37,96` resolutions `S=640, M=1280, L=1920`, **plus `$origLong`** (the original's longest side) added to the loop — so the original full-resolution copy is always kept (subject to no-upscale).
 - **NEW**: `application.properties:121` `app.converter.image.sizes=800,1280,1920`. Smallest is **800 not 640**, and there is **no "original size" output** — `ImageService.targetImageSizes` is a fixed list; `getMissingQualities` only ever considers those three.
 - **Impact**: (a) the 640 thumbnail tier is gone; (b) high-res originals larger than 1920 are downscaled to 1920 with no full-res cached copy. Old behaviour preserved an original-resolution rendering.
 - **Recommendation**: Decide whether the lost "original" tier and the 640→800 change are intended; if not, add `$origLong` equivalent (cap at original longest side) and restore 640.
+
+MZ: Image resolutions have been deliberately changed. Steffen's tests account for this.
 
 #### [High] EXIF orientation / auto-rotation handling MISSING
 - **OLD**: `mod_picture.php:120-137` reads EXIF (`exif_read_data`, IFD0 `Orientation`) and rotates the output: orientation 3→180°, 6→-90°, 8→90°.
@@ -319,10 +361,14 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **Impact**: Photos shot in portrait on phones (very common, EXIF orientation 6/8) will render **sideways/upside-down** in the new service. This is exactly the "opaque" logic the audit targets.
 - **Recommendation**: Add EXIF-orientation reading (e.g. metadata-extractor) and rotate the BufferedImage before scaling, replicating the 3/6/8 cases.
 
+MZ: Check this! Prio 1.
+
 #### [High] SVG and GIF pass-through MISSING (and not handled by the IMAGE module at all)
 - **OLD**: `mod_picture.php:55-63,236-242` — SVG and animated GIF are detected by `mime_content_type` and **copied verbatim** (no rasterization, preserving vector/animation). `getFlavour` returns `''` for svg/gif so the original is always served.
 - **NEW**: `app.converter.image.mimeTypes` (line 120) does **not** include `image/svg+xml` or `image/gif`. So per `ModuleTypeMapper` (mimeTypePrefix `image`) they hit `ImageRenderModule` as *non-conversion* objects → served from cache as-is via `getObjectLinks` non-conversion branch. That is functionally equivalent to the old "copy verbatim" **only if** the un-converted original is cached and served. Worth verifying: old explicitly forced no resize; new relies on the "not in mimeTypes ⇒ pass through" rule. GIF animation and SVG would be preserved by that path. **Lower-confidence** — likely OK but confirm a GIF/SVG actually round-trips (the non-conversion branch returns the stored object link, which should be the original bytes).
 - **Recommendation**: Add an integration test for `image/gif` and `image/svg+xml` confirming the original (un-rasterized) bytes are served.
+
+MZ: SVG and GIF are handled fine, as confirmed by Steffen's tests.
 
 #### [Medium] JPEG sources additionally written as PNG dropped; output format unified to JPEG
 - **OLD**: `mod_picture.php:146-153` — for JPEG sources it wrote **both** a `.jpeg` and a `.png` per size; everything else (png/webp/bmp) written as PNG. Alpha preserved (`imageSaveAlpha`, `imageAlphaBlending(false)`).
@@ -330,15 +376,21 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **Impact**: (a) **Transparency is lost** — PNG/WebP with alpha get a black/opaque background on `TYPE_INT_RGB` (old code preserved alpha). (b) The dual jpeg+png output for JPEG sources is gone (probably fine). The alpha loss is the real concern.
 - **Recommendation**: For source formats with alpha, output PNG/WebP (or use `TYPE_INT_ARGB` + a transparency-preserving format) rather than forcing JPEG-on-RGB.
 
+MZ: Check this! Prio 1.
+
 #### [Medium] Pixabay zero-byte remote fallback to thumbnailurl MISSING
 - **OLD**: `mod_picture.php:228-232` (`createInstance`) — if the node is a remote `PIXABAY` repo and the downloaded file is 0 bytes, it falls back to `properties['ccm:thumbnailurl'][0]` as the image source.
 - **NEW**: MISSING. No Pixabay-specific zero-byte handling in the image module or mapper.
 - **Recommendation**: If Pixabay remote repos are still in scope, port this fallback; otherwise confirm Pixabay no longer routes through IMAGE.
 
+MZ: Pixabay is handled in FE
+
 #### [Medium] Image scaling quality: `Image.SCALE_DEFAULT` vs PHP `imagecopyresampled`
 - **OLD**: `imagecopyresampled` = bicubic-ish high-quality resampling.
 - **NEW**: `getScaledInstance(..., Image.SCALE_DEFAULT)` (ImageConversionService.kt:35) — `SCALE_DEFAULT` picks `SCALE_REPLICATE`/area-averaging, generally lower quality than a proper `Graphics2D` bilinear/bicubic with `RenderingHints`.
 - **Recommendation**: Consider `Graphics2D.drawImage` with `VALUE_INTERPOLATION_BILINEAR/BICUBIC` for visual parity. Low-confidence visual nit.
+
+MZ: Quality seemed fine so far, to be considered if need be.
 
 ---
 
@@ -352,16 +404,22 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **DIFFERENCE — audio codec**: OLD mp4 audio = **AAC** (`-c:a aac -b:a 160k`). NEW video audio = **`libmp3lame` @ 160000** (`VideoConversionService.AUDIO_CODEC="libmp3lame"`, line 41). **An MP4 container with an MP3 audio track is unusual / poorly supported on some players** (Safari/iOS in particular often refuse MP3-in-MP4). This is a concrete, easy-to-miss regression.
 - **Recommendation**: Change video audio codec to AAC to match old behaviour and MP4 norms, or verify jave produces a playable MP4 with mp3 audio across target browsers.
 
+MZ: Fixed and tested, we now use AAC.
+
 #### [High] Threads default changed 1 → 0 (auto)
 - **OLD**: `FFMPEG_THREADS=1` default (`Converter.php:39-43`, conf default 1) — single-threaded, deliberate to limit CPU per conversion in a queue.
 - **NEW**: `app.converter.video.ffmpegThreads=0` (auto / all cores).
 - **Impact**: A single conversion can now saturate the host; old design serialized at 1 thread. May be intentional (jobs are queued one-at-a-time per converter) but is a behavioural change.
 - **Recommendation**: Confirm desired concurrency model; document the change.
 
+MZ: Thread count is fully configurable for each deployment.
+
 #### [High] FFMPEG execution timeout / stuck-conversion handling MISSING
 - **OLD**: `FFMPEG_EXEC_TIMEOUT=3600` wraps every ffmpeg call in `timeout 3600` (`Converter.php:46-49,133,145`), and `markStuckConversions()` (Converter.php:238-260) re-queues conversions stuck in PROCESSING past the threshold (`CONVERSION_STATUS_STUCK`), with `--retry-stuck`/`--restart`/`--retry-failed` CLI recovery modes.
 - **NEW**: No per-encode timeout. jave `Encoder.encode` runs unbounded. No "stuck job" detection/requeue. Failure path only sets `SubJobStatus.FAILED` on an exception (`AvReceiver.kt:92-104`); a hung ffmpeg subprocess would block the converter indefinitely.
 - **Recommendation**: Add an encode timeout (jave supports a process monitor / you can kill the subprocess) and a stuck-job sweeper analogous to `markStuckConversions`.
+
+MZ: 
 
 #### [High] Resolution set mismatch: old 240/720/1080, new 480/720/1080
 - **OLD**: `VIDEO_RESOLUTIONS = ['240','720','1080']`, default 720 (`audio-video.conf.php`).
@@ -369,11 +427,15 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **Impact**: Low-bandwidth 240p tier removed; minimum is now 480p. Also note the old `min()` resolution feeds the "lock screen" log filename (`mod_video.php:179`) and the "lowest first" queue ordering (`Converter.php:199` ORDER BY resolution ASC); new uses priority-based ordering (`VideoRenderModule.createConversionSubJobs` sorts by priority desc; audio priority hard-coded 255). Behaviourally similar (smallest/most-important first) but the tier values differ.
 - **Recommendation**: Confirm 240→480 is intended.
 
+MZ: This is intended and accounted for by Steffen's tests.
+
 #### [High] "No upscaling" rule — semantics differ at the boundary
 - **OLD**: `Helper::checkResolution` (Helper.php:52-71): if `source_height >= conversion_resolution` ⇒ convert. Otherwise walk `VIDEO_RESOLUTIONS` ascending and allow conversion only for the **first resolution >= source_height** (i.e. produce exactly one "capped" rendering at the next tier up), else reject. So a 500px-high source with tiers 240/720/1080 yields a **720** rendering (next tier ≥ source), not a 500px one.
 - **NEW**: `VideoConverterConfig.getPossibleResolutions` (lines 18-23): if `originalHeight < minResolution` ⇒ return **`[originalHeight]`** (convert at the *source's own* height); otherwise return all tiers `<= originalHeight`. And `VideoConversionService.calculateTargetDimensions` (lines 98-103): if `originalHeight < targetResolution` then only allow it when `targetResolution == minResolution` and encode at **original** dimensions (`recheckStorage=true`), else throw `ConversionException("No Upscaling")`.
 - **Impact**: For a source *between* tiers (e.g. 500px with min 480): OLD would render at the **next tier up (720, upscaled-ish via cap logic)**; NEW renders 480 (≤500) and, for the sub-min case, at native height. The two strategies diverge on which renditions exist. New is arguably more correct (never upscales), but it is **not** a faithful port of `checkResolution`. Reviewers relying on old behaviour (a guaranteed ≥-source tier) should be aware.
 - **Recommendation**: Document the deliberate change from "round up to next tier" to "never upscale, cap at source". Verify no client assumes a fixed tier always exists.
+
+MZ: This is fine, the upscaling behaviour has been deliberately changed.
 
 #### [Medium] AUDIO: sample rate / channels now forced; bitrate units identical
 - **OLD audio mp3** (`Converter.php:115`): `ffmpeg -i SRC -f mp3 -y OUT` — **no** `-ar`/`-ac`/`-b:a` flags at all; ffmpeg defaults are used (it copies/derives sample rate & channels and picks a default bitrate). i.e. the old service did **not** pin bitrate, sample rate, or channels for audio.
@@ -381,14 +443,20 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **Impact**: Mono sources are now upmixed to stereo; non-44.1kHz sources resampled; bitrate pinned. Output differs from old (which preserved source characteristics). Generally acceptable/standardizing, but it is a behavioural change and the forced stereo could bloat mono podcasts.
 - **Recommendation**: Confirm forcing 2ch/44.1k/160k is intended; old behaviour was "let ffmpeg decide".
 
+MZ: This is fine for now.
+
 #### [Medium] AUDIO output format: old `mp3` matches; new MIME `audio/mpeg` matches conf — OK
 - OLD `AUDIO_FORMATS=['mp3']`; NEW `OUTPUT_FORMAT="mp3"`, `MIME_TYPE="audio/mpeg"`. Consistent. Info-level only.
+
+MZ: This is fine. Audio is properly detected and handled.
 
 #### [Medium] Conversion-progress parsing reimplemented differently (regex log scrape → jave listener)
 - **OLD**: `Helper::getConversionProgress` (Helper.php:5-50) scrapes the ffmpeg log file with regexes (`Duration:`, `time=... bitrate`) to compute a 0-100% progress shown on the "lock" screen; queue position also surfaced (`getPositionInConversionQueue`).
 - **NEW**: `AvConversionListener` (jave `EncoderProgressListener`) writes `subJob.progress = p0/10` (0-10 scale, only every 10%) — see AvConversionListener.kt:27-33. Different granularity (0-10 vs 0-100) and the value is persisted on the SubJob rather than parsed from a log.
 - **Impact**: Frontend progress semantics change (0-10 vs 0-100). Queue-position display may or may not exist in new UI. Verify the admin/job UI expects the new scale.
 - **Recommendation**: Confirm consumer of `subJob.progress` expects 0-10; otherwise scale to 0-100.
+
+MZ: This is fine.
 
 ---
 
@@ -399,8 +467,12 @@ New parameter source: `service/src/main/resources/application.properties` lines 
 - **NEW**: `asset/AssetService.kt` + `AssetController.kt` provide Range support and CSP/Content-Disposition (per service CLAUDE.md and grep hits for `Range`/`Content-Disposition`/`Accept-Ranges`). Not line-compared here.
 - **Recommendation**: Verify (a) `416` is returned for unsatisfiable ranges, (b) multi-range requests are rejected/handled, and (c) the `Access-Control-Allow-Origin: *` that old video ranged responses emitted is reproduced if any embed/CORS scenario depends on it. The old audio vs video CORS inconsistency suggests checking what the frontend actually needs.
 
+MZ: Check this! Prio 2.
+
 #### [Low] DOWNLOAD mode redirect (303 See Other) — base class
 - **OLD**: `ContentNode/Abstract.php:123-133` `download()` issues `303 See other` to the asset path with session+token. New service uses signed asset links / its own auth; not a direct port concern but note the old token/session URL scheme is replaced by JWT-signed links.
+
+MZ: This is fine.
 
 ---
 
@@ -467,6 +539,8 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **Assessment:** This is actually a **behavioral improvement** (PPT was unrenderable in OLD; now all presentation formats become PDF). BUT note the **output format changed from ODP to PDF** for PPTX/ODP. If any downstream/front-end logic still expects the `_converted.odp` presentation viewer path, presentations will break. Verify the frontend treats PDF output for presentations correctly.
 - **Recommendation:** Confirm frontend presentation handling expects PDF. If an ODP/impress.js-style player is still wired, this is a real regression; otherwise downgrade to Info.
 
+MZ: This is intentional.
+
 #### C2. Document HTML output is no longer sanitized (HTMLPurifier dropped)
 - **Severity:** Critical (security)
 - **OLD:** `mod_doc.php` `createInstance()` (lines 112-127) ran **HTMLPurifier** over `text/html` content and stored a `_purified.html`; the rendered content used the purified file (`renderTemplate`, line 88). This was explicit XSS sanitization of user-uploaded HTML before serving.
@@ -474,12 +548,16 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **Assessment:** For spreadsheet→HTML and Jupyter→HTML output served inline, the only mitigation is the per-repo **CSP header** (`SpreadsheetRenderModule.getCspHeader`, applied in `AssetController.prepareResponse`). CSP is weaker and config-dependent than server-side purification. The OLD explicit purify step is gone.
 - **Recommendation:** Confirm a strict CSP is configured for SPREADSHEET (and JUPYTER — see H4) for every repo, or reinstate server-side HTML sanitization in the document-converter / jupyter-converter before storing. Treat nbconvert/LibreOffice HTML as untrusted.
 
+MZ: Check this! Prio 2.
+
 #### C3. Onyx `uniqueId` semantics changed — per-user/course assessment isolation lost
 - **Severity:** Critical
 - **OLD:** `mod_qti21.php` (lines 89-95) built `uniqueId` = `repo + appId + courseId + authorityName + authorityName (+ authorityName again)`. It deliberately incorporated **app id, course id and the requesting user's authorityName**. `mod_qti.php::refineInstanceConstraints` additionally scoped the cached instance by `LMS_ID`/`COURSE_ID`/`RESOURCE_ID`, requiring course+resource id to be supplied together. This makes each user's (and each course's) Onyx assessment run a **distinct session** — important for test/assessment state isolation and grading.
 - **NEW:** `OnyxUploadService.uploadTest` (lines 41, 58) builds `uniqueId = "${nodeId}_${hash}"` — only the node id and content hash. **No user, no course, no app id.** All users sharing the same node+version get the **same Onyx uniqueId** → shared/colliding assessment sessions.
 - **Assessment:** For an assessment/QTI player this is a serious correctness/data-isolation regression: different students could land in the same Onyx run session, or per-user attempt state could be conflated. Also the course/resource scoping (`refineInstanceConstraints`) has no equivalent.
 - **Recommendation:** Confirm with the Onyx integration whether `uniqueId` must be per-user/per-course. If so, incorporate the authenticated user's authority + course/app id into the uniqueId (the data is available on the session/node permission context). At minimum document why a node-scoped id is now acceptable.
+
+MZ: Check this! Prio 1.
 
 ---
 
@@ -495,12 +573,16 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **Assessment:** The real gap is **`text/html` source files**: OLD rendered (purified) HTML; NEW has no DOCUMENT registration for it. Whether this matters depends on whether `text/html` is handled by another module (e.g. an `eduhtml` module — see package list). 
 - **Recommendation:** Verify `text/html` nodes are routed to a module (eduhtml/html) in the new system; if not, this is a lost capability. Tie in with C2 (sanitization).
 
+MZ: text/html is now handled by the html module.
+
 #### H2. Spreadsheet engine & multi-sheet/format fidelity changed (PhpSpreadsheet → LibreOffice)
 - **Severity:** High
 - **OLD:** `mod_office_spreadsheet.php` used **PhpSpreadsheet** with explicit per-mimetype readers: Xlsx, Xls, Ods, **Csv** (lines 80-92), writer = `Html`. Each sheet rendered to one combined HTML.
 - **NEW:** `SpreadsheetRenderModule` (gated on `app.converter.spreadsheetToHtml.enabled=true`) routes XLS/XLSX/ODS/CSV → document-converter with `format=html` (`DocumentConversionService.convertAndMoveToCache`, lines 56-57). Conversion is now **LibreOffice/jodconverter → HTML**, post-processed by jsoup which only injects a table `<style>` block (`ConversionService.getStyledHtml`).
 - **Assessment:** Engine swap → different HTML output, different multi-sheet handling (LibreOffice Calc HTML export vs PhpSpreadsheet), and **CSV is now driven through LibreOffice** rather than PhpSpreadsheet's CSV reader. LibreOffice CSV import applies locale-dependent delimiter/encoding heuristics (the PHP `Csv` reader had its own defaults). Output is no longer a single deterministic HTML table style. **Opaque difference** worth a visual regression test on multi-sheet workbooks and on CSV.
 - **Recommendation:** Run regression on a multi-sheet XLSX, an Ods, an Xls, and a CSV (incl. semicolon-delimited / non-UTF8) and compare. Note the spreadsheet module is **optional** (`@ConditionalOnProperty`) — if disabled, XLS/XLSX/ODS/CSV fall back to `documentRenderModule` → **PDF** (`DocumentModuleTypeMapper.kt:42-45`), a different output again.
+
+MZ: This is true. However, this is a price we have to pay.
 
 #### H3. Onyx language hard-coded to "de" (was driven by request language)
 - **Severity:** High
@@ -509,6 +591,8 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **Assessment:** Non-German users now get a German Onyx player UI/locale. Clear behavioral regression.
 - **Recommendation:** Plumb the request/user language into the Onyx upload instead of literal `"de"`.
 
+MZ: Check this. Onyx module needs care! Prio 1
+
 #### H4. Jupyter HTML served unsanitized & possibly without CSP
 - **Severity:** High (security)
 - **OLD:** N/A (no old module).
@@ -516,12 +600,16 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **Assessment:** Notebooks routinely contain executable JS in outputs and Markdown HTML — serving nbconvert full-template HTML inline is an XSS surface. nbconvert is not a sanitizer.
 - **Recommendation:** Add a CSP for the JUPYTER module (override `getCspHeader`) and/or use a sanitizing nbconvert template; treat notebook HTML as untrusted.
 
+MZ: Check this! Prio 1
+
 #### H5. Source-extension allow-list mismatch: WMF/PPT/RTF/OTT behavior & `application/msword` (DOC)
 - **Severity:** High
 - **NEW:** `DocumentModuleTypeMapper.kt` registers DOC (`application/msword`) → documentRenderModule (→ PDF). `document-converter` `app.supportedExtensions = doc,docx,ppt,pptx,xls,xlsx,odt,odp,ods,txt,ott,rtf,csv`. The service derives the **upload file extension from the mimetype** via Tika: `DocumentConversionService.getExtensionFromMimeType` → `MimeTypes.getDefaultMimeTypes().forName(mimeType).extension` (lines 69-75).
 - **Risk:** Tika's canonical extension for a mimetype may **not match** the converter's allow-list token. E.g. Tika returns extensions **with a leading dot** (`.docx`), whereas the converter compares against bare tokens (`docx`) via `FilenameUtils.getExtension` on the temp filename. Also `application/msword` Tika canonical extension is `.doc` — fine — but `text/plain` → `.txt`, `application/rtf` vs `application/x-rtf`, and OTT (`...text-template`) need verification. The temp file is created with `File.createTempFile(prefix, originalFileExtension)` where `originalFileExtension` may be `.docx` (with dot) → temp filename `..._<hash>.docx.tmp`? Actually `createTempFile` appends the suffix verbatim, and Java's default suffix is `.tmp` only when suffix is null; here suffix = `.docx` so the filename ends `.docx` — but **if Tika returns a dotted extension the multipart filename will contain `.docx` and the converter's `getSourceFormat`→`FilenameUtils.getExtension` yields `docx`** (OK) — *unless* Tika returns multiple/space-separated extensions or an empty string.
 - **Assessment:** This is fragile, opaque coupling between Tika's mimetype→extension table and the converter's hard-coded `app.supportedExtensions`. Any mimetype whose Tika extension token isn't in the allow-list throws "is not supported" or "Source extension ... is not supported." OLD used explicit mimetype switches with no such indirection.
 - **Recommendation:** Add a test that every mimetype in `DocumentModuleTypeMapper` resolves (via Tika) to an extension present in the converter's `app.supportedExtensions`. Verify dotted-vs-bare extension handling end-to-end.
+
+MZ: Mime and file types have been checked with Steffen. All needed files are covered by automated tests.
 
 ---
 
@@ -532,6 +620,8 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **NEW:** `JupyterConversionService` passes `originalFileExtension = "ipynb"` (no dot) to `ConverterWebServiceCaller`, which does `File.createTempFile(prefix, "ipynb")` → temp file named `prefix...ipynb` (no dot, suffix concatenated). The Jupyter converter (`main.py`) ignores the filename entirely (reads `file.file`), so harmless there. The **document** path passes the Tika extension (which *may* include a dot — see H5) and the document-converter **does** parse the filename extension. Inconsistent handling between callers.
 - **Recommendation:** Normalize extension handling (always leading-dot, or always bare) in `ConverterWebServiceCaller` and document the contract.
 
+MZ: This is fine.
+
 #### M2. `requiredCredentialKeys` for Onyx is a single malformed string (validation no-op)
 - **Severity:** Medium (bug)
 - **NEW:** `OnyxRenderModule.kt:34`:
@@ -539,6 +629,8 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
   This is a **set of one string** `"onyxresturl, onyxrunurl, returnservice"`, not three keys. `validateThirdPartyCredentials` therefore checks for a single credential key literally named `"onyxresturl, onyxrunurl, returnservice"`, which will never exist → credential validation is effectively broken / will reject all configs (or, depending on `validateCredentials` semantics, validate nothing meaningfully).
 - **OLD:** config required `cfg_onyx_service` (WSDL) and `cfg_onyx_runurl`.
 - **Recommendation:** Fix to `setOf("onyxresturl", "onyxrunurl", "returnservice")`. Verify against `validateCredentials` implementation.
+
+MZ: Check this! Onyx module needs care! Prio 1.
 
 #### M3. Onyx transport changed SOAP → REST multipart; `instructions`/`templateId` defaults differ; no zipping
 - **Severity:** Medium (Info-ish, verify)
@@ -553,11 +645,15 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **NEW:** `OnyxUploadService.kt:58` `runUrl = "${onyxrunurl}?id=${nodeId}_${hash}"` — **no URL-encoding** of the id and **no session token**. nodeId/hash are unlikely to contain unsafe chars (so encoding is low-risk), but the absence of any session/auth param on the run URL is a behavioral change — if the Onyx player previously relied on the render session cookie, that linkage is gone.
 - **Recommendation:** Verify the Onyx player no longer needs the render session on the run URL. URL-encode the id defensively.
 
+MZ: Check this! REST works fine, but: Onyx module needs care! Prio 1
+
 #### M5. Cache/instance-existence + corrupt-cache self-heal logic not obviously mirrored
 - **Severity:** Medium
 - **OLD:** `mod_doc.php::instanceExists` (lines 252-301) checked the DB **and** that the cache file actually exists on disk; if the DB row existed but the file was missing it **deleted the DB row and returned false** (self-healing of a stale cache entry). `mod_office`/`mod_office_spreadsheet` overrode `instanceExists` to check for the `_converted.*` file.
 - **NEW:** Cache hit detection is `DocumentService.getObjectLinks` → `storageImplementation.getObjectLink(lookUpObject)` catching `ResourceNotFoundException` (S3 lookup of the target-mimetype object). This checks the storage backend directly, so a "DB says yes but file missing" inconsistency is structurally less likely (single source of truth = S3). Reasonable parity, but there's **no equivalent of pruning a stale job/tracking entry** if the S3 object is gone — verify the job/tracking layer can't get wedged on a missing cached asset.
 - **Recommendation:** Low-priority; confirm cacheCleaner/tracking handles orphaned entries.
+
+MZ: This is fine.
 
 ---
 
@@ -569,20 +665,28 @@ The OLD service rendered **HTML page output** itself (templates per doctype: pdf
 - **NEW:** SPREADSHEET gated by global `app.converter.spreadsheetToHtml.enabled`; fallback when disabled is to `documentRenderModule` (→ PDF), not download. Office is always-on (DOCUMENT). The per-repo viewer-js toggle is gone (now global). Probably intentional given the new architecture.
 - **Recommendation:** Confirm no repo relied on disabling office/spreadsheet rendering.
 
+MZ: This is fine.
+
 #### L2. `memory_limit = 4000M` and in-process conversion → now externalized with 128 MB multipart limit
 - **Severity:** Info
 - **OLD:** `Abstract.php:37` bumped PHP `memory_limit` to 4 GB for in-process conversion.
 - **NEW:** Conversion is out-of-process (LibreOffice/jodconverter, nbconvert). Limits are now: document-converter multipart **128 MB**; service outbound `spring.http.codecs.max-in-memory-size=20MB` (`DocumentConverterConfig`/`JupyterConverterConfig` set the WebClient in-memory codec to this). **Note:** the converter accepts 128 MB uploads but the service's WebClient buffers responses in memory capped at **20 MB** — a converted PDF/HTML larger than 20 MB will fail `bodyToMono(ByteArray)` in `ConverterWebServiceCaller` (it buffers the whole response). OLD had no such 20 MB ceiling.
 - **Recommendation:** Confirm 20 MB is sufficient for converted outputs (large spreadsheets→HTML or many-page→PDF can exceed it); consider streaming instead of `bodyToMono(ByteArray)`.
 
+MZ: Check this! Make the size configurable! Prio 1.
+
 #### L3. No explicit per-conversion timeout configured
 - **Severity:** Info
 - **NEW:** No soffice/jodconverter task timeout or WebClient response timeout is set in the read configs (`ConverterConfig` builds a default `LocalConverter`; WebClients use builder defaults). A hung LibreOffice subprocess or slow conversion could block. OLD relied on PHP/web-server timeouts.
 - **Recommendation:** Set a jodconverter task execution timeout and a WebClient response timeout.
 
+MZ: Check this! Prio 1.
+
 #### L4. CSV target / `text/csv` and ODT-template (OTT) routing — verify
 - **Severity:** Info
 - **NEW:** `text/csv` → spreadsheet (HTML) when enabled, else PDF. OTT (`...text-template`) → documentRenderModule → PDF. OLD office module did not handle OTT/CSV at all (CSV was only in spreadsheet via PhpSpreadsheet). New coverage is broader; just confirm OTT/CSV→PDF is desired.
+
+MZ: This is fine.
 
 ---
 
@@ -627,6 +731,8 @@ This is a sound modernization: validation, semantics, dependency resolution, the
 - Impact: H5P uses `coreApiVersion` to decide which libraries a package may run against. A bogus `coreApiVersion` of 28.1 means almost any library passes the "core API needed" check (or fails wrongly on a stricter library), and the reported `h5pVersion` is wrong in integration metadata. This is a latent correctness/compatibility bug introduced in the rewrite.
 - Recommendation: fix to `coreApiVersion = { major: h5p_core_version_major, minor: h5p_core_version_minor }` and `h5pVersion = `${major}.${minor}.${patch}``. Add a test asserting the values match `h5p.settings.ts`.
 
+MZ: There is no issue, claude found ancient code. 
+
 #### 2. [High] No `.h5p` package size / validation guard on the Kotlin upload path; whole package buffered in memory in lumi
 - OLD: `H5PValidator->isValidPackage()` (official validator) ran before save; invalid packages were rejected and the temp folder removed (`mod_h5p.php:90-105`). File-extension whitelisting existed in the framework contract (`getWhitelist`, though the OLD impl returned `''`).
 - NEW: `H5pUploadService.uploadPackage()` streams the repo content to a temp file and POSTs it; lumi `router.ts:82` calls `h5pEditor.uploadPackage(request.file.buffer, …)`. Validation is delegated to `@lumieducation` (good), but:
@@ -634,11 +740,15 @@ This is a sound modernization: validation, semantics, dependency resolution, the
   - On the Kotlin side there is no pre-flight size cap either; `H5pUploadService` copies the full stream to a temp file.
 - Recommendation: set `multer({ limits: { fileSize: … } })` in lumi aligned with `maxFileSize`, and/or guard the package size in `H5pUploadService` before upload.
 
+MZ: Check this! Make the size configurable! Prio 1
+
 #### 3. [Medium] xAPI statement handling changed: target/object enrichment lost, transport changed
 - OLD: `mod_h5p.php:202-231` wired `H5P.externalDispatcher.on("xAPI", onXapi)` and, on each statement, **set `statement.object.id` to the node path and `statement.object.definition.name` to the title**, then POSTed the statement directly to the repo REST endpoint `…/rest/node/v1/nodes/-home-/{nodeID}/xapi` with `withCredentials`. (Note: in OLD it was gated off by `const xapi = false`.)
 - NEW: `lumi/src/eduSharingPlayer.ts:22-53` forwards xAPI statements via `window.parent.postMessage({type:'H5P_XAPI', contentId, statement}, '*')`. It does **not** enrich the statement with the node id/title and does **not** POST to the repo — it relies on a parent window listener to do so.
 - Impact: behavior is intentionally different (statements bubble to the embedding page instead of being posted server-side). Two concerns: (a) the OLD object-id/name enrichment (so the LRS knows which node/title) is gone — the embedder must now do it; (b) `postMessage(..., '*')` uses a wildcard target origin, which leaks statements to any parent origin. Since OLD had xAPI hard-disabled, this is arguably new functionality rather than a regression, but the enrichment + targeted origin are worth re-adding.
 - Recommendation: confirm the edu-sharing embedding page consumes `H5P_XAPI` and performs node/title enrichment + repo POST; restrict the `postMessage` target origin instead of `'*'`.
+
+MZ: XAPI works fine, Moodle is happy. 
 
 #### 4. [Medium] Player display options diverge (copyright/license button, embed/download)
 - OLD: `get_content_settings()` (`mod_h5p.php:282-288`) `displayOptions`: frame=true, export=false, embed=false, **copyright=true**, icon=true.
@@ -646,11 +756,15 @@ This is a sound modernization: validation, semantics, dependency resolution, the
 - Impact: OLD showed a copyright button and frame; NEW sets `showLicenseButton:true` but then CSS-hides `ul.h5p-actions`, so the frame action buttons (license/copyright) are not actually visible to the user despite being enabled. Net effect: copyright/rights-of-use UI that OLD exposed is effectively suppressed in NEW.
 - Recommendation: decide intended UX; either drop the `display:none` rule or set `showLicenseButton:false` to avoid the contradictory config. Verify copyright/license info remains reachable (legal/attribution requirement for some content).
 
+MZ: This is fine.
+
 #### 5. [Medium] MathDisplay / LaTeX rendering wiring is narrower in NEW
 - OLD: `mod_h5p.php:187-188` injected `window.renderingServiceUrl` and a global `mathdisplay.js` into **every** H5P page, so LaTeX rendered regardless of content type.
 - NEW: LaTeX is handled via `config.json editorAddons` which adds `H5P.MathDisplay` only to `H5P.CoursePresentation`, `H5P.InteractiveVideo`, `H5P.DragQuestion`. `editorAddons` apply in the **editor**, and only for those three content types.
 - Impact: content types not in that list (e.g. Question Set, Course presentation sub-types, Interactive Book, plain Text-based libs) that previously got global MathDisplay may no longer render LaTeX. Also `editorAddons` affect editing context, not necessarily the player-only path used here.
 - Recommendation: confirm whether `addons`/`editorAddons` propagate MathDisplay to the player for all relevant content types; if not, broaden the addon list or use a player-side addon mechanism to match OLD's universal LaTeX support.
+
+MZ: Check this! Test file needed. Prio 2
 
 #### 6. [Medium] OLD "recently modified → bust cache" safeguard has no equivalent
 - OLD: `mod_h5p.php::wasObjectLatelyModified()` + `clearPotentiallyBrokenObject()` — if an ESOBJECT was modified within `H5P_DISABLE_CACHE_DELAY` seconds, the cache entry was deleted to force a re-render. This was an explicit workaround for the async repo save handing **unfinished** H5P data to the renderer (see the comment at `mod_h5p.php:494-501`).
@@ -658,11 +772,15 @@ This is a sound modernization: validation, semantics, dependency resolution, the
 - Impact: if the repo can momentarily serve content under a hash that later represents a different/complete payload (the exact race the OLD workaround guarded), the NEW cache could pin a broken render. Likely lower risk because the hash is content-derived, but the OLD authors found this necessary in practice.
 - Recommendation: confirm the repo's content hash is computed only over finalized content; if a window exists, consider a short re-validation/TTL for very recently created entries.
 
+MZ: Check this! I hope it will not be needed! Prio 1
+
 #### 7. [Medium] Dummy single user + LaissezFaire permissions in lumi; access control lives only in the proxy
 - OLD: framework `hasPermission()` returned `true` (no per-user enforcement) but content was served through the PHP render pipeline behind edu-sharing's session/token checks.
 - NEW: lumi uses a hard-coded `User` (`User.ts`, id="1") and `LaissezFairePermissionSystem` (`createH5PEditor.ts:152`) — lumi itself performs **no** authorization. All access control is enforced upstream by `LumiProxyService.processProxyRequest` via `@PreAuthorize("hasPermission(#nodeInfo.nodeId,'ReadAll')")` and the CSP header.
 - Impact: this is acceptable **only if lumi is never directly reachable** (must sit behind the Kotlin proxy on a private network). lumi has no auth, so a direct route to `app.lumi.host` exposes all content. Also note `LumiProxyService` copies *all* inbound request headers to lumi (`router`/`processProxyRequest:67-71`) including `Authorization`/`Cookie`, and `LumiContentManagementService` has a `// TODO impl. lumi per repoId!!!` — a single shared lumi instance serves all repos, so per-repo content isolation depends entirely on bucket/collection config, not on lumi.
 - Recommendation: ensure deployment network-isolates lumi; document that the `/edusharing/*` and `/:contentId` routes have no auth. Track the per-repoId TODO.
+
+MZ: This is fine.
 
 #### 8. [Low] iframe resizer: OLD shipped a custom `h5p-resizer.js`; NEW relies on lumi/core resizer
 - OLD: bundled `h5p-resizer.js` (custom: `prepareResize` tweaked to compare `clientHeight` rather than `scrollHeight`, comment at lines 52-63) plus iframe `width:100%` handling.
@@ -670,10 +788,14 @@ This is a sound modernization: validation, semantics, dependency resolution, the
 - Impact: OLD had a deliberate local patch to the resize logic to avoid flicker/incorrect height. If that patch addressed a real layout bug, the stock core resizer may reintroduce it. Low risk but worth a visual check on tall/scrolling content.
 - Recommendation: visually verify auto-resize of embedded H5P (esp. content that shrinks) matches OLD behavior.
 
+MZ: This is fine. Resizer is in place and works (served by repo).
+
 #### 9. [Low] `redirect.inc.php` library-path guard had a real bug; not relevant in NEW (info)
 - OLD: `redirect.inc.php:2` guards library cache access with `strpos($_REQUEST['ID'],'cache/h5p/libraries') !== -1` — `strpos` returns `false`/int and `!== -1` is **always true** (strpos never returns -1), so the intended whitelist check was effectively a no-op; only the `..` traversal check (`strpos(...,'..') === false`) actually constrained access. Library/asset files were then served via `redirect_header.inc.php` with mime-type forcing for css/html/js.
 - NEW: assets are served through `LumiProxyController.getContentAssets` / `getH5PCoreAssets` proxying to lumi, with normal Spring routing. The OLD path-traversal/whitelist logic is not carried over and is not needed.
 - Recommendation: none (informational). Just confirm the NEW asset proxy does not allow path traversal into arbitrary lumi files — `LumiProxyService` forwards `request.requestURI` after `pathPrefix`; lumi's `h5pAjaxExpressRouter` and `/content/:contentId/**` constrain this, but a quick traversal test (`/public/h5p/content/x/../../`) is worth running.
+
+MZ: Check this! But it is probably fine. Prio 2.
 
 #### 10. [Low] OLD content "description"/title mapping nuance not replicated
 - OLD: `H5PFramework::loadContent()` had a special case (lines 826-835): because the H5P `title` column stored the edu-sharing nodeId+hash, it substituted the DB `description` (the real node title) into `metadata.title`. `createInstance` set `description` = node title (`mod_h5p.php:92-93`).
@@ -681,9 +803,13 @@ This is a sound modernization: validation, semantics, dependency resolution, the
 - Impact: the title shown in the H5P frame/copyright dialog now comes from the package's own metadata rather than the edu-sharing node title. Usually fine, but a difference from OLD where the node title overrode it.
 - Recommendation: confirm acceptable; if node title must win, pass it through on upload.
 
+MZ: Check this! Prio 1.
+
 #### 11. [Info] Whitelisted extensions / library restriction / patch-upgrade logic
 - OLD: `isPatchedLibrary()` and `getLibraryId(... ANY ...)` implemented patch-version upgrade detection and "newest version" resolution; `restricted`/`runnable` columns existed; `getWhitelist()` was a stub returning `''` (i.e. relied on core defaults). `replaceContentTypeCache()` populated the hub cache.
 - NEW: all of this is internal to `@lumieducation/h5p-server` (library install/upgrade on `uploadPackage`, semantics, whitelist, hub via `config.json hubContentTypesEndpoint`). No parity gap — this is strictly an improvement (maintained implementation vs. partially-stubbed hand-rolled one). `contentHubEnabled:true` + `hubContentTypesEndpoint` mean lumi can reach `api.h5p.org`; OLD also did. Just note that library installation now happens implicitly at upload time (`onlyInstallLibraries:false`, `router.ts:85`) — there is no admin library-management UI equivalent.
+
+MZ: This is fine.
 
 ---
 
@@ -770,6 +896,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
   at minimum *route* such nodes instead of throwing). If URL nodes are intentionally retired,
   document it.
 
+MZ: Url module is now frontend only.
+
 ### C2 — Critical: LTI-1.1 / Etherpad / Vanilla — entire LTI launch + OAuth-1.0 signing dropped
 - **Severity:** Critical (security-relevant; OAuth signing logic lost)
 - **OLD:** `lti/mod_lti.php`, `lti/ltiTool.php`, `lti/edutoolVanilla.php`,
@@ -800,6 +928,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
   known consumer. If these are dead (Vanilla/Uni-Weimar references look legacy), record the
   removal decision.
 
+MZ: This is also handled on the frontend-side.
+
 ### H1 — High: `learningapps` module dropped
 - **Severity:** High
 - **OLD:** `learningapps/mod_learningapps.php`.
@@ -812,6 +942,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
 - **Recommendation:** Confirm whether LearningApps content still exists in repositories. If
   so, the `view`-URL rewrite must be preserved (without it the embed shows the editor, not
   the app) and the consent dialog re-introduced (frontend).
+
+MZ: This is handled on the frontend-side.
 
 ### H2 — High: SCORM/HTML custom entry-point + Articulate Storyline `story.html` handling lost
 - **Severity:** High
@@ -836,6 +968,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
   override in `EduHtmlConversionService`/`EduHtmlService`, or confirm those package types are
   no longer served this way.
 
+MZ: Check this! Important! Prio 1.
+
 ### H3 — High: Moodle restore no longer persists/reuses the course id (re-restores every render)
 - **Severity:** High (functional + performance/correctness)
 - **OLD:** `moodle/mod_moodle.php` (`cacheCourseId`/`getCourseId` write/read a
@@ -857,6 +991,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
   restored — `uploadCourse` does short-circuit if `courseId > 0`). If Moodle does *not* dedupe,
   the missing courseId cache means a repeated, expensive restore per view — confirm and, if
   needed, cache the courseId (e.g. in the `RenderingJob`/registration store).
+
+MZ: This is fine, we decided to look up the id every time.
 
 ### H4 — High: Moodle WS contract changed substantially — confirm Moodle plugin version match
 - **Severity:** High (integration contract; opaque)
@@ -883,6 +1019,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
   Confirm the deployment ships that plugin; otherwise all Moodle/SCORM rendering breaks. Note
   the lost `<?php`-stripping defensive hack.
 
+MZ: This is fine, we use a completely new logic in rendermoodle.
+
 ### M0 — Medium: Two redundant identical user-token calls in Moodle upload
 - **Severity:** Medium (efficiency / likely bug)
 - **NEW:** `MoodleUploadService.getUrl` (lines ~55-69) calls `getUserToken(...)` **twice**
@@ -894,6 +1032,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
 - **Recommendation:** Confirm whether preview vs. link genuinely need distinct one-time
   tokens. If not, mint once and reuse.
 
+MZ: This is fine, we need 2 separate tokens.
+
 ### M1 — Medium: `collection` module dropped
 - **Severity:** Medium
 - **OLD:** `collection/mod_collection.php` — trivial: extends `mod_doc`, sets
@@ -903,6 +1043,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
 - **Recommendation:** Low-risk (thin wrapper), but confirm collections are now rendered by the
   generic document/preview path and that the "no download advice" UX detail is intentionally
   dropped.
+
+MZ: Check this! But the module was excluded from the new service. Prio 1.
 
 ### M2 — Medium: `directory` module dropped (incl. instance-cache validation logic)
 - **Severity:** Medium
@@ -920,12 +1062,16 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
 - **Recommendation:** Confirm directory nodes are no longer rendered by this service (likely
   handled by the repo/frontend now). Flag the dropped inline children-listing UX.
 
+MZ: Check this! But the module was excluded from the new service. Prio 2
+
 ### M3 — Medium: `saved_search` module dropped
 - **Severity:** Medium
 - **OLD:** `saved_search/mod_saved_search.php` — inline render of a saved-search node
   (title, home-repo URL, objectId, children, metadata).
 - **NEW:** MISSING / DROPPED.
 - **Recommendation:** Confirm saved-search rendering moved to the frontend/repo.
+
+MZ: Check this! But the module was excluded from the new service. Prio 2
 
 ### Info-1 — Info: `scenario` module dropped (already-dead legacy)
 - **Severity:** Info (almost certainly dead)
@@ -936,6 +1082,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
 - **NEW:** MISSING / DROPPED.
 - **Recommendation:** Safe to drop; record the decision. No action needed beyond confirming no
   repository still tags nodes as `scenario`.
+
+MZ: Check this! But the module was excluded from the new service. Prio 2
 
 ### Info-2 — Info: `default/` and `html/redirect*.inc.php` content-serving helpers superseded by AssetController
 - **Severity:** Info
@@ -962,6 +1110,8 @@ and grepping the whole `modules/` tree for `lti`, `oauth`, `youtube`, `vimeo`, `
   works under the new `AssetController` permission/session model. Note the `text/css` forcing
   — `EduHtmlConversionService` uses `URLConnection.guessContentTypeFromName` per entry, which
   does return `text/css` for `.css`, so that detail is preserved.
+
+MZ: This is fine and has been checked.
 
 ---
 
@@ -1040,6 +1190,8 @@ Architectural note up front: the OLD service stored renderings on **local disk**
 - **Scope changed**: OLD = global LRU across all content; NEW = per-repo LRU, only for repos that have a quota.
 - **Recommendation:** Confirm with ops that quota-relative eviction is the intended new model. The hard-coded `RATIO_MAX=0.8` disk safety net is gone — there is no global "S3/disk is filling up" backstop in NEW (see #2, #7).
 
+MZ: This is fine, we want the new logic.
+
 ### 2. [High] "Use disk free space" cleanup mode (`useDiskSize`) dropped
 
 - **OLD:** `CacheCleanerClass::dirSize()` + ctor read `getenv('SERVICES_RENDERING_SERVICE_CACHE_CLEANER_USE_DISK_SIZE')`; helm `deploy/.../values.yaml` `job.cachecleaner.config.useDiskSize: true` (default **true** in prod).
@@ -1047,11 +1199,15 @@ Architectural note up front: the OLD service stored renderings on **local disk**
 
 When `useDiskSize=true`, OLD measured cache size as `disk_total_space - disk_free_space` (true filesystem occupancy, counting *everything* on the volume) instead of summing tracked file sizes — a deliberate "protect the actual disk" mode that was the **default in production**. NEW has no notion of physical free space at all (S3 buckets + Mongo-tracked sizes only). **Recommendation:** If S3 backing storage has finite capacity, add a free-space/quota backstop; otherwise document that disk-based protection is intentionally retired with the move to S3.
 
+MZ: This is fine, we want the new logic (old one would not work with S3).
+
 ### 3. [High] Per-module / forced full cache wipe has no admin/CLI equivalent
 
 - **OLD:** `CacheCleanerClass::cleanUp($forceDelete=true)` and `cleanUpByModule()` (invoked as `php cacheCleaner.php <moduleName>`). The module path deletes **all** `ESOBJECT` rows for a module, removes `CC_RENDER_PATH/<module>`, and **TRUNCATEs all H5P tables** (`h5p_contents`, `h5p_contents_libraries`, `h5p_libraries`, `h5p_libraries_libraries`, `h5p_libraries_languages`, `h5p_libraries_hub_cache`).
 - **NEW:** Partial. `AdminAssetController.deleteAssetsByType` / `deleteAllAssets` (per-repo, by type or all) and `AdminController.deleteObjectFromCache` cover targeted/per-repo deletion. There is **no** global "force clean now", no "wipe an entire module/type across all repos", and **no H5P-library-table truncate**. The scheduled cleaner cannot be triggered on demand.
 - **Recommendation:** If operators relied on `cacheCleaner.php h5p` to nuke a content type globally, expose an admin endpoint or accept that it's now per-repo only. Note the new `deleteAllAssets` is per-repo (`repoId` required), so a true global flush requires iterating repos.
+
+MZ: This is fine, it does now.
 
 ### 4. [High] H5P sweep maintenance task — no equivalent
 
@@ -1059,17 +1215,23 @@ When `useDiskSize=true`, OLD measured cache size as `disk_total_space - disk_fre
 - **NEW:** MISSING (grep for h5p library/hub/sweep in `modules/h5p/` returns nothing).
 - This was the "reset all H5P caches" recovery operation. NEW H5P uses Lumi + S3 (`modules/h5p/lumi/*`), so the SQL/dir form is obsolete, but the *capability* (purge all H5P renderings to force regeneration) should be re-confirmed as available via per-repo asset deletion by type. **Recommendation:** verify "type" granularity matches H5P and document the replacement; flag the OLD `ESTRACK_MODULE_ID` column-name (vs `ESTRACK_MODUL_ID` used elsewhere) as a latent OLD bug not worth porting.
 
+MZ: This is fine, just use the by type deletion.
+
 ### 5. [High] Version-gated update/migration ladder — no equivalent
 
 - **OLD:** `service/src/main/php/admin/update/update.php` (driven by `admin/model/Updater.php`, `admin/cli/update.php`, `admin/index.php?action=doupdate`). A long `run($installedVersion)` chain of `version_compare`-gated blocks performing DDL alters, mimetype/`ESMODULE` seed inserts, **config-file rewrites**, recursive dir deletes, a **mass JPG→PNG conversion** of the picture cache (<4.0.0), a **full cache+DB wipe** (<5.1: delete `ESOBJECT`/`ESOBJECT_LOCK`/`ESTRACK`/`ESOBJECT_CONVERSION` + `rrmdir(CC_RENDER_PATH)`), and an H5P SQLite→RDBMS migration (<6.0.99). Tracked via the `VERSION` table.
 - **NEW:** MISSING as a concept. The new service is stateless-config + Mongo/S3; there is no in-app schema-migration framework and no `VERSION` table. Mongo `@Document` schemas evolve implicitly; `RenderingJob`/`Tracking` carry TTL indexes.
 - **Assessment:** Mostly **correctly obsolete** (those migrations targeted the old SQL schema and disk layout). The watch-item is whether any **data migration from the old service to the new** is needed at cutover — none exists here, and the old `VERSION`-table update protocol is gone by design. **Recommendation:** confirm no in-place upgrade path is expected; new deployments start fresh.
 
+MZ: This is fine.
+
 ### 6. [Medium] H5P library/core admin — no equivalent
 
 - **OLD:** `admin/h5p/` — `index.php` (search/paginate/delete H5P content from `h5p_contents`), `libraries.php` + `libraries-update.php` + `h5p_ajax.php` (list installed libraries, compute upgrades, **client-driven bulk content-upgrade** writing `h5p_contents`/`h5p_contents_libraries`), `update_core.php` (upload + **backup-and-swap** of `vendor/lib/h5p-core`, restore). Shared login via `$_SESSION['loggedin']`.
 - **NEW:** MISSING — there is no H5P library-management or content-upgrade UI/endpoint. H5P is handled by Lumi (`modules/h5p/lumi/*`) which has its own content model.
 - This is a genuine **feature drop** if customers used the H5P library/core admin. **Recommendation:** confirm Lumi makes the old H5P-core/library tooling unnecessary; if any "upgrade existing H5P content to a new library version" workflow is still needed, it has no home in the new admin API. Note the OLD `h5p_ajax.php` had its **nonce/CSRF check commented out** — a latent OLD vuln, not to be ported.
+
+MZ: We use Lumi now.
 
 ### 7. [Critical] Helm cache-cleaner thresholds are negative
 
@@ -1078,11 +1240,15 @@ When `useDiskSize=true`, OLD measured cache size as `disk_total_space - disk_fre
 - **Cross-source check:** the **compose** file (`docker/compose/src/main/compose/1_rendering2-common.yml:107-108`) uses `${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}` / `...UPPER:-0.9}` — here `:-` is the **bash default-value operator**, so compose actually defaults to **`0.7` / `0.9`** (positive, sane). The helm `-0.7`/`-0.9` are real YAML negatives — almost certainly a copy-paste of the compose strings that dropped the `:` and turned defaults into negative literals.
 - **Recommendation:** Fix helm to positive values consistent with the intended policy. This is currently latent only because quota defaults to 0 (#7b), but becomes destructive the moment any repo quota is set in a helm deploy.
 
+MZ: I guess Frank knows what he's doing.
+
 ### 7b. [Medium] Cleaner is a no-op for repos without a quota; quota not surfaced in deploy
 
 - `CacheCleaner.cleanCache()`: `if (it.maxSize == 0L) { log "Nothing to clean."; return }`. `maxSize = RepositoryRegistration.quota` (default `0L`, `RepositoryRegistrationStorageService`).
 - Neither the NEW helm `configmap-env.yaml` nor the compose files render any `app.repository.registration.id.<id>.quota` key (zero `quota` occurrences in NEW deploy `src/`). Quota is settable only via `app.repository.registration.id.<id>.quota` config or the admin API.
 - **Net default behavior:** out-of-the-box the cleaner **never deletes anything**; the S3 cache grows unbounded. OLD always cleaned (disk-ratio, no quota needed). **Recommendation:** require/expose a quota in deploy, or add a global default-quota / disk-free backstop (see also #2). Combined with #7 this is a footgun: no quota → never cleans; set a quota under current helm → wipes everything.
+
+MZ: This is fine.
 
 ### 13. [High] Threshold values disagree across config sources
 
@@ -1093,11 +1259,15 @@ When `useDiskSize=true`, OLD measured cache size as `disk_total_space - disk_fre
 
 At most one of these reflects the intended productive eviction band. **Recommendation:** pick one policy and align all three; document the meaning (fraction of per-repo quota).
 
+MZ: This is fine.
+
 ### 14. [Medium] Cron schedule format changed (5-field → 6-field)
 
 - OLD schedules were Unix 5-field (`cron.sh` default `0 0 * * 0` weekly; helm CronJob `0 * * * *` hourly).
 - NEW `app.cache.cleaner.schedule` is a **Spring 6-field** cron (`0 0 1 * * *` daily 01:00) parsed by `@Scheduled`.
 - An operator who reuses an OLD 5-field string in the NEW env override (`RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE`) gets a **startup parse failure**. **Recommendation:** document the format change in upgrade notes.
+
+MZ: This is fine.
 
 ### 15. [Medium] Dropped converter limits / proxy; audio bitrate unit mismatch
 
@@ -1135,6 +1305,8 @@ The OLD admin UI (`admin/view/choose.phtml`) offered essentially: run **update**
 - **OLD:** `ESTRACK` stored only `(ESOBJECT_ID, TIME)`; eviction summed on-disk dir sizes at clean time.
 - **NEW:** `TrackingEntry.binarySize` is the **directory size of the cache object root** computed at PUT time (`S3StorageService.putObjectInternal` → `getDirectorySize(bucket, rootPath)` then `trackCacheObject(..., size)`); GET/range access updates `lastAccessed` but **not** size. `AdminController.getCacheUsage` exposes `discrepancy = |actualS3Size − trackedSize|`, acknowledging drift.
 - **Risk (minor):** tracked sizes can drift from real S3 occupancy (e.g. objects written outside the tracked path, or multi-quality variants), which feeds directly into the cleaner's quota-ratio math (#1). The `exact=true` reconciliation in `AdminStorageController` only works in per-customer bucket mode. **Recommendation:** none required; be aware tracked-size is an approximation driving eviction.
+
+MZ: This is fine. Keeping super accurate score is to expensive with S3.
 
 ---
 
