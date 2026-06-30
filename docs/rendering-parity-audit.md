@@ -134,7 +134,7 @@ MZ: Fixed in Commit 072e61627a5ad49be9e4be4b9e1387a53f8fb529.
 - **Impact:** Different model, mostly defensible for an async-job design, but (a) the *content-hash-based, version-agnostic* cache-reuse rule from OLD is only partially reproduced, and (b) there's no mutual exclusion, so duplicate conversions for the same node under load are possible. Confirm this is acceptable / idempotent at the storage layer.
 - **Recommendation:** Verify the storage/job layer is idempotent for concurrent identical jobs; if not, add a uniqueness guard (e.g. unique index on nodeId+hash+module for in-flight jobs). Confirm the OLD "missing cache file ⇒ invalidate DB row" self-healing is covered by S3 existence checks in the modules (this audit didn't trace every module's cache-hit check — needs verification per module).
 
-MZ: Check this!
+MZ: Opened ticket.
 
 ---
 
@@ -200,7 +200,7 @@ MZ: This is fine.
 - **Impact:** Multi-part "sequence" objects lose their child-navigation. Likely now a frontend concern, but the service no longer surfaces children at all.
 - **Recommendation:** Confirm the frontend gets children from the repo directly; otherwise port.
 
-MZ: Check this! Prio 1.
+MZ: Im Dokument.
 
 #### H5. Object tracking on every render replaced by event-conditional async tracking
 - **Severity:** High → Medium (behavioral)
@@ -361,7 +361,7 @@ MZ: Image resolutions have been deliberately changed. Steffen's tests account fo
 - **Impact**: Photos shot in portrait on phones (very common, EXIF orientation 6/8) will render **sideways/upside-down** in the new service. This is exactly the "opaque" logic the audit targets.
 - **Recommendation**: Add EXIF-orientation reading (e.g. metadata-extractor) and rotate the BufferedImage before scaling, replicating the 3/6/8 cases.
 
-MZ: Check this! Prio 1.
+MZ: Implemented (metadata-extractor)
 
 #### [High] SVG and GIF pass-through MISSING (and not handled by the IMAGE module at all)
 - **OLD**: `mod_picture.php:55-63,236-242` — SVG and animated GIF are detected by `mime_content_type` and **copied verbatim** (no rasterization, preserving vector/animation). `getFlavour` returns `''` for svg/gif so the original is always served.
@@ -376,7 +376,7 @@ MZ: SVG and GIF are handled fine, as confirmed by Steffen's tests.
 - **Impact**: (a) **Transparency is lost** — PNG/WebP with alpha get a black/opaque background on `TYPE_INT_RGB` (old code preserved alpha). (b) The dual jpeg+png output for JPEG sources is gone (probably fine). The alpha loss is the real concern.
 - **Recommendation**: For source formats with alpha, output PNG/WebP (or use `TYPE_INT_ARGB` + a transparency-preserving format) rather than forcing JPEG-on-RGB.
 
-MZ: Check this! Prio 1.
+MZ: This is fine. If the customer wants transparency, they can simply remove the mimetype from the conversion list.
 
 #### [Medium] Pixabay zero-byte remote fallback to thumbnailurl MISSING
 - **OLD**: `mod_picture.php:228-232` (`createInstance`) — if the node is a remote `PIXABAY` repo and the downloaded file is 0 bytes, it falls back to `properties['ccm:thumbnailurl'][0]` as the image source.
@@ -419,7 +419,7 @@ MZ: Thread count is fully configurable for each deployment.
 - **NEW**: No per-encode timeout. jave `Encoder.encode` runs unbounded. No "stuck job" detection/requeue. Failure path only sets `SubJobStatus.FAILED` on an exception (`AvReceiver.kt:92-104`); a hung ffmpeg subprocess would block the converter indefinitely.
 - **Recommendation**: Add an encode timeout (jave supports a process monitor / you can kill the subprocess) and a stuck-job sweeper analogous to `markStuckConversions`.
 
-MZ: 
+MZ: implemented.
 
 #### [High] Resolution set mismatch: old 240/720/1080, new 480/720/1080
 - **OLD**: `VIDEO_RESOLUTIONS = ['240','720','1080']`, default 720 (`audio-video.conf.php`).
@@ -673,14 +673,14 @@ MZ: This is fine.
 - **NEW:** Conversion is out-of-process (LibreOffice/jodconverter, nbconvert). Limits are now: document-converter multipart **128 MB**; service outbound `spring.http.codecs.max-in-memory-size=20MB` (`DocumentConverterConfig`/`JupyterConverterConfig` set the WebClient in-memory codec to this). **Note:** the converter accepts 128 MB uploads but the service's WebClient buffers responses in memory capped at **20 MB** — a converted PDF/HTML larger than 20 MB will fail `bodyToMono(ByteArray)` in `ConverterWebServiceCaller` (it buffers the whole response). OLD had no such 20 MB ceiling.
 - **Recommendation:** Confirm 20 MB is sufficient for converted outputs (large spreadsheets→HTML or many-page→PDF can exceed it); consider streaming instead of `bodyToMono(ByteArray)`.
 
-MZ: Check this! Make the size configurable! Prio 1.
+MZ: Implemented by SW.
 
 #### L3. No explicit per-conversion timeout configured
 - **Severity:** Info
 - **NEW:** No soffice/jodconverter task timeout or WebClient response timeout is set in the read configs (`ConverterConfig` builds a default `LocalConverter`; WebClients use builder defaults). A hung LibreOffice subprocess or slow conversion could block. OLD relied on PHP/web-server timeouts.
 - **Recommendation:** Set a jodconverter task execution timeout and a WebClient response timeout.
 
-MZ: Check this! Prio 1.
+MZ: Implemented by SW.
 
 #### L4. CSV target / `text/csv` and ODT-template (OTT) routing — verify
 - **Severity:** Info
