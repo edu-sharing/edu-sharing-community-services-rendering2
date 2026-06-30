@@ -7,6 +7,8 @@ import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import java.awt.Color
+import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
@@ -75,6 +77,67 @@ class ImageConversionServiceTest {
         assert(result.height == 183)
         verify(exactly = 1) {storageService.getObjectStream(cacheObject, true)}
         confirmVerified(storageService)
+    }
+
+    @Test
+    fun testApplyExifOrientationLeavesNormalOrientationUnchanged() {
+        val image = markerImage()
+        val result = underTest.applyExifOrientation(image, 1)
+        assert(result === image)
+    }
+
+    @Test
+    fun testApplyExifOrientationRotates90ClockwiseForOrientation6() {
+        // Source is 4x2 with a red marker at top-left (0,0). Rotated 90° clockwise the image
+        // becomes 2x4 and the marker moves to the top-right corner.
+        val result = underTest.applyExifOrientation(markerImage(), 6)
+        assert(result.width == 2)
+        assert(result.height == 4)
+        assertMarkerAt(result, 1, 0)
+    }
+
+    @Test
+    fun testApplyExifOrientationRotates90CounterClockwiseForOrientation8() {
+        // Rotated 90° counter-clockwise the marker moves to the bottom-left corner.
+        val result = underTest.applyExifOrientation(markerImage(), 8)
+        assert(result.width == 2)
+        assert(result.height == 4)
+        assertMarkerAt(result, 0, 3)
+    }
+
+    @Test
+    fun testApplyExifOrientationRotates180ForOrientation3() {
+        // Rotated 180° the marker moves from top-left to bottom-right; dimensions are unchanged.
+        val result = underTest.applyExifOrientation(markerImage(), 3)
+        assert(result.width == 4)
+        assert(result.height == 2)
+        assertMarkerAt(result, 3, 1)
+    }
+
+    @Test
+    fun testApplyExifOrientationFlipsHorizontallyForOrientation2() {
+        // Mirrored horizontally the marker moves from top-left to top-right; dimensions unchanged.
+        val result = underTest.applyExifOrientation(markerImage(), 2)
+        assert(result.width == 4)
+        assert(result.height == 2)
+        assertMarkerAt(result, 3, 0)
+    }
+
+    /** A 4x2 black image with a single red marker pixel at the top-left corner (0,0). */
+    private fun markerImage(): BufferedImage {
+        val image = BufferedImage(4, 2, BufferedImage.TYPE_INT_RGB)
+        val graphics = image.createGraphics()
+        graphics.color = Color.BLACK
+        graphics.fillRect(0, 0, 4, 2)
+        graphics.dispose()
+        image.setRGB(0, 0, Color.RED.rgb)
+        return image
+    }
+
+    private fun assertMarkerAt(image: BufferedImage, x: Int, y: Int) {
+        assert(image.getRGB(x, y) == Color.RED.rgb) {
+            "expected red marker at ($x,$y) but was 0x${Integer.toHexString(image.getRGB(x, y))}"
+        }
     }
 
     private fun prepareCacheObject(): CacheObject {

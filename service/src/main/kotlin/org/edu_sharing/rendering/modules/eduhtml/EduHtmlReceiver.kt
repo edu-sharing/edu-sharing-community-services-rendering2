@@ -55,8 +55,9 @@ class EduHtmlReceiver(
         var success = true
         try {
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-            eduHtmlConversionService.cacheData(cacheObject)
-            subJob.message = eduHtmlService.getObjectLink(cacheObject).link
+            val candidates = eduHtmlService.entryCandidates(subJob.additionalData?.get(EduHtmlService.MAIN_ENTITY_KEY))
+            eduHtmlConversionService.cacheData(cacheObject, candidates)
+            subJob.message = eduHtmlService.getObjectLink(cacheObject, candidates).link
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.errorMessage = GENERIC_CONVERSION_ERROR

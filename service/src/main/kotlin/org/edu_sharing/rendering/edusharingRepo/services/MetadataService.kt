@@ -27,9 +27,7 @@ class MetadataService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun getConfig(): RendererKeyConfig {
-        return repository.findById("0")
-            .orElse(RendererKeyConfig())!!
-//            .orElseThrow { throw EntryNotFoundException("No config found in database.") }
+        return repository.findById("0").orElse(RendererKeyConfig())
     }
 
     private fun storeConfig(rendererKeyConfig: RendererKeyConfig) {
@@ -56,28 +54,6 @@ class MetadataService(
                 "-----END PUBLIC KEY-----"
         storeConfig(appConfig)
     }
-
-//    @CacheEvict(cacheNames = ["repoPublicKey"])
-//    override fun storeRepositoryKey(publicKey: String) {
-//        val config = getConfig()
-//        config.repoPublicKey = publicKey
-//        storeConfig(config)
-//    }
-//
-//    @Throws(InvalidKeyException::class)
-//    @Cacheable(cacheNames = ["repoPublicKey"], unless = "true")
-//    override fun getRepositoryKey(): PublicKey {
-//        val config = getConfig()
-//        val publicKey = config.repoPublicKey
-//            ?: throw InvalidKeyException("No public key available. Please register the application with an edu-sharing repository first")
-//        val publicKeyData = publicKey
-//            .replace("-----BEGIN PUBLIC KEY-----", "")
-//            .replace("-----END PUBLIC KEY-----", "")
-//            .replace("\n", "")
-//
-//        val keySpec = X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyData))
-//        return KeyFactory.getInstance("RSA").generatePublic(keySpec)
-//    }
 
     @Cacheable("privateKey")
     override fun getPrivateKey(): PrivateKey {

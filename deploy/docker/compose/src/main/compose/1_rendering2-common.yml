@@ -97,7 +97,7 @@ services:
       app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp}"
       app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-800,1280,1920}"
       app.converter.video.format: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FORMAT:-mp4}"
-      app.converter.video.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_THREADS:-0}"
+      app.converter.video.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_THREADS:-4}"
       app.converter.video.ffmpegPreset: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_PRESET:-veryfast}"
       app.converter.video.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_VIDEO_MIME_TYPES:-video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv,video/theora}"
       app.converter.video.resolutions: "${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"

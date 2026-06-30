@@ -1,5 +1,8 @@
 package org.edu_sharing.rendering.modules.image
 
+import com.drew.imaging.ImageMetadataReader
+import com.drew.metadata.exif.ExifDirectoryBase
+import com.drew.metadata.exif.ExifIFD0Directory
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
@@ -7,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.awt.Image
+import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -23,6 +27,10 @@ class ImageConversionService (
     private val log = LoggerFactory.getLogger(javaClass)
     @Value($$"${app.converter.image.format}")
     lateinit var imageFormat: String
+
+    companion object {
+        private const val EXIF_ORIENTATION_NORMAL = 1
+    }
 
     fun convert(cacheObject: CacheObject, size: Int, sourceImage: BufferedImage) {
         log.debug("Converting image: nodeId=${cacheObject.nodeId}, targetSize=$size, format=$imageFormat")
@@ -61,11 +69,100 @@ class ImageConversionService (
 
     fun fetchSourceImage(cacheObject: CacheObject): BufferedImage {
         log.debug("Fetching source image from storage: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}")
-        val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
-        fileInputStream.use {
-            val sourceImage = ImageIO.read(fileInputStream)
-            return sourceImage
+        // Read the whole source into memory: ImageIO.read discards EXIF metadata, so we need the
+        // raw bytes both to decode the image and to read its EXIF orientation independently.
+        val bytes = storageImplementation.getObjectStream(cacheObject, true).use { it.readBytes() }
+        val sourceImage = ImageIO.read(ByteArrayInputStream(bytes))
+        val orientation = readExifOrientation(bytes)
+        log.debug("EXIF orientation $orientation for nodeId=${cacheObject.nodeId}")
+        return applyExifOrientation(sourceImage, orientation)
+    }
+
+    /**
+     * Reads the EXIF `Orientation` tag (IFD0) from the raw image bytes. Returns the normal
+     * orientation (`1`) when the tag is absent or the metadata cannot be parsed (e.g. PNG, or a
+     * format without EXIF) — a missing/broken EXIF block must never fail the conversion.
+     */
+    private fun readExifOrientation(bytes: ByteArray): Int {
+        return try {
+            val metadata = ImageMetadataReader.readMetadata(ByteArrayInputStream(bytes))
+            val directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory::class.java)
+            if (directory != null && directory.containsTag(ExifDirectoryBase.TAG_ORIENTATION)) {
+                directory.getInt(ExifDirectoryBase.TAG_ORIENTATION)
+            } else {
+                EXIF_ORIENTATION_NORMAL
+            }
+        } catch (exception: Exception) {
+            log.debug("Could not read EXIF orientation, defaulting to normal: ${exception.message}")
+            EXIF_ORIENTATION_NORMAL
         }
+    }
+
+    /**
+     * Returns [image] rotated/flipped so it displays upright, applying the standard EXIF
+     * orientation correction. `javax.imageio` does not auto-apply EXIF orientation, so portrait
+     * photos from phones (orientation 6/8) would otherwise render sideways. Replicates the old
+     * PHP picture module's rotations (3→180°, 6→90° clockwise, 8→90° counter-clockwise) and
+     * additionally handles the mirrored orientations (2/4/5/7). For 90°/270° cases the returned
+     * image has width and height swapped. Orientation `1` (and any unknown value) returns the
+     * image unchanged.
+     */
+    fun applyExifOrientation(image: BufferedImage, orientation: Int): BufferedImage {
+        if (orientation == EXIF_ORIENTATION_NORMAL) {
+            return image
+        }
+        val width = image.width
+        val height = image.height
+        val transform = AffineTransform()
+        val swapsDimensions: Boolean
+        when (orientation) {
+            2 -> { // flip horizontal
+                transform.scale(-1.0, 1.0)
+                transform.translate(-width.toDouble(), 0.0)
+                swapsDimensions = false
+            }
+            3 -> { // rotate 180°
+                transform.translate(width.toDouble(), height.toDouble())
+                transform.rotate(Math.PI)
+                swapsDimensions = false
+            }
+            4 -> { // flip vertical
+                transform.scale(1.0, -1.0)
+                transform.translate(0.0, -height.toDouble())
+                swapsDimensions = false
+            }
+            5 -> { // transpose: flip horizontal + rotate 270° clockwise
+                transform.rotate(-Math.PI / 2)
+                transform.scale(-1.0, 1.0)
+                swapsDimensions = true
+            }
+            6 -> { // rotate 90° clockwise
+                transform.translate(height.toDouble(), 0.0)
+                transform.rotate(Math.PI / 2)
+                swapsDimensions = true
+            }
+            7 -> { // transverse: flip horizontal + rotate 90° clockwise
+                transform.scale(-1.0, 1.0)
+                transform.translate(-height.toDouble(), width.toDouble())
+                transform.rotate(3 * Math.PI / 2)
+                swapsDimensions = true
+            }
+            8 -> { // rotate 90° counter-clockwise
+                transform.translate(0.0, width.toDouble())
+                transform.rotate(3 * Math.PI / 2)
+                swapsDimensions = true
+            }
+            else -> return image
+        }
+        val targetWidth = if (swapsDimensions) height else width
+        val targetHeight = if (swapsDimensions) width else height
+        val outputType = if (image.colorModel.hasAlpha()) BufferedImage.TYPE_INT_ARGB else BufferedImage.TYPE_INT_RGB
+        val rotated = BufferedImage(targetWidth, targetHeight, outputType)
+        val graphics = rotated.createGraphics()
+        graphics.transform = transform
+        graphics.drawImage(image, 0, 0, null)
+        graphics.dispose()
+        return rotated
     }
 
     fun deleteTempFile(cacheObject: CacheObject) {
