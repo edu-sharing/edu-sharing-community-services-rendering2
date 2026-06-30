@@ -977,7 +977,7 @@ MZ: This is handled on the frontend-side.
   `ScormRenderModule` (Moodle restore), not `eduhtml`, so OLD's SCORM-gated branch would be
   inert here.
 
-MZ: Check this! Important! Prio 1.
+MZ: Implemented.
 
 ### H3 — High: Moodle restore no longer persists/reuses the course id (re-restores every render)
 - **Severity:** High (functional + performance/correctness)
