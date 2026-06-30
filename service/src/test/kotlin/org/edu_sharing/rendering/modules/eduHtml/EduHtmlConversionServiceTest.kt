@@ -1,129 +1,99 @@
 package org.edu_sharing.rendering.modules.eduHtml
 
+import io.mockk.every
+import io.mockk.junit5.MockKExtension
+import io.mockk.justRun
 import io.mockk.mockk
+import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.storage.StaticStorageService
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.extension.ExtendWith
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
+@ExtendWith(MockKExtension::class)
 class EduHtmlConversionServiceTest {
     private val contentTransferService: ContentTransferService = mockk()
     private val storageService: StaticStorageService = mockk()
     private val underTest = EduHtmlConversionService(contentTransferService, storageService)
 
-    /*@Test
-    fun testIfCacheDataUnzipsFileAndPutsContentInCorrectStorageFolders() {
-        val file = File("src/test/resources/fixtures/testhtml.zip")
-        val inputStream = file.readBytes().inputStream()
-        val nodeId = "nodeId"
-        inputStream.use {
-            val cacheObject = CacheObject(
-                nodeId = nodeId,
-                hash = "hash",
-                type = "eduhtml",
-                repoId = "repo123"
-            )
+    private val defaultCandidates = listOf("index.html", "index.htm", "story.html")
 
-            val coHtml = cacheObject.copy(mimeType = MediaType.TEXT_HTML_VALUE)
-            val coCss = cacheObject.copy(mimeType = "text/css")
-            val coJpg = cacheObject.copy(mimeType = MediaType.IMAGE_JPEG_VALUE)
-            val coJs = cacheObject.copy(mimeType = "text/javascript")
-
-            every { contentTransferService.getAsInputStream(cacheObject) } returns inputStream
-
-            justRun {
-                storageService.putObject(
-                    cacheObject = any(),
-                    inputStream = any(),
-                    targetPath = any(),
-                    metadata = any()
-                )
-            }
-
-            // Act
-            underTest.cacheData(cacheObject)
-
-            // Assert
-            verify(exactly = 1) { contentTransferService.getAsInputStream(any()) }
-            verifyAll {
-                storageService.putObject(
-                    cacheObject = coHtml,
-                    inputStream = any(),
-                    targetPath = "index.html",
-                    metadata = any()
-                )
-                storageService.putObject(
-                    cacheObject = coCss,
-                    inputStream = any(),
-                    targetPath = "style.css",
-                    metadata = any()
-                )
-                storageService.putObject(
-                    cacheObject = coJs,
-                    inputStream = any(),
-                    targetPath = "assets/index.js",
-                    metadata = any()
-                )
-                storageService.putObject(
-                    cacheObject = coJpg,
-                    inputStream = any(),
-                    targetPath = "assets/vinni.jpg",
-                    metadata = any()
-                )
+    private fun zipOf(vararg entries: String): ByteArray {
+        val out = ByteArrayOutputStream()
+        ZipOutputStream(out).use { zip ->
+            for (entry in entries) {
+                zip.putNextEntry(ZipEntry(entry))
+                zip.write("content of $entry".toByteArray())
+                zip.closeEntry()
             }
         }
-        confirmVerified(storageService, contentTransferService)
+        return out.toByteArray()
     }
 
-
-    @Test
-    fun testIfCacheDataThrowsExceptionOnCompletelyEmptyZipFile() {
-        // Arrange
-        val file = File("src/test/resources/fixtures/emptyzip.zip")
-        val inputStream = file.readBytes().inputStream()
-        val nodeId = "nodeId"
-        inputStream.use {
-            val cacheObject = CacheObject(
-                nodeId = nodeId,
-                hash = "hash",
-                type = "eduhtml",
-                repoId = "repo123"
+    /** Runs cacheData over an in-memory zip and returns the relative target paths that were stored. */
+    private fun storedPathsFor(zip: ByteArray, candidates: List<String>): List<String> {
+        val cacheObject = CacheObject(nodeId = "nodeId", hash = "hash", type = "eduhtml", repoId = "repo123")
+        every { contentTransferService.getAsInputStream(cacheObject) } returns ByteArrayInputStream(zip)
+        val paths = mutableListOf<String>()
+        justRun {
+            storageService.putObject(
+                cacheObject = any(),
+                inputStream = any(),
+                targetPath = capture(paths),
+                metadata = any()
             )
-            every { contentTransferService.getAsInputStream(cacheObject) } returns inputStream
-
-            // Assert
-            assertThrows<ConversionException> {
-                // Act
-                underTest.cacheData(cacheObject)
-            }
-            verify(exactly = 1) { contentTransferService.getAsInputStream(any()) }
-            confirmVerified(contentTransferService)
         }
+        underTest.cacheData(cacheObject, candidates)
+        return paths
     }
 
     @Test
-    fun testIfCacheDataThrowsExceptionOnZipFileContainingOnlyFolders() {
-        // Arrange
-        val file = File("src/test/resources/fixtures/ziponlyfolders.zip")
-        val inputStream = file.readBytes().inputStream()
-        val nodeId = "nodeId"
-        inputStream.use {
-            val cacheObject = CacheObject(
-                nodeId = nodeId,
-                hash = "hash",
-                type = "eduhtml",
-                repoId = "repo123"
-            )
-            every { contentTransferService.getAsInputStream(cacheObject) } returns inputStream
+    fun picksIndexHtmlAtRootLevel() {
+        val paths = storedPathsFor(zipOf("index.html", "style.css", "assets/app.js"), defaultCandidates)
+        assert(paths.toSet() == setOf("index.html", "style.css", "assets/app.js")) { paths.toString() }
+    }
 
-            // Assert
-            assertThrows<ConversionException> {
+    @Test
+    fun stripsWrappingFolderUsingIndexHtml() {
+        val paths = storedPathsFor(zipOf("wrap/index.html", "wrap/style.css"), defaultCandidates)
+        assert(paths.toSet() == setOf("index.html", "style.css")) { paths.toString() }
+    }
 
-                // Act
-                underTest.cacheData(cacheObject)
-            }
+    @Test
+    fun fallsBackToStoryHtmlWhenNoIndex() {
+        val paths = storedPathsFor(zipOf("pkg/story.html", "pkg/app.js"), defaultCandidates)
+        assert(paths.toSet() == setOf("story.html", "app.js")) { paths.toString() }
+    }
 
-            verify(exactly = 1) { contentTransferService.getAsInputStream(any()) }
-            confirmVerified(contentTransferService)
+    @Test
+    fun prefersIndexHtmlOverStoryHtmlWhenBothPresent() {
+        // index.html and story.html live under different roots; index.html wins so its root ("a/") is stripped.
+        val paths = storedPathsFor(zipOf("a/index.html", "a/app.js", "b/story.html"), defaultCandidates)
+        assert(paths.contains("index.html")) { paths.toString() }
+        assert(paths.contains("app.js")) { paths.toString() }
+        // story.html sits outside the chosen root, so its full path is retained.
+        assert(paths.contains("b/story.html")) { paths.toString() }
+    }
+
+    @Test
+    fun honorsCustomMainEntityCandidate() {
+        val paths = storedPathsFor(zipOf("pkg/content/start.html", "pkg/content/a.js"), listOf("content/start.html"))
+        assert(paths.toSet() == setOf("content/start.html", "content/a.js")) { paths.toString() }
+    }
+
+    @Test
+    fun throwsWhenNoCandidateMatches() {
+        val cacheObject = CacheObject(nodeId = "nodeId", hash = "hash", type = "eduhtml", repoId = "repo123")
+        every { contentTransferService.getAsInputStream(cacheObject) } returns ByteArrayInputStream(zipOf("readme.txt"))
+        assertThrows<ConversionException> {
+            underTest.cacheData(cacheObject, defaultCandidates)
         }
-    }*/
+    }
 }

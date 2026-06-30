@@ -110,7 +110,7 @@ class EduHtmlServiceTest {
         every { storageMock.getObjectLink(cacheObject, "index.html") } returns objectLink
 
         // Act
-        val result = underTest.getObjectLink(cacheObject)
+        val result = underTest.getObjectLink(cacheObject, listOf("index.html", "index.htm", "story.html"))
 
         // Assert
         assert(result == objectLink)
@@ -122,19 +122,100 @@ class EduHtmlServiceTest {
     }
 
     @Test
-    fun testGetObjectLinkThrowsExceptionIfGetFilePropertiesFails() {
+    fun testGetObjectLinkFallsBackToStoryHtmlWhenNoIndex() {
+        // Arrange
+        val objectLink = ObjectLink(link = "storylink")
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+
+        every { storageMock.objectExists(cacheObject, "index.html") } returns false
+        every { storageMock.objectExists(cacheObject, "index.htm") } returns false
+        every { storageMock.objectExists(cacheObject, "story.html") } returns true
+        every { storageMock.getObjectLink(cacheObject, "story.html") } returns objectLink
+
+        // Act
+        val result = underTest.getObjectLink(cacheObject, listOf("index.html", "index.htm", "story.html"))
+
+        // Assert
+        assert(result == objectLink)
+
+        verifySequence {
+            storageMock.objectExists(cacheObject, "index.html")
+            storageMock.objectExists(cacheObject, "index.htm")
+            storageMock.objectExists(cacheObject, "story.html")
+            storageMock.getObjectLink(cacheObject, "story.html")
+        }
+    }
+
+    @Test
+    fun testGetObjectLinkUsesCustomMainEntityOverride() {
+        // Arrange
+        val objectLink = ObjectLink(link = "customlink")
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+
+        every { storageMock.objectExists(cacheObject, "content/start.html") } returns true
+        every { storageMock.getObjectLink(cacheObject, "content/start.html") } returns objectLink
+
+        // Act
+        val result = underTest.getObjectLink(cacheObject, listOf("content/start.html"))
+
+        // Assert
+        assert(result == objectLink)
+        verifySequence {
+            storageMock.objectExists(cacheObject, "content/start.html")
+            storageMock.getObjectLink(cacheObject, "content/start.html")
+        }
+    }
+
+    @Test
+    fun testGetObjectLinkThrowsExceptionIfNoCandidateExists() {
         // Arrange
         val cacheObject = mockk<CacheObject>(relaxed = true)
 
-        every {
-            storageMock.objectExists(cacheObject, "index.html")
-        } returns false
+        every { storageMock.objectExists(cacheObject, any()) } returns false
 
         // Act and assert
-        assertThrows<Exception> { underTest.getObjectLink(cacheObject) }
+        assertThrows<Exception> {
+            underTest.getObjectLink(cacheObject, listOf("index.html", "index.htm", "story.html"))
+        }
         verifySequence {
             storageMock.objectExists(cacheObject, "index.html")
+            storageMock.objectExists(cacheObject, "index.htm")
+            storageMock.objectExists(cacheObject, "story.html")
         }
+    }
+
+    @Test
+    fun testResolveMainEntityAndEntryCandidates() {
+        // Override present (with leading slash to be trimmed)
+        every { node.properties } returns mapOf("ccm:ccressourcemainentity" to listOf("/story.html"))
+        val mainEntity = underTest.resolveMainEntity(node)
+        assert(mainEntity == "story.html")
+        assert(underTest.entryCandidates(mainEntity) == listOf("story.html"))
+
+        // No override -> default candidate list
+        every { node.properties } returns emptyMap()
+        assert(underTest.resolveMainEntity(node) == null)
+        assert(underTest.entryCandidates(null) == listOf("index.html", "index.htm", "story.html"))
+    }
+
+    @Test
+    fun testCreateJobPersistsMainEntityOverrideInAdditionalData() {
+        // Arrange
+        val dummyJob = jobDataProvider.getJobWithoutSubJobs()
+        every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returns emptyList()
+        every { mapperMock.nodeToRenderingJob(node, "EDUHTML", true) } returns dummyJob
+        every { jobRepoMock.save(dummyJob) } returns dummyJob
+        val subJobSlot = slot<SubJob>()
+        every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
+        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", any<RenderingJobMessage>()) }
+        every { node.ref.id } returns "dummyNodeId"
+        every { node.properties } returns mapOf("ccm:ccressourcemainentity" to listOf("/player.html"))
+
+        // Act
+        underTest.createJob(node, "EDUHTML")
+
+        // Assert
+        assert(subJobSlot.captured.additionalData == mapOf("mainEntity" to "player.html"))
     }
 
     @Test

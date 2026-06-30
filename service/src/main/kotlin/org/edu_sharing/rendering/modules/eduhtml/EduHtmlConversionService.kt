@@ -22,7 +22,7 @@ class EduHtmlConversionService(
 ) {
     private val log = LoggerFactory.getLogger(this.javaClass)
 
-    fun cacheData(cacheObject: CacheObject) {
+    fun cacheData(cacheObject: CacheObject, candidates: List<String>) {
         log.debug("Downloading EduHTML content for nodeId ${cacheObject.nodeId}, hash ${cacheObject.hash}")
         val tempZip = Files.createTempFile("eduhtml-", ".zip")
 
@@ -32,7 +32,7 @@ class EduHtmlConversionService(
             }
 
             val zipRoot = Files.newInputStream(tempZip).use { firstPass ->
-                getZipRootPath(ZipInputStream(firstPass))
+                getZipRootPath(ZipInputStream(firstPass), candidates)
             }
             log.debug("EduHTML zip root resolved to '$zipRoot' for nodeId ${cacheObject.nodeId}, extracting to storage")
 
@@ -67,19 +67,32 @@ class EduHtmlConversionService(
         }
     }
 
-    private fun getZipRootPath(zipInputStream: ZipInputStream): String {
+    /**
+     * Locates the archive root by finding the entry-point file. Entries are scanned once and
+     * matched against [candidates] (an entry matches a candidate when its path equals the
+     * candidate or ends with `"/" + candidate`, i.e. on a path-segment boundary). The root for
+     * the **highest-priority** matched candidate is returned, so e.g. `index.html` wins over a
+     * fallback `story.html` when both are present.
+     */
+    private fun getZipRootPath(zipInputStream: ZipInputStream, candidates: List<String>): String {
+        val rootsByCandidate = HashMap<String, String>()
         var currentEntry: ZipEntry? = zipInputStream.nextEntry
         while (currentEntry != null) {
             if (!currentEntry.isDirectory) {
-                val splitPath = currentEntry.name.split("/").toMutableList()
-                val fileName = splitPath.last()
-                if (fileName == "index.html" || fileName == "index.htm") {
-                    splitPath.removeLast()
-                    return splitPath.toList().joinToString("/")
+                val name = currentEntry.name
+                for (candidate in candidates) {
+                    if (candidate !in rootsByCandidate &&
+                        (name == candidate || name.endsWith("/$candidate"))
+                    ) {
+                        rootsByCandidate[candidate] = name.removeSuffix(candidate)
+                    }
                 }
             }
             currentEntry = zipInputStream.nextEntry
         }
-        throw ConversionException("Archive does not contain index.html or index.htm file or does not contain any files")
+        candidates.firstOrNull { it in rootsByCandidate }?.let { return rootsByCandidate.getValue(it) }
+        throw ConversionException(
+            "Archive does not contain any of the expected entry-point files $candidates or does not contain any files"
+        )
     }
 }

@@ -32,7 +32,7 @@ Each finding has a severity. Many "High" items are tagged **"verify intent"** �
 | *(none — new)* | `modules/jupyter` + `jupyter-converter` | New; **unsanitized HTML / CSP** (§3) |
 | `modules/h5p` (+ embedded `h5p-core`) | `modules/h5p` + `lumi` | Re-architected; **version bug, size guard** (§4) |
 | `modules/moodle`, `modules/scorm` | `modules/moodle` (+ `ScormRenderModule`) | Covered; **WS contract, courseId cache** (§5) |
-| `modules/html` | `modules/eduhtml`, `modules/noConversion` | Covered; **Storyline `story.html` / custom entry** (§5) |
+| `modules/html` | `modules/eduhtml`, `modules/noConversion` | Covered; Storyline `story.html` / custom entry restored (§5 H2) |
 | `modules/url` (YouTube/Vimeo/Pixabay/Prezi/LTI-1.3) | — | **DROPPED** (§5 C1) |
 | `modules/lti` (LTI-1.1 + OAuth-1.0, Etherpad, Vanilla) | — | **DROPPED** (§5 C2) |
 | `modules/learningapps` | — | **DROPPED** (§5 H1) |
@@ -62,7 +62,7 @@ If only a handful of items are actioned before cutover, these are the ones with 
 8. **§1 H1 — Dispatch fallback removed.** The old `setModule()` fell back to `doc`/download for unknown types; the new `ModuleRegistry` **throws `ObjectTypeNotSupportedException`**. Combined with the dropped modules below, several content classes now error instead of rendering.
 9. **§5 C1/C2 — `url` and `lti` modules dropped.** YouTube-nocookie/short-link parsing, Vimeo privacy-hash reconstruction, Pixabay/Prezi/LearningApps embedding, **LTI-1.3** launch (url module) **and** **LTI-1.1 OAuth-1.0 HMAC-SHA1 signing** + Etherpad/Vanilla (lti module) have no backend equivalent. The OAuth signing is exactly the kind of opaque logic that must not be re-written from memory if still needed.
 10. **§1 H2 — License gating (`hasContentLicense`) removed.** The old "you may see the node but not its licensed content → downgrade to neutral doc viewer + warning" behaviour (with `collection_io_reference`/`accessEffective`/`originalRestrictedAccess` rules) is gone; access now rests entirely on the JWT `ReadAll` claim. Confirm the repo computes that claim with the same semantics.
-11. **§5 H2 — Articulate Storyline `story.html`** entry-point and `ccm:ccressourcemainentity` custom entry override lost in `eduhtml` (only `index.html` is found) — Storyline packages will fail.
+11. **§5 H2 — Articulate Storyline `story.html`** entry-point and `ccm:ccressourcemainentity` custom entry override lost in `eduhtml` (only `index.html` is found) — Storyline packages will fail. **RESOLVED (2026-06-30):** generic `story.html` fallback + `ccm:ccressourcemainentity` override restored — see §5 H2.
 
 ### Operational
 12. **§6 — Cache-cleaner policy fundamentally changed** (disk-ratio global LRU @80% → per-repo quota-ratio LRU @25%) and is a **no-op by default** (quota defaults to 0), so the S3 cache grows unbounded out of the box. The out-of-process CronJob + in-container cron + `useDiskSize` disk-protection backstop are all gone. Cron format also changed 5-field → 6-field.
@@ -290,7 +290,7 @@ MZ: This is fine.
 - **NEW:** `RenderDataRequest` fields are `@NotNull` only — no format validation on `nodeId`/`repoId`. Spring Security + signature verification are the real guards. Low risk (IDs flow into parameterized Mongo/HTTP, not SQL), but stricter input validation was present OLD-side.
 - **Recommendation:** Optionally add `@Pattern` validation on `nodeId`/`repoId` to match OLD constraints (defense in depth).
 
-MZ: Check this! Might be a useful safeguard! Prio 2.
+MZ: This is fine for now.
 
 #### L4. Plugin lifecycle hooks (pre/post LoadRepository, SslVerification, RetrieveObjectProperties, Instanciate, Process, TrackObject) — dropped
 - **Severity:** Low/Info — likely intentional
@@ -764,7 +764,7 @@ MZ: This is fine.
 - Impact: content types not in that list (e.g. Question Set, Course presentation sub-types, Interactive Book, plain Text-based libs) that previously got global MathDisplay may no longer render LaTeX. Also `editorAddons` affect editing context, not necessarily the player-only path used here.
 - Recommendation: confirm whether `addons`/`editorAddons` propagate MathDisplay to the player for all relevant content types; if not, broaden the addon list or use a player-side addon mechanism to match OLD's universal LaTeX support.
 
-MZ: Check this! Test file needed. Prio 2
+MZ: Should be fine.
 
 #### 6. [Medium] OLD "recently modified → bust cache" safeguard has no equivalent
 - OLD: `mod_h5p.php::wasObjectLatelyModified()` + `clearPotentiallyBrokenObject()` — if an ESOBJECT was modified within `H5P_DISABLE_CACHE_DELAY` seconds, the cache entry was deleted to force a re-render. This was an explicit workaround for the async repo save handing **unfinished** H5P data to the renderer (see the comment at `mod_h5p.php:494-501`).
@@ -795,7 +795,7 @@ MZ: This is fine. Resizer is in place and works (served by repo).
 - NEW: assets are served through `LumiProxyController.getContentAssets` / `getH5PCoreAssets` proxying to lumi, with normal Spring routing. The OLD path-traversal/whitelist logic is not carried over and is not needed.
 - Recommendation: none (informational). Just confirm the NEW asset proxy does not allow path traversal into arbitrary lumi files — `LumiProxyService` forwards `request.requestURI` after `pathPrefix`; lumi's `h5pAjaxExpressRouter` and `/content/:contentId/**` constrain this, but a quick traversal test (`/public/h5p/content/x/../../`) is worth running.
 
-MZ: Check this! But it is probably fine. Prio 2.
+MZ: Path traversal is not allowed.
 
 #### 10. [Low] OLD content "description"/title mapping nuance not replicated
 - OLD: `H5PFramework::loadContent()` had a special case (lines 826-835): because the H5P `title` column stored the edu-sharing nodeId+hash, it substituted the DB `description` (the real node title) into `metadata.title`. `createInstance` set `description` = node title (`mod_h5p.php:92-93`).
@@ -967,6 +967,15 @@ MZ: This is handled on the frontend-side.
 - **Recommendation:** Re-add the `story.html` fallback and `ccm:ccressourcemainentity`
   override in `EduHtmlConversionService`/`EduHtmlService`, or confirm those package types are
   no longer served this way.
+- **RESOLVED (2026-06-30):** Entry-point resolution restored in `eduhtml`. `EduHtmlService`
+  now resolves a `ccm:ccressourcemainentity` custom-entry override (persisted onto
+  `SubJob.additionalData` for the async path) and otherwise probes `index.html` → `index.htm`
+  → `story.html` in priority order; `EduHtmlConversionService.getZipRootPath` locates the zip
+  root from the same prioritized candidate list. **Deliberate divergence from OLD:** the
+  `story.html` fallback is *generic* (not gated on resourceType/`ccm:ccresourcesubtype`),
+  because in the NEW service `ADL SCORM`/`IMS Common Cartridge` nodes dispatch to
+  `ScormRenderModule` (Moodle restore), not `eduhtml`, so OLD's SCORM-gated branch would be
+  inert here.
 
 MZ: Check this! Important! Prio 1.
 
@@ -1121,7 +1130,7 @@ MZ: This is fine and has been checked.
 |---|---|---|
 | `moodle/mod_moodle` | `moodle/MoodleRenderModule` + `MoodleUploadService` + async job/receiver | Covered, but WS contract changed (H4), courseId cache dropped (H3), duplicate token call (M0) |
 | `scorm/mod_scorm` | `moodle/ScormRenderModule` (subclass; `local_edusharing_scorm_course`) | Covered (same caveats as moodle) |
-| `html/mod_html` | `eduhtml/*` (zip extract + serve index.html) | Mostly; **lost** Storyline `story.html` + `ccm:ccressourcemainentity` (H2) |
+| `html/mod_html` | `eduhtml/*` (zip extract + serve resolved entry point) | Covered; Storyline `story.html` + `ccm:ccressourcemainentity` restored (H2 resolved) |
 | `url/mod_url` | — | **DROPPED** (C1) |
 | `lti/*` | — | **DROPPED** (C2) |
 | `learningapps` | — | **DROPPED** (H1) |
@@ -1215,7 +1224,7 @@ MZ: This is fine, it does now.
 - **NEW:** MISSING (grep for h5p library/hub/sweep in `modules/h5p/` returns nothing).
 - This was the "reset all H5P caches" recovery operation. NEW H5P uses Lumi + S3 (`modules/h5p/lumi/*`), so the SQL/dir form is obsolete, but the *capability* (purge all H5P renderings to force regeneration) should be re-confirmed as available via per-repo asset deletion by type. **Recommendation:** verify "type" granularity matches H5P and document the replacement; flag the OLD `ESTRACK_MODULE_ID` column-name (vs `ESTRACK_MODUL_ID` used elsewhere) as a latent OLD bug not worth porting.
 
-MZ: This is fine, just use the by type deletion.
+MZ: This is fine, use the by type deletion.
 
 ### 5. [High] Version-gated update/migration ladder — no equivalent
 

@@ -41,8 +41,11 @@ class EduHtmlRenderModuleTest {
         // Arrange
         val node = mockk<Node>(relaxed = true)
         val cacheObject = mockk<CacheObject>()
+        val candidates = listOf("index.html", "index.htm", "story.html")
         every { mapper.nodeToCacheObject(node) } returns cacheObject
-        every { eduHtmlServiceMock.getObjectLink(cacheObject = cacheObject) } returns ObjectLink(link = "mylink")
+        every { eduHtmlServiceMock.resolveMainEntity(node) } returns null
+        every { eduHtmlServiceMock.entryCandidates(null) } returns candidates
+        every { eduHtmlServiceMock.getObjectLink(cacheObject, candidates) } returns ObjectLink(link = "mylink")
 
         // Act
         val result = underTest.handle(node)
@@ -54,7 +57,9 @@ class EduHtmlRenderModuleTest {
 
         verifySequence {
             mapper.nodeToCacheObject(node)
-            eduHtmlServiceMock.getObjectLink(cacheObject = cacheObject)
+            eduHtmlServiceMock.resolveMainEntity(node)
+            eduHtmlServiceMock.entryCandidates(null)
+            eduHtmlServiceMock.getObjectLink(cacheObject, candidates)
         }
     }
 
@@ -63,8 +68,11 @@ class EduHtmlRenderModuleTest {
         // Arrange
         val node = mockk<Node>(relaxed = true)
         val cacheObject = mockk<CacheObject>()
+        val candidates = listOf("index.html", "index.htm", "story.html")
         every { mapper.nodeToCacheObject(node) } returns cacheObject
-        every { eduHtmlServiceMock.getObjectLink(cacheObject) } throws ResourceNotFoundException("testException")
+        every { eduHtmlServiceMock.resolveMainEntity(node) } returns null
+        every { eduHtmlServiceMock.entryCandidates(null) } returns candidates
+        every { eduHtmlServiceMock.getObjectLink(cacheObject, candidates) } throws ResourceNotFoundException("testException")
         val jobId = "job123"
         every { eduHtmlServiceMock.createJob(node, "EDUHTML") } returns jobId
 
@@ -77,7 +85,10 @@ class EduHtmlRenderModuleTest {
         assert(result.jobId == "job123")
 
         verifySequence {
-            eduHtmlServiceMock.getObjectLink(cacheObject)
+            mapper.nodeToCacheObject(node)
+            eduHtmlServiceMock.resolveMainEntity(node)
+            eduHtmlServiceMock.entryCandidates(null)
+            eduHtmlServiceMock.getObjectLink(cacheObject, candidates)
             eduHtmlServiceMock.createJob(node, "EDUHTML")
         }
     }
