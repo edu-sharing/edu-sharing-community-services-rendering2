@@ -9,6 +9,29 @@ import {H5pError, Logger} from "@lumieducation/h5p-server";
 const log = new Logger("Router")
 
 /**
+ * Serializes H5P package uploads.
+ *
+ * `h5pEditor.uploadPackage` extracts each package into its own temp directory and then
+ * installs all contained libraries with an unbounded `Promise.all` (both across libraries
+ * and across each library's files). Two uploads running at once therefore saturate S3; a
+ * single library copy can then exceed the per-library lock's `installLibraryLockMaxOccupationTime`,
+ * which rejects the whole `Promise.all`. `PackageImporter` reacts by `rm -rf`-ing the temp
+ * directory in its `finally` block while sibling installs are still reading from it, producing
+ * `ENOENT ... lstat '/tmp/tmp-...'` errors and — because `updateLibrary` deletes a library on
+ * any error — a corrupted library store.
+ *
+ * Since lumi runs as a single replica with an in-memory `SimpleLockProvider`, serializing
+ * uploads in-process removes the cross-upload race entirely and halves the S3 pressure.
+ */
+let uploadChain: Promise<unknown> = Promise.resolve()
+const serializeUpload = <T>(task: () => Promise<T>): Promise<T> => {
+    const run = uploadChain.then(task, task)
+    // Keep the chain alive regardless of individual outcomes.
+    uploadChain = run.then(() => undefined, () => undefined)
+    return run
+}
+
+/**
  * Creates and configures an Express router for managing H5P content with EduSharing integration.
  *
  * This router provides endpoints for EduSharing functionality including retrieving and managing
@@ -79,11 +102,11 @@ const router = (
             log.info(`Starting H5P package upload for nodeId ${request.body.nodeId}.`)
 
             try {
-                const result = await h5pEditor.uploadPackage(
+                const result = await serializeUpload(() => h5pEditor.uploadPackage(
                     request.file.buffer,
                     request.user,
                     {onlyInstallLibraries: false}
-                )
+                ))
 
                 log.info(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
 
