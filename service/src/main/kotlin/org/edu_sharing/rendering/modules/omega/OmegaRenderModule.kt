@@ -12,7 +12,6 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
-import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -65,6 +64,9 @@ class OmegaRenderModule(
             }
         }
 
+        val role = "teacher"
+        //val role = if (SecurityContextUtils.currentUser().primaryAffiliation == "teacher") "teacher" else "learner"
+
         val job = mapper.nodeToRenderingJob(
             node = node,
             module = module(),
@@ -77,15 +79,19 @@ class OmegaRenderModule(
             parent = job
         ))
 
-        val role = if (SecurityContextUtils.currentUser().primaryAffiliation == "teacher") "teacher" else "learner"
-
         val message = OmegaJobMessage(
             id = job.id.toString(),
             nodeId = job.esObjectId,
             identifier = replicationSourceId,
             role = role
         )
-        log.debug("Sending Omega job message for jobId ${job.id}, identifier $replicationSourceId, role $role to queue $jobRoutingKey")
+        log.debug(
+            "Sending Omega job message for jobId {}, identifier {}, role {} to queue {}",
+            job.id,
+            replicationSourceId,
+            role,
+            jobRoutingKey
+        )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 
         return RenderDataResponse(

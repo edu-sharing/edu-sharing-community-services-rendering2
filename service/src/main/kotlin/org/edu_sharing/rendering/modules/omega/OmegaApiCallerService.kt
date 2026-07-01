@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.omega
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
@@ -10,7 +11,12 @@ import reactor.core.publisher.Mono
 @Service
 @ConditionalOnConverter
 class OmegaApiCallerService(
-    private val webClientBuilder: WebClient.Builder
+    // The Omega API host (cp.sodis.de) sends a fatal-to-the-JDK `unrecognized_name` TLS warning when
+    // SNI is present, so the API call must go through the SNI-suppressing builder. See WebClientConfig.
+    @param:Qualifier("noSniWebClientBuilder") private val noSniWebClientBuilder: WebClient.Builder,
+    // Default (SNI-enabled) builder for the stream/download URL validation — those hosts (edupool)
+    // *require* SNI and would fail the handshake without it.
+    private val webClientBuilder: WebClient.Builder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -22,7 +28,7 @@ class OmegaApiCallerService(
         val config = module.getCredentials(repoId)
         val user = config["user"] ?: "dabiplus"
         log.debug("Calling Omega API for nodeId ${omegaJobMessage.nodeId}, identifier ${omegaJobMessage.identifier}, role ${omegaJobMessage.role}")
-        val webClient = webClientBuilder
+        val webClient = noSniWebClientBuilder
             .clone()
             .baseUrl(config["baseurl"] ?: "")
             .build()
@@ -69,7 +75,10 @@ class OmegaApiCallerService(
         }
 
         if (config["validateUrls"] != "false") {
-            val status = webClient.head()
+            // Validate the resolved (edupool) URL with a normal, SNI-enabled client — that host requires
+            // SNI, unlike the Omega API host above.
+            val validationClient = webClientBuilder.clone().build()
+            val status = validationClient.head()
                 .uri(streamUrl)
                 .exchangeToMono { Mono.just(it.statusCode().value()) }
                 .block() ?: 0
