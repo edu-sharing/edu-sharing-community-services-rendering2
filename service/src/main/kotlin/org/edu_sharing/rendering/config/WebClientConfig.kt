@@ -15,7 +15,9 @@ import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.netty.http.Http11SslContextSpec
 import reactor.netty.http.client.HttpClient
+import reactor.netty.tcp.SslProvider
 import java.time.Duration
 
 /**
@@ -67,10 +69,45 @@ class WebClientConfig(
     fun longRunningWebClientBuilder(): WebClient.Builder =
         builderWithResponseTimeout(longRunningResponseTimeoutSeconds)
 
-    private fun builderWithResponseTimeout(responseTimeoutSeconds: Long): WebClient.Builder {
-        val httpClient = HttpClient.create()
+    /**
+     * Builder that suppresses the TLS SNI extension (empty `serverNames`) on outbound HTTPS.
+     *
+     * Some upstreams (notably `cp.sodis.de`, an Apache/mod_ssl host with a `*.sodis.de` wildcard cert)
+     * answer a ClientHello that carries an SNI `server_name` with a **warning-level**
+     * `unrecognized_name(112)` alert. OpenSSL/curl ignore warning alerts, but the JDK TLS provider —
+     * which Reactor Netty falls back to here because no `netty-tcnative`/BoringSSL is on the classpath —
+     * escalates it to a fatal `handshake_failure` ("received handshake warning: unrecognized_name").
+     * Not sending SNI stops the server emitting the alert; hostname verification still succeeds because
+     * the wildcard cert is served regardless of SNI. Use this builder ONLY for such SNI-hostile hosts —
+     * hosts that require SNI (shared IP / vhost) must keep the default builders above.
+     */
+    @Bean("noSniWebClientBuilder")
+    fun noSniWebClientBuilder(): WebClient.Builder =
+        builderWithResponseTimeout(responseTimeoutSeconds, disableSni = true)
+
+    private fun builderWithResponseTimeout(
+        responseTimeoutSeconds: Long,
+        disableSni: Boolean = false,
+    ): WebClient.Builder {
+        var httpClient = HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis)
             .responseTimeout(Duration.ofSeconds(responseTimeoutSeconds))
+        if (disableSni) {
+            // Typed as GenericSslContextSpec so overload resolution avoids the deprecated
+            // sslContext(ProtocolSslContextSpec) overload that Http11SslContextSpec would otherwise bind to.
+            val sslContextSpec: SslProvider.GenericSslContextSpec<*> = Http11SslContextSpec.forClient()
+            httpClient = httpClient.secure { spec ->
+                spec.sslContext(sslContextSpec)
+                    // Netty pre-populates SNI from the peer host; clear it on the engine before the
+                    // handshake so no server_name extension is sent.
+                    .handlerConfigurator { sslHandler ->
+                        val engine = sslHandler.engine()
+                        val params = engine.sslParameters
+                        params.serverNames = emptyList()
+                        engine.sslParameters = params
+                    }
+            }
+        }
         return WebClient.builder()
             .clientConnector(ReactorClientHttpConnector(httpClient))
             // Apply the buffer limit centrally (Spring Boot 4 does not auto-configure the builder, so

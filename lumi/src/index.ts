@@ -75,6 +75,15 @@ const start = async () => {
     }
     config.h5pVersion = `${h5p_core_version_major}.${h5p_core_version_major}.${h5p_core_version_patch}`
 
+    // Library installation copies every file to S3 under a per-library lock. The h5p-server
+    // default (10s max occupation / 20s timeout) is too tight when S3 latency is high and many
+    // libraries install at once: a single slow copy trips `occupation-time-exceeded`, which
+    // aborts the whole package import and wipes its temp dir mid-copy. Give installs headroom.
+    config.installLibraryLockMaxOccupationTime = Number.parseInt(
+        process.env.INSTALL_LIBRARY_LOCK_MAX_OCCUPATION_TIME_MS || '60000', 10)
+    config.installLibraryLockTimeout = Number.parseInt(
+        process.env.INSTALL_LIBRARY_LOCK_TIMEOUT_MS || '120000', 10)
+
     log.info("Config loaded")
     log.debug(JSON.stringify(config, null, 2))
 
