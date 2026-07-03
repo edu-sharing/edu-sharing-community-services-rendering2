@@ -316,7 +316,7 @@ config:
       ## @param config.converter.video.format Set format for video converter
       format: mp4
       ## @param config.converter.video.ffmpegThreads Set ffmpeg threads for video converter
-      ffmpegThreads: 0
+      ffmpegThreads: 4
       ## @param config.converter.video.ffmpegPreset Set ffmpeg preset for video converter
       ffmpegPreset: veryfast
       ## @param config.converter.video.mimetypes Set mimetypes for video converter

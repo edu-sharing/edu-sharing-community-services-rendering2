@@ -1,0 +1,62 @@
+<h1>Jobs</h1>
+
+<div class="card">
+  <app-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    trackKey="id"
+    [serverSide]="true"
+    [initialSort]="{ key: 'creationTimestamp', dir: 'desc' }"
+    [expansion]="subJobsTpl"
+    [canExpand]="hasSubJobs"
+    [rowActions]="actionsTpl"
+    searchPlaceholder="Search jobs…"
+    (sortChange)="onSort($event)"
+    (queryChange)="onSearch($event)"
+  >
+    <mat-form-field dt-filters appearance="outline" subscriptSizing="dynamic" class="filter-field">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
+        <mat-option value="">All</mat-option>
+        @for (s of statuses; track s) {
+          <mat-option [value]="s">{{ s }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <app-date-range-filter dt-filters label="Created" (rangeChange)="onCreatedRange($event)" />
+    <span dt-actions class="muted note">TTL: older jobs are removed automatically.</span>
+  </app-data-table>
+
+  @if (jobs(); as p) {
+    <div class="pager">
+      <button matButton (click)="prevPage()" [disabled]="p.page <= 0">Previous</button>
+      <span class="muted">Page {{ p.page + 1 }} / {{ p.totalPages || 1 }} · {{ p.totalElements }} jobs</span>
+      <button matButton (click)="nextPage()" [disabled]="p.page + 1 >= p.totalPages">Next</button>
+    </div>
+  }
+</div>
+
+<ng-template #actionsTpl let-job>
+  <button matButton class="warn-btn" [attr.aria-label]="'Delete job ' + job.id" (click)="deleteJob(job.id)">
+    <mat-icon aria-hidden="true">delete</mat-icon> Delete
+  </button>
+</ng-template>
+
+<ng-template #subJobsTpl let-job>
+  <table class="data sub">
+    <thead>
+      <tr><th scope="col">Routing key</th><th scope="col">Status</th><th scope="col">Quality</th><th scope="col">Progress</th><th scope="col">Error</th></tr>
+    </thead>
+    <tbody>
+      @for (sub of job.subJobs; track sub.id) {
+        <tr>
+          <td class="mono">{{ sub.routingKey }}</td>
+          <td><span class="badge badge-{{ sub.status.toLowerCase() }}">{{ sub.status }}</span></td>
+          <td>{{ sub.quality }}</td>
+          <td>{{ sub.progress }}%</td>
+          <td class="err">{{ sub.errorMessage ?? '' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</ng-template>

@@ -74,6 +74,7 @@
     <module>jupyter-converter</module>
     <module>lumi</module>
     <module>service</module>
+    <module>admin-frontend</module>
   </modules>
 
 </project>

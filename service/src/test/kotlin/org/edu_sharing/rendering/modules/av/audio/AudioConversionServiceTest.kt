@@ -4,6 +4,7 @@ import io.mockk.*
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.av.AvConversionListener
+import org.edu_sharing.rendering.modules.av.AvConversionTimeoutGuard
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.CODEC
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.OUTPUT_FORMAT
@@ -17,6 +18,7 @@ import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.EncodingAttributes
 import java.io.File
+import java.time.Duration
 
 class AudioConversionServiceTest {
     companion object {
@@ -25,10 +27,13 @@ class AudioConversionServiceTest {
 
     private val listenerFactory: ObjectFactory<AvConversionListener> = mockk()
     private val encoder: Encoder = mockk()
+    private val encoderFactory: ObjectFactory<Encoder> = mockk { every { `object` } returns encoder }
+    private val timeoutGuard = AvConversionTimeoutGuard(timeout = Duration.ofMinutes(30))
     private val fileHelperFactory: ObjectFactory<AvFileHelper> = mockk()
     private val underTest = AudioConversionService(
         listenerFactory = listenerFactory,
-        encoder = encoder,
+        encoderFactory = encoderFactory,
+        timeoutGuard = timeoutGuard,
         avFileHelperFactory = fileHelperFactory
     )
     private val jobDataProvider = JobDataProvider()

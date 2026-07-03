@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.ServicesRenderingService2Application
+import org.edu_sharing.rendering.cacheCleaner.CustomTrackingEntryRepositoryImpl
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.config.*
 import org.edu_sharing.rendering.core.PingController
@@ -51,6 +52,8 @@ import org.edu_sharing.rendering.modules.moodle.*
 import org.edu_sharing.rendering.modules.noConversion.HtmlRenderModule
 import org.edu_sharing.rendering.modules.noConversion.NoConversionModuleTypeMapper
 import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
+import org.edu_sharing.rendering.modules.omega.OmegaRenderModule
+import org.edu_sharing.rendering.modules.omega.OmegaRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.onyx.OnyxRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
@@ -89,6 +92,7 @@ abstract class SharedBeans {
             CustomHttpSessionIdResolver::class,
             CustomRenderingJobRepositoryImpl::class,
             CustomSubJobRepositoryImpl::class,
+            CustomTrackingEntryRepositoryImpl::class,
             GitHubConfig::class,
             GitHubService::class,
             GitServiceRegistry::class,
@@ -135,6 +139,8 @@ abstract class SharedBeans {
             NoConversionModuleTypeMapper::class,
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
+            OmegaRenderModule::class,
+            OmegaRenderModuleTypeMapper::class,
             OnyxRenderModule::class,
             PermissionEvaluator::class,
             PdfRenderModule::class,
@@ -173,6 +179,7 @@ abstract class SharedBeans {
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
             "permissionEvaluator",
+            "writeConcernResolver",
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans

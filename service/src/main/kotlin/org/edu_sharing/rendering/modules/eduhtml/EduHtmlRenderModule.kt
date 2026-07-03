@@ -30,7 +30,8 @@ class EduHtmlRenderModule(
         log.debug("Handling EduHTML node ${node.ref.id}, checking cache")
         val staticLink = try {
             val cacheObject = mapper.nodeToCacheObject(node)
-            eduHtmlService.getObjectLink(cacheObject)
+            val candidates = eduHtmlService.entryCandidates(eduHtmlService.resolveMainEntity(node))
+            eduHtmlService.getObjectLink(cacheObject, candidates)
         } catch (_: ResourceNotFoundException) {
             null
         }

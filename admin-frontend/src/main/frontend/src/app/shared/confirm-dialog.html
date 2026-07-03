@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content>
+  <p class="confirm-message">{{ data.message }}</p>
+
+  @if (data.confirmToken) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="confirm-token-field">
+      <mat-label>{{ data.tokenHint ?? 'Type to confirm' }}</mat-label>
+      <input
+        matInput
+        autocomplete="off"
+        [ngModel]="typed()"
+        (ngModelChange)="typed.set($event)"
+        (keydown.enter)="confirm()"
+      />
+    </mat-form-field>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton (click)="cancel()">{{ data.cancelLabel ?? 'Cancel' }}</button>
+  <button
+    matButton="filled"
+    [class.warn-btn]="data.destructive"
+    [disabled]="!canConfirm()"
+    (click)="confirm()"
+  >
+    {{ data.confirmLabel ?? 'Confirm' }}
+  </button>
+</mat-dialog-actions>

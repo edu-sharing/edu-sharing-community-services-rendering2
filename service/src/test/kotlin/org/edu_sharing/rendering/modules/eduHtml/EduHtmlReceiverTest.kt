@@ -70,6 +70,8 @@ class EduHtmlReceiverTest {
         val cacheObject = mockk<CacheObject>()
         val jobId = ObjectId()
 
+        val candidates = listOf("index.html", "index.htm", "story.html")
+
         every { message.id } returns "id"
         every { job.subJobs } returns mutableListOf(subJob)
         every { mainJobLogic.getMainJobEntry("id") } returns job
@@ -77,7 +79,9 @@ class EduHtmlReceiverTest {
         justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
         every  { subJobRepository.save(subJob) } returns subJob
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
-        every { eduHtmlConversionService.cacheData(cacheObject) } throws Exception("testException")
+        every { subJob.additionalData } returns null
+        every { eduHtmlService.entryCandidates(null) } returns candidates
+        every { eduHtmlConversionService.cacheData(cacheObject, candidates) } throws Exception("testException")
         justRun { subJob.errorMessage = GENERIC_CONVERSION_ERROR }
         justRun { subJob.status = SubJobStatus.FAILED }
         every { mainJobLogic.processMainJob(jobId.toString()) } returns true
@@ -86,6 +90,7 @@ class EduHtmlReceiverTest {
             message.id
             job.subJobs
             job.id
+            subJob.additionalData
         }
 
         // Act
@@ -97,12 +102,56 @@ class EduHtmlReceiverTest {
             renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING)
             subJobRepository.save(subJob)
             mapper.renderingJobToCacheObject(job)
-            eduHtmlConversionService.cacheData(cacheObject)
+            eduHtmlService.entryCandidates(null)
+            eduHtmlConversionService.cacheData(cacheObject, candidates)
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJob.status = SubJobStatus.FAILED
             subJobRepository.save(subJob)
             mainJobLogic.processMainJob(jobId.toString())
         }
+    }
+
+    @Test
+    fun testReceiveMessagePassesMainEntityCandidatesFromAdditionalData() {
+        // Arrange
+        val message = mockk<RenderingJobMessage>()
+        val job = mockk<RenderingJob>()
+        val subJob = mockk<SubJob>()
+        val cacheObject = mockk<CacheObject>()
+        val jobId = ObjectId()
+        val candidates = listOf("player.html")
+
+        every { message.id } returns "id"
+        every { job.subJobs } returns mutableListOf(subJob)
+        every { mainJobLogic.getMainJobEntry("id") } returns job
+        every { job.id } returns jobId
+        justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
+        every { subJobRepository.save(subJob) } returns subJob
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { subJob.additionalData } returns mapOf("mainEntity" to "player.html")
+        every { eduHtmlService.entryCandidates("player.html") } returns candidates
+        justRun { eduHtmlConversionService.cacheData(cacheObject, candidates) }
+        every { eduHtmlService.getObjectLink(cacheObject, candidates) } returns
+            org.edu_sharing.rendering.core.dto.ObjectLink(link = "ok")
+        justRun { subJob.message = "ok" }
+        justRun { subJob.status = SubJobStatus.FINISHED }
+        every { mainJobLogic.processMainJob(jobId.toString()) } returns true
+
+        excludeRecords {
+            message.id
+            job.subJobs
+            job.id
+            subJob.additionalData
+        }
+
+        // Act
+        underTest.receiveMessage(message)
+
+        // Assert
+        verify(exactly = 1) { eduHtmlService.entryCandidates("player.html") }
+        verify(exactly = 1) { eduHtmlConversionService.cacheData(cacheObject, candidates) }
+        verify(exactly = 1) { eduHtmlService.getObjectLink(cacheObject, candidates) }
+        verify(exactly = 1) { subJob.message = "ok" }
     }
 
     /*

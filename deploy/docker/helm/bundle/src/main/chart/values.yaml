@@ -409,3 +409,22 @@ edusharing_services_rendering2_service:
       region: *storageConfigRegion
 
 ########################################################################################################################
+
+edusharing_services_rendering2_admin_frontend:
+
+  ## @param edusharing_services_rendering2_admin_frontend.enabled Enable rendering2 admin frontend
+  enabled: true
+
+  # Die Admin-UI ruft die /admin-API same-origin (relativ zum eigenen Host) auf. Fuer oeffentliche
+  # Erreichbarkeit muessen hosts/tls/annotations daher IDENTISCH zum Service-Ingress
+  # (edusharing_services_rendering2_service.ingress) gesetzt werden -- gleicher Public-Host,
+  # UI unter /rendering-admin. Beispiel:
+  #
+  # ingress:
+  #   enabled: true               # false -> nur clusterintern (kein Ingress/Gateway)
+  #   annotations: {}             # identisch zum Service-Ingress
+  #   hosts:
+  #     - <gleicher-host-wie-service>
+  #   tls: []                     # identisch zum Service-Ingress
+
+########################################################################################################################

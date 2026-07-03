@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "edusharing_common_lib.names.name" . }}-env
+  labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
+data:
+  PORT: {{ .Values.service.port.api | quote }}
+  ADMIN_API_BASE: {{ .Values.config.base | quote }}
+  BASE_HREF: {{ printf "%s/" .Values.config.uiBase | quote }}

@@ -1,0 +1,89 @@
+@if (auth.isAuthenticated()) {
+  <div class="layout">
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <mat-toolbar class="topbar" role="banner">
+      <span class="brand">
+        <mat-icon class="brand-mark" aria-hidden="true">display_settings</mat-icon>
+        <span class="brand-title">Rendering&nbsp;Admin</span>
+      </span>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field contrast-field">
+        <mat-label>Contrast</mat-label>
+        <mat-select
+          panelClass="topbar-select-panel"
+          [value]="settings.contrastMode()"
+          (selectionChange)="onContrastChange($event.value)"
+        >
+          @for (opt of settings.contrastOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field repo-field">
+        <mat-label>Repository</mat-label>
+        <mat-select
+          panelClass="topbar-select-panel"
+          [value]="repoCtx.activeRepoId() ?? ''"
+          (selectionChange)="onRepoChange($event.value)"
+          [disabled]="!repoCtx.hasRepos()"
+        >
+          @if (!repoCtx.hasRepos()) {
+            <mat-option value="">– no repos registered –</mat-option>
+          }
+          @for (repo of repoCtx.repos(); track repo.repoId) {
+            <mat-option [value]="repo.repoId">{{ repo.repoId }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="topbar-field interval-field">
+        <mat-label>Refresh</mat-label>
+        <mat-select
+          panelClass="topbar-select-panel"
+          [value]="settings.pollIntervalMs()"
+          (selectionChange)="onIntervalChange($event.value)"
+        >
+          @for (opt of settings.intervalOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button
+        matIconButton
+        aria-label="Refresh now"
+        title="Refresh now"
+        [disabled]="!repoCtx.activeRepoId()"
+        (click)="onRefresh()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+
+      <button matIconButton aria-label="Log out" title="Log out" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <nav class="sidenav" aria-label="Primary">
+      <a routerLink="/dashboard" routerLinkActive="active"><mat-icon aria-hidden="true">dashboard</mat-icon> Dashboard</a>
+      <a routerLink="/assets" routerLinkActive="active"><mat-icon aria-hidden="true">folder</mat-icon> Assets</a>
+      <a routerLink="/jobs" routerLinkActive="active"><mat-icon aria-hidden="true">sync</mat-icon> Jobs</a>
+      <a routerLink="/repo" routerLinkActive="active"><mat-icon aria-hidden="true">dns</mat-icon> Repository</a>
+    </nav>
+
+    <main class="content" id="main" tabindex="-1">
+      @if (repoCtx.activeRepoId()) {
+        <router-outlet />
+      } @else {
+        <div class="card empty">
+          No repository selected. Please choose a repository above.
+        </div>
+      }
+    </main>
+  </div>
+} @else {
+  <router-outlet />
+}

@@ -29,7 +29,7 @@ class ErrorMessage (
     var message: String? = if (verboseMessageLevels.any { log.isEnabledForLevel(it) }) message
         else "InvalidLogLevel: Log Level must be at least INFO for showing error messages"
 
-    val logLevel = verboseMessageLevels.first { log.isEnabledForLevel(it) }.toString()
+    val logLevel = (verboseMessageLevels.firstOrNull { log.isEnabledForLevel(it) } ?: Level.WARN).toString()
 
     val stacktrace = if (verboseStackLevels.any { log.isEnabledForLevel(it) }) {
         StringWriter().use {
