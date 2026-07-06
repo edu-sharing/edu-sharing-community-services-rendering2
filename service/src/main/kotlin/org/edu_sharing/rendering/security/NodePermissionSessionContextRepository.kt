@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.security
 
 import jakarta.servlet.http.HttpSession
+import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.slf4j.LoggerFactory
@@ -24,7 +25,12 @@ class NodePermissionSessionContextRepository(
 
     private fun getExpirationTime(nodePermission: NodePermission): Long {
         val node = nodeSessionContextRepository.getNode(nodePermission.nodeId) ?: return nodePermissionExpirationTime
-        val renderModule = renderModuleRegistry.getRenderModule<RenderModule>(node)
+        val renderModule = try {
+            renderModuleRegistry.getRenderModule<RenderModule>(node)
+        } catch (e: ObjectTypeNotSupportedException) {
+            log.debug("No render module for node '{}', using default node permission expiration time", nodePermission.nodeId)
+            return nodePermissionExpirationTime
+        }
         return renderModule.getNodePermissionExpirationTime() ?: nodePermissionExpirationTime
     }
 

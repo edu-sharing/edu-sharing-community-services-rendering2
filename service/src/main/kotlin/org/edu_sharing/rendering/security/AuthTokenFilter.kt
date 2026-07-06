@@ -28,7 +28,11 @@ class AuthTokenFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        nodePermissionSessionContextRepository.validateSessionPermissions()
+        try {
+            nodePermissionSessionContextRepository.validateSessionPermissions()
+        } catch (ex: Exception) {
+            log.error("Cannot validate session permissions", ex)
+        }
         try {
             val jwt: String? = parseJwt(request)
             if (jwt == null) {

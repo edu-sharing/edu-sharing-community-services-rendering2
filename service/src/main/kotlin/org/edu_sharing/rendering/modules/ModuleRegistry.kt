@@ -23,6 +23,20 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     private final val modulesByResourceType: MutableMap<String, RenderModule> = mutableMapOf()
     private final val modulesByRemoteRepositoryType: MutableMap<String, RenderModule> = mutableMapOf()
 
+    companion object {
+        private val FRONTEND_REMOTE_REPOSITORY_TYPES = setOf(
+            "PIXABAY",
+            "YOUTUBE",
+            "LEARNINGAPPS",
+            "OERSI",
+            "BROCKHAUS",
+        )
+        private val WWWURL_EXEMPT_MODULES = setOf(
+            "SODIX",
+            "BINDER",
+        )
+    }
+
     init {
         moduleTypeMapper.forEach { mapper ->
             mapper.moduleTypeAssociations().forEach { (typeDefinition, mapper) ->
@@ -86,9 +100,16 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     }
 
     fun <T: RenderModule> getRenderModule(node: Node): T {
+        node.remote?.let { remote ->
+            val remoteType = remote.repository?.repositoryType ?: ""
+            if (remoteType in FRONTEND_REMOTE_REPOSITORY_TYPES) {
+                log.debug("Node is from remote frontend repository (type='{}'), rendering done in frontend only", remoteType)
+                throw ObjectTypeNotSupportedException()
+            }
+        }
         val location = node.properties?.getOrDefault("cclom:location", mutableListOf(""))[0]
         val hasLocalContent = location.isNullOrBlank() && !node.content?.hash.isNullOrBlank()
-        return getRenderModule(
+        val result = getRenderModule<T>(
             type = node.mediatype ?: "",
             mimeType = node.mimetype ?: "",
             replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0],
@@ -96,6 +117,12 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             remoteRepositoryType = node.remote?.repository?.repositoryType,
             hasLocalContent = hasLocalContent
         )
+        val wwwUrl = node.properties?.get("ccm:wwwurl")?.firstOrNull()
+        if (!wwwUrl.isNullOrBlank() && WWWURL_EXEMPT_MODULES.none { it.equals(result.module(), ignoreCase = true) }) {
+            log.debug("Node has ccm:wwwurl and resolved module '{}' is not exempt, rendering done in frontend only", result.module())
+            throw ObjectTypeNotSupportedException()
+        }
+        return result
     }
 
     fun getModuleTypeMapperList() = moduleTypeMapper
