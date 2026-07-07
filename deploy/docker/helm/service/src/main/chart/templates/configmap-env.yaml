@@ -45,6 +45,7 @@ data:
   "app.converter.image.format": {{ .Values.config.converter.image.format | quote }}
   "app.converter.image.mimeTypes": {{ .Values.config.converter.image.mimetypes | quote }}
   "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
+  "app.converter.image.maxPixels": {{ .Values.config.converter.image.maxPixels | quote }}
   "app.converter.video.format": {{ .Values.config.converter.video.format | quote }}
   "app.converter.video.mimeTypes": {{ .Values.config.converter.video.mimetypes | quote }}
   "app.converter.video.resolutions": {{ .Values.config.converter.video.resolutions | quote }}
