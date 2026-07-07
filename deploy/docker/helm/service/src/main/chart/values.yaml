@@ -380,9 +380,9 @@ config:
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
-      minPercentage: "90.0"
+      minPercentage: "60.0"
       ## @param config.jvm.ram.maxPercentage Set maximum memory in percentages
-      maxPercentage: "90.0"
+      maxPercentage: "60.0"
 
   lumi:
     ## @param config.lumi.host Set lumi host
