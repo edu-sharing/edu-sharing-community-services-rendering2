@@ -10,8 +10,7 @@ import org.springframework.stereotype.Service
 import java.net.URLConnection
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 
 
 @ConditionalOnConverter
@@ -31,13 +30,10 @@ class EduHtmlConversionService(
                 Files.copy(input, tempZip, StandardCopyOption.REPLACE_EXISTING)
             }
 
-            val zipRoot = Files.newInputStream(tempZip).use { firstPass ->
-                getZipRootPath(ZipInputStream(firstPass), candidates)
-            }
-            log.debug("EduHTML zip root resolved to '$zipRoot' for nodeId ${cacheObject.nodeId}, extracting to storage")
-
-            Files.newInputStream(tempZip).use { secondPass ->
-                unzipArchive(cacheObject, ZipInputStream(secondPass), zipRoot)
+            ZipFile(tempZip.toFile()).use { zipFile ->
+                val zipRoot = getZipRootPath(zipFile, candidates)
+                log.debug("EduHTML zip root resolved to '$zipRoot' for nodeId ${cacheObject.nodeId}, extracting to storage")
+                unzipArchive(cacheObject, zipFile, zipRoot)
             }
             log.debug("EduHTML extraction complete for nodeId ${cacheObject.nodeId}")
         } finally {
@@ -49,21 +45,21 @@ class EduHtmlConversionService(
         }
     }
 
-    private fun unzipArchive(cacheObject: CacheObject, zipInputStream: ZipInputStream, zipRoot: String) {
-        var currentEntry: ZipEntry? = zipInputStream.nextEntry
-        while (currentEntry != null) {
-            if (!currentEntry.isDirectory || !currentEntry.name.startsWith(zipRoot)) {
+    private fun unzipArchive(cacheObject: CacheObject, zipFile: ZipFile, zipRoot: String) {
+        for (entry in zipFile.entries()) {
+            if (!entry.isDirectory || !entry.name.startsWith(zipRoot)) {
                 val extractedCacheObject = cacheObject
-                    .copy(mimeType = URLConnection.guessContentTypeFromName(currentEntry.name))
-                extractedCacheObject.size = -1
+                    .copy(mimeType = URLConnection.guessContentTypeFromName(entry.name))
+                extractedCacheObject.size = entry.size
 
-                storageImplementation.putObject(
-                    extractedCacheObject,
-                    zipInputStream,
-                    currentEntry.name.substringAfter(zipRoot)
-                )
+                zipFile.getInputStream(entry).use { entryStream ->
+                    storageImplementation.putObject(
+                        extractedCacheObject,
+                        entryStream,
+                        entry.name.substringAfter(zipRoot)
+                    )
+                }
             }
-            currentEntry = zipInputStream.nextEntry
         }
     }
 
@@ -74,12 +70,11 @@ class EduHtmlConversionService(
      * the **highest-priority** matched candidate is returned, so e.g. `index.html` wins over a
      * fallback `story.html` when both are present.
      */
-    private fun getZipRootPath(zipInputStream: ZipInputStream, candidates: List<String>): String {
+    private fun getZipRootPath(zipFile: ZipFile, candidates: List<String>): String {
         val rootsByCandidate = HashMap<String, String>()
-        var currentEntry: ZipEntry? = zipInputStream.nextEntry
-        while (currentEntry != null) {
-            if (!currentEntry.isDirectory) {
-                val name = currentEntry.name
+        for (entry in zipFile.entries()) {
+            if (!entry.isDirectory) {
+                val name = entry.name
                 for (candidate in candidates) {
                     if (candidate !in rootsByCandidate &&
                         (name == candidate || name.endsWith("/$candidate"))
@@ -88,7 +83,6 @@ class EduHtmlConversionService(
                     }
                 }
             }
-            currentEntry = zipInputStream.nextEntry
         }
         candidates.firstOrNull { it in rootsByCandidate }?.let { return rootsByCandidate.getValue(it) }
         throw ConversionException(

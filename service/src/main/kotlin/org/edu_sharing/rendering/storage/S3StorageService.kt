@@ -22,6 +22,8 @@ import software.amazon.awssdk.services.s3.model.*
 import tools.jackson.databind.ObjectMapper
 import java.io.InputStream
 import java.net.URLEncoder
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.*
 
 @Service
@@ -194,17 +196,7 @@ class S3StorageService(
             .contentType(cacheObject.mimeType.ifBlank { "application/octet-stream" })
             .build()
 
-        val body =
-            if (cacheObject.size >= 0) {
-                RequestBody.fromInputStream(inputStream, cacheObject.size)
-            } else {
-                // AWS SDK v2 sync client needs a known content-length for InputStream.
-                // Fallback: buffer in-memory to determine length.
-                val bytes = inputStream.readAllBytes()
-                RequestBody.fromBytes(bytes)
-            }
-
-        s3Client.putObject(request, body)
+        putObjectStreaming(request, cacheObject, inputStream)
     }
 
     override fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails {
@@ -448,21 +440,31 @@ class S3StorageService(
 
         val request = requestBuilder.build()
 
-        val body =
-            if (cacheObject.size >= 0) {
-                RequestBody.fromInputStream(inputStream, cacheObject.size)
-            } else {
-                // AWS SDK v2 sync client needs a known content-length for InputStream.
-                // Fallback: buffer in-memory to determine length
-                log.warn("Executing upload to S3 without known content-length. This may cause performance issues. Cache object: $cacheObject")
-                val bytes = inputStream.readAllBytes()
-                RequestBody.fromBytes(bytes)
-            }
-
-        s3Client.putObject(request, body)
+        putObjectStreaming(request, cacheObject, inputStream)
         val size = getDirectorySize(bucket, bucketStrategy.getCacheObjectRootPath(cacheObject))
         log.debug("PUT object complete: bucket=$bucket, key=$targetPath, directorySize=$size bytes")
         trackingService.trackCacheObject(cacheObject, bucket, size)
+    }
+
+    private fun putObjectStreaming(request: PutObjectRequest, cacheObject: CacheObject, inputStream: InputStream) {
+        if (cacheObject.size >= 0) {
+            s3Client.putObject(request, RequestBody.fromInputStream(inputStream, cacheObject.size))
+            return
+        }
+        // AWS SDK v2 sync client needs a known content-length for InputStream.
+        // Fallback: spool to a temp file to determine the length without buffering on the heap.
+        log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
+        val tempFile = Files.createTempFile("s3-spool-", ".tmp")
+        try {
+            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING)
+            s3Client.putObject(request, RequestBody.fromFile(tempFile))
+        } finally {
+            try {
+                Files.deleteIfExists(tempFile)
+            } catch (e: Exception) {
+                log.warn("Could not delete temporary spool file: ${tempFile.toAbsolutePath()}", e)
+            }
+        }
     }
 
     private fun createBucketIfMissing(bucket: String) {

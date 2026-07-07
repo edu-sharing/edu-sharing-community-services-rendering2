@@ -162,6 +162,7 @@ abstract class SharedBeans {
             SecurityDisabledConfig::class,
             ServicesRenderingService2Application::class,
             SessionConfig::class,
+            ShedLockConfig::class,
             SodixRenderModule::class,
             SodixRenderModuleTypeMapper::class,
             SpreadsheetRenderModule::class,
