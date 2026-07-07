@@ -3,9 +3,11 @@ package org.edu_sharing.rendering.modules.image
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import java.awt.Color
 import java.awt.image.BufferedImage
@@ -20,6 +22,7 @@ class ImageConversionServiceTest {
     @BeforeEach
     fun setup() {
         underTest = ImageConversionService(storageService)
+        underTest.maxPixels = 100_000_000
     }
 
     @Test
@@ -71,12 +74,52 @@ class ImageConversionServiceTest {
         val inputStream = file.readBytes().inputStream()
         every { storageService.getObjectStream(cacheObject, true) } returns inputStream
         // Act
-        val result = underTest.fetchSourceImage(cacheObject)
+        val result = underTest.fetchSourceImage(cacheObject, 1920)
         // Assert
         assert(result.width == 275)
         assert(result.height == 183)
         verify(exactly = 1) {storageService.getObjectStream(cacheObject, true)}
         confirmVerified(storageService)
+    }
+
+    @Test
+    fun testIfFetchSourceImageSubsamplesLargeSourcesTowardsTargetSize() {
+        // The fixture is 275x183; a target of 50 gives factor 275/100 = 2, so the decoded
+        // image is ceil(275/2) x ceil(183/2).
+        val cacheObject = prepareCacheObject()
+        val file = File("src/test/resources/fixtures/chernihiv.jpg")
+        every { storageService.getObjectStream(cacheObject, true) } returns file.readBytes().inputStream()
+        // Act
+        val result = underTest.fetchSourceImage(cacheObject, 50)
+        // Assert
+        assert(result.width == 138)
+        assert(result.height == 92)
+        verify(exactly = 1) {storageService.getObjectStream(cacheObject, true)}
+        confirmVerified(storageService)
+    }
+
+    @Test
+    fun testIfFetchSourceImageRejectsImagesExceedingMaxPixels() {
+        // The fixture has 275*183 = 50325 pixels, above the lowered limit.
+        val cacheObject = prepareCacheObject()
+        val file = File("src/test/resources/fixtures/chernihiv.jpg")
+        every { storageService.getObjectStream(cacheObject, true) } returns file.readBytes().inputStream()
+        underTest.maxPixels = 10_000
+        // Act + Assert
+        assertThrows<ConversionException> { underTest.fetchSourceImage(cacheObject, 1920) }
+        verify(exactly = 1) {storageService.getObjectStream(cacheObject, true)}
+        confirmVerified(storageService)
+    }
+
+    @Test
+    fun testSubsamplingFactorMath() {
+        assert(ImageConversionService.subsamplingFactor(275, 1920) == 1)
+        assert(ImageConversionService.subsamplingFactor(3840, 1920) == 1)
+        assert(ImageConversionService.subsamplingFactor(7680, 1920) == 2)
+        assert(ImageConversionService.subsamplingFactor(8000, 1920) == 2)
+        assert(ImageConversionService.subsamplingFactor(20000, 800) == 12)
+        assert(ImageConversionService.subsamplingFactor(100, 800) == 1)
+        assert(ImageConversionService.subsamplingFactor(275, 0) == 1)
     }
 
     @Test

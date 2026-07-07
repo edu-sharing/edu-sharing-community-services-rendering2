@@ -5,11 +5,12 @@ import com.drew.metadata.exif.ExifDirectoryBase
 import com.drew.metadata.exif.ExifIFD0Directory
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.awt.Image
+import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -27,9 +28,30 @@ class ImageConversionService (
     private val log = LoggerFactory.getLogger(javaClass)
     @Value($$"${app.converter.image.format}")
     lateinit var imageFormat: String
+    @Value($$"${app.converter.image.maxPixels}")
+    var maxPixels: Long = 0
+
+    init {
+        // JVM-global: keep ImageIO from spilling decode buffers to a tmpdir disk cache
+        // (often a memory-backed tmpfs in containers); all decoding here is in-memory anyway.
+        ImageIO.setUseCache(false)
+    }
 
     companion object {
         private const val EXIF_ORIENTATION_NORMAL = 1
+
+        /**
+         * Subsampling factor so the decoded image keeps `max(width, height)` at roughly twice
+         * [targetSize] — enough headroom for a sharp single-pass bilinear downscale while
+         * bounding the decoded buffer near the target instead of the native resolution.
+         */
+        fun subsamplingFactor(sourceMaxDimension: Int, targetSize: Int): Int =
+            if (targetSize <= 0) 1 else maxOf(1, sourceMaxDimension / (2 * targetSize))
+    }
+
+    /** Exposes the internal buffer so the encoded image is not copied again by `toByteArray()`. */
+    private class ExposedByteArrayOutputStream : ByteArrayOutputStream() {
+        fun toInputStream() = ByteArrayInputStream(buf, 0, count)
     }
 
     fun convert(cacheObject: CacheObject, size: Int, sourceImage: BufferedImage) {
@@ -40,42 +62,76 @@ class ImageConversionService (
         val targetWidth = if (ratio > 1) size else (size * ratio).toInt()
         val targetHeight = if (ratio > 1) (size / ratio).toInt() else size
         log.debug("Computed target dimensions: ${targetWidth}x${targetHeight} from original ${originalWidth}x${originalHeight}")
-        val outputImage = sourceImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
-        val bufferedOutputImage = BufferedImage(
-            outputImage.getWidth(null),
-            outputImage.getHeight(null),
-            BufferedImage.TYPE_INT_RGB
-        )
-        bufferedOutputImage.graphics.drawImage(outputImage, 0, 0, null)
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        byteArrayOutputStream.use {
-            ImageIO.write(bufferedOutputImage, imageFormat, byteArrayOutputStream)
-            cacheObject.quality = size
-            cacheObject.size = byteArrayOutputStream.size().toLong()
-            cacheObject.mimeType = "image/${imageFormat}"
-            val metadata =  mapOf(
-                "height" to targetHeight.toString(),
-                "width" to targetWidth.toString()
-            )
-            // Size known from conversion
-            log.debug("Storing converted image: nodeId=${cacheObject.nodeId}, quality=$size, size=${byteArrayOutputStream.size()} bytes")
-            storageImplementation.putObject(
-                cacheObject = cacheObject,
-                inputStream = ByteArrayInputStream(byteArrayOutputStream.toByteArray()),
-                metadata = metadata
-            )
+        val bufferedOutputImage = BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
+        val graphics = bufferedOutputImage.createGraphics()
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            graphics.drawImage(sourceImage, 0, 0, targetWidth, targetHeight, null)
+        } finally {
+            graphics.dispose()
         }
+        val byteArrayOutputStream = ExposedByteArrayOutputStream()
+        ImageIO.write(bufferedOutputImage, imageFormat, byteArrayOutputStream)
+        cacheObject.quality = size
+        cacheObject.size = byteArrayOutputStream.size().toLong()
+        cacheObject.mimeType = "image/${imageFormat}"
+        val metadata =  mapOf(
+            "height" to targetHeight.toString(),
+            "width" to targetWidth.toString()
+        )
+        // Size known from conversion
+        log.debug("Storing converted image: nodeId=${cacheObject.nodeId}, quality=$size, size=${byteArrayOutputStream.size()} bytes")
+        storageImplementation.putObject(
+            cacheObject = cacheObject,
+            inputStream = byteArrayOutputStream.toInputStream(),
+            metadata = metadata
+        )
     }
 
-    fun fetchSourceImage(cacheObject: CacheObject): BufferedImage {
+    fun fetchSourceImage(cacheObject: CacheObject, targetSize: Int): BufferedImage {
         log.debug("Fetching source image from storage: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}")
-        // Read the whole source into memory: ImageIO.read discards EXIF metadata, so we need the
-        // raw bytes both to decode the image and to read its EXIF orientation independently.
+        // Read the whole compressed source into memory: the decoder discards EXIF metadata, so we
+        // need the raw bytes both to decode the image and to read its EXIF orientation independently.
         val bytes = storageImplementation.getObjectStream(cacheObject, true).use { it.readBytes() }
-        val sourceImage = ImageIO.read(ByteArrayInputStream(bytes))
         val orientation = readExifOrientation(bytes)
         log.debug("EXIF orientation $orientation for nodeId=${cacheObject.nodeId}")
+        val sourceImage = decodeSubsampled(bytes, targetSize)
         return applyExifOrientation(sourceImage, orientation)
+    }
+
+    /**
+     * Decodes the image with source subsampling so the decoded buffer is bounded near
+     * [targetSize] (the largest requested rendition) instead of the source's native resolution.
+     * Rejects images whose header dimensions exceed `app.converter.image.maxPixels` before any
+     * pixel data is decoded.
+     */
+    private fun decodeSubsampled(bytes: ByteArray, targetSize: Int): BufferedImage {
+        ImageIO.createImageInputStream(ByteArrayInputStream(bytes)).use { input ->
+            val readers = ImageIO.getImageReaders(input)
+            if (!readers.hasNext()) {
+                throw ConversionException("No ImageIO reader found for source image")
+            }
+            val reader = readers.next()
+            try {
+                // EXIF is read separately via metadata-extractor, so image metadata can be ignored.
+                reader.setInput(input, true, true)
+                val width = reader.getWidth(0)
+                val height = reader.getHeight(0)
+                val pixels = width.toLong() * height
+                if (pixels > maxPixels) {
+                    throw ConversionException(
+                        "Image too large: ${width}x${height} ($pixels px) exceeds app.converter.image.maxPixels=$maxPixels"
+                    )
+                }
+                val factor = subsamplingFactor(maxOf(width, height), targetSize)
+                log.debug("Decoding ${width}x${height} source with subsampling factor $factor for targetSize=$targetSize")
+                val param = reader.defaultReadParam
+                param.setSourceSubsampling(factor, factor, 0, 0)
+                return reader.read(0, param)
+            } finally {
+                reader.dispose()
+            }
+        }
     }
 
     /**
