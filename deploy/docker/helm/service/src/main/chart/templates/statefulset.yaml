@@ -37,6 +37,11 @@ spec:
         env:
         - name: APP_ROLES
           value: {{ $roleCfg.appRoles | quote }}
+        {{- /* Per-role heap sizing: role jvm.ram wins, global config.jvm.ram fills gaps. Explicit env overrides the ConfigMap's JAVA_OPTS. */}}
+        {{- $ram := $.Values.config.jvm.ram }}
+        {{- with $roleCfg.jvm }}{{- with .ram }}{{- $ram = merge (deepCopy .) $.Values.config.jvm.ram }}{{- end }}{{- end }}
+        - name: JAVA_OPTS
+          value: {{ include "edusharing_services_rendering.javaOpts" (dict "minPercentage" $ram.minPercentage "maxPercentage" $ram.maxPercentage "debug" (default $.Values.global.debug $.Values.debug)) | quote }}
         envFrom:
         - configMapRef:
             name: {{ include "edusharing_common_lib.names.name" $ }}-env
@@ -82,7 +87,7 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with $.Values.resources }}
+        {{- with $roleCfg.resources | default $.Values.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
         {{- with $.Values.securityContext }}
