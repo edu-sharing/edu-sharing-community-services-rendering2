@@ -290,7 +290,9 @@ roles:
     ## @param roles.avconverter.resources.limits.memory Set memory limit for the avconverter role
     ## @param roles.avconverter.resources.requests.cpu Set CPU request for the avconverter role
     ## @param roles.avconverter.resources.requests.memory Set memory request for the avconverter role
-    ## avconverter: heap output buffer + OFF-HEAP ffmpeg process + temp files -> big container, low heap % for off-heap reserve; ffmpeg is CPU-bound
+    ## avconverter: work is the OFF-HEAP ffmpeg process (CPU-bound); the JVM only orchestrates + streams I/O.
+    ## Temp files live on the node's ephemeral disk (no memory-backed emptyDir), so they do not count against
+    ## this limit. -> big container, low heap % so ~2.8Gi of the 4Gi stays free for ffmpeg RSS + non-heap JVM.
     resources:
       limits:
         cpu: "2000m"
@@ -302,8 +304,8 @@ roles:
     ## @param roles.avconverter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (avconverter)
     jvm:
       ram:
-        minPercentage: "50.0"
-        maxPercentage: "50.0"
+        minPercentage: "30.0"
+        maxPercentage: "30.0"
 
   ## The worker role is the Master+Worker topology counterpart to master: it bundles every
   ## non-master role in one instance. To run Master+Worker, enable master + worker, disable aio,
