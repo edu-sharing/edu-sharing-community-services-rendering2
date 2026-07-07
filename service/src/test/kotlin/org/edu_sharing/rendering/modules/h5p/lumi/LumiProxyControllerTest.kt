@@ -10,14 +10,15 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
 
 
 @WebMvcTest(
@@ -43,14 +44,13 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         val bodySlot = mutableListOf<String?>()
         val methodSlot = slot<HttpMethod>()
         val requestSlot = slot<HttpServletRequest>()
-        val headerMap = HashMap<String, List<String>>()
-        headerMap["Content-Type"] = listOf("text/html")
-        headerMap["Content-Length"] = listOf("9")
+        val headers = HttpHeaders()
+        headers.add("Content-Type", "text/html")
+        headers.add("Content-Length", "9")
 
-        val multiValueMap: MultiValueMap<String, String> = LinkedMultiValueMap()
-        headerMap.forEach { (key, value) -> multiValueMap[key] = value }
-
-        val responseEntity = ResponseEntity("mycontent", multiValueMap, HttpStatus.OK)
+        val responseEntity: ResponseEntity<Resource> =
+            ResponseEntity.status(HttpStatus.OK).headers(headers)
+                .body(ByteArrayResource("mycontent".toByteArray()) as Resource)
 
         every { nodeInfo.nodeId } returns "myNodeId"
         every { lumiContentManagementService.getNodeInfo(contentId) } returns nodeInfo
@@ -62,7 +62,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                responseType = String::class.java,
                 additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
         } returns responseEntity
@@ -80,7 +79,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(requestSlot.captured == result.request)
 
         assert(result.response.contentAsString == "mycontent")
-        assert(result.response.headerNames.size == 2)
         assert(result.response.getHeader("Content-Length") == "9")
         assert(result.response.getHeaderValue("Content-Type") == "text/html")
 
@@ -93,7 +91,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                responseType = String::class.java,
                 additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
             )
         }
@@ -108,14 +105,13 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         val bodySlot = mutableListOf<String?>()
         val methodSlot = slot<HttpMethod>()
         val requestSlot = slot<HttpServletRequest>()
-        val headerMap = HashMap<String, List<String>>()
-        headerMap["Content-Type"] = listOf("text/html")
-        headerMap["Content-Length"] = listOf("9")
+        val headers = HttpHeaders()
+        headers.add("Content-Type", "text/html")
+        headers.add("Content-Length", "9")
 
-        val multiValueMap: MultiValueMap<String, String> = LinkedMultiValueMap()
-        headerMap.forEach { (key, value) -> multiValueMap[key] = value }
-
-        val responseEntity = ResponseEntity("mycontent".toByteArray(), multiValueMap, HttpStatus.OK)
+        val responseEntity: ResponseEntity<Resource> =
+            ResponseEntity.status(HttpStatus.OK).headers(headers)
+                .body(ByteArrayResource("mycontent".toByteArray()) as Resource)
 
         every { lumiContentManagementService.getNodeInfo(contentId) } returns nodeInfo
         every {
@@ -124,8 +120,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 nodeInfo,
                 captureNullable(bodySlot),
                 capture(methodSlot),
-                capture(requestSlot),
-                ByteArray::class.java
+                capture(requestSlot)
             )
         } returns responseEntity
 
@@ -142,7 +137,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(requestSlot.captured == result.request)
 
         assert(result.response.contentAsString == "mycontent")
-        assert(result.response.headerNames.size == 2)
         assert(result.response.getHeader("Content-Length") == "9")
         assert(result.response.getHeaderValue("Content-Type") == "text/html")
 
@@ -153,8 +147,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 nodeInfo,
                 captureNullable(bodySlot),
                 capture(methodSlot),
-                capture(requestSlot),
-                ByteArray::class.java
+                capture(requestSlot)
             )
         }
     }
@@ -165,21 +158,19 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         val bodySlot = mutableListOf<String?>()
         val methodSlot = slot<HttpMethod>()
         val requestSlot = slot<HttpServletRequest>()
-        val headerMap = HashMap<String, List<String>>()
-        headerMap["Content-Type"] = listOf("text/javascript")
-        headerMap["Content-Length"] = listOf("9")
+        val headers = HttpHeaders()
+        headers.add("Content-Type", "text/javascript")
+        headers.add("Content-Length", "9")
 
-        val multiValueMap: MultiValueMap<String, String> = LinkedMultiValueMap()
-        headerMap.forEach { (key, value) -> multiValueMap[key] = value }
-
-        val responseEntity = ResponseEntity("mycontent".toByteArray(), multiValueMap, HttpStatus.OK)
+        val responseEntity: ResponseEntity<Resource> =
+            ResponseEntity.status(HttpStatus.OK).headers(headers)
+                .body(ByteArrayResource("mycontent".toByteArray()) as Resource)
         every {
             lumiProxyService.processProxyRequest(
                 H5P_BASE_PATH,
                 captureNullable(bodySlot),
                 capture(methodSlot),
-                capture(requestSlot),
-                ByteArray::class.java
+                capture(requestSlot)
             )
         } returns responseEntity
 
@@ -196,7 +187,6 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         assert(requestSlot.captured == result.request)
 
         assert(result.response.contentAsString == "mycontent")
-        assert(result.response.headerNames.size == 2)
         assert(result.response.getHeader("Content-Length") == "9")
         assert(result.response.getHeaderValue("Content-Type") == "text/javascript")
 
@@ -205,8 +195,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 H5P_BASE_PATH,
                 captureNullable(bodySlot),
                 capture(methodSlot),
-                capture(requestSlot),
-                ByteArray::class.java
+                capture(requestSlot)
             )
         }
 
