@@ -105,23 +105,23 @@ roles:
     subpaths:
       - "/admin"
       - "/public"
-    ## @param roles.aio.resources.limits.cpu Set CPU limit for the aio role
-    ## @param roles.aio.resources.limits.memory Set memory limit for the aio role
-    ## @param roles.aio.resources.requests.cpu Set CPU request for the aio role
-    ## @param roles.aio.resources.requests.memory Set memory request for the aio role
     ## aio bundles every (heavy) converter incl. ffmpeg in one JVM -> generous sizing, low heap %
     resources:
       limits:
+        ## @param roles.aio.resources.limits.cpu Set CPU limit for the aio role
         cpu: "1000m"
+        ## @param roles.aio.resources.limits.memory Set memory limit for the aio role
         memory: 3Gi
       requests:
+        ## @param roles.aio.resources.requests.cpu Set CPU request for the aio role
         cpu: "1000m"
+        ## @param roles.aio.resources.requests.memory Set memory request for the aio role
         memory: 3Gi
-    ## @param roles.aio.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (aio)
-    ## @param roles.aio.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (aio)
     jvm:
       ram:
+        ## @param roles.aio.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (aio)
         minPercentage: "55.0"
+        ## @param roles.aio.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (aio)
         maxPercentage: "55.0"
 
   master:
@@ -143,23 +143,23 @@ roles:
     ## @param roles.master.subpaths Define ingress subpaths
     subpaths:
       - "/admin"
-    ## @param roles.master.resources.limits.cpu Set CPU limit for the master role
-    ## @param roles.master.resources.limits.memory Set memory limit for the master role
-    ## @param roles.master.resources.requests.cpu Set CPU request for the master role
-    ## @param roles.master.resources.requests.memory Set memory request for the master role
     ## master runs only the admin API + cron (CacheCleaner) -> small, heap-lastig
     resources:
       limits:
+        ## @param roles.master.resources.limits.cpu Set CPU limit for the master role
         cpu: "250m"
+        ## @param roles.master.resources.limits.memory Set memory limit for the master role
         memory: 1Gi
       requests:
+        ## @param roles.master.resources.requests.cpu Set CPU request for the master role
         cpu: "250m"
+        ## @param roles.master.resources.requests.memory Set memory request for the master role
         memory: 1Gi
-    ## @param roles.master.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (master)
-    ## @param roles.master.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (master)
     jvm:
       ram:
+        ## @param roles.master.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (master)
         minPercentage: "70.0"
+        ## @param roles.master.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (master)
         maxPercentage: "70.0"
 
   controller:
@@ -181,23 +181,23 @@ roles:
     ## @param roles.controller.subpaths Define ingress subpaths
     subpaths:
       - "/public"
-    ## @param roles.controller.resources.limits.cpu Set CPU limit for the controller role
-    ## @param roles.controller.resources.limits.memory Set memory limit for the controller role
-    ## @param roles.controller.resources.requests.cpu Set CPU request for the controller role
-    ## @param roles.controller.resources.requests.memory Set memory request for the controller role
     ## controller serves/streams + up to 200 Tomcat threads + Netty direct buffers + sessions
     resources:
       limits:
+        ## @param roles.controller.resources.limits.cpu Set CPU limit for the controller role
         cpu: "500m"
+        ## @param roles.controller.resources.limits.memory Set memory limit for the controller role
         memory: 1536Mi
       requests:
+        ## @param roles.controller.resources.requests.cpu Set CPU request for the controller role
         cpu: "500m"
+        ## @param roles.controller.resources.requests.memory Set memory request for the controller role
         memory: 1536Mi
-    ## @param roles.controller.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (controller)
-    ## @param roles.controller.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (controller)
     jvm:
       ram:
+        ## @param roles.controller.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (controller)
         minPercentage: "70.0"
+        ## @param roles.controller.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (controller)
         maxPercentage: "70.0"
 
   jobmanager:
@@ -216,23 +216,23 @@ roles:
       targetCPU: 80
     ## @param roles.jobmanager.appRoles Define application roles
     appRoles: "job-manager"
-    ## @param roles.jobmanager.resources.limits.cpu Set CPU limit for the jobmanager role
-    ## @param roles.jobmanager.resources.limits.memory Set memory limit for the jobmanager role
-    ## @param roles.jobmanager.resources.requests.cpu Set CPU request for the jobmanager role
-    ## @param roles.jobmanager.resources.requests.memory Set memory request for the jobmanager role
     ## job-manager only orchestrates (messages carry IDs) -> smallest footprint
     resources:
       limits:
+        ## @param roles.jobmanager.resources.limits.cpu Set CPU limit for the jobmanager role
         cpu: "250m"
+        ## @param roles.jobmanager.resources.limits.memory Set memory limit for the jobmanager role
         memory: 768Mi
       requests:
+        ## @param roles.jobmanager.resources.requests.cpu Set CPU request for the jobmanager role
         cpu: "250m"
+        ## @param roles.jobmanager.resources.requests.memory Set memory request for the jobmanager role
         memory: 768Mi
-    ## @param roles.jobmanager.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (jobmanager)
-    ## @param roles.jobmanager.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (jobmanager)
     jvm:
       ram:
+        ## @param roles.jobmanager.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (jobmanager)
         minPercentage: "70.0"
+        ## @param roles.jobmanager.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (jobmanager)
         maxPercentage: "70.0"
 
   converter:
@@ -251,23 +251,23 @@ roles:
       targetCPU: 80
     ## @param roles.converter.appRoles Define application roles
     appRoles: "converter"
-    ## @param roles.converter.resources.limits.cpu Set CPU limit for the converter role
-    ## @param roles.converter.resources.limits.memory Set memory limit for the converter role
-    ## @param roles.converter.resources.requests.cpu Set CPU request for the converter role
-    ## @param roles.converter.resources.requests.memory Set memory request for the converter role
     ## converter decodes images fully in the heap (heap-lastig, little off-heap) -> higher heap %
     resources:
       limits:
+        ## @param roles.converter.resources.limits.cpu Set CPU limit for the converter role
         cpu: "1000m"
+        ## @param roles.converter.resources.limits.memory Set memory limit for the converter role
         memory: 2Gi
       requests:
+        ## @param roles.converter.resources.requests.cpu Set CPU request for the converter role
         cpu: "1000m"
+        ## @param roles.converter.resources.requests.memory Set memory request for the converter role
         memory: 2Gi
-    ## @param roles.converter.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (converter)
-    ## @param roles.converter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (converter)
     jvm:
       ram:
+        ## @param roles.converter.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (converter)
         minPercentage: "75.0"
+        ## @param roles.converter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (converter)
         maxPercentage: "75.0"
 
   avconverter:
@@ -286,25 +286,25 @@ roles:
       targetCPU: 80
     ## @param roles.avconverter.appRoles Define application roles
     appRoles: "avconverter"
-    ## @param roles.avconverter.resources.limits.cpu Set CPU limit for the avconverter role
-    ## @param roles.avconverter.resources.limits.memory Set memory limit for the avconverter role
-    ## @param roles.avconverter.resources.requests.cpu Set CPU request for the avconverter role
-    ## @param roles.avconverter.resources.requests.memory Set memory request for the avconverter role
     ## avconverter: work is the OFF-HEAP ffmpeg process (CPU-bound); the JVM only orchestrates + streams I/O.
     ## Temp files live on the node's ephemeral disk (no memory-backed emptyDir), so they do not count against
     ## this limit. -> big container, low heap % so ~2.8Gi of the 4Gi stays free for ffmpeg RSS + non-heap JVM.
     resources:
       limits:
+        ## @param roles.avconverter.resources.limits.cpu Set CPU limit for the avconverter role
         cpu: "2000m"
+        ## @param roles.avconverter.resources.limits.memory Set memory limit for the avconverter role
         memory: 4Gi
       requests:
+        ## @param roles.avconverter.resources.requests.cpu Set CPU request for the avconverter role
         cpu: "2000m"
+        ## @param roles.avconverter.resources.requests.memory Set memory request for the avconverter role
         memory: 4Gi
-    ## @param roles.avconverter.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (avconverter)
-    ## @param roles.avconverter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (avconverter)
     jvm:
       ram:
+        ## @param roles.avconverter.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (avconverter)
         minPercentage: "30.0"
+        ## @param roles.avconverter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (avconverter)
         maxPercentage: "30.0"
 
   ## The worker role is the Master+Worker topology counterpart to master: it bundles every
@@ -329,23 +329,23 @@ roles:
     ## @param roles.worker.subpaths Define ingress subpaths
     subpaths:
       - "/public"
-    ## @param roles.worker.resources.limits.cpu Set CPU limit for the worker role
-    ## @param roles.worker.resources.limits.memory Set memory limit for the worker role
-    ## @param roles.worker.resources.requests.cpu Set CPU request for the worker role
-    ## @param roles.worker.resources.requests.memory Set memory request for the worker role
     ## worker = controller+job-manager+converter+avconverter in one JVM -> heaviest combination, sized like avconverter
     resources:
       limits:
+        ## @param roles.worker.resources.limits.cpu Set CPU limit for the worker role
         cpu: "2000m"
+        ## @param roles.worker.resources.limits.memory Set memory limit for the worker role
         memory: 4Gi
       requests:
+        ## @param roles.worker.resources.requests.cpu Set CPU request for the worker role
         cpu: "2000m"
+        ## @param roles.worker.resources.requests.memory Set memory request for the worker role
         memory: 4Gi
-    ## @param roles.worker.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (worker)
-    ## @param roles.worker.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (worker)
     jvm:
       ram:
+        ## @param roles.worker.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (worker)
         minPercentage: "50.0"
+        ## @param roles.worker.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (worker)
         maxPercentage: "50.0"
 
 ########################################################################################################################
