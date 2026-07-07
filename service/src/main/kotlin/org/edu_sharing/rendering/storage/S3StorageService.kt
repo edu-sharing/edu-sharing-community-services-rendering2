@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.storage
 
-import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
 import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PATH
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
@@ -20,6 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.*
+import tools.jackson.databind.ObjectMapper
 import java.io.InputStream
 import java.net.URLEncoder
 import java.util.*
@@ -453,7 +453,8 @@ class S3StorageService(
                 RequestBody.fromInputStream(inputStream, cacheObject.size)
             } else {
                 // AWS SDK v2 sync client needs a known content-length for InputStream.
-                // Fallback: buffer in-memory to determine length.
+                // Fallback: buffer in-memory to determine length
+                log.warn("Executing upload to S3 without known content-length. This may cause performance issues. Cache object: $cacheObject")
                 val bytes = inputStream.readAllBytes()
                 RequestBody.fromBytes(bytes)
             }
