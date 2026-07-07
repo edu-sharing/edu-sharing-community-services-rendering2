@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo.cors
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
@@ -17,6 +18,7 @@ class CorsSyncScheduler(
         fixedDelayString = $$"${app.cors.sync.schedule}",
         initialDelayString = $$"${app.cors.sync.schedule}"
     )
+    @SchedulerLock(name = "corsSync", lockAtMostFor = "5m", lockAtLeastFor = "30s")
     fun syncCorsConfig() {
         log.debug("Scheduled CORS sync triggered")
         corsSyncService.syncAllowedOriginsWithAllRepositories()
