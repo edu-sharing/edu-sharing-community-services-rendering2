@@ -56,6 +56,11 @@ spec:
         - name: jpda
           containerPort: 5005
         {{- end }}
+        {{- if $.Values.persistence.data.temp.create }}
+        volumeMounts:
+        - name: temp
+          mountPath: /tmp
+        {{- end }}
         {{- with $.Values.startupProbe }}
         startupProbe:
           httpGet:
@@ -253,6 +258,13 @@ spec:
       - name: temp-proxy
         emptyDir: { }
       {{- end }}
+  {{- if $.Values.persistence.data.temp.create }}
+  volumeClaimTemplates:
+  - metadata:
+      name: temp
+      labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
+    spec: {{ merge $.Values.persistence.data.temp.spec $.Values.global.cluster.storage.data.spec | toYaml | nindent 6 }}
+  {{- end }}
 ---
 {{- end }}
 {{- end }}

@@ -30,6 +30,14 @@ global:
       ## @param global.cluster.pdb.enabled Enable PDB
       enabled: false
 
+    storage:
+
+      data:
+        ## @param global.cluster.storage.data.permission Enable global custom data storage permissions
+        permission: false
+        ## @param global.cluster.storage.data.spec Set data storage spec
+        spec: {}
+
   ## @param global.debug Enable global debugging
   debug: false
 
@@ -655,6 +663,23 @@ config:
 
 ## @param debug Enable debugging
 debug: false
+
+########################################################################################################################
+
+persistence:
+
+  data:
+
+    temp:
+      ## @param persistence.data.temp.create Create temporary data
+      create: false
+      spec:
+        ## @param persistence.data.temp.spec.accessModes Set access modes for temporary data
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            ## @param persistence.data.temp.spec.resources.requests.storage Set storage request for temporary data
+            storage: 1Gi
 
 ########################################################################################################################
 
