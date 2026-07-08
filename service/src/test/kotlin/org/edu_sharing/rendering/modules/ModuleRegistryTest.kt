@@ -12,10 +12,11 @@ import kotlin.test.assertSame
 
 class ModuleRegistryTest {
 
-    private fun stubModule(name: String, fallsThrough: Boolean = false) = object : RenderModule {
+    private fun stubModule(name: String, fallsThrough: Boolean = false, optional: Boolean = false) = object : RenderModule {
         override fun module() = name
         override fun handle(node: Node) = RenderDataResponse(module = name)
         override fun fallsThroughOnLocalContent() = fallsThrough
+        override fun isOptionalModule() = optional
     }
 
     private fun mapperOf(vararg associations: Pair<ModuleTypeDefinition, RenderModule>) =
@@ -27,6 +28,12 @@ class ModuleRegistryTest {
     private val sodix = stubModule("SODIX") // does NOT opt into fall-through
     private val binder = stubModule("BINDER")
     private val image = stubModule("IMAGE")
+    private val jupyterByType = stubModule("JUPYTER_TYPE", optional = true)
+    private val jupyterByMime = stubModule("JUPYTER_MIME", optional = true)
+
+    // Filter that mimics repo gating: non-optional modules always allowed, optional modules only if activated.
+    private fun onlyActivated(vararg activated: String): (RenderModule) -> Boolean =
+        { !it.isOptionalModule() || it.module() in activated }
 
     private val underTest = ModuleRegistry(
         listOf(
@@ -34,10 +41,13 @@ class ModuleRegistryTest {
             mapperOf(ModuleTypeDefinition(replicationSource = "SODIX") to sodix),
             mapperOf(ModuleTypeDefinition(resourceType = "git-binder") to binder),
             mapperOf(ModuleTypeDefinition(mimeTypePrefix = "image") to image),
+            mapperOf(ModuleTypeDefinition(type = "file-jupyter") to jupyterByType),
+            mapperOf(ModuleTypeDefinition(mimeTypePrefix = "application", mimeTypeSuffix = "x-ipynb+json") to jupyterByMime),
         )
     )
 
     private fun node(
+        mediatype: String? = null,
         replicationSource: String? = null,
         resourceType: String? = null,
         mimetype: String = "image/png",
@@ -51,6 +61,7 @@ class ModuleRegistryTest {
         location?.let { props["cclom:location"] = mutableListOf(it) }
         wwwUrl?.let { props["ccm:wwwurl"] = mutableListOf(it) }
         val n = Node().mimetype(mimetype).properties(props)
+        mediatype?.let { n.mediatype(it) }
         hash?.let { n.content(Content().hash(it)) }
         return n
     }
@@ -127,5 +138,56 @@ class ModuleRegistryTest {
             node(replicationSource = "SODIX", location = null, hash = "abc123")
         )
         assertSame(sodix, resolved)
+    }
+
+    @Test
+    fun unactivatedOptionalModuleIsSkippedAndFallsThroughToNextCandidate() {
+        // Node matches JUPYTER_TYPE by mediatype, but the repo has not activated it => skip it
+        // and fall through to the mimetype-prefix candidate (IMAGE, non-optional).
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(mediatype = "file-jupyter", mimetype = "image/png"),
+            onlyActivated() // nothing activated
+        )
+        assertSame(image, resolved)
+    }
+
+    @Test
+    fun activatedOptionalModuleStillResolves() {
+        // Same node, but JUPYTER_TYPE is activated for the repo => it wins on the type branch.
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(mediatype = "file-jupyter", mimetype = "image/png"),
+            onlyActivated("JUPYTER_TYPE")
+        )
+        assertSame(jupyterByType, resolved)
+    }
+
+    @Test
+    fun optionalModuleWithoutFallbackThrowsWhenNotActivated() {
+        // A .ipynb node's only candidate is the optional JUPYTER_MIME (exact mimetype); when not
+        // activated it must never match => ObjectTypeNotSupportedException.
+        assertThrows<ObjectTypeNotSupportedException> {
+            underTest.getRenderModule<RenderModule>(
+                node(mimetype = "application/x-ipynb+json"),
+                onlyActivated() // nothing activated
+            )
+        }
+    }
+
+    @Test
+    fun optionalModuleResolvesByExactMimetypeWhenActivated() {
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(mimetype = "application/x-ipynb+json"),
+            onlyActivated("JUPYTER_MIME")
+        )
+        assertSame(jupyterByMime, resolved)
+    }
+
+    @Test
+    fun defaultFilterResolvesOptionalModuleWithoutGating() {
+        // The default (no-arg) overload keeps the previous repo-agnostic behavior for other callers.
+        val resolved = underTest.getRenderModule<RenderModule>(
+            node(mimetype = "application/x-ipynb+json")
+        )
+        assertSame(jupyterByMime, resolved)
     }
 }

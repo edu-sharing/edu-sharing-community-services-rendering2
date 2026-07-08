@@ -81,25 +81,27 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
         replicationSource: String?,
         resourceType: String?,
         remoteRepositoryType: String?,
-        hasLocalContent: Boolean
+        hasLocalContent: Boolean,
+        moduleFilter: (RenderModule) -> Boolean
     ): T {
         log.debug(
             "getRenderModule lookup: type='{}', mimeType='{}', replicationSource='{}', resourceType='{}', remoteRepositoryType='{}', hasLocalContent={}",
             type, mimeType, replicationSource, resourceType, remoteRepositoryType, hasLocalContent
         )
-        val result = modulesByType[type]?.also { log.debug("Resolved module '{}' via type='{}'", it.module(), type) }
-            ?: modulesByRemoteRepositoryType[remoteRepositoryType ?: ""]?.also { log.debug("Resolved module '{}' via remoteRepositoryType='{}'", it.module(), remoteRepositoryType) }
+        val result = modulesByType[type]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via type='{}'", it.module(), type) }
+            ?: modulesByRemoteRepositoryType[remoteRepositoryType ?: ""]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via remoteRepositoryType='{}'", it.module(), remoteRepositoryType) }
             ?: modulesByReplicationSource[replicationSource ?: ""]
                 ?.takeUnless { hasLocalContent && it.fallsThroughOnLocalContent() }
+                ?.takeIf(moduleFilter)
                 ?.also { log.debug("Resolved module '{}' via replicationSource='{}'", it.module(), replicationSource) }
-            ?: modulesByResourceType[resourceType ?: ""]?.also { log.debug("Resolved module '{}' via resourceType='{}'", it.module(), resourceType) }
-            ?: moduleByMimeType[mimeType]?.also { log.debug("Resolved module '{}' via mimeType='{}'", it.module(), mimeType) }
-            ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]?.also { log.debug("Resolved module '{}' via mimeTypePrefix='{}'", it.module(), mimeType.substringBefore("/")) }
+            ?: modulesByResourceType[resourceType ?: ""]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via resourceType='{}'", it.module(), resourceType) }
+            ?: moduleByMimeType[mimeType]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via mimeType='{}'", it.module(), mimeType) }
+            ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via mimeTypePrefix='{}'", it.module(), mimeType.substringBefore("/")) }
             ?: throw ObjectTypeNotSupportedException()
         return result as T
     }
 
-    fun <T: RenderModule> getRenderModule(node: Node): T {
+    fun <T: RenderModule> getRenderModule(node: Node, moduleFilter: (RenderModule) -> Boolean = { true }): T {
         node.remote?.let { remote ->
             val remoteType = remote.repository?.repositoryType ?: ""
             if (remoteType in FRONTEND_REMOTE_REPOSITORY_TYPES) {
@@ -115,7 +117,8 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0],
             resourceType = node.properties?.getOrDefault("ccm:ccressourcetype", mutableListOf(""))[0],
             remoteRepositoryType = node.remote?.repository?.repositoryType,
-            hasLocalContent = hasLocalContent
+            hasLocalContent = hasLocalContent,
+            moduleFilter = moduleFilter
         )
         val wwwUrl = node.properties?.get("ccm:wwwurl")?.firstOrNull()
         if (!wwwUrl.isNullOrBlank() && WWWURL_EXEMPT_MODULES.none { it.equals(result.module(), ignoreCase = true) }) {
