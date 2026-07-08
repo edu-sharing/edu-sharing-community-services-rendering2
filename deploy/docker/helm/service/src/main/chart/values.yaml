@@ -459,7 +459,7 @@ config:
       ## @param config.converter.image.sizes Set sizes for immage converter
       sizes: 800,1280,1920
       ## @param config.converter.image.maxPixels Reject source images larger than this many pixels (width*height) before decoding
-      maxPixels: 100000000
+      maxPixels: "100000000"
     jupyter:
       ## @param config.converter.jupyter.host Set jupyter-converter host
       host: edusharing-services-rendering2-jupyter-converter
