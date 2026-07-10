@@ -43,7 +43,7 @@ services:
       MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
 
   rendering2-service:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
     command:
       - -Xms${RENDERING2_SERVICE_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_JAVA_XMX:-512m}
@@ -148,7 +148,7 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
   rendering2-document-converter:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
       - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
@@ -160,7 +160,7 @@ services:
       - "8080"
 
   rendering2-lumi:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
@@ -189,7 +189,7 @@ services:
       - "3000"
 
   rendering2-admin-frontend:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
     environment:
       PORT: 8080
       # Pfad, unter dem die UI ausgeliefert wird (eigener Pfad am selben Host wie der Service).
