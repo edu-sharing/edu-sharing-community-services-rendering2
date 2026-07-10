@@ -4,20 +4,8 @@ metadata:
   name: {{ include "edusharing_common_lib.names.name" . }}-env
   labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
 data:
-  JAVA_OPTS: >-
-    {{- with .Values.config.jvm.ram.minPercentage }}
-    -XX:InitialRAMPercentage={{ . }}
-    {{- end }}
-    {{- with .Values.config.jvm.ram.maxPercentage }}
-    -XX:MaxRAMPercentage={{ . }}
-    {{- end }}
-    -Dcom.sun.management.jmxremote
-    -Dcom.sun.management.jmxremote.authenticate=false
-    -Dcom.sun.management.jmxremote.port=7199
-    -Dcom.sun.management.jmxremote.ssl=false
-    {{- if default .Values.global.debug .Values.debug }}
-    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005
-    {{- end }}
+  {{- /* Global default; per-role JAVA_OPTS in statefulset.yaml overrides this via explicit env. */}}
+  JAVA_OPTS: {{ include "edusharing_services_rendering.javaOpts" (dict "minPercentage" .Values.config.jvm.ram.minPercentage "maxPercentage" .Values.config.jvm.ram.maxPercentage "debug" (default .Values.global.debug .Values.debug)) | quote }}
   SPRING_APPLICATION_JSON: {{ .Values.config.override | quote }}
   S3_HOST: {{ .Values.config.s3.host | quote }}
   S3_PORT: {{ .Values.config.s3.port | quote }}
@@ -57,6 +45,7 @@ data:
   "app.converter.image.format": {{ .Values.config.converter.image.format | quote }}
   "app.converter.image.mimeTypes": {{ .Values.config.converter.image.mimetypes | quote }}
   "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
+  "app.converter.image.maxPixels": {{ .Values.config.converter.image.maxPixels | quote }}
   "app.converter.video.format": {{ .Values.config.converter.video.format | quote }}
   "app.converter.video.mimeTypes": {{ .Values.config.converter.video.mimetypes | quote }}
   "app.converter.video.resolutions": {{ .Values.config.converter.video.resolutions | quote }}

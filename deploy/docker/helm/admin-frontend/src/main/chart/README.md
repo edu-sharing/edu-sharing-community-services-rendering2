@@ -2,20 +2,21 @@
 
 ### Global parameters
 
-| Name                                      | Description                           | Value                  |
-| ----------------------------------------- | ------------------------------------- | ---------------------- |
-| `global.annotations`                      | Define global annotations             | `{}`                   |
-| `global.cluster.cert.annotations`         | Set global cluster cert annotations   | `{}`                   |
-| `global.cluster.ingress.ingressClassName` | Set global cluster ingressClass name  | `nginx`                |
-| `global.cluster.istio.enabled`            | Enable Istio Service mesh             | `false`                |
-| `global.cluster.pdb.enabled`              | Enable PDB                            | `false`                |
-| `global.image.pullPolicy`                 | Set global image pullPolicy           | `Always`               |
-| `global.image.pullSecrets`                | Set global image pullSecrets          | `[]`                   |
-| `global.image.registry`                   | Set global image container registry   | `${docker.registry}`   |
-| `global.image.repository`                 | Set global image container repository | `${docker.repository}` |
-| `global.image.common`                     | Set global image container common     | `${docker.common}`     |
-| `global.password`                         | Set global password                   | `""`                   |
-| `global.security`                         | Set global custom security parameters | `{}`                   |
+| Name                                        | Description                           | Value                  |
+| ------------------------------------------- | ------------------------------------- | ---------------------- |
+| `global.annotations`                        | Define global annotations             | `{}`                   |
+| `global.cluster.cert.annotations`           | Set global cluster cert annotations   | `{}`                   |
+| `global.cluster.ingress.ingressClassName`   | Set global cluster ingressClass name  | `nginx`                |
+| `global.cluster.istio.enabled`              | Enable Istio Service mesh             | `false`                |
+| `global.cluster.istio.gateway.selector.app` | Set global cluster Istio selector app | `istio-ingressgateway` |
+| `global.cluster.pdb.enabled`                | Enable PDB                            | `false`                |
+| `global.image.pullPolicy`                   | Set global image pullPolicy           | `Always`               |
+| `global.image.pullSecrets`                  | Set global image pullSecrets          | `[]`                   |
+| `global.image.registry`                     | Set global image container registry   | `${docker.registry}`   |
+| `global.image.repository`                   | Set global image container repository | `${docker.repository}` |
+| `global.image.common`                       | Set global image container common     | `${docker.common}`     |
+| `global.password`                           | Set global password                   | `""`                   |
+| `global.security`                           | Set global custom security parameters | `{}`                   |
 
 ### Local parameters
 

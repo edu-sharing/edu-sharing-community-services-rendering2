@@ -22,6 +22,7 @@ class LumiContentManagementService(
     private val lumiWebClient: WebClient,
     private val lumiCacheRepository: LumiCacheRepository,
     private val nodeSessionContextRepo: NodeSessionContextRepository,
+    private val objectMapper: ObjectMapper,
     @param:Lazy private val module: H5pRenderModule,
     @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean
@@ -56,7 +57,7 @@ class LumiContentManagementService(
             }.retrieve()
             .bodyToMono<String>()
             .block()
-        val nodeHash = ObjectMapper().readValue(response, LumiNodeHashResponse::class.java).nodeId
+        val nodeHash = objectMapper.readValue(response, LumiNodeHashResponse::class.java).nodeId
         val nodeId = nodeHash.substringBefore("_")
         val hash = nodeHash.substringAfter("_")
         // TODO validation?
@@ -84,7 +85,7 @@ class LumiContentManagementService(
             }.retrieve()
             .bodyToMono<String>()
             .block()
-        return ObjectMapper().readValue(response, LumiBucketInfo::class.java).contentBucket
+        return objectMapper.readValue(response, LumiBucketInfo::class.java).contentBucket
     }
 
     fun deleteContent(trackingEntry: TrackingEntry) {

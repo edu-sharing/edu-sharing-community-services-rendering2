@@ -30,6 +30,14 @@ global:
       ## @param global.cluster.pdb.enabled Enable PDB
       enabled: false
 
+    storage:
+
+      data:
+        ## @param global.cluster.storage.data.permission Enable global custom data storage permissions
+        permission: false
+        ## @param global.cluster.storage.data.spec Set data storage spec
+        spec: {}
+
   ## @param global.debug Enable global debugging
   debug: false
 
@@ -105,6 +113,24 @@ roles:
     subpaths:
       - "/admin"
       - "/public"
+    ## aio bundles every (heavy) converter incl. ffmpeg in one JVM -> generous sizing, low heap %
+    resources:
+      limits:
+        ## @param roles.aio.resources.limits.cpu Set CPU limit for the aio role
+        cpu: "1000m"
+        ## @param roles.aio.resources.limits.memory Set memory limit for the aio role
+        memory: 3Gi
+      requests:
+        ## @param roles.aio.resources.requests.cpu Set CPU request for the aio role
+        cpu: "1000m"
+        ## @param roles.aio.resources.requests.memory Set memory request for the aio role
+        memory: 3Gi
+    jvm:
+      ram:
+        ## @param roles.aio.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (aio)
+        minPercentage: "55.0"
+        ## @param roles.aio.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (aio)
+        maxPercentage: "55.0"
 
   master:
     ## @param roles.master.enabled Enabled master role
@@ -125,6 +151,24 @@ roles:
     ## @param roles.master.subpaths Define ingress subpaths
     subpaths:
       - "/admin"
+    ## master runs only the admin API + cron (CacheCleaner) -> small, heap-lastig
+    resources:
+      limits:
+        ## @param roles.master.resources.limits.cpu Set CPU limit for the master role
+        cpu: "250m"
+        ## @param roles.master.resources.limits.memory Set memory limit for the master role
+        memory: 1Gi
+      requests:
+        ## @param roles.master.resources.requests.cpu Set CPU request for the master role
+        cpu: "250m"
+        ## @param roles.master.resources.requests.memory Set memory request for the master role
+        memory: 1Gi
+    jvm:
+      ram:
+        ## @param roles.master.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (master)
+        minPercentage: "70.0"
+        ## @param roles.master.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (master)
+        maxPercentage: "70.0"
 
   controller:
     ## @param roles.controller.enabled Enabled controller role
@@ -145,6 +189,24 @@ roles:
     ## @param roles.controller.subpaths Define ingress subpaths
     subpaths:
       - "/public"
+    ## controller serves/streams + up to 200 Tomcat threads + Netty direct buffers + sessions
+    resources:
+      limits:
+        ## @param roles.controller.resources.limits.cpu Set CPU limit for the controller role
+        cpu: "500m"
+        ## @param roles.controller.resources.limits.memory Set memory limit for the controller role
+        memory: 1536Mi
+      requests:
+        ## @param roles.controller.resources.requests.cpu Set CPU request for the controller role
+        cpu: "500m"
+        ## @param roles.controller.resources.requests.memory Set memory request for the controller role
+        memory: 1536Mi
+    jvm:
+      ram:
+        ## @param roles.controller.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (controller)
+        minPercentage: "70.0"
+        ## @param roles.controller.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (controller)
+        maxPercentage: "70.0"
 
   jobmanager:
     ## @param roles.jobmanager.enabled Enabled jobmanager role
@@ -162,6 +224,24 @@ roles:
       targetCPU: 80
     ## @param roles.jobmanager.appRoles Define application roles
     appRoles: "job-manager"
+    ## job-manager only orchestrates (messages carry IDs) -> smallest footprint
+    resources:
+      limits:
+        ## @param roles.jobmanager.resources.limits.cpu Set CPU limit for the jobmanager role
+        cpu: "250m"
+        ## @param roles.jobmanager.resources.limits.memory Set memory limit for the jobmanager role
+        memory: 768Mi
+      requests:
+        ## @param roles.jobmanager.resources.requests.cpu Set CPU request for the jobmanager role
+        cpu: "250m"
+        ## @param roles.jobmanager.resources.requests.memory Set memory request for the jobmanager role
+        memory: 768Mi
+    jvm:
+      ram:
+        ## @param roles.jobmanager.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (jobmanager)
+        minPercentage: "70.0"
+        ## @param roles.jobmanager.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (jobmanager)
+        maxPercentage: "70.0"
 
   converter:
     ## @param roles.converter.enabled Enabled converter role
@@ -179,6 +259,24 @@ roles:
       targetCPU: 80
     ## @param roles.converter.appRoles Define application roles
     appRoles: "converter"
+    ## converter decodes images fully in the heap (heap-lastig, little off-heap) -> higher heap %
+    resources:
+      limits:
+        ## @param roles.converter.resources.limits.cpu Set CPU limit for the converter role
+        cpu: "1000m"
+        ## @param roles.converter.resources.limits.memory Set memory limit for the converter role
+        memory: 2Gi
+      requests:
+        ## @param roles.converter.resources.requests.cpu Set CPU request for the converter role
+        cpu: "1000m"
+        ## @param roles.converter.resources.requests.memory Set memory request for the converter role
+        memory: 2Gi
+    jvm:
+      ram:
+        ## @param roles.converter.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (converter)
+        minPercentage: "75.0"
+        ## @param roles.converter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (converter)
+        maxPercentage: "75.0"
 
   avconverter:
     ## @param roles.avconverter.enabled Enabled avconverter role
@@ -196,6 +294,67 @@ roles:
       targetCPU: 80
     ## @param roles.avconverter.appRoles Define application roles
     appRoles: "avconverter"
+    ## avconverter: work is the OFF-HEAP ffmpeg process (CPU-bound); the JVM only orchestrates + streams I/O.
+    ## Temp files live on the node's ephemeral disk (no memory-backed emptyDir), so they do not count against
+    ## this limit. -> big container, low heap % so ~2.8Gi of the 4Gi stays free for ffmpeg RSS + non-heap JVM.
+    resources:
+      limits:
+        ## @param roles.avconverter.resources.limits.cpu Set CPU limit for the avconverter role
+        cpu: "2000m"
+        ## @param roles.avconverter.resources.limits.memory Set memory limit for the avconverter role
+        memory: 4Gi
+      requests:
+        ## @param roles.avconverter.resources.requests.cpu Set CPU request for the avconverter role
+        cpu: "2000m"
+        ## @param roles.avconverter.resources.requests.memory Set memory request for the avconverter role
+        memory: 4Gi
+    jvm:
+      ram:
+        ## @param roles.avconverter.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (avconverter)
+        minPercentage: "30.0"
+        ## @param roles.avconverter.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (avconverter)
+        maxPercentage: "30.0"
+
+  ## The worker role is the Master+Worker topology counterpart to master: it bundles every
+  ## non-master role in one instance. To run Master+Worker, enable master + worker, disable aio,
+  ## and set roleForInternalUse: worker (the worker carries the controller role that serves /public).
+  worker:
+    ## @param roles.worker.enabled Enabled worker role (composite: everything except master)
+    enabled: false
+    ## @param roles.worker.replicaCount Define amount of parallel replicas to run
+    replicaCount: 1
+    autoscaling:
+      ## @param roles.worker.autoscaling.enabled Enable autoscaling
+      enabled: false
+      ## @param roles.worker.autoscaling.minReplicas Define minimum number of replicas to have running
+      minReplicas: 3
+      ## @param roles.worker.autoscaling.maxReplicas Define maximum number of replicas to have running
+      maxReplicas: 5
+      ## @param roles.worker.autoscaling.targetCPU Set CPU limit when to scale
+      targetCPU: 80
+    ## @param roles.worker.appRoles Define application roles (no spaces: app.roles split(',') does not trim)
+    appRoles: "controller,job-manager,converter,avconverter"
+    ## @param roles.worker.subpaths Define ingress subpaths
+    subpaths:
+      - "/public"
+    ## worker = controller+job-manager+converter+avconverter in one JVM -> heaviest combination, sized like avconverter
+    resources:
+      limits:
+        ## @param roles.worker.resources.limits.cpu Set CPU limit for the worker role
+        cpu: "2000m"
+        ## @param roles.worker.resources.limits.memory Set memory limit for the worker role
+        memory: 4Gi
+      requests:
+        ## @param roles.worker.resources.requests.cpu Set CPU request for the worker role
+        cpu: "2000m"
+        ## @param roles.worker.resources.requests.memory Set memory request for the worker role
+        memory: 4Gi
+    jvm:
+      ram:
+        ## @param roles.worker.jvm.ram.minPercentage JVM initial heap as % of the container memory limit (worker)
+        minPercentage: "50.0"
+        ## @param roles.worker.jvm.ram.maxPercentage JVM max heap as % of the container memory limit (worker)
+        maxPercentage: "50.0"
 
 ########################################################################################################################
 
@@ -307,6 +466,8 @@ config:
       mimetypes: image/vnd.wap.wbmp,image/x-png,image/jpeg,image/tiff,image/bmp,image/x-webp,image/webp
       ## @param config.converter.image.sizes Set sizes for immage converter
       sizes: 800,1280,1920
+      ## @param config.converter.image.maxPixels Reject source images larger than this many pixels (width*height) before decoding
+      maxPixels: "100000000"
     jupyter:
       ## @param config.converter.jupyter.host Set jupyter-converter host
       host: edusharing-services-rendering2-jupyter-converter
@@ -316,7 +477,7 @@ config:
       ## @param config.converter.video.format Set format for video converter
       format: mp4
       ## @param config.converter.video.ffmpegThreads Set ffmpeg threads for video converter
-      ffmpegThreads: 0
+      ffmpegThreads: 4
       ## @param config.converter.video.ffmpegPreset Set ffmpeg preset for video converter
       ffmpegPreset: veryfast
       ## @param config.converter.video.mimetypes Set mimetypes for video converter
@@ -380,9 +541,9 @@ config:
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
-      minPercentage: "90.0"
+      minPercentage: "60.0"
       ## @param config.jvm.ram.maxPercentage Set maximum memory in percentages
-      maxPercentage: "90.0"
+      maxPercentage: "60.0"
 
   lumi:
     ## @param config.lumi.host Set lumi host
@@ -502,6 +663,23 @@ config:
 
 ## @param debug Enable debugging
 debug: false
+
+########################################################################################################################
+
+persistence:
+
+  data:
+
+    temp:
+      ## @param persistence.data.temp.create Create temporary data
+      create: false
+      spec:
+        ## @param persistence.data.temp.spec.accessModes Set access modes for temporary data
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            ## @param persistence.data.temp.spec.resources.requests.storage Set storage request for temporary data
+            storage: 1Gi
 
 ########################################################################################################################
 

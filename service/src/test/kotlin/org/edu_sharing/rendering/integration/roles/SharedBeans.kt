@@ -52,6 +52,8 @@ import org.edu_sharing.rendering.modules.moodle.*
 import org.edu_sharing.rendering.modules.noConversion.HtmlRenderModule
 import org.edu_sharing.rendering.modules.noConversion.NoConversionModuleTypeMapper
 import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
+import org.edu_sharing.rendering.modules.omega.OmegaRenderModule
+import org.edu_sharing.rendering.modules.omega.OmegaRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.onyx.OnyxRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
@@ -137,6 +139,8 @@ abstract class SharedBeans {
             NoConversionModuleTypeMapper::class,
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
+            OmegaRenderModule::class,
+            OmegaRenderModuleTypeMapper::class,
             OnyxRenderModule::class,
             PermissionEvaluator::class,
             PdfRenderModule::class,
@@ -158,6 +162,7 @@ abstract class SharedBeans {
             SecurityDisabledConfig::class,
             ServicesRenderingService2Application::class,
             SessionConfig::class,
+            ShedLockConfig::class,
             SodixRenderModule::class,
             SodixRenderModuleTypeMapper::class,
             SpreadsheetRenderModule::class,

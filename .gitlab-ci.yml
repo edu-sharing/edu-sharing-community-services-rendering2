@@ -69,3 +69,30 @@ deploy:
       - document-converter/target/surefire-reports
     when: on_failure
     expire_in: 3 day
+
+check-helmreadme:
+  stage: verify
+  image: node:lts-alpine3.20
+  before_script:
+    - ln -s $CI_PROJECT_DIR/deploy/docker/helm/admin-frontend/src/main/chart      /tmp/admin-frontend     && cp /tmp/admin-frontend/README.md     /tmp/README_admin-frontend.md
+    - ln -s $CI_PROJECT_DIR/deploy/docker/helm/bundle/src/main/chart              /tmp/bundle             && cp /tmp/bundle/README.md             /tmp/README_bundle.md
+    - ln -s $CI_PROJECT_DIR/deploy/docker/helm/document-converter/src/main/chart  /tmp/document-converter && cp /tmp/document-converter/README.md /tmp/README_document-converter.md
+    - ln -s $CI_PROJECT_DIR/deploy/docker/helm/jupyter-converter/src/main/chart   /tmp/jupyter-converter  && cp /tmp/jupyter-converter/README.md  /tmp/README_jupyter-converter.md
+    - ln -s $CI_PROJECT_DIR/deploy/docker/helm/lumi/src/main/chart                /tmp/lumi               && cp /tmp/lumi/README.md               /tmp/README_lumi.md
+    - ln -s $CI_PROJECT_DIR/deploy/docker/helm/service/src/main/chart             /tmp/service            && cp /tmp/service/README.md            /tmp/README_service.md
+  script:
+    - wget -qO- https://github.com/bitnami/readme-generator-for-helm/archive/refs/tags/2.6.1.tar.gz | tar -xz -C /tmp
+    - cd /tmp; npm install ./readme-generator-for-helm-2.6.1; cd readme-generator-for-helm-2.6.1
+    - ./bin/index.js -v /tmp/admin-frontend/values.yaml     -r /tmp/README_admin-frontend.md
+    - ./bin/index.js -v /tmp/bundle/values.yaml             -r /tmp/README_bundle.md
+    - ./bin/index.js -v /tmp/document-converter/values.yaml -r /tmp/README_document-converter.md
+    - ./bin/index.js -v /tmp/jupyter-converter/values.yaml  -r /tmp/README_jupyter-converter.md
+    - ./bin/index.js -v /tmp/lumi/values.yaml               -r /tmp/README_lumi.md
+    - ./bin/index.js -v /tmp/service/values.yaml            -r /tmp/README_service.md
+    - diff /tmp/README_admin-frontend.md      /tmp/admin-frontend/README.md     || (echo "README was not generated before committing." && exit 1)
+    - diff /tmp/README_bundle.md              /tmp/bundle/README.md             || (echo "README was not generated before committing." && exit 1)
+    - diff /tmp/README_document-converter.md  /tmp/document-converter/README.md || (echo "README was not generated before committing." && exit 1)
+    - diff /tmp/README_jupyter-converter.md   /tmp/jupyter-converter/README.md  || (echo "README was not generated before committing." && exit 1)
+    - diff /tmp/README_lumi.md                /tmp/lumi/README.md               || (echo "README was not generated before committing." && exit 1)
+    - diff /tmp/README_service.md             /tmp/service/README.md            || (echo "README was not generated before committing." && exit 1)
+

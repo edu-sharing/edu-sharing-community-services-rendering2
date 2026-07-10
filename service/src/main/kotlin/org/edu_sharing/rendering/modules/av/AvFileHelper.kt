@@ -34,7 +34,10 @@ class AvFileHelper(
         }
 
         log.debug("Uploading converted AV file to cache: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, size=${outputFile.length()} bytes")
-        storageImplementation.putObject(cacheObject, outputFile.readBytes().inputStream(), metaData)
+        // Stream the transcoded file from disk instead of slurping it into a heap ByteArray.
+        // cacheObject.size is the output length (set by the conversion service), so putObject
+        // takes the RequestBody.fromInputStream(stream, size) streaming branch (~8KB heap).
+        outputFile.inputStream().use { storageImplementation.putObject(cacheObject, it, metaData) }
     }
 
     override fun close() {

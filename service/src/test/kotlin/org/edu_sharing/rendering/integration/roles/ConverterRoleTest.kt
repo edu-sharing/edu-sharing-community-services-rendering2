@@ -16,6 +16,8 @@ import org.edu_sharing.rendering.modules.jupyter.JupyterConverterConfig
 import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
+import org.edu_sharing.rendering.modules.omega.OmegaApiCallerService
+import org.edu_sharing.rendering.modules.omega.OmegaReceiver
 import org.edu_sharing.rendering.modules.onyx.OnyxReceiver
 import org.edu_sharing.rendering.modules.onyx.OnyxUploadService
 import org.edu_sharing.rendering.modules.sodix.SodixApiCallerService
@@ -55,6 +57,8 @@ class ConverterRoleTest(
             H5pUploadService::class,
             MoodleReceiver::class,
             MoodleUploadService::class,
+            OmegaApiCallerService::class,
+            OmegaReceiver::class,
             OnyxReceiver::class,
             OnyxUploadService::class,
             SodixApiCallerService::class,

@@ -83,7 +83,7 @@
     </docker.edu_sharing.community.common.mongodb.name>
 
     <docker.edu_sharing.community.common.mongodb.tag>
-      8.0.12
+      8.0.12-1
     </docker.edu_sharing.community.common.mongodb.tag>
 
     <docker.edu_sharing.community.common.mongodb.exporter.name>

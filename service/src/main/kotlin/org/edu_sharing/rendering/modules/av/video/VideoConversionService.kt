@@ -2,10 +2,7 @@ package org.edu_sharing.rendering.modules.av.video
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ConversionException
-import org.edu_sharing.rendering.modules.av.AvConversionListener
-import org.edu_sharing.rendering.modules.av.AvConversionService
-import org.edu_sharing.rendering.modules.av.AvFileHelper
-import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
+import org.edu_sharing.rendering.modules.av.*
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
@@ -23,7 +20,8 @@ import java.util.stream.Stream
 @Service
 class VideoConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,
-    private val encoder: Encoder,
+    private val encoderFactory: ObjectFactory<Encoder>,
+    private val timeoutGuard: AvConversionTimeoutGuard,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
     private val configuredResolutions: VideoConverterConfig,
     private val storageImplementation: StorageService,
@@ -38,7 +36,7 @@ class VideoConversionService(
 
     companion object {
         const val AUDIO_BITRATE = 160000
-        const val AUDIO_CODEC = "libmp3lame"
+        const val AUDIO_CODEC = "aac"
         const val VIDEO_CODEC = "libx264"
         const val VIDEO_CRF = 24
     }
@@ -65,6 +63,7 @@ class VideoConversionService(
             }
             val listener = listenerFactory.`object`
             listener.subJob = subJob
+            val encoder = encoderFactory.`object`
             val encodingAttributes = initEncodingAttributes(targetWidth, targetHeight)
             val threadArgument = object : EncodingArgument {
                 override fun getArguments(var1: EncodingAttributes): Stream<String> {
@@ -75,7 +74,9 @@ class VideoConversionService(
                     return ArgType.GLOBAL
                 }
             }
-            encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(threadArgument))
+            timeoutGuard.runEncode(encoder, subJob.id) {
+                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(threadArgument))
+            }
             outputCacheObject.size = fileHelper.outputFile.length()
             log.debug("Video encoding complete: nodeId=${cacheObject.nodeId}, outputSize=${outputCacheObject.size} bytes, quality=$targetHeight")
             fileHelper.uploadToCache(outputCacheObject, mapOf(

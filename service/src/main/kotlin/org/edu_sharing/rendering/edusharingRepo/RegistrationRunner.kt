@@ -1,5 +1,9 @@
 package org.edu_sharing.rendering.edusharingRepo
 
+import net.javacrumbs.shedlock.core.DefaultLockingTaskExecutor
+import net.javacrumbs.shedlock.core.LockConfiguration
+import net.javacrumbs.shedlock.core.LockProvider
+import net.javacrumbs.shedlock.core.LockingTaskExecutor
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMasterAndRegistration
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
@@ -12,6 +16,8 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import java.security.InvalidKeyException
+import java.time.Duration
+import java.time.Instant
 
 @Component
 @Profile("!test")
@@ -21,11 +27,33 @@ class RegistrationRunner(
     private var repositoryRegistrationService: RepositoryRegistrationService,
     private var repositoryRegistrationConfig: RepositoryRegistrationConfig,
     private val corsSyncService: CorsSyncService,
+    lockProvider: LockProvider,
 ) : ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val lockingExecutor: LockingTaskExecutor = DefaultLockingTaskExecutor(lockProvider)
 
     override fun run(args: ApplicationArguments) {
+        // Guard the one-time startup registration with a cluster-wide lock: if more than one
+        // master instance starts concurrently, only one generates the key pair and registers
+        // (force=true) — the others skip. lockAtMostFor bounds the hold so a crash mid-run
+        // cannot deadlock startup. See MetadataService key-pair race in the plan.
+        val lockConfiguration = LockConfiguration(
+            Instant.now(),
+            "repositoryRegistration",
+            Duration.ofMinutes(5),
+            Duration.ZERO,
+        )
+        val result = lockingExecutor.executeWithLock(
+            LockingTaskExecutor.TaskWithResult { doRegister() },
+            lockConfiguration,
+        )
+        if (!result.wasExecuted()) {
+            log.info("Repository registration skipped — another master instance holds the lock")
+        }
+    }
+
+    private fun doRegister() {
         log.debug("RegistrationRunner starting; checking application key pair")
         if (!privatePublicKeyService.hasKeyPair()) {
             log.debug("No existing key pair found; generating new key pair")

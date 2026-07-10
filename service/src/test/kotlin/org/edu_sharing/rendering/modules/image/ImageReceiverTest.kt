@@ -3,7 +3,9 @@ package org.edu_sharing.rendering.modules.image
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.ErrorStrings
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -59,7 +61,7 @@ class ImageReceiverTest {
         val subJobMessage = SubJobMessage(id = id)
 
         every { mainJobLogic.getMainJobEntry(id) } returns job
-        every { conversionService.fetchSourceImage(any()) } returns bufferedImage
+        every { conversionService.fetchSourceImage(any(), 200) } returns bufferedImage
         every { subJobRepository.save(any()) } returnsMany listOf(job.subJobs[0], job.subJobs[0], job.subJobs[1], job.subJobs[1])
         every { conversionService.convert(any(), job.subJobs[0].quality, bufferedImage) } throws Exception()
         justRun { conversionService.convert(any(), job.subJobs[1].quality, bufferedImage) }
@@ -69,7 +71,7 @@ class ImageReceiverTest {
         underTest.receiveMessage(subJobMessage)
         // Assert
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
-        verify(exactly = 1) { conversionService.fetchSourceImage(any()) }
+        verify(exactly = 1) { conversionService.fetchSourceImage(any(), 200) }
         verify(exactly = 4) {subJobRepository.save(any())}
         verify(exactly = 1) { conversionService.convert(any(), job.subJobs[0].quality, bufferedImage) }
         verify(exactly = 1) { conversionService.convert(any(), job.subJobs[1].quality, bufferedImage) }
@@ -77,6 +79,36 @@ class ImageReceiverTest {
         verify(exactly = 1) { conversionService.deleteTempFile(any()) }
         assert(job.subJobs[0].status == SubJobStatus.FAILED)
         assert(job.subJobs[1].status == SubJobStatus.FINISHED)
+        confirmVerified(mainJobLogic, subJobRepository, conversionService)
+    }
+
+    @Test
+    fun testReceiveMessageFailsAllSubJobsWhenFetchSourceImageThrows() {
+        // Arrange
+        val id = "507f191e810c19729de860ea"
+        val subId1 = "507f191e810c19729de860eb"
+        val subId2 = "507f191e810c19729de860ec"
+        val job = prepareJobForTesting(id, subId1, subId2)
+        val subJobMessage = SubJobMessage(id = id)
+
+        every { mainJobLogic.getMainJobEntry(id) } returns job
+        every { conversionService.fetchSourceImage(any(), 200) } throws ConversionException("Image too large")
+        every { subJobRepository.save(any()) } returnsMany listOf(job.subJobs[0], job.subJobs[1])
+        every { mainJobLogic.processMainJob(id) } returns true
+        justRun { conversionService.deleteTempFile(any()) }
+        // Act
+        underTest.receiveMessage(subJobMessage)
+        // Assert
+        verify(exactly = 1) { mainJobLogic.getMainJobEntry(id) }
+        verify(exactly = 1) { conversionService.fetchSourceImage(any(), 200) }
+        verify(exactly = 2) { subJobRepository.save(any()) }
+        verify(exactly = 0) { conversionService.convert(any(), any(), any()) }
+        verify(exactly = 1) { conversionService.deleteTempFile(any()) }
+        verify(exactly = 1) { mainJobLogic.processMainJob(id) }
+        job.subJobs.forEach {
+            assert(it.status == SubJobStatus.FAILED)
+            assert(it.errorMessage == ErrorStrings.GENERIC_CONVERSION_ERROR)
+        }
         confirmVerified(mainJobLogic, subJobRepository, conversionService)
     }
 

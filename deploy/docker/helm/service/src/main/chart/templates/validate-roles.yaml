@@ -1,0 +1,27 @@
+{{- /*
+Guard: the master role is a cluster singleton (see application.properties:
+"Only one master per cluster is allowed"). This template renders no resource — it only
+runs `fail` to abort `helm install/upgrade/template/lint` on a configuration that could
+produce more than one master pod. Complements the runtime ShedLock guard in the service.
+
+Fails when any enabled role that carries "master" in its appRoles is autoscaled or has
+replicaCount > 1, or when the master role is spread across more than one enabled role
+(e.g. aio + master both enabled).
+*/ -}}
+{{- $masterPods := 0 -}}
+{{- range $roleName, $roleCfg := .Values.roles }}
+{{-   if $roleCfg.enabled }}
+{{-     if has "master" (splitList "," $roleCfg.appRoles) }}
+{{-       if and $roleCfg.autoscaling $roleCfg.autoscaling.enabled }}
+{{-         fail (printf "role %q carries the master role and has autoscaling enabled (maxReplicas=%v); the master role must never be autoscaled" $roleName $roleCfg.autoscaling.maxReplicas) }}
+{{-       end }}
+{{-       if gt (int $roleCfg.replicaCount) 1 }}
+{{-         fail (printf "role %q carries the master role with replicaCount=%v; at most 1 master replica is allowed" $roleName $roleCfg.replicaCount) }}
+{{-       end }}
+{{-       $masterPods = add $masterPods (int $roleCfg.replicaCount) }}
+{{-     end }}
+{{-   end }}
+{{- end }}
+{{- if gt $masterPods 1 }}
+{{-   fail (printf "multiple enabled roles carry the master role (total %d master pods); only one master may exist cluster-wide — enable the master role in exactly one role" $masterPods) }}
+{{- end }}
