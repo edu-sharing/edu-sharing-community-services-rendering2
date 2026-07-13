@@ -1,6 +1,39 @@
 import {IPlayerModel} from "@lumieducation/h5p-server";
 
 /**
+ * Core player styles that the upstream h5p-php-library ships but the bundled
+ * @lumieducation/h5p-server playerAssetList.json omits. Kept in sync with the
+ * corrected upstream list (H5P-Nodejs-library
+ * https://github.com/Lumieducation/H5P-Nodejs-library/blob/master/packages/h5p-server/src/playerAssetList.json
+ * packages/h5p-server/src/playerAssetList.json):
+ *
+ *   styles/h5p-fonts.css
+ *   styles/h5p-theme.css
+ *   styles/h5p-theme-variables.css
+ */
+const REQUIRED_CORE_STYLES = [
+    'h5p-fonts.css',
+    'h5p-theme.css',
+    'h5p-theme-variables.css',
+];
+
+/**
+ * URLs for the required core styles that are not already present in the model,
+ * derived from the base path of the core `h5p.css` link so they follow the
+ * configured `BASE_URL`/core URL and are served from the downloaded core
+ * (h5p/core/styles). Returns nothing (and adds no duplicates) once a future
+ * h5p-server release lists these itself.
+ */
+const missingCoreStyles = (model: IPlayerModel): string[] => {
+    const coreStyle = model.styles.find((s) => /\/styles\/h5p\.css(\?.*)?$/.test(s));
+    if (!coreStyle) return [];
+    const base = coreStyle.replace(/h5p\.css(\?.*)?$/, ''); // e.g. /public/h5p/core/styles/
+    return REQUIRED_CORE_STYLES
+        .map((name) => `${base}${name}`)
+        .filter((url) => !model.styles.includes(url));
+};
+
+/**
  * Custom H5P player for Edu-Sharing purposes
  */
 export default (model: IPlayerModel): string => `<!doctype html>
@@ -8,7 +41,7 @@ export default (model: IPlayerModel): string => `<!doctype html>
 <head>
     <meta charset="utf-8">
    
-    ${model.styles
+    ${[...missingCoreStyles(model), ...model.styles]
     .map((style) => `<link rel="stylesheet" href="${style}"/>`)
     .join('\n    ')}
     ${model.scripts
