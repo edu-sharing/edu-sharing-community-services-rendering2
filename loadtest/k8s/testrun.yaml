@@ -1,0 +1,47 @@
+# k6-operator TestRun für Phase B (verteilte Last aus dem Cluster gegen den internen Service).
+#
+# Voraussetzungen:
+#   1. k6-operator ist im Cluster installiert (CRD grafana.com/v1alpha1 TestRun).
+#   2. Der k6-Test ist als Archiv in einer ConfigMap hinterlegt (Multi-File-Imports):
+#        k6 archive loadtest/k6/scenarios/all.js -o archive.tar \
+#          -e BASE_URL=... -e PROFILE=arrival   # Env kann auch hier unten gesetzt werden
+#        kubectl create configmap rs2-k6-archive --from-file=archive.tar -n <ns>
+#   3. Prometheus mit aktiviertem remote-write-receiver ist erreichbar (URL unten anpassen).
+#
+# Siehe loadtest/k8s/README.md für den vollständigen Ablauf.
+
+apiVersion: k6.io/v1alpha1
+kind: TestRun
+metadata:
+  name: rs2-converter-loadtest
+spec:
+  # Anzahl paralleler k6-Runner-Pods (verteilte Last). Skaliert die erzeugte Last.
+  parallelism: 4
+  script:
+    configMap:
+      name: rs2-k6-archive
+      file: archive.tar
+  arguments: --out experimental-prometheus-rw
+  runner:
+    env:
+      # Interner Service-DNS-Name im Cluster (Namespace anpassen).
+      - name: BASE_URL
+        value: "http://rendering2-service.rendering2.svc.cluster.local:8080"
+      - name: PROFILE
+        value: "arrival"
+      - name: RATE
+        value: "50"
+      - name: DURATION
+        value: "5m"
+      # k6-Ergebnismetriken via remote-write ins Cluster-Prometheus.
+      - name: K6_PROMETHEUS_RW_SERVER_URL
+        value: "http://prometheus-operated.monitoring.svc.cluster.local:9090/api/v1/write"
+      - name: K6_PROMETHEUS_RW_TREND_STATS
+        value: "p(95),p(99),avg,max"
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "1"
+        memory: "512Mi"

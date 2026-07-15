@@ -1,0 +1,45 @@
+# Scrape-Config für den RS2-Lasttest. Alle Ziele über die auf dem Host veröffentlichten Ports
+# (host.docker.internal), damit dieser Stack vom root-compose.yml und vom IDE-Service entkoppelt
+# bleibt.
+
+global:
+  scrape_interval: 2s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # RS2-Service (aus der IDE, loadtest-Profil) — Actuator-Prometheus auf Management-Port 9080.
+  # Hier liegen die Custom-Metriken: rendering_queue_consumers_active, rendering_subjob_duration,
+  # rendering_job_duration, rendering_job_failed.
+  - job_name: rs2-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:9080']
+
+  # RabbitMQ — natives Prometheus-Plugin, aggregiert (globale Message-Raten, Node-Metriken).
+  - job_name: rabbitmq
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:15692']
+
+  # RabbitMQ — per-Queue-Detailmetriken. Die aggregierte /metrics-Ansicht kennt KEINE
+  # per-Queue-Serien; Queue-Tiefe pro Queue (rabbitmq_detailed_queue_messages_ready/_unacked)
+  # gibt es nur über /metrics/detailed mit family=queue_coarse_metrics.
+  - job_name: rabbitmq-detailed
+    metrics_path: /metrics/detailed
+    params:
+      family: [queue_coarse_metrics]
+    static_configs:
+      - targets: ['host.docker.internal:15692']
+
+  # document-converter (LibreOffice-Sidecar). Nur relevant, wenn der Sidecar aus dem
+  # root-compose.yml läuft; Port ggf. an das eigene Setup anpassen.
+  - job_name: document-converter
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+
+  # jupyter-converter (FastAPI). Exponiert /metrics via prometheus_fastapi_instrumentator.
+  - job_name: jupyter-converter
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:9120']

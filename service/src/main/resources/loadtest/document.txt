@@ -1,0 +1,9 @@
+Rendering Service 2 — Lasttest-Beispieldokument
+
+Dies ist eine einfache Textdatei, die vom document-converter (LibreOffice) nach PDF/HTML
+konvertiert wird. Sie dient ausschließlich als Quell-Content für den Converter-Lasttest und
+wird nur erreichbar, wenn der Service mit app.security.enabled=false (loadtest-Profil) läuft.
+
+Absatz zwei mit etwas mehr Text, damit die Konvertierung eine nicht-triviale Seite erzeugt.
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor
+invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.

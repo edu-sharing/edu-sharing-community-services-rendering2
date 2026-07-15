@@ -1,0 +1,38 @@
+# Eigenständiger Beobachtungs-Stack für den RS2-Lasttest (Phase A, lokal).
+#
+# Läuft unabhängig vom root-compose.yml und scrapt alle Ziele über die auf dem Host
+# veröffentlichten Ports via host.docker.internal. So bleibt es entkoppelt — Prometheus/Grafana
+# hier, Infrastruktur + Converter im root-compose.yml, der Service aus der IDE.
+#
+# Start:  docker compose -f loadtest/observability/docker-compose.observability.yml up -d
+# Grafana: http://localhost:3001  (admin/admin)  — Dashboard "RS2 Lasttest" ist vorprovisioniert.
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rs2-loadtest-prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=remote-write-receiver   # nimmt k6-Ergebnismetriken via remote-write entgegen
+    ports:
+      - "9091:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rs2-loadtest-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"

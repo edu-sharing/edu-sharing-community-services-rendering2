@@ -40,6 +40,9 @@ services:
     ports:
       - "9104:5672"
       - "15672:15672"
+      # Prometheus-Plugin (im offiziellen rabbitmq-Image standardmäßig aktiv) für den Lasttest:
+      # Queue-Tiefe/Consumer-Metriken unter :15692/metrics.
+      - "15692:15692"
 
   mongo:
     image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:7.0.15"

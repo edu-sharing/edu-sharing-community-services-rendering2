@@ -59,6 +59,8 @@ import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
+import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.renderingJob.repository.CustomRenderingJobRepositoryImpl
 import org.edu_sharing.rendering.renderingJob.repository.CustomSubJobRepositoryImpl
@@ -148,8 +150,10 @@ abstract class SharedBeans {
             PdfRenderModule::class,
             PingController::class,
             QueueConfig::class,
+            QueueConsumerMetrics::class,
             RedisConfig::class,
             RedisStandaloneConfigurationProperties::class,
+            RenderingMetrics::class,
             RepositoryRegistrationConfig::class,
             RepositoryRegistrationService::class,
             RepositoryRegistrationStorageService::class,

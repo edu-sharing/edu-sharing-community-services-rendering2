@@ -26,6 +26,8 @@ import org.edu_sharing.rendering.modules.sodix.SodixApiCallerService
 import org.edu_sharing.rendering.modules.sodix.SodixQueueConfig
 import org.edu_sharing.rendering.modules.sodix.SodixQueueProperties
 import org.edu_sharing.rendering.modules.sodix.SodixReceiver
+import org.edu_sharing.rendering.renderingJob.queue.JobQueueProperties
+import org.edu_sharing.rendering.renderingJob.queue.JobQueueQueueConfig
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -54,6 +56,8 @@ class ConverterRoleTest(
             EduHtmlReceiver::class,
             ImageConversionService::class,
             ImageReceiver::class,
+            JobQueueProperties::class,
+            JobQueueQueueConfig::class,
             JupyterReceiver::class,
             JupyterConversionService::class,
             JupyterConverterConfig::class,

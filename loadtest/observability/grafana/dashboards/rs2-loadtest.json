@@ -1,0 +1,112 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "title": "RS2 Lasttest",
+  "uid": "rs2-loadtest",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["rs2", "loadtest"],
+  "templating": { "list": [] },
+  "panels": [
+    { "type": "row", "title": "Ebene 1 — Scaling & Queues", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "Aktive Consumer-Threads pro Queue",
+      "description": "rendering_queue_consumers_active — die Ebene-1-Auto-Scaling-Kurve.",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "stepAfter": true } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rendering_queue_consumers_active", "legendFormat": "{{queue}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue-Tiefe: ready",
+      "description": "rabbitmq_queue_messages_ready — wartende Nachrichten (Backpressure-Signal).",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rabbitmq_detailed_queue_messages_ready", "legendFormat": "{{queue}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue-Tiefe: unacked",
+      "description": "rabbitmq_queue_messages_unacked — in Verarbeitung / geprefetcht.",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rabbitmq_detailed_queue_messages_unacked", "legendFormat": "{{queue}}" }
+      ]
+    },
+    { "type": "row", "title": "Converter-Performance", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "Durchsatz: finished Sub-Jobs/s pro Modul",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (module) (rate(rendering_subjob_duration_seconds_count{outcome=\"FINISHED\"}[1m]))", "legendFormat": "{{module}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Sub-Job-Dauer p95 pro Modul",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, module) (rate(rendering_subjob_duration_seconds_bucket[1m])))", "legendFormat": "{{module}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Job-Dauer (End-to-End) p95 pro Modul",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, module) (rate(rendering_job_duration_seconds_bucket[1m])))", "legendFormat": "{{module}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Fehlerrate: failed Jobs/s pro Modul",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (module) (rate(rendering_job_failed_total[1m]))", "legendFormat": "{{module}}" }
+      ]
+    },
+    { "type": "row", "title": "Ressourcen (Service)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "CPU-Auslastung",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "process_cpu_usage{job=\"rs2-service\"}", "legendFormat": "process" },
+        { "refId": "B", "expr": "system_cpu_usage{job=\"rs2-service\"}", "legendFormat": "system" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM Heap belegt",
+      "datasource": { "type": "prometheus", "uid": "rs2prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{job=\"rs2-service\", area=\"heap\"})", "legendFormat": "heap used" }
+      ]
+    }
+  ]
+}
