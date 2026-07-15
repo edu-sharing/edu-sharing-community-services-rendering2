@@ -18,6 +18,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --enable-feature=remote-write-receiver   # nimmt k6-Ergebnismetriken via remote-write entgegen
+      - --web.enable-lifecycle                   # erlaubt Hot-Reload der Config via POST /-/reload
     ports:
       - "9091:9090"
 
