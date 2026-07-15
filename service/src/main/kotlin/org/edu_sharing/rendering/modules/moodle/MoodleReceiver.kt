@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -28,9 +29,19 @@ class MoodleReceiver (
 
     @RabbitListener(
         bindings = [
+            // Single Active Consumer: moodle can import only one document at a time, so the
+            // broker must route moodle jobs to exactly one consumer cluster-wide. Per-instance
+            // concurrency=1 alone is not enough — with N pods, N competing consumers would
+            // each process a job in parallel. x-single-active-consumer keeps a single consumer
+            // active across all pods; the others stay on standby and take over only on failover.
             QueueBinding(
                 value = Queue(name = $$"${app.queue.moodle.name}", durable = "false"),
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
+                arguments = [Argument(
+                    name = "x-single-active-consumer",
+                    value = "true",
+                    type = "java.lang.Boolean"
+                )],
                 key = [$$"${app.queue.moodle.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
