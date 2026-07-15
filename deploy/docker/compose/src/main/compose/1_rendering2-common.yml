@@ -43,7 +43,7 @@ services:
       MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
 
   rendering2-service:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
     command:
       - -Xms${RENDERING2_SERVICE_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_JAVA_XMX:-512m}
@@ -63,6 +63,21 @@ services:
       app.s3.checksumCalculationWhenRequired: false
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
+      # Per-queue consumer count (concurrentConsumers). Plain number ("5") fixes the count;
+      # a range ("1-5") enables auto-scaling. Default 1.
+      app.queue.job.concurrency: "${RENDERING2_QUEUE_JOB_CONCURRENCY:-100}"
+      app.queue.image.concurrency: "${RENDERING2_QUEUE_IMAGE_CONCURRENCY:-10}"
+      app.queue.av.concurrency: "${RENDERING2_QUEUE_AV_CONCURRENCY:-2}"
+      app.queue.moodle.concurrency: "${RENDERING2_QUEUE_MOODLE_CONCURRENCY:-1}"
+      app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-10}"
+      app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-10}"
+      app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-10}"
+      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-100}"
+      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-10}"
+      app.queue.binder.concurrency: "${RENDERING2_QUEUE_BINDER_CONCURRENCY:-1}"
+      app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
+      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-100}"
+      app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-1}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
@@ -148,7 +163,7 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
   rendering2-document-converter:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
       - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
@@ -160,7 +175,7 @@ services:
       - "8080"
 
   rendering2-lumi:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
@@ -189,7 +204,7 @@ services:
       - "3000"
 
   rendering2-admin-frontend:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
     environment:
       PORT: 8080
       # Pfad, unter dem die UI ausgeliefert wird (eigener Pfad am selben Host wie der Service).

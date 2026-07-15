@@ -33,7 +33,8 @@ class ImageReceiver(
                 key = [$$"${app.queue.image.key}"]
             )
         ],
-        containerFactory = "singlePrefetchConnectionFactory"
+        containerFactory = "singlePrefetchConnectionFactory",
+        concurrency = $$"${app.queue.image.concurrency:1}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received image sub-job message: id=${message.id}")

@@ -30,7 +30,8 @@ class BinderReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.binder.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "singlePrefetchConnectionFactory",
+        concurrency = $$"${app.queue.binder.concurrency:1}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder upload message received: subJobId={}", message.subJobId)

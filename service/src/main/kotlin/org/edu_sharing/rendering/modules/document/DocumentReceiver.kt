@@ -39,7 +39,8 @@ class DocumentReceiver (
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.document.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "singlePrefetchConnectionFactory",
+        concurrency = $$"${app.queue.document.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received document conversion message: id=${message.id}")

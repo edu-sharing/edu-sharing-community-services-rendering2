@@ -38,7 +38,8 @@ class JobReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.job.key}"]
             )
-        ]
+        ],
+        concurrency = $$"${app.queue.job.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received job message: id=${message.id}, missingQualities=${message.missingQualities}")

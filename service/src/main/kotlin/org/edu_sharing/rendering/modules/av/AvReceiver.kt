@@ -53,7 +53,8 @@ class AvReceiver(
                 key = [$$"${app.queue.av.key}"]
             )
         ],
-        containerFactory = "singlePrefetchConnectionFactory"
+        containerFactory = "singlePrefetchConnectionFactory",
+        concurrency = $$"${app.queue.av.concurrency:1}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received AV sub-job message: id=${message.id}, quality=${message.quality}")

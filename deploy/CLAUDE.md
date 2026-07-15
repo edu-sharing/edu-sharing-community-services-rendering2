@@ -73,6 +73,7 @@ dotted Spring keys set as env entries.
 | `RENDERING2_SERVICE_DATABASE_{NAME,USER}` | `spring.mongodb.database` / `.username` | `rendering` |
 | `REDIS_HOST` / `REDIS_PORT` | `spring.redis.standalone.host` / `.port` | `redis-cache` / `6379` |
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | `spring.rabbitmq.host` / `.port` | `rendering2-message-queue` / `5672` |
+| `RENDERING2_QUEUE_<KEY>_CONCURRENCY` | `app.queue.<key>.concurrency` (per-queue consumer count; `"5"` fixed or `"1-5"` auto-scaling) | `1` |
 | `app.public.{protocol,host,port,path}` | (direct) | `http` / nip.io host / `80` / `/rendering` |
 | `server.servlet.context-path` | (direct) | `/rendering` |
 | `app.session.<module>.nodePermissionExpirationTime` | (direct) | empty = not cached |
