@@ -34,7 +34,8 @@ class BinderPreviewReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.binderPreview.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "singlePrefetchConnectionFactory",
+        concurrency = $$"${app.queue.binderPreview.concurrency:1}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder preview message received: subJobId={}", message.subJobId)

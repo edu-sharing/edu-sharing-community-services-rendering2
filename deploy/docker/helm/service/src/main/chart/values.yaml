@@ -594,6 +594,24 @@ config:
     ## @param config.rabbitmq.password Set mongodb username
     password: ""
 
+  queue:
+    ## @param config.queue.concurrency Per-queue consumer count (concurrentConsumers).
+    ## A plain number ("5") fixes the count; a range ("1-5") enables auto-scaling. Default "1".
+    concurrency:
+      job: "100"
+      image: "10"
+      av: "1"
+      moodle: "1"
+      eduHtml: "10"
+      document: "10"
+      jupyter: "10"
+      sodix: "100"
+      omega: "1"
+      binder: "1"
+      binderPreview: "1"
+      ddb: "100"
+      onyx: "1"
+
   redis:
     ## @param config.redis.host Set redis host
     host: edusharing-services-rendering2-rediscluster
