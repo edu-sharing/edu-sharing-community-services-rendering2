@@ -30,7 +30,7 @@ class CorsAllowedOriginsReceiver(
                 )
             )
         ],
-        containerFactory = "singlePrefetchConnectionFactory"
+        containerFactory = "queueListenerContainerFactory"
     )
     fun handleBroadcast(message: String) {
         log.debug("Received CORS broadcast message; applying known origins")

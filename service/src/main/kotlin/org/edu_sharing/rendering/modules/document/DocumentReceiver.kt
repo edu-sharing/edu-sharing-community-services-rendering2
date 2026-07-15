@@ -39,7 +39,7 @@ class DocumentReceiver (
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.document.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.document.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {

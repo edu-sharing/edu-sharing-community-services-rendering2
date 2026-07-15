@@ -30,7 +30,7 @@ class BinderReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.binder.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.binder.concurrency:1}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {

@@ -38,7 +38,7 @@ class H5pReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.h5p.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "queueListenerContainerFactory"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("H5P message received: jobId={}", message.id)

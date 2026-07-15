@@ -35,7 +35,7 @@ class JupyterReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.jupyter.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.jupyter.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {

@@ -27,7 +27,7 @@ class DdbReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.ddb.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.ddb.concurrency:1}"
     )
     fun receiveMessage(message: DdbJobMessage) {

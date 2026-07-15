@@ -34,7 +34,7 @@ class OnyxReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.onyx.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.onyx.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {

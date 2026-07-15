@@ -102,6 +102,8 @@ abstract class SharedBeans {
             CorsConfig::class,
             DdbApiService::class,
             DdbJobService::class,
+            DdbQueueConfig::class,
+            DdbQueueProperties::class,
             DdbReceiver::class,
             DdbRenderModule::class,
             DdbRenderModuleTypeMapper::class,

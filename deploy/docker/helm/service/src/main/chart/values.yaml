@@ -613,17 +613,62 @@ config:
       ## @param config.queue.concurrency.jupyter Set consumer count for the jupyter queue
       jupyter: "10"
       ## @param config.queue.concurrency.sodix Set consumer count for the sodix queue
-      sodix: "100"
+      sodix: "30-200"
       ## @param config.queue.concurrency.omega Set consumer count for the omega queue
-      omega: "1"
+      omega: "1-200"
       ## @param config.queue.concurrency.binder Set consumer count for the binder queue
       binder: "1"
       ## @param config.queue.concurrency.binderPreview Set consumer count for the binder preview queue
       binderPreview: "1"
       ## @param config.queue.concurrency.ddb Set consumer count for the ddb queue
-      ddb: "100"
+      ddb: "1-200"
       ## @param config.queue.concurrency.onyx Set consumer count for the onyx queue
       onyx: "1"
+
+    ## Per-queue prefetch (unacked messages buffered per consumer). Only effective for the
+    ## lightweight API-passthrough queues that ship a QueueContainerConfig; a value > 1 removes
+    ## the per-message broker round-trip between short jobs. Add a key here to tune another queue.
+    prefetch:
+      ## @param config.queue.prefetch.sodix Set prefetch for the sodix queue
+      sodix: "1"
+      ## @param config.queue.prefetch.omega Set prefetch for the omega queue
+      omega: "3"
+      ## @param config.queue.prefetch.ddb Set prefetch for the ddb queue
+      ddb: "3"
+
+    ## Per-queue burst auto-scaling profiles for the lightweight API-passthrough queues (sodix,
+    ## omega, ddb): how fast each queue's consumers scale up/down within its "min-max" concurrency
+    ## range. Each queue is tuned independently; any key left unset falls back to the Spring AMQP
+    ## framework default (start 10000 / stop 60000 / triggers 10). Bound to
+    ## app.queue.scaling.<queue>.* (QueueScalingProperties).
+    scaling:
+      sodix:
+        ## @param config.queue.scaling.sodix.startConsumerMinInterval Min ms between starting consumers (lower = faster scale-up)
+        startConsumerMinInterval: "1000"
+        ## @param config.queue.scaling.sodix.stopConsumerMinInterval Min ms between stopping consumers (lower = faster scale-down)
+        stopConsumerMinInterval: "1000"
+        ## @param config.queue.scaling.sodix.consecutiveActiveTrigger Consecutive busy cycles before adding a consumer
+        consecutiveActiveTrigger: "1"
+        ## @param config.queue.scaling.sodix.consecutiveIdleTrigger Consecutive idle cycles before removing a consumer
+        consecutiveIdleTrigger: "3"
+      omega:
+        ## @param config.queue.scaling.omega.startConsumerMinInterval Min ms between starting consumers (lower = faster scale-up)
+        startConsumerMinInterval: "1000"
+        ## @param config.queue.scaling.omega.stopConsumerMinInterval Min ms between stopping consumers (lower = faster scale-down)
+        stopConsumerMinInterval: "1000"
+        ## @param config.queue.scaling.omega.consecutiveActiveTrigger Consecutive busy cycles before adding a consumer
+        consecutiveActiveTrigger: "1"
+        ## @param config.queue.scaling.omega.consecutiveIdleTrigger Consecutive idle cycles before removing a consumer
+        consecutiveIdleTrigger: "3"
+      ddb:
+        ## @param config.queue.scaling.ddb.startConsumerMinInterval Min ms between starting consumers (lower = faster scale-up)
+        startConsumerMinInterval: "1000"
+        ## @param config.queue.scaling.ddb.stopConsumerMinInterval Min ms between stopping consumers (lower = faster scale-down)
+        stopConsumerMinInterval: "1000"
+        ## @param config.queue.scaling.ddb.consecutiveActiveTrigger Consecutive busy cycles before adding a consumer
+        consecutiveActiveTrigger: "1"
+        ## @param config.queue.scaling.ddb.consecutiveIdleTrigger Consecutive idle cycles before removing a consumer
+        consecutiveIdleTrigger: "3"
 
   redis:
     ## @param config.redis.host Set redis host

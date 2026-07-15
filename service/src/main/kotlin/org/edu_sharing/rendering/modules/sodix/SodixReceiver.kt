@@ -36,7 +36,7 @@ class SodixReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.sodix.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.sodix.concurrency:1}"
     )
     fun receiveMessage(message: SodixJobMessage) {

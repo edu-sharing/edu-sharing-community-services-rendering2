@@ -72,12 +72,18 @@ services:
       app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-10}"
       app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-10}"
       app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-10}"
-      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-100}"
-      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-10}"
+      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-1-200}"
+      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-1-200}"
       app.queue.binder.concurrency: "${RENDERING2_QUEUE_BINDER_CONCURRENCY:-1}"
       app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
-      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-100}"
+      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-1-200}"
       app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-1}"
+      # Per-queue prefetch (unacked messages buffered per consumer). Only effective for the
+      # lightweight API-passthrough queues that ship a QueueContainerConfig; a value > 1
+      # removes the per-message broker round-trip between short jobs. Others stay at 1.
+      app.queue.sodix.prefetch: "${RENDERING2_QUEUE_SODIX_PREFETCH:-3}"
+      app.queue.omega.prefetch: "${RENDERING2_QUEUE_OMEGA_PREFETCH:-3}"
+      app.queue.ddb.prefetch: "${RENDERING2_QUEUE_DDB_PREFETCH:-3}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database

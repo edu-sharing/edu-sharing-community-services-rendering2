@@ -36,7 +36,7 @@ class OmegaReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.omega.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.omega.concurrency:1}"
     )
     fun receiveMessage(message: OmegaJobMessage) {

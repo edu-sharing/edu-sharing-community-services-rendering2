@@ -36,7 +36,7 @@ class EduHtmlReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.eduHtml.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
+        ], containerFactory = "queueListenerContainerFactory",
         concurrency = $$"${app.queue.eduHtml.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
