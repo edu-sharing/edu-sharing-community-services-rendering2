@@ -595,21 +595,34 @@ config:
     password: ""
 
   queue:
-    ## @param config.queue.concurrency Per-queue consumer count (concurrentConsumers).
-    ## A plain number ("5") fixes the count; a range ("1-5") enables auto-scaling. Default "1".
+    ## Per-queue consumer count (concurrentConsumers). A plain number ("5") fixes the count;
+    ## a range ("1-5") enables auto-scaling between min and max.
     concurrency:
+      ## @param config.queue.concurrency.job Set consumer count for the job dispatch queue
       job: "100"
+      ## @param config.queue.concurrency.image Set consumer count for the image queue
       image: "10"
+      ## @param config.queue.concurrency.av Set consumer count for the audio/video queue
       av: "1"
+      ## @param config.queue.concurrency.moodle Set consumer count for the moodle queue
       moodle: "1"
+      ## @param config.queue.concurrency.eduHtml Set consumer count for the eduHtml queue
       eduHtml: "10"
+      ## @param config.queue.concurrency.document Set consumer count for the document queue
       document: "10"
+      ## @param config.queue.concurrency.jupyter Set consumer count for the jupyter queue
       jupyter: "10"
+      ## @param config.queue.concurrency.sodix Set consumer count for the sodix queue
       sodix: "100"
+      ## @param config.queue.concurrency.omega Set consumer count for the omega queue
       omega: "1"
+      ## @param config.queue.concurrency.binder Set consumer count for the binder queue
       binder: "1"
+      ## @param config.queue.concurrency.binderPreview Set consumer count for the binder preview queue
       binderPreview: "1"
+      ## @param config.queue.concurrency.ddb Set consumer count for the ddb queue
       ddb: "100"
+      ## @param config.queue.concurrency.onyx Set consumer count for the onyx queue
       onyx: "1"
 
   redis:
