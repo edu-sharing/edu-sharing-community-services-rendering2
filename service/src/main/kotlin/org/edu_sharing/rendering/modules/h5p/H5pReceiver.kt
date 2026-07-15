@@ -13,6 +13,7 @@ import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.combinePath
 import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -34,11 +35,26 @@ class H5pReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.h5p.name}", durable = "false"),
+                // Single Active Consumer: lumi can import only one document at a time, so the
+                // broker must route H5P jobs to exactly one consumer cluster-wide. Per-instance
+                // concurrency=1 alone is not enough — with N pods, N competing consumers would
+                // each process a job in parallel. x-single-active-consumer keeps a single consumer
+                // active across all pods; the others stay on standby and take over only on failover.
+                value = Queue(
+                    name = $$"${app.queue.h5p.name}",
+                    durable = "false",
+                    arguments = [Argument(
+                        name = "x-single-active-consumer",
+                        value = "true",
+                        type = "java.lang.Boolean"
+                    )]
+                ),
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.h5p.key}"]
             )
-        ], containerFactory = "queueListenerContainerFactory"
+        ],
+        containerFactory = "queueListenerContainerFactory",
+        concurrency = $$"${app.queue.h5p.concurrency:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("H5P message received: jobId={}", message.id)
