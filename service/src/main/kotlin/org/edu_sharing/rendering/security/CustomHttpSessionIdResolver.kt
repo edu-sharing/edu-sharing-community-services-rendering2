@@ -53,17 +53,17 @@ class CustomHttpSessionIdResolver(
 
     override fun resolveSessionIds(request: HttpServletRequest?): List<String?>? {
         if (request != null) {
-            log.info("Resolving session id from request ${request.requestURI}")
+            log.debug("Resolving session id from request ${request.requestURI}")
         }
         val cookieSessionValues = cookieHttpSessionIdResolver.resolveSessionIds(request)
         if (cookieSessionValues.isNotEmpty()) {
-            log.info("Found session id in cookie")
+            log.debug("Found session id in cookie")
             return cookieSessionValues
         }
-        log.info("No session id found in cookie")
+        log.debug("No session id found in cookie")
         val headerSessionValues = headerHttpSessionIdResolver.resolveSessionIds(request)
         if (headerSessionValues.isNotEmpty()) {
-            log.info("Session id found in header")
+            log.debug("Session id found in header")
         }
         return headerSessionValues
     }
