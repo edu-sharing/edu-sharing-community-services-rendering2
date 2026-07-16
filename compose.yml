@@ -78,11 +78,11 @@ services:
   rendering2-lumi:
     image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-lumi:maven-fixes-10.0-SNAPSHOT"
     environment:
-      AWS_ACCESS_KEY_ID: K2CV0VBADESIZ0IOIKGZ
-      AWS_SECRET_ACCESS_KEY: Pbq0qBtcq7ZDoc6pMm3Bsfy8lj4BB2UChcYVSTGY
-      AWS_S3_ENDPOINT: https://s3.gwdg.de:443
-     # S3_HOST: https://s3.gwdg.de
-     # S3_PORT: "443"
+      AWS_ACCESS_KEY_ID: rendering2
+      AWS_SECRET_ACCESS_KEY: rendering2
+      AWS_S3_ENDPOINT: http://rustfs
+      S3_HOST: rustfs
+      S3_PORT: "9000"
       AWS_S3_MAX_FILE_LENGTH: 1000
       MONGODB_HOST: mongo
       MONGODB_PORT: 27017
@@ -91,13 +91,11 @@ services:
       MONGODB_DB: "lumi"
       MONGODB_USER: "lumi"
       MONGODB_PASSWORD: "lumi"
-      CONTENT_AWS_S3_BUCKET: itsjointly-test3
+      CONTENT_AWS_S3_BUCKET: lumi-contentbucket
       CONTENT_MONGO_COLLECTION: h5p
-      TEMPORARY_AWS_S3_BUCKET: itsjointly-test4
+      TEMPORARY_AWS_S3_BUCKET: lumi-tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
-      LIBRARY_AWS_S3_BUCKET: itsjointly-test5
-      USERDATA_MONGO_COLLECTION: userdata
-      FINISHED_MONGO_COLLECTION: finisheddata
+      LIBRARY_AWS_S3_BUCKET: lumi-libbucket
       EDUSHARING_MONGO_COLLECTION: edusharing
       BASE_URL: /public/h5p
       CACHE: in-memory
