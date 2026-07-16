@@ -34,7 +34,7 @@ class ImageReceiver(
             )
         ],
         containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.image.concurrency:1}"
+        concurrency = $$"${app.queue.image.consumersPerQueue:1}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received image sub-job message: id=${message.id}")

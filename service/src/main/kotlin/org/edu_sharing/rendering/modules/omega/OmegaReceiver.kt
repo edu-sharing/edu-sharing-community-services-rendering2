@@ -37,7 +37,7 @@ class OmegaReceiver(
                 key = [$$"${app.queue.omega.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.omega.concurrency:1}"
+        concurrency = $$"${app.queue.omega.consumersPerQueue:1}"
     )
     fun receiveMessage(message: OmegaJobMessage) {
         log.debug("Received Omega job message for jobId ${message.id}, nodeId ${message.nodeId}, identifier ${message.identifier}")

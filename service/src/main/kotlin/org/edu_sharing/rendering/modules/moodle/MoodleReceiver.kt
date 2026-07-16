@@ -45,7 +45,7 @@ class MoodleReceiver (
                 key = [$$"${app.queue.moodle.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.moodle.concurrency:1}"
+        concurrency = $$"${app.queue.moodle.consumersPerQueue:1}"
     )
     fun receiveMessage(message: MoodleJobMessage) {
         log.debug("Received Moodle job message for jobId ${message.id}, nodeId ${message.nodeId}")

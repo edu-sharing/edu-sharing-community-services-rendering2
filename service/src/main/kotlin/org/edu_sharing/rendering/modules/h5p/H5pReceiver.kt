@@ -54,7 +54,7 @@ class H5pReceiver(
             )
         ],
         containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.h5p.concurrency:1}"
+        concurrency = $$"${app.queue.h5p.consumersPerQueue:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("H5P message received: jobId={}", message.id)

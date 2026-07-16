@@ -37,7 +37,7 @@ class SodixReceiver(
                 key = [$$"${app.queue.sodix.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.sodix.concurrency:1}"
+        concurrency = $$"${app.queue.sodix.consumersPerQueue:1}"
     )
     fun receiveMessage(message: SodixJobMessage) {
         log.debug("Received Sodix job message for jobId ${message.id}, nodeId ${message.nodeId}, identifier ${message.identifier}")

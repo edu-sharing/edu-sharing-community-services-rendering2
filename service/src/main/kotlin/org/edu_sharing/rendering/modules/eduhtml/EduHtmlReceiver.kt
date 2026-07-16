@@ -37,7 +37,7 @@ class EduHtmlReceiver(
                 key = [$$"${app.queue.eduHtml.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.eduHtml.concurrency:1}"
+        concurrency = $$"${app.queue.eduHtml.consumersPerQueue:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Message received: {}", message)

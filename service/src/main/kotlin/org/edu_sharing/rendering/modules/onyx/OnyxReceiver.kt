@@ -35,7 +35,7 @@ class OnyxReceiver(
                 key = [$$"${app.queue.onyx.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.onyx.concurrency:1}"
+        concurrency = $$"${app.queue.onyx.consumersPerQueue:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received Onyx job message for jobId ${message.id}")

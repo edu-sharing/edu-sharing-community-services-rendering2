@@ -15,7 +15,7 @@
     {
       "type": "timeseries",
       "title": "Aktive Consumer-Threads pro Queue",
-      "description": "rendering_queue_consumers_active — die Ebene-1-Auto-Scaling-Kurve.",
+      "description": "rendering_queue_consumers_active — gerade verarbeitete Nachrichten (aktive Consumer) pro Queue auf einer Instanz (DMLC + Virtual Threads, kein Autoscale-Ramp).",
       "datasource": { "type": "prometheus", "uid": "rs2prom" },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "stepAfter": true } }, "overrides": [] },

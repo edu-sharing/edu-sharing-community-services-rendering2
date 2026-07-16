@@ -63,27 +63,25 @@ services:
       app.s3.checksumCalculationWhenRequired: false
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
-      # Per-queue consumer count (concurrentConsumers). Plain number ("5") fixes the count;
-      # a range ("1-5") enables auto-scaling. Default 1.
-      app.queue.job.concurrency: "${RENDERING2_QUEUE_JOB_CONCURRENCY:-100}"
-      app.queue.image.concurrency: "${RENDERING2_QUEUE_IMAGE_CONCURRENCY:-10}"
-      app.queue.av.concurrency: "${RENDERING2_QUEUE_AV_CONCURRENCY:-2}"
-      app.queue.moodle.concurrency: "${RENDERING2_QUEUE_MOODLE_CONCURRENCY:-1}"
-      app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-10}"
-      app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-10}"
-      app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-10}"
-      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-1-200}"
-      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-1-200}"
-      app.queue.binder.concurrency: "${RENDERING2_QUEUE_BINDER_CONCURRENCY:-1}"
-      app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
-      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-1-200}"
-      app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-1}"
-      # Per-queue prefetch (unacked messages buffered per consumer). Only effective for the
-      # lightweight API-passthrough queues that ship a QueueContainerConfig; a value > 1
-      # removes the per-message broker round-trip between short jobs. Others stay at 1.
-      app.queue.sodix.prefetch: "${RENDERING2_QUEUE_SODIX_PREFETCH:-3}"
-      app.queue.omega.prefetch: "${RENDERING2_QUEUE_OMEGA_PREFETCH:-3}"
-      app.queue.ddb.prefetch: "${RENDERING2_QUEUE_DDB_PREFETCH:-3}"
+      # Per-queue consumer count for the DirectMessageListenerContainer (consumersPerQueue): how many
+      # consumers are registered at the broker per queue. A burst is fanned out to all of them at once
+      # (no auto-scale ramp); idle consumers cost nothing (shared virtual-thread executor). Size the
+      # CPU-in-JVM queues (image, eduHtml) and ffmpeg (av) against cores; pure-wait queues can go higher.
+      app.queue.job.consumersPerQueue: "${RENDERING2_QUEUE_JOB_CONSUMERS:-20}"
+      app.queue.image.consumersPerQueue: "${RENDERING2_QUEUE_IMAGE_CONSUMERS:-4}"
+      app.queue.av.consumersPerQueue: "${RENDERING2_QUEUE_AV_CONSUMERS:-2}"
+      app.queue.moodle.consumersPerQueue: "${RENDERING2_QUEUE_MOODLE_CONSUMERS:-1}"
+      app.queue.eduHtml.consumersPerQueue: "${RENDERING2_QUEUE_EDUHTML_CONSUMERS:-5}"
+      app.queue.document.consumersPerQueue: "${RENDERING2_QUEUE_DOCUMENT_CONSUMERS:-8}"
+      app.queue.jupyter.consumersPerQueue: "${RENDERING2_QUEUE_JUPYTER_CONSUMERS:-8}"
+      app.queue.sodix.consumersPerQueue: "${RENDERING2_QUEUE_SODIX_CONSUMERS:-25}"
+      app.queue.omega.consumersPerQueue: "${RENDERING2_QUEUE_OMEGA_CONSUMERS:-25}"
+      app.queue.binder.consumersPerQueue: "${RENDERING2_QUEUE_BINDER_CONSUMERS:-1}"
+      app.queue.binderPreview.consumersPerQueue: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONSUMERS:-1}"
+      app.queue.ddb.consumersPerQueue: "${RENDERING2_QUEUE_DDB_CONSUMERS:-25}"
+      app.queue.onyx.consumersPerQueue: "${RENDERING2_QUEUE_ONYX_CONSUMERS:-8}"
+      # Unacked messages buffered per consumer (broker round-trip amortization); one global default.
+      app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database

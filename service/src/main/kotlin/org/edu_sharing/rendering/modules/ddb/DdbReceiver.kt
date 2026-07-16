@@ -28,7 +28,7 @@ class DdbReceiver(
                 key = [$$"${app.queue.ddb.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.ddb.concurrency:1}"
+        concurrency = $$"${app.queue.ddb.consumersPerQueue:1}"
     )
     fun receiveMessage(message: DdbJobMessage) {
         log.debug("Received DDB job message for jobId ${message.id}, remoteId ${message.remoteId}")

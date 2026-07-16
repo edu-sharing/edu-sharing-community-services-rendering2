@@ -35,7 +35,7 @@ class BinderPreviewReceiver(
                 key = [$$"${app.queue.binderPreview.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.binderPreview.concurrency:1}"
+        concurrency = $$"${app.queue.binderPreview.consumersPerQueue:1}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder preview message received: subJobId={}", message.subJobId)

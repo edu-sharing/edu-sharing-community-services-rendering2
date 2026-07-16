@@ -54,7 +54,7 @@ class AvReceiver(
             )
         ],
         containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.av.concurrency:1}"
+        concurrency = $$"${app.queue.av.consumersPerQueue:1}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received AV sub-job message: id=${message.id}, quality=${message.quality}")

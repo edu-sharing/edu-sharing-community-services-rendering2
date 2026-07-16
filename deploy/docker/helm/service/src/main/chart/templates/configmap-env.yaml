@@ -11,16 +11,11 @@ data:
   S3_PORT: {{ .Values.config.s3.port | quote }}
   RABBITMQ_HOST: {{ .Values.config.rabbitmq.host | quote }}
   RABBITMQ_PORT: {{ .Values.config.rabbitmq.port | quote }}
-  {{- range $q, $v := .Values.config.queue.concurrency }}
-  "app.queue.{{ $q }}.concurrency": {{ $v | quote }}
+  {{- range $q, $v := .Values.config.queue.consumersPerQueue }}
+  "app.queue.{{ $q }}.consumersPerQueue": {{ $v | quote }}
   {{- end }}
-  {{- range $q, $v := .Values.config.queue.prefetch }}
-  "app.queue.{{ $q }}.prefetch": {{ $v | quote }}
-  {{- end }}
-  {{- range $q, $knobs := .Values.config.queue.scaling }}
-  {{- range $k, $v := $knobs }}
-  "app.queue.{{ $q }}.scaling.{{ $k }}": {{ $v | quote }}
-  {{- end }}
+  {{- with .Values.config.queue.prefetch }}
+  "app.queue.prefetch": {{ . | quote }}
   {{- end }}
   REDIS_HOST: {{ .Values.config.redis.host | quote }}
   REDIS_PORT: {{ .Values.config.redis.port | quote }}

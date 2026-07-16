@@ -595,80 +595,42 @@ config:
     password: ""
 
   queue:
-    ## Per-queue consumer count (concurrentConsumers). A plain number ("5") fixes the count;
-    ## a range ("1-5") enables auto-scaling between min and max.
-    concurrency:
-      ## @param config.queue.concurrency.job Set consumer count for the job dispatch queue
-      job: "100"
-      ## @param config.queue.concurrency.image Set consumer count for the image queue
-      image: "10"
-      ## @param config.queue.concurrency.av Set consumer count for the audio/video queue
-      av: "1"
-      ## @param config.queue.concurrency.moodle Set consumer count for the moodle queue
+    ## Per-queue consumer count for the DirectMessageListenerContainer (consumersPerQueue): how many
+    ## consumers are registered at the broker for each queue. A burst is fanned out to all of them at
+    ## once (no auto-scale ramp); idle consumers cost nothing because the listener executor uses
+    ## virtual threads. These values are shared by every role deployment, so they are kept conservative
+    ## enough for co-located profiles (worker/aio) where image (CPU-in-JVM), eduHtml (in-JVM unzip) and
+    ## av (ffmpeg) compete for the same cores — raise them for dedicated converter/avconverter pods.
+    consumersPerQueue:
+      ## @param config.queue.consumersPerQueue.job Consumer count for the job dispatch queue
+      job: "20"
+      ## @param config.queue.consumersPerQueue.image Consumer count for the image queue (CPU-in-JVM; size ~ pod cores)
+      image: "4"
+      ## @param config.queue.consumersPerQueue.av Consumer count for the audio/video queue (each spawns an ffmpeg process)
+      av: "2"
+      ## @param config.queue.consumersPerQueue.moodle Consumer count for the moodle queue (single-active, keep 1)
       moodle: "1"
-      ## @param config.queue.concurrency.eduHtml Set consumer count for the eduHtml queue
-      eduHtml: "10"
-      ## @param config.queue.concurrency.document Set consumer count for the document queue
-      document: "10"
-      ## @param config.queue.concurrency.jupyter Set consumer count for the jupyter queue
-      jupyter: "10"
-      ## @param config.queue.concurrency.sodix Set consumer count for the sodix queue
-      sodix: "30-200"
-      ## @param config.queue.concurrency.omega Set consumer count for the omega queue
-      omega: "1-200"
-      ## @param config.queue.concurrency.binder Set consumer count for the binder queue
+      ## @param config.queue.consumersPerQueue.eduHtml Consumer count for the eduHtml queue (in-JVM unzip; shares CPU with image)
+      eduHtml: "5"
+      ## @param config.queue.consumersPerQueue.document Consumer count for the document queue (bounded by the remote converter)
+      document: "8"
+      ## @param config.queue.consumersPerQueue.jupyter Consumer count for the jupyter queue (bounded by the remote converter)
+      jupyter: "8"
+      ## @param config.queue.consumersPerQueue.sodix Consumer count for the sodix queue
+      sodix: "25"
+      ## @param config.queue.consumersPerQueue.omega Consumer count for the omega queue
+      omega: "25"
+      ## @param config.queue.consumersPerQueue.binder Consumer count for the binder queue
       binder: "1"
-      ## @param config.queue.concurrency.binderPreview Set consumer count for the binder preview queue
+      ## @param config.queue.consumersPerQueue.binderPreview Consumer count for the binder preview queue
       binderPreview: "1"
-      ## @param config.queue.concurrency.ddb Set consumer count for the ddb queue
-      ddb: "1-200"
-      ## @param config.queue.concurrency.onyx Set consumer count for the onyx queue
-      onyx: "1"
+      ## @param config.queue.consumersPerQueue.ddb Consumer count for the ddb queue
+      ddb: "25"
+      ## @param config.queue.consumersPerQueue.onyx Consumer count for the onyx queue
+      onyx: "8"
 
-    ## Per-queue prefetch (unacked messages buffered per consumer). Only effective for the
-    ## lightweight API-passthrough queues that ship a QueueContainerConfig; a value > 1 removes
-    ## the per-message broker round-trip between short jobs. Add a key here to tune another queue.
-    prefetch:
-      ## @param config.queue.prefetch.sodix Set prefetch for the sodix queue
-      sodix: "1"
-      ## @param config.queue.prefetch.omega Set prefetch for the omega queue
-      omega: "3"
-      ## @param config.queue.prefetch.ddb Set prefetch for the ddb queue
-      ddb: "3"
-
-    ## Per-queue burst auto-scaling profiles for the lightweight API-passthrough queues (sodix,
-    ## omega, ddb): how fast each queue's consumers scale up/down within its "min-max" concurrency
-    ## range. Each queue is tuned independently; any key left unset falls back to the Spring AMQP
-    ## framework default (start 10000 / stop 60000 / triggers 10). Bound to
-    ## app.queue.scaling.<queue>.* (QueueScalingProperties).
-    scaling:
-      sodix:
-        ## @param config.queue.scaling.sodix.startConsumerMinInterval Min ms between starting consumers (lower = faster scale-up)
-        startConsumerMinInterval: "1000"
-        ## @param config.queue.scaling.sodix.stopConsumerMinInterval Min ms between stopping consumers (lower = faster scale-down)
-        stopConsumerMinInterval: "1000"
-        ## @param config.queue.scaling.sodix.consecutiveActiveTrigger Consecutive busy cycles before adding a consumer
-        consecutiveActiveTrigger: "1"
-        ## @param config.queue.scaling.sodix.consecutiveIdleTrigger Consecutive idle cycles before removing a consumer
-        consecutiveIdleTrigger: "3"
-      omega:
-        ## @param config.queue.scaling.omega.startConsumerMinInterval Min ms between starting consumers (lower = faster scale-up)
-        startConsumerMinInterval: "1000"
-        ## @param config.queue.scaling.omega.stopConsumerMinInterval Min ms between stopping consumers (lower = faster scale-down)
-        stopConsumerMinInterval: "1000"
-        ## @param config.queue.scaling.omega.consecutiveActiveTrigger Consecutive busy cycles before adding a consumer
-        consecutiveActiveTrigger: "1"
-        ## @param config.queue.scaling.omega.consecutiveIdleTrigger Consecutive idle cycles before removing a consumer
-        consecutiveIdleTrigger: "3"
-      ddb:
-        ## @param config.queue.scaling.ddb.startConsumerMinInterval Min ms between starting consumers (lower = faster scale-up)
-        startConsumerMinInterval: "1000"
-        ## @param config.queue.scaling.ddb.stopConsumerMinInterval Min ms between stopping consumers (lower = faster scale-down)
-        stopConsumerMinInterval: "1000"
-        ## @param config.queue.scaling.ddb.consecutiveActiveTrigger Consecutive busy cycles before adding a consumer
-        consecutiveActiveTrigger: "1"
-        ## @param config.queue.scaling.ddb.consecutiveIdleTrigger Consecutive idle cycles before removing a consumer
-        consecutiveIdleTrigger: "3"
+    ## @param config.queue.prefetch Unacked messages buffered per consumer (broker round-trip amortization); one global value for all queues
+    prefetch: "1"
 
   redis:
     ## @param config.redis.host Set redis host

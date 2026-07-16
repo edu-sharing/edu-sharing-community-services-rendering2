@@ -17,17 +17,11 @@ import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
 import org.edu_sharing.rendering.modules.omega.OmegaApiCallerService
-import org.edu_sharing.rendering.modules.omega.OmegaQueueConfig
-import org.edu_sharing.rendering.modules.omega.OmegaQueueProperties
 import org.edu_sharing.rendering.modules.omega.OmegaReceiver
 import org.edu_sharing.rendering.modules.onyx.OnyxReceiver
 import org.edu_sharing.rendering.modules.onyx.OnyxUploadService
 import org.edu_sharing.rendering.modules.sodix.SodixApiCallerService
-import org.edu_sharing.rendering.modules.sodix.SodixQueueConfig
-import org.edu_sharing.rendering.modules.sodix.SodixQueueProperties
 import org.edu_sharing.rendering.modules.sodix.SodixReceiver
-import org.edu_sharing.rendering.renderingJob.queue.JobQueueProperties
-import org.edu_sharing.rendering.renderingJob.queue.JobQueueQueueConfig
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -56,8 +50,6 @@ class ConverterRoleTest(
             EduHtmlReceiver::class,
             ImageConversionService::class,
             ImageReceiver::class,
-            JobQueueProperties::class,
-            JobQueueQueueConfig::class,
             JupyterReceiver::class,
             JupyterConversionService::class,
             JupyterConverterConfig::class,
@@ -67,14 +59,10 @@ class ConverterRoleTest(
             MoodleUploadService::class,
             OmegaApiCallerService::class,
             OmegaReceiver::class,
-            OmegaQueueConfig::class,
-            OmegaQueueProperties::class,
             OnyxReceiver::class,
             OnyxUploadService::class,
             SodixApiCallerService::class,
-            SodixReceiver::class,
-            SodixQueueConfig::class,
-            SodixQueueProperties::class
+            SodixReceiver::class
         )
     }
 

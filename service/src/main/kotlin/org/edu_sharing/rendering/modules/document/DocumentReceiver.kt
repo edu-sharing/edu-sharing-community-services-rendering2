@@ -40,7 +40,7 @@ class DocumentReceiver (
                 key = [$$"${app.queue.document.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.document.concurrency:1}"
+        concurrency = $$"${app.queue.document.consumersPerQueue:1}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received document conversion message: id=${message.id}")

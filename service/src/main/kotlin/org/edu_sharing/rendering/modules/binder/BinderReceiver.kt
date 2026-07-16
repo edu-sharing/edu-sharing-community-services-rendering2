@@ -31,7 +31,7 @@ class BinderReceiver(
                 key = [$$"${app.queue.binder.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.binder.concurrency:1}"
+        concurrency = $$"${app.queue.binder.consumersPerQueue:1}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder upload message received: subJobId={}", message.subJobId)
