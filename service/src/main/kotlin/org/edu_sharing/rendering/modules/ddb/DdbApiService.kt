@@ -19,7 +19,8 @@ class DdbApiService(
     private val renderingJobRepository: RenderingJobRepository,
     private val moduleRegistry: ModuleRegistry,
     private val subJobRepository: SubJobRepository,
-    private val webClientBuilder: WebClient.Builder
+    private val webClientBuilder: WebClient.Builder,
+    private val ddbApiProperties: DdbApiProperties
 ) {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
@@ -66,7 +67,7 @@ class DdbApiService(
         val restResponse = callRestApi(remoteId, apiToken)
         val sizes = callIiifApi(restResponse.binaryRef, apiToken)
         val additionalData = mutableMapOf(
-            "linkTemplate" to "${DdbRenderModule.IIIF_API_BASE_URL}/${restResponse.binaryRef}/full/!${DdbRenderModule.Companion.WIDTH_PLACEHOLDER},${DdbRenderModule.Companion.HEIGHT_PLACEHOLDER}/0/default.jpg",
+            "linkTemplate" to "${ddbApiProperties.iiifApiBaseUrl}/${restResponse.binaryRef}/full/!${DdbRenderModule.Companion.WIDTH_PLACEHOLDER},${DdbRenderModule.Companion.HEIGHT_PLACEHOLDER}/0/default.jpg",
             "widthPlaceHolder" to DdbRenderModule.WIDTH_PLACEHOLDER,
             "heightPlaceHolder" to DdbRenderModule.HEIGHT_PLACEHOLDER,
             "institution" to restResponse.institution,
@@ -80,8 +81,8 @@ class DdbApiService(
     }
 
     private fun callRestApi(remoteId: String, apiToken: String): DdbRestData {
-        log.debug("Calling DDB REST API for remoteId $remoteId at ${DdbRenderModule.REST_API_BASE_URL}")
-        val webClient = webClientBuilder.clone().baseUrl(DdbRenderModule.REST_API_BASE_URL).build()
+        log.debug("Calling DDB REST API for remoteId $remoteId at ${ddbApiProperties.restApiBaseUrl}")
+        val webClient = webClientBuilder.clone().baseUrl(ddbApiProperties.restApiBaseUrl).build()
 
         val response = webClient
             .get()
@@ -110,8 +111,8 @@ class DdbApiService(
     }
 
     private fun callIiifApi(binaryRef: String, apiToken: String): List<Pair<Int, Int>> {
-        log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${DdbRenderModule.IIIF_API_BASE_URL}")
-        val webClient = webClientBuilder.clone().baseUrl(DdbRenderModule.Companion.IIIF_API_BASE_URL).build()
+        log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${ddbApiProperties.iiifApiBaseUrl}")
+        val webClient = webClientBuilder.clone().baseUrl(ddbApiProperties.iiifApiBaseUrl).build()
         val response = webClient
             .get()
             .uri {

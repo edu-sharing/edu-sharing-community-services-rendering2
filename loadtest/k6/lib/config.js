@@ -40,6 +40,21 @@ export const MODULES = {
   // laufenden lumi-Sidecar (Port 9112) und das optionale Modul H5P (loadtest-Profil). h5p
   // dispatcht per `type` -> mediatype MUSS "file-h5p" sein (Bucket rs2-file-h5p).
   // h5p:   { nodeId: 'TEST_loadtest/content.h5p',     mimetype: '',                          mediatype: 'file-h5p' },
+
+  // --- Drittanbieter-Import-Module (gegen den WireMock-Mock, rendering2-thirdparty-mock) ---
+  // Diese Module laden keinen lokalen Content und schreiben nichts nach S3; sie reihen einen Job
+  // ein, dessen Receiver die (gemockte) externe API aufruft. Kein Cache/Bucket -> der mediatype
+  // ist hier inert (nur nötig, damit moduleConfig() nicht laut wird). Der Dispatch in der
+  // ModuleRegistry erfolgt NICHT über mimetype/mediatype, sondern über:
+  //   sodix/omega -> Node-Property ccm:replicationsource (replicationSource)
+  //   ddb         -> node.remote.repository.repositoryType (remoteRepositoryType)
+  // Deshalb tragen diese Einträge replicationSource/replicationSourceId bzw. remote. omega
+  // fällt bei "local content" durch (fallsThroughOnLocalContent) -> location setzen, damit
+  // hasLocalContent=false ist und der replicationSource-Dispatch greift.
+  sodix:    { nodeId: 'TEST_sodix', mediatype: 'video', replicationSource: 'SODIX',  replicationSourceId: 'SODIX-LT' },
+  omega:    { nodeId: 'TEST_omega', mediatype: 'video', replicationSource: 'DE.FWU', replicationSourceId: 'FWU-LT',
+              location: 'http://loadtest.invalid/omega' },
+  ddb:      { nodeId: 'TEST_ddb',   mediatype: 'image', remote: { id: 'DDB-LT', repositoryType: 'DDB' } },
 };
 
 export function moduleConfig(key) {

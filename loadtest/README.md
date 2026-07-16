@@ -34,10 +34,11 @@ Request eindeutiger `content.hash` erzeugt jedes Mal einen Cache-Miss → echte 
 ### 1. Infrastruktur + Converter-Sidecars starten (root-compose.yml)
 
 ```bash
-docker compose up -d          # rustfs(S3), rabbitmq, mongo, redis, document-converter, jupyter, lumi
+docker compose up -d          # rustfs(S3), rabbitmq, mongo, redis, document-converter, jupyter, lumi, thirdparty-mock
 ```
 
-Ports: RabbitMQ-UI :15672 (rendering/rendering), RabbitMQ-Prometheus :15692, S3-Console :9111.
+Ports: RabbitMQ-UI :15672 (rendering/rendering), RabbitMQ-Prometheus :15692, S3-Console :9111,
+Drittanbieter-Mock (sodix/omega/ddb) :8092.
 
 ### 2. Beobachtungs-Stack starten (Prometheus + Grafana)
 
@@ -87,6 +88,9 @@ Sub-Job-Dauer p95, Durchsatz, Fehlerrate.
 | `scenarios/document.js` | DOCUMENT (txt→pdf) | document-converter :8081 |
 | `scenarios/pdf.js` | PDF (copy-through) | – |
 | `scenarios/jupyter.js` | JUPYTER | jupyter-converter :9120 |
+| `scenarios/sodix.js` | SODIX (Import) | thirdparty-mock :8092 (**Antwort 1–2 s**) |
+| `scenarios/omega.js` | OMEGA/DE.FWU (Import) | thirdparty-mock :8092 |
+| `scenarios/ddb.js` | DDB (Import, 2 API-Calls/Job) | thirdparty-mock :8092 |
 | `scenarios/all.js` | gemischt | je nach `MIX` |
 
 Profile (`-e PROFILE=`): `smoke` (Funktions-Check), `ramping` (Scaling-Kurve),
@@ -96,6 +100,44 @@ H5P ist nicht vorkonfiguriert: es braucht eine echte `.h5p`-Datei unter
 `service/src/main/resources/loadtest/`, den lumi-Sidecar (:9112) und das optionale Modul H5P
 (im loadtest-Profil aktiv). Anschließend den auskommentierten `h5p`-Eintrag in
 `k6/lib/config.js` aktivieren.
+
+## Drittanbieter-Import-Module (sodix / omega / ddb)
+
+Diese Module konvertieren nichts lokal — sie reihen einen Job ein, dessen Receiver eine externe
+API aufruft (playout-/stream-URL bzw. DDB-Metadaten auflöst). Der Lasttest fährt sie gegen einen
+**WireMock-Container** (`rendering2-thirdparty-mock`, Host-Port `:8092`), der alle drei über
+Pfad-Präfixe bedient. So lässt sich das Consumer-Scaling der `sodix_job_queue`/`omega_job_queue`/
+`ddb_job_queue` unter realistischer API-Latenz messen, ohne echte Fremdsysteme zu treffen.
+
+```bash
+k6 run -e PROFILE=ramping -e VUS=40 loadtest/k6/scenarios/sodix.js
+k6 run -e PROFILE=arrival -e RATE=30 -e DURATION=3m loadtest/k6/scenarios/omega.js
+k6 run -e PROFILE=burst   -e VUS=50 loadtest/k6/scenarios/ddb.js
+# oder gemischt:
+k6 run -e PROFILE=ramping -e VUS=40 -e MIX=sodix,omega,ddb loadtest/k6/scenarios/all.js
+```
+
+Wichtige Punkte:
+
+- **Sodix-Latenz:** Der Sodix-Stub verzögert jede Antwort um **1–2 s** (`delayDistribution`
+  `uniform` 1000–2000 ms in `mocks/wiremock/mappings/sodix.json`) — das ist der Realwert der
+  echten API. Das macht die sodix-Queue zum interessantesten Scaling-Kandidaten (langsame,
+  I/O-gebundene Consumer). Zum Variieren der Latenz nur die Werte im Mapping ändern und den
+  Container neu starten (`docker compose restart rendering2-thirdparty-mock`).
+- **Verdrahtung der URLs:** Sodix und Omega beziehen ihre `baseurl` aus den Repository-Credentials
+  (`application-loadtest.properties` → `...module.{SODIX,OMEGA}.credentials.baseurl`). DDBs
+  Basis-URLs waren früher hartkodiert; sie sind jetzt über `app.module.ddb.rest-api-base-url` /
+  `app.module.ddb.iiif-api-base-url` konfigurierbar (Default = Produktions-URLs) und zeigen im
+  loadtest-Profil auf den Mock.
+- **Dispatch:** Nicht über mimetype/mediatype, sondern über Node-Felder — sodix/omega via
+  `ccm:replicationsource` (`SODIX` bzw. `DE.FWU`), ddb via `node.remote.repository.repositoryType`
+  (`DDB`). `k6/lib/renderdata.js` setzt diese Felder anhand des Modul-Katalogs. Omega fällt bei
+  „local content" durch, daher setzt der omega-Eintrag ein `cclom:location` (→ `hasLocalContent=false`).
+- **Mappings anpassen:** Die Stubs liegen unter `loadtest/mocks/wiremock/mappings/`. WireMock lädt
+  sie beim Start; nach Änderungen Container neu starten oder das WireMock-Admin-API nutzen.
+- **Phase B (k8s):** Der Mock läuft im Cluster als eigenes Deployment (dieselben Mappings via
+  ConfigMap). Ablauf und Service-Verdrahtung siehe [`k8s/README.md`](k8s/README.md) §6 und das
+  Manifest [`k8s/thirdparty-mock.yaml`](k8s/thirdparty-mock.yaml).
 
 ## Testbedingungen variieren
 

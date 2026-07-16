@@ -107,6 +107,33 @@ services:
       - "9112:3000"
 
 
+  # Mock für die Drittanbieter-Import-APIs (sodix, omega, ddb) im Lasttest. Ein einziger
+  # WireMock-Container bedient alle drei über Pfad-Präfixe (/sodix, /omega, /ddb). Die
+  # Mappings liegen unter loadtest/mocks/wiremock/mappings. Der Service (Profil loadtest)
+  # zeigt per Credentials/Property auf http://localhost:8092/... — siehe
+  # application-loadtest.properties. --global-response-templating erlaubt es den Stubs, den
+  # angefragten Identifier zurückzuspiegeln (nötig für omega: get.identifier muss matchen).
+  # Die Sodix-Stubs verzögern die Antwort um 1–2 s (delayDistribution), um die reale API
+  # nachzubilden.
+  # --async-response-enabled: verzögerte Antworten (sodix 1–2 s) belegen KEINEN Container-Thread,
+  # sonst würde der Mock bei vielen gleichzeitigen sodix-Consumern am Thread-Pool verhungern und
+  # das Queue-Scaling verfälschen. container/async-threads großzügig für die Lastspitzen.
+  rendering2-thirdparty-mock:
+    image: wiremock/wiremock:3.9.1
+    command:
+      - "--global-response-templating"
+      - "--disable-banner"
+      - "--async-response-enabled"
+      - "true"
+      - "--async-response-threads"
+      - "100"
+      - "--container-threads"
+      - "100"
+    volumes:
+      - ./loadtest/mocks/wiremock:/home/wiremock:ro
+    ports:
+      - "8092:8080"
+
   onix-service:
     image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-onyx:2025.05.1-0"
     environment:

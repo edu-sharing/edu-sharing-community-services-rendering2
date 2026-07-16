@@ -27,13 +27,34 @@ const TERMINAL = ['FINISHED', 'FAILED', 'PARTIALLY_FAILED'];
 // dieselbe Fixture vom Classpath lädt.
 function buildNode(cfg) {
   const uniqueHash = `lt-${__VU}-${__ITER}-${Date.now()}`;
-  return {
+  const node = {
     ref: { id: cfg.nodeId, repo: REPO_ID },
     mediatype: cfg.mediatype || '',
     mimetype: cfg.mimetype || '',
     content: { hash: uniqueHash, version: '1.0' },
     properties: {},
   };
+
+  // Drittanbieter-Import-Module (sodix/omega/ddb): Dispatch-relevante Felder ergänzen. Node-
+  // Properties sind Listen (der Service liest jeweils [0]). Pro Iteration eindeutige Identifier/
+  // remoteIds, damit jede Anfrage ein eigenes externes Objekt abbildet.
+  const unique = `${__VU}-${__ITER}`;
+  if (cfg.replicationSource) {
+    node.properties['ccm:replicationsource'] = [cfg.replicationSource];
+    node.properties['ccm:replicationsourceid'] = [`${cfg.replicationSourceId}-${unique}`];
+  }
+  if (cfg.location) {
+    // cclom:location != leer -> hasLocalContent=false, damit omega nicht durchfällt.
+    node.properties['cclom:location'] = [cfg.location];
+  }
+  if (cfg.remote) {
+    node.remote = {
+      id: `${cfg.remote.id}-${unique}`,
+      repository: { repositoryType: cfg.remote.repositoryType },
+    };
+  }
+
+  return node;
 }
 
 function buildBody(cfg) {
