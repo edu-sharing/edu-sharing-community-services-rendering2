@@ -34,6 +34,7 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
         private val WWWURL_EXEMPT_MODULES = setOf(
             "SODIX",
             "BINDER",
+            "OMEGA"
         )
     }
 
