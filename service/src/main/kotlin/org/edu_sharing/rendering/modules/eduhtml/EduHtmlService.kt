@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StaticStorageService
+import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -39,7 +40,7 @@ class EduHtmlService(
 
     fun createJob(node: Node, module: String): String {
         log.debug("Creating EduHTML job for nodeId ${node.ref.id}, module $module")
-        val existingJobs = jobRepository.findAllByEsObjectId(node.ref.id)
+        val existingJobs = jobRepository.findAllByEsObjectId(node.storageNodeId())
             .filter { it.status <= RenderingJobStatus.PROCESSING }
 
         if (existingJobs.isNotEmpty()) {

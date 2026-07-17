@@ -41,11 +41,13 @@ class H5pRenderModuleTest {
         // Arrange
         val node = mockk<Node>()
         every { node.ref.id } returns "node123"
+        every { node.aspects } returns null
         every { node.content!!.hash } returns "hash123"
         every { lumiContentManagementServiceMock.getContentId("node123", "hash123") } returns "lumiid123"
 
         excludeRecords {
             node.ref.id
+            node.aspects
             node.content!!.hash
         }
 
@@ -67,12 +69,14 @@ class H5pRenderModuleTest {
         // Arrange
         val node = mockk<Node>()
         every { node.ref.id } returns "node123"
+        every { node.aspects } returns null
         every { node.content!!.hash } returns "hash123"
         every { lumiContentManagementServiceMock.getContentId("node123", "hash123") } returns null
         every { h5pJobServiceMock.createJob(node, "H5P") } returns "job123"
 
         excludeRecords {
             node.ref.id
+            node.aspects
             node.content!!.hash
         }
 
