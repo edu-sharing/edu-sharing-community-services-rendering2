@@ -65,6 +65,16 @@ import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
 import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
 import org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport
 import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
+import org.edu_sharing.rendering.modules.av.AvQueueProperties
+import org.edu_sharing.rendering.modules.document.DocumentQueueProperties
+import org.edu_sharing.rendering.modules.eduhtml.EduHtmlQueueProperties
+import org.edu_sharing.rendering.modules.h5p.H5pQueueProperties
+import org.edu_sharing.rendering.modules.image.ImageQueueProperties
+import org.edu_sharing.rendering.modules.jupyter.JupyterQueueProperties
+import org.edu_sharing.rendering.modules.omega.OmegaQueueProperties
+import org.edu_sharing.rendering.modules.onyx.OnyxQueueProperties
+import org.edu_sharing.rendering.modules.sodix.SodixQueueProperties
+import org.edu_sharing.rendering.renderingJob.queue.JobQueueProperties
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.renderingJob.queue.QueueProperties
 import org.edu_sharing.rendering.renderingJob.repository.CustomRenderingJobRepositoryImpl
@@ -89,8 +99,11 @@ abstract class SharedBeans {
             AudioService::class,
             AuthHeaderProvider::class,
             AvModuleTypeMapper::class,
+            AvQueueProperties::class,
             BinderMainJobLogic::class,
+            BinderPreviewQueueProperties::class,
             BinderPreviewService::class,
+            BinderQueueProperties::class,
             BinderRenderModule::class,
             BinderRenderModuleTypeMapper::class,
             BinderService::class,
@@ -110,24 +123,31 @@ abstract class SharedBeans {
             DdbApiService::class,
             DdbImportConfig::class,
             DdbJobService::class,
+            DdbQueueProperties::class,
             DdbRenderModule::class,
             DdbRenderModuleTypeMapper::class,
             DocumentModuleTypeMapper::class,
+            DocumentQueueProperties::class,
             DocumentRenderModule::class,
             DocumentService::class,
+            EduHtmlQueueProperties::class,
             EduHtmlRenderModule::class,
             EduHtmlRenderModuleTypeMapper::class,
             EduHtmlService::class,
             EncryptionService::class,
             H5pJobService::class,
+            H5pQueueProperties::class,
             H5pRenderModule::class,
             H5pRenderModuleTypeMapper::class,
             HtmlRenderModule::class,
+            ImageQueueProperties::class,
             ImageRenderModule::class,
             ImageRenderModuleTypeMapper::class,
             ImageService::class,
             ImportListenerContainerFactorySupport::class,
+            JobQueueProperties::class,
             JupyterJobService::class,
+            JupyterQueueProperties::class,
             JupyterRenderModule::class,
             JupyterRenderModuleTypeMapper::class,
             JwtUtils::class,
@@ -141,6 +161,7 @@ abstract class SharedBeans {
             ModulePermissionService::class,
             ModuleRegistry::class,
             MongoConfig::class,
+            MoodleQueueProperties::class,
             MoodleRenderModule::class,
             MoodleRenderModuleTypeMapper::class,
             MoodleJobService::class,
@@ -148,8 +169,10 @@ abstract class SharedBeans {
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
             OmegaImportConfig::class,
+            OmegaQueueProperties::class,
             OmegaRenderModule::class,
             OmegaRenderModuleTypeMapper::class,
+            OnyxQueueProperties::class,
             OnyxRenderModule::class,
             PermissionEvaluator::class,
             PdfRenderModule::class,
@@ -176,6 +199,7 @@ abstract class SharedBeans {
             SessionConfig::class,
             ShedLockConfig::class,
             SodixImportConfig::class,
+            SodixQueueProperties::class,
             SodixRenderModule::class,
             SodixRenderModuleTypeMapper::class,
             SpreadsheetRenderModule::class,

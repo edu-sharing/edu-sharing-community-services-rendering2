@@ -30,7 +30,7 @@ class EduHtmlService(
     @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value($$"${app.queue.eduHtml.key}")
+    @Value($$"${app.queue.edu-html.key}")
     lateinit var jobRoutingKey: String
 
     companion object {

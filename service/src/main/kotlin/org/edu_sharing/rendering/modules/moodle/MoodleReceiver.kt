@@ -38,19 +38,19 @@ class MoodleReceiver (
             // topic exchange).
             QueueBinding(
                 value = Queue(
-                    name = "#{queueProperties.moodle.name}",
+                    name = "#{moodleQueueProperties.name}",
                     durable = "false",
                     arguments = [Argument(
                         name = "x-single-active-consumer",
-                        value = "#{queueProperties.moodle.singleActiveConsumer}",
+                        value = "#{moodleQueueProperties.singleActiveConsumer}",
                         type = "java.lang.Boolean"
                     )]
                 ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.moodle.key}"]
+                key = ["#{moodleQueueProperties.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.moodle.effectiveConcurrency}"
+        concurrency = "#{moodleQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: MoodleJobMessage) {
         log.debug("Received Moodle job message for jobId ${message.id}, nodeId ${message.nodeId}")

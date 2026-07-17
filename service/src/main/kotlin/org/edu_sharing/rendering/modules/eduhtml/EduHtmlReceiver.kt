@@ -32,12 +32,12 @@ class EduHtmlReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{queueProperties.eduHtml.name}", durable = "false"),
+                value = Queue(name = "#{eduHtmlQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.eduHtml.key}"]
+                key = ["#{eduHtmlQueueProperties.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.eduHtml.effectiveConcurrency}"
+        concurrency = "#{eduHtmlQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Message received: {}", message)

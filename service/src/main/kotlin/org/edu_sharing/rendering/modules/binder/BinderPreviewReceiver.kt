@@ -32,12 +32,12 @@ class BinderPreviewReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{queueProperties.binderPreview.name}", durable = "false"),
+                value = Queue(name = "#{binderPreviewQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.binderPreview.key}"]
+                key = ["#{binderPreviewQueueProperties.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.binderPreview.effectiveConcurrency}"
+        concurrency = "#{binderPreviewQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder preview message received: subJobId={}", message.subJobId)

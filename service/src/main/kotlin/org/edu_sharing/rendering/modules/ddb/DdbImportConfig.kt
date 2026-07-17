@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.rendering.config.WebClientConfig
 import org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport
-import org.edu_sharing.rendering.renderingJob.queue.QueueProperties
 import org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer
 import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory
 import org.springframework.context.annotation.Bean
@@ -20,9 +19,8 @@ import reactor.netty.resources.ConnectionProvider
 class DdbImportConfig(
     private val webClientConfig: WebClientConfig,
     private val importListenerContainerFactorySupport: ImportListenerContainerFactorySupport,
-    queueProperties: QueueProperties,
+    private val spec: DdbQueueProperties,
 ) {
-    private val spec = queueProperties.ddb
     private val connectionProvider: ConnectionProvider =
         webClientConfig.importConnectionProvider("ddb", spec.concurrency)
 

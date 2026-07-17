@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.sodix
 
 import org.edu_sharing.rendering.config.WebClientConfig
 import org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport
-import org.edu_sharing.rendering.renderingJob.queue.QueueProperties
 import org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer
 import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory
 import org.springframework.context.annotation.Bean
@@ -21,9 +20,8 @@ import reactor.netty.resources.ConnectionProvider
 class SodixImportConfig(
     private val webClientConfig: WebClientConfig,
     private val importListenerContainerFactorySupport: ImportListenerContainerFactorySupport,
-    queueProperties: QueueProperties,
+    private val spec: SodixQueueProperties,
 ) {
-    private val spec = queueProperties.sodix
     private val connectionProvider: ConnectionProvider =
         webClientConfig.importConnectionProvider("sodix", spec.concurrency)
 

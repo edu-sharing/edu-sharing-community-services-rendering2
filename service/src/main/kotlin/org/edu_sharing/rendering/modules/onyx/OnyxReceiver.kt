@@ -30,12 +30,12 @@ class OnyxReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{queueProperties.onyx.name}", durable = "false"),
+                value = Queue(name = "#{onyxQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.onyx.key}"]
+                key = ["#{onyxQueueProperties.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.onyx.effectiveConcurrency}"
+        concurrency = "#{onyxQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received Onyx job message for jobId ${message.id}")

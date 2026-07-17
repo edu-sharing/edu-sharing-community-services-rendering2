@@ -28,12 +28,12 @@ class BinderReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{queueProperties.binder.name}", durable = "false"),
+                value = Queue(name = "#{binderQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.binder.key}"]
+                key = ["#{binderQueueProperties.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.binder.effectiveConcurrency}"
+        concurrency = "#{binderQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder upload message received: subJobId={}", message.subJobId)

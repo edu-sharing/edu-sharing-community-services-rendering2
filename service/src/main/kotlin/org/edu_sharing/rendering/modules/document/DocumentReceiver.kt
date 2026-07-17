@@ -35,12 +35,12 @@ class DocumentReceiver (
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{queueProperties.document.name}", durable = "false"),
+                value = Queue(name = "#{documentQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.document.key}"]
+                key = ["#{documentQueueProperties.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.document.effectiveConcurrency}"
+        concurrency = "#{documentQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received document conversion message: id=${message.id}")

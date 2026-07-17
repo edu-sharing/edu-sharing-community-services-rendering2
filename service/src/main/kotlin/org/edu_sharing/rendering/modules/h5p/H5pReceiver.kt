@@ -41,20 +41,20 @@ class H5pReceiver(
                 // each process a job in parallel. x-single-active-consumer keeps a single consumer
                 // active across all pods; the others stay on standby and take over only on failover.
                 value = Queue(
-                    name = "#{queueProperties.h5p.name}",
+                    name = "#{h5pQueueProperties.name}",
                     durable = "false",
                     arguments = [Argument(
                         name = "x-single-active-consumer",
-                        value = "#{queueProperties.h5p.singleActiveConsumer}",
+                        value = "#{h5pQueueProperties.singleActiveConsumer}",
                         type = "java.lang.Boolean"
                     )]
                 ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.h5p.key}"]
+                key = ["#{h5pQueueProperties.key}"]
             )
         ],
         containerFactory = "queueListenerContainerFactory",
-        concurrency = "#{queueProperties.h5p.effectiveConcurrency}"
+        concurrency = "#{h5pQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("H5P message received: jobId={}", message.id)

@@ -30,12 +30,12 @@ class DdbReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{queueProperties.ddb.name}", durable = "false"),
+                value = Queue(name = "#{ddbQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
-                key = ["#{queueProperties.ddb.key}"]
+                key = ["#{ddbQueueProperties.key}"]
             )
         ], containerFactory = "ddbImportListenerContainerFactory",
-        concurrency = "#{queueProperties.ddb.effectiveConcurrency}"
+        concurrency = "#{ddbQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(
         message: DdbJobMessage,
