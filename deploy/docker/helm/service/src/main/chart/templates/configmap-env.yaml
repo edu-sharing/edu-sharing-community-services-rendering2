@@ -53,10 +53,13 @@ data:
   "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
   "app.converter.image.maxPixels": {{ .Values.config.converter.image.maxPixels | quote }}
   "app.converter.video.format": {{ .Values.config.converter.video.format | quote }}
+  "app.converter.video.ffmpegThreads": {{ .Values.config.converter.video.ffmpegThreads | quote }}
+  "app.converter.video.ffmpegPreset": {{ .Values.config.converter.video.ffmpegPreset | quote }}
   "app.converter.video.mimeTypes": {{ .Values.config.converter.video.mimetypes | quote }}
   "app.converter.video.resolutions": {{ .Values.config.converter.video.resolutions | quote }}
   "app.converter.audio.mimeTypes": {{ .Values.config.converter.audio.mimetypes | quote }}
   "app.converter.audio.bitrate": {{ .Values.config.converter.audio.bitrate | quote }}
+  "app.converter.audio.ffmpegThreads": {{ .Values.config.converter.audio.ffmpegThreads | quote }}
   "app.cache.cleaner.schedule": {{ .Values.config.cache.cleaner.schedule | quote }}
   "app.cache.cleaner.threshold.lower": {{ .Values.config.cache.cleaner.threshold.lower | quote }}
   "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}

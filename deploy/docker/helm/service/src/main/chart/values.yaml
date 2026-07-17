@@ -468,6 +468,8 @@ config:
       mimetypes: audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma
       ## @param config.converter.audio.bitrate Set bitrate for audio converter
       bitrate: 160
+      ## @param config.converter.audio.ffmpegThreads Set ffmpeg threads for audio converter
+      ffmpegThreads: 1
     document:
       ## @param config.converter.document.host Set document-converter host
       host: edusharing-services-rendering2-document-converter
