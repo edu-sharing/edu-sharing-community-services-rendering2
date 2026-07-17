@@ -26,9 +26,15 @@ class CustomSubJobRepositoryImpl(
         val query = Query(Criteria.where("_id").`is`(subJobId))
         val update = Update()
         update.set("status", status.toString())
-        val collection = mongoTemplate.getCollectionName(SubJob::class.java)
-        val updateResult = mongoTemplate.updateFirst(query, update, collection)
-        log.info("acknowledged: ${updateResult.wasAcknowledged()} matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+        // Entity-class overload so the WriteConcernResolver maps SubJob -> ACKNOWLEDGED (see timeoutSubJobs);
+        // the collection-name overload leaves MongoAction.entityType null -> UNACKNOWLEDGED, on which reading
+        // matchedCount/modifiedCount below throws UnsupportedOperationException.
+        val updateResult = mongoTemplate.updateFirst(query, update, SubJob::class.java)
+        if (updateResult.wasAcknowledged()) {
+            log.info("acknowledged: true matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+        } else {
+            log.info("SubJob $subJobId status update sent (unacknowledged write)")
+        }
     }
 
     override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> {
@@ -47,8 +53,15 @@ class CustomSubJobRepositoryImpl(
         val update = Update()
             .set("status", SubJobStatus.TIMEOUT.toString())
             .set("errorMessage", errorMessage)
-        val collection = mongoTemplate.getCollectionName(SubJob::class.java)
-        val updateResult = mongoTemplate.updateMulti(query, update, collection)
-        log.info("Timed out stale sub-jobs — matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+        // Use the entity-class overload, NOT the collection-name one: the WriteConcernResolver maps
+        // SubJob -> ACKNOWLEDGED via MongoAction.entityType, which the collection-name overload leaves
+        // null -> it falls through to UNACKNOWLEDGED, and reading matchedCount/modifiedCount on an
+        // unacknowledged result throws. Guard the count read regardless, in case the concern changes.
+        val updateResult = mongoTemplate.updateMulti(query, update, SubJob::class.java)
+        if (updateResult.wasAcknowledged()) {
+            log.info("Timed out stale sub-jobs — matched: ${updateResult.matchedCount} modified: ${updateResult.modifiedCount}")
+        } else {
+            log.info("Timed out ${subJobIds.size} stale sub-job(s) (unacknowledged write)")
+        }
     }
 }
