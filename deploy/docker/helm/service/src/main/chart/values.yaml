@@ -616,8 +616,9 @@ config:
     ##  - STANDARD queues (job/image/av/eduHtml/document/jupyter/onyx/binder/binderPreview): the number of
     ##    DirectMessageListenerContainer consumers registered per pod (burst fanned out at once, no
     ##    auto-scale ramp; idle consumers cost nothing on the shared virtual-thread executor).
-    ##  - IMPORT queues (sodix/omega/ddb): K — sizes the dedicated import HTTP pool AND the broker prefetch,
-    ##    K messages run in parallel on virtual threads. Scale cluster throughput via more pods, not K.
+    ##  - REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: K — sizes
+    ##    the dedicated remote HTTP pool AND the broker prefetch, K messages run in parallel on virtual
+    ##    threads. Scale cluster throughput via more pods, not K.
     ## moodle/h5p are SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) and are therefore not
     ## listed — their concurrency is not tunable. Values are shared by every role deployment, so keep them
     ## conservative for co-located profiles (worker/aio) where image/eduHtml/av compete for the same cores;
@@ -641,15 +642,26 @@ config:
       binder: "1"
       ## @param config.queue.concurrency.binderPreview Consumers for the binder preview queue
       binderPreview: "1"
-      ## @param config.queue.concurrency.sodix Import concurrency K for the sodix queue (HTTP pool + prefetch; scale via pods)
+      ## @param config.queue.concurrency.sodix Remote concurrency K for the sodix queue (HTTP pool + prefetch; scale via pods)
       sodix: "50"
-      ## @param config.queue.concurrency.omega Import concurrency K for the omega queue (HTTP pool + prefetch; scale via pods)
+      ## @param config.queue.concurrency.omega Remote concurrency K for the omega queue (HTTP pool + prefetch; scale via pods)
       omega: "50"
-      ## @param config.queue.concurrency.ddb Import concurrency K for the ddb queue (HTTP pool + prefetch; scale via pods)
+      ## @param config.queue.concurrency.ddb Remote concurrency K for the ddb queue (HTTP pool + prefetch; scale via pods)
       ddb: "50"
 
-    ## @param config.queue.prefetch Global prefetch for STANDARD/SINGLE_ACTIVE queues (import queues derive prefetch from concurrency)
+    ## @param config.queue.prefetch Global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from concurrency)
     prefetch: "1"
+
+    ## Optional per-queue prefetch override for REMOTE queues (sodix/omega/ddb) — leave empty to derive
+    ## prefetch from concurrency (1:1 with the remote HTTP pool). Set only to run prefetch above concurrency
+    ## while jobs spend time in post-call Mongo/S3 work; must be >= concurrency (enforced at startup).
+    remotePrefetch:
+      ## @param config.queue.remotePrefetch.sodix Prefetch override for the sodix remote queue (empty = derive from concurrency)
+      sodix: ""
+      ## @param config.queue.remotePrefetch.omega Prefetch override for the omega remote queue (empty = derive from concurrency)
+      omega: ""
+      ## @param config.queue.remotePrefetch.ddb Prefetch override for the ddb remote queue (empty = derive from concurrency)
+      ddb: ""
 
   redis:
     ## @param config.redis.host Set redis host

@@ -20,7 +20,7 @@ class DdbApiService(
     private val renderingJobRepository: RenderingJobRepository,
     private val moduleRegistry: ModuleRegistry,
     private val subJobRepository: SubJobRepository,
-    @param:Qualifier("ddbImportWebClientBuilder") private val webClientBuilder: WebClient.Builder,
+    @param:Qualifier("ddbRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder,
     private val ddbApiProperties: DdbApiProperties
 ) {
 

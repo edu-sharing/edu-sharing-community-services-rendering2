@@ -41,7 +41,7 @@ class QueueConfig {
      * ffmpeg process) is bounded per queue by its `concurrency` and physically by the role split, not by a
      * thread pool. Prefetch is a single global value ([QueueProperties.prefetch]) — a
      * `DirectRabbitListenerContainerFactory`'s prefetch applies to every container it builds, so it cannot be
-     * per-queue here; per-queue prefetch exists only for IMPORT queues via their own factory.
+     * per-queue here; per-queue prefetch exists only for REMOTE queues via their own factory.
      */
     @Bean
     fun queueListenerContainerFactory(
@@ -68,11 +68,11 @@ class QueueConfig {
     }
 
     /**
-     * The high-fan-out **import** queues (sodix, omega, ddb — [QueueMode.IMPORT]) do NOT use this factory.
+     * The high-fan-out **remote** queues (sodix, omega, ddb — [QueueMode.REMOTE]) do NOT use this factory.
      * They decouple consumption from processing via [AsyncAckDispatcher] on a per-module listener container
-     * built by [org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport] — each
-     * import module wires its own factory sized from its [QueueSpec] (K = `app.queue.<x>.concurrency`) so the
-     * queues are tuned independently. See the `*ImportConfig` classes in the sodix/omega/ddb modules.
+     * built by [org.edu_sharing.rendering.renderingJob.queue.RemoteListenerContainerFactorySupport] — each
+     * remote module wires its own factory sized from its [QueueSpec] (K = `app.queue.<x>.concurrency`) so the
+     * queues are tuned independently. See the `*RemoteConfig` classes in the sodix/omega/ddb modules.
      */
 
     /**

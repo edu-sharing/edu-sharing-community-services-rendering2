@@ -52,18 +52,18 @@ import org.edu_sharing.rendering.modules.moodle.*
 import org.edu_sharing.rendering.modules.noConversion.HtmlRenderModule
 import org.edu_sharing.rendering.modules.noConversion.NoConversionModuleTypeMapper
 import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
-import org.edu_sharing.rendering.modules.omega.OmegaImportConfig
+import org.edu_sharing.rendering.modules.omega.OmegaRemoteConfig
 import org.edu_sharing.rendering.modules.omega.OmegaRenderModule
 import org.edu_sharing.rendering.modules.omega.OmegaRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.onyx.OnyxRenderModule
-import org.edu_sharing.rendering.modules.sodix.SodixImportConfig
+import org.edu_sharing.rendering.modules.sodix.SodixRemoteConfig
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
 import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
-import org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport
+import org.edu_sharing.rendering.renderingJob.queue.RemoteListenerContainerFactorySupport
 import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.modules.av.AvQueueProperties
 import org.edu_sharing.rendering.modules.document.DocumentQueueProperties
@@ -121,9 +121,9 @@ abstract class SharedBeans {
             CorsConfig::class,
             DdbApiProperties::class,
             DdbApiService::class,
-            DdbImportConfig::class,
             DdbJobService::class,
             DdbQueueProperties::class,
+            DdbRemoteConfig::class,
             DdbRenderModule::class,
             DdbRenderModuleTypeMapper::class,
             DocumentModuleTypeMapper::class,
@@ -144,7 +144,6 @@ abstract class SharedBeans {
             ImageRenderModule::class,
             ImageRenderModuleTypeMapper::class,
             ImageService::class,
-            ImportListenerContainerFactorySupport::class,
             JobQueueProperties::class,
             JupyterJobService::class,
             JupyterQueueProperties::class,
@@ -168,8 +167,8 @@ abstract class SharedBeans {
             NoConversionModuleTypeMapper::class,
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
-            OmegaImportConfig::class,
             OmegaQueueProperties::class,
+            OmegaRemoteConfig::class,
             OmegaRenderModule::class,
             OmegaRenderModuleTypeMapper::class,
             OnyxQueueProperties::class,
@@ -182,6 +181,7 @@ abstract class SharedBeans {
             QueueProperties::class,
             RedisConfig::class,
             RedisStandaloneConfigurationProperties::class,
+            RemoteListenerContainerFactorySupport::class,
             RenderingMetrics::class,
             RepositoryRegistrationConfig::class,
             RepositoryRegistrationService::class,
@@ -198,8 +198,8 @@ abstract class SharedBeans {
             ServicesRenderingService2Application::class,
             SessionConfig::class,
             ShedLockConfig::class,
-            SodixImportConfig::class,
             SodixQueueProperties::class,
+            SodixRemoteConfig::class,
             SodixRenderModule::class,
             SodixRenderModuleTypeMapper::class,
             SpreadsheetRenderModule::class,

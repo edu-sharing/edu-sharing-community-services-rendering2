@@ -87,17 +87,18 @@ class WebClientConfig(
         builderWithResponseTimeout(responseTimeoutSeconds, disableSni = true)
 
     /**
-     * Creates a dedicated Reactor Netty connection pool for a high-fan-out import client (sodix, omega, ddb).
+     * Creates a dedicated Reactor Netty connection pool for a high-fan-out remote client (sodix, omega, ddb —
+     * they resolve a link/reference to externally-hosted material rather than importing it).
      *
      * The default pool (`HttpClient.create()`) caps at `max(cores, 8) * 2` = 16 connections per host on a
-     * 1-CPU pod, which would throttle import concurrency regardless of how high the consumer's `prefetch`
-     * or the virtual-thread count is — excess callers just queue on `pendingAcquire`. Each import module
+     * 1-CPU pod, which would throttle remote-call concurrency regardless of how high the consumer's `prefetch`
+     * or the virtual-thread count is — excess callers just queue on `pendingAcquire`. Each remote module
      * sizes its own pool to its per-pod concurrency K. `maxConnections` is applied **per remote host**, so
      * a module whose clients hit several hosts (e.g. omega's API host + edupool validation) gets K per host.
      * Kept separate from the shared default pool so document-converter/lumi are unaffected. Called from the
-     * module import configs, not exposed as a bean — the module owns the pool's lifecycle via its config.
+     * module remote configs, not exposed as a bean — the module owns the pool's lifecycle via its config.
      */
-    fun importConnectionProvider(name: String, maxConnections: Int): ConnectionProvider =
+    fun remoteConnectionProvider(name: String, maxConnections: Int): ConnectionProvider =
         ConnectionProvider.builder(name)
             .maxConnections(maxConnections)
             .pendingAcquireMaxCount(maxConnections * 2)
@@ -105,12 +106,12 @@ class WebClientConfig(
             .build()
 
     /**
-     * Builds an import [WebClient.Builder] bound to the given [connectionProvider] (see
-     * [importConnectionProvider]), inheriting the same timeouts, codec limit and b3 tracing as the shared
+     * Builds a remote [WebClient.Builder] bound to the given [connectionProvider] (see
+     * [remoteConnectionProvider]), inheriting the same timeouts, codec limit and b3 tracing as the shared
      * builders. Set [disableSni] for SNI-hostile hosts (see [noSniWebClientBuilder], e.g. omega's cp.sodis.de).
-     * Called from the module import configs so each import queue keeps its own pool + builder.
+     * Called from the module remote configs so each remote queue keeps its own pool + builder.
      */
-    fun importWebClientBuilder(connectionProvider: ConnectionProvider, disableSni: Boolean = false): WebClient.Builder =
+    fun remoteWebClientBuilder(connectionProvider: ConnectionProvider, disableSni: Boolean = false): WebClient.Builder =
         builderWithResponseTimeout(responseTimeoutSeconds, disableSni = disableSni, connectionProvider = connectionProvider)
 
     private fun builderWithResponseTimeout(

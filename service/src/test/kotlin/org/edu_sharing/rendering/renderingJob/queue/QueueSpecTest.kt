@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 class QueueSpecTest {
 
     private class TestStandard : StandardQueueProperties()
-    private class TestImport : ImportQueueProperties()
+    private class TestRemote : RemoteQueueProperties()
     private class TestSingleActive : SingleActiveQueueProperties()
 
     @Test
@@ -24,8 +24,8 @@ class QueueSpecTest {
     }
 
     @Test
-    fun `IMPORT registers a single channel regardless of concurrency`() {
-        assertEquals(1, TestImport().apply { concurrency = 50 }.effectiveConcurrency)
+    fun `REMOTE registers a single channel regardless of concurrency`() {
+        assertEquals(1, TestRemote().apply { concurrency = 50 }.effectiveConcurrency)
     }
 
     @Test
@@ -37,18 +37,18 @@ class QueueSpecTest {
     fun `singleActiveConsumer is true only for SINGLE_ACTIVE`() {
         assertTrue(TestSingleActive().singleActiveConsumer)
         assertFalse(TestStandard().singleActiveConsumer)
-        assertFalse(TestImport().singleActiveConsumer)
+        assertFalse(TestRemote().singleActiveConsumer)
     }
 
     @Test
-    fun `import prefetch defaults to concurrency and honours an explicit override`() {
-        assertEquals(50, TestImport().apply { concurrency = 50 }.effectiveImportPrefetch)
-        assertEquals(80, TestImport().apply { concurrency = 50; prefetch = 80 }.effectiveImportPrefetch)
+    fun `remote prefetch defaults to concurrency and honours an explicit override`() {
+        assertEquals(50, TestRemote().apply { concurrency = 50 }.effectiveRemotePrefetch)
+        assertEquals(80, TestRemote().apply { concurrency = 50; prefetch = 80 }.effectiveRemotePrefetch)
     }
 
     @Test
-    fun `validate rejects an import prefetch below concurrency`() {
-        val spec = TestImport().apply { concurrency = 50; prefetch = 10 }
-        assertThrows(IllegalArgumentException::class.java) { spec.validateImportPrefetch() }
+    fun `validate rejects a remote prefetch below concurrency`() {
+        val spec = TestRemote().apply { concurrency = 50; prefetch = 10 }
+        assertThrows(IllegalArgumentException::class.java) { spec.validateRemotePrefetch() }
     }
 }

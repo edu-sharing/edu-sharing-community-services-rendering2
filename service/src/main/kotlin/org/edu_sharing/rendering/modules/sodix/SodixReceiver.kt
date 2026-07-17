@@ -41,7 +41,7 @@ class SodixReceiver(
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{sodixQueueProperties.key}"]
             )
-        ], containerFactory = "sodixImportListenerContainerFactory",
+        ], containerFactory = "sodixRemoteListenerContainerFactory",
         concurrency = "#{sodixQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(

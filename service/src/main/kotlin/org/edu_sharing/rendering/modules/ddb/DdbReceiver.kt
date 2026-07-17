@@ -34,7 +34,7 @@ class DdbReceiver(
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{ddbQueueProperties.key}"]
             )
-        ], containerFactory = "ddbImportListenerContainerFactory",
+        ], containerFactory = "ddbRemoteListenerContainerFactory",
         concurrency = "#{ddbQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(

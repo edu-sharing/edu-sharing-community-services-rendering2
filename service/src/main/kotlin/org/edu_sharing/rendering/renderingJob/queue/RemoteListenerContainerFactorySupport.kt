@@ -11,20 +11,21 @@ import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.stereotype.Component
 
 /**
- * Reusable factory for the decoupled **import** queues' listener containers (sodix, omega, ddb).
+ * Reusable factory for the decoupled **remote** queues' listener containers (sodix, omega, ddb — they
+ * resolve a link/reference to externally-hosted material rather than importing it).
  *
- * The container mechanism is identical across the import modules — MANUAL ack (the [AsyncAckDispatcher]
+ * The container mechanism is identical across the remote modules — MANUAL ack (the [AsyncAckDispatcher]
  * owns the ack/nack once the offloaded work finishes), a single consumer/channel per pod, and a
  * per-consumer `prefetch` of K messages processed on virtual threads — so it lives here once. Each
- * import module wires its own factory bean with its own K via [create], keeping the per-queue tuning in
- * the module while the generic plumbing stays shared. See [AsyncAckDispatcher] and the module import configs.
+ * remote module wires its own factory bean with its own K via [create], keeping the per-queue tuning in
+ * the module while the generic plumbing stays shared. See [AsyncAckDispatcher] and the module remote configs.
  *
  * Deliberately **no** [org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics] advice: the
  * listener returns as soon as the work is offloaded, so the advice would only see the hand-off.
  * [AsyncAckDispatcher] updates the `rendering.queue.consumers.active` gauge from the virtual thread instead.
  */
 @Component
-class ImportListenerContainerFactorySupport(
+class RemoteListenerContainerFactorySupport(
     private val rabbitConnectionFactory: ConnectionFactory,
     private val messageConverter: MessageConverter,
     @param:Qualifier("rabbitConsumerExecutor") private val rabbitConsumerExecutor: AsyncTaskExecutor,

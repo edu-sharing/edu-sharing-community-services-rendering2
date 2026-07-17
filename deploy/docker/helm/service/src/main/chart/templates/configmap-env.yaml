@@ -17,6 +17,11 @@ data:
   {{- with .Values.config.queue.prefetch }}
   "app.queue.prefetch": {{ . | quote }}
   {{- end }}
+  {{- range $q, $v := .Values.config.queue.remotePrefetch }}
+  {{- with $v }}
+  "app.queue.{{ $q }}.prefetch": {{ . | quote }}
+  {{- end }}
+  {{- end }}
   REDIS_HOST: {{ .Values.config.redis.host | quote }}
   REDIS_PORT: {{ .Values.config.redis.port | quote }}
   MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}

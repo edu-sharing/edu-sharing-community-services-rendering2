@@ -41,7 +41,7 @@ class OmegaReceiver(
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{omegaQueueProperties.key}"]
             )
-        ], containerFactory = "omegaImportListenerContainerFactory",
+        ], containerFactory = "omegaRemoteListenerContainerFactory",
         concurrency = "#{omegaQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(

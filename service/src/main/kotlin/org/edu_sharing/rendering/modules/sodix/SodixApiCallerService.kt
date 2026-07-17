@@ -10,7 +10,7 @@ import org.springframework.web.reactive.function.client.bodyToMono
 @Service
 @ConditionalOnConverter
 class SodixApiCallerService(
-    @param:Qualifier("sodixImportWebClientBuilder") private val webClientBuilder: WebClient.Builder
+    @param:Qualifier("sodixRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
