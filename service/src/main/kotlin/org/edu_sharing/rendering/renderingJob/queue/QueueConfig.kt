@@ -66,6 +66,14 @@ class QueueConfig {
     }
 
     /**
+     * The high-fan-out **import** queues (sodix, omega, ddb) do NOT use this factory. They decouple
+     * consumption from processing via [AsyncAckDispatcher] on a per-module listener container built by
+     * [org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport] — each import
+     * module wires its own factory (with its own K) so the queues are tuned independently. See the
+     * `*ImportConfig` classes in the sodix/omega/ddb modules.
+     */
+
+    /**
      * Template config
      */
     @Bean

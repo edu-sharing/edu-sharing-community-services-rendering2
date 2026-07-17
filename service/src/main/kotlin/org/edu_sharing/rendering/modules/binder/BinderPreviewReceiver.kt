@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -17,6 +18,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
+@ConditionalOnConverter
 class BinderPreviewReceiver(
     private val binderPreviewService: BinderPreviewService,
     private val jobRepository: RenderingJobRepository,

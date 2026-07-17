@@ -50,6 +50,21 @@ class QueueConsumerMetrics(
         }
     }
 
+    /**
+     * Increment the active-consumer gauge for [queue]. Used by the async import path
+     * ([org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher]) where processing runs on a
+     * virtual thread *after* the listener returns, so the advice-chain interceptor above would only see
+     * the (instant) hand-off, not the real in-flight work. Pair every call with [finished].
+     */
+    fun started(queue: String) {
+        activeByQueue.computeIfAbsent(queue, ::registerGauge).incrementAndGet()
+    }
+
+    /** Decrement the active-consumer gauge for [queue]; counterpart to [started]. */
+    fun finished(queue: String) {
+        activeByQueue[queue]?.decrementAndGet()
+    }
+
     private fun registerGauge(queue: String): AtomicInteger {
         log.debug("Registering active-consumer gauge for queue '{}'", queue)
         val active = AtomicInteger(0)

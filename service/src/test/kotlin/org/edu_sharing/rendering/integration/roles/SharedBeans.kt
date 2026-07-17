@@ -52,14 +52,20 @@ import org.edu_sharing.rendering.modules.moodle.*
 import org.edu_sharing.rendering.modules.noConversion.HtmlRenderModule
 import org.edu_sharing.rendering.modules.noConversion.NoConversionModuleTypeMapper
 import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
+import org.edu_sharing.rendering.modules.omega.OmegaImportConfig
+import org.edu_sharing.rendering.modules.omega.OmegaImportProperties
 import org.edu_sharing.rendering.modules.omega.OmegaRenderModule
 import org.edu_sharing.rendering.modules.omega.OmegaRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.onyx.OnyxRenderModule
+import org.edu_sharing.rendering.modules.sodix.SodixImportConfig
+import org.edu_sharing.rendering.modules.sodix.SodixImportProperties
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
+import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
+import org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport
 import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.renderingJob.repository.CustomRenderingJobRepositoryImpl
@@ -79,14 +85,13 @@ abstract class SharedBeans {
         private val classBeans = setOf(
             ApiExceptionHandler::class,
             AppInfo::class,
+            AsyncAckDispatcher::class,
             AudioRenderModule::class,
             AudioService::class,
             AuthHeaderProvider::class,
             AvModuleTypeMapper::class,
             BinderMainJobLogic::class,
-            BinderPreviewReceiver::class,
             BinderPreviewService::class,
-            BinderReceiver::class,
             BinderRenderModule::class,
             BinderRenderModuleTypeMapper::class,
             BinderService::class,
@@ -104,8 +109,9 @@ abstract class SharedBeans {
             CorsConfig::class,
             DdbApiProperties::class,
             DdbApiService::class,
+            DdbImportConfig::class,
+            DdbImportProperties::class,
             DdbJobService::class,
-            DdbReceiver::class,
             DdbRenderModule::class,
             DdbRenderModuleTypeMapper::class,
             DocumentModuleTypeMapper::class,
@@ -122,6 +128,7 @@ abstract class SharedBeans {
             ImageRenderModule::class,
             ImageRenderModuleTypeMapper::class,
             ImageService::class,
+            ImportListenerContainerFactorySupport::class,
             JupyterJobService::class,
             JupyterRenderModule::class,
             JupyterRenderModuleTypeMapper::class,
@@ -142,6 +149,8 @@ abstract class SharedBeans {
             NoConversionModuleTypeMapper::class,
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
+            OmegaImportConfig::class,
+            OmegaImportProperties::class,
             OmegaRenderModule::class,
             OmegaRenderModuleTypeMapper::class,
             OnyxRenderModule::class,
@@ -168,6 +177,8 @@ abstract class SharedBeans {
             ServicesRenderingService2Application::class,
             SessionConfig::class,
             ShedLockConfig::class,
+            SodixImportConfig::class,
+            SodixImportProperties::class,
             SodixRenderModule::class,
             SodixRenderModuleTypeMapper::class,
             SpreadsheetRenderModule::class,

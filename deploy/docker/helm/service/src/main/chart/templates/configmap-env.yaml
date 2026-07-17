@@ -17,6 +17,9 @@ data:
   {{- with .Values.config.queue.prefetch }}
   "app.queue.prefetch": {{ . | quote }}
   {{- end }}
+  {{- range $m, $k := .Values.config.import.concurrency }}
+  "app.module.{{ $m }}.import.concurrency": {{ $k | quote }}
+  {{- end }}
   REDIS_HOST: {{ .Values.config.redis.host | quote }}
   REDIS_PORT: {{ .Values.config.redis.port | quote }}
   MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
@@ -60,6 +63,12 @@ data:
   "app.cache.cleaner.schedule": {{ .Values.config.cache.cleaner.schedule | quote }}
   "app.cache.cleaner.threshold.lower": {{ .Values.config.cache.cleaner.threshold.lower | quote }}
   "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}
+  "app.jobreaper.enabled": {{ .Values.config.jobreaper.enabled | quote }}
+  "app.jobreaper.schedule": {{ .Values.config.jobreaper.schedule | quote }}
+  "app.jobreaper.default-max-process-time": {{ .Values.config.jobreaper.defaultMaxProcessTime | quote }}
+  {{- range $k, $v := .Values.config.jobreaper.maxProcessTime }}
+  "app.jobreaper.max-process-time.{{ $k }}": {{ $v | quote }}
+  {{- end }}
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}

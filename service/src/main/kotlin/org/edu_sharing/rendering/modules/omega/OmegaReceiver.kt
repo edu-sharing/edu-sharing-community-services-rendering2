@@ -8,13 +8,17 @@ import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import com.rabbitmq.client.Channel
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.amqp.support.AmqpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.messaging.handler.annotation.Header
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
 
@@ -25,7 +29,8 @@ class OmegaReceiver(
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val mainJobLogic: MainJobLogic,
-    private val moduleRegistry: ModuleRegistry
+    private val moduleRegistry: ModuleRegistry,
+    private val asyncAckDispatcher: AsyncAckDispatcher
 ) {
     private val log = LoggerFactory.getLogger(OmegaReceiver::class.java)
 
@@ -36,10 +41,19 @@ class OmegaReceiver(
                 exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
                 key = [$$"${app.queue.omega.key}"]
             )
-        ], containerFactory = "queueListenerContainerFactory",
+        ], containerFactory = "omegaImportListenerContainerFactory",
         concurrency = $$"${app.queue.omega.consumersPerQueue:1}"
     )
-    fun receiveMessage(message: OmegaJobMessage) {
+    fun receiveMessage(
+        message: OmegaJobMessage,
+        channel: Channel,
+        @Header(AmqpHeaders.DELIVERY_TAG) deliveryTag: Long,
+        @Header(AmqpHeaders.CONSUMER_QUEUE) queue: String,
+    ) {
+        asyncAckDispatcher.dispatch(channel, deliveryTag, queue) { process(message) }
+    }
+
+    private fun process(message: OmegaJobMessage) {
         log.debug("Received Omega job message for jobId ${message.id}, nodeId ${message.nodeId}, identifier ${message.identifier}")
         var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {

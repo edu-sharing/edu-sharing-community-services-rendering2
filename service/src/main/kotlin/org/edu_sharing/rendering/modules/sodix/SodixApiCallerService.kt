@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.sodix
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
@@ -9,7 +10,7 @@ import org.springframework.web.reactive.function.client.bodyToMono
 @Service
 @ConditionalOnConverter
 class SodixApiCallerService(
-    private val webClientBuilder: WebClient.Builder
+    @param:Qualifier("sodixImportWebClientBuilder") private val webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 

@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 @Repository
 class CustomSubJobRepositoryImpl(
@@ -28,5 +29,26 @@ class CustomSubJobRepositoryImpl(
         val collection = mongoTemplate.getCollectionName(SubJob::class.java)
         val updateResult = mongoTemplate.updateFirst(query, update, collection)
         log.info("acknowledged: ${updateResult.wasAcknowledged()} matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+    }
+
+    override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> {
+        // status is persisted as the enum name (see updateStatusWithoutVersion); match the string form.
+        val query = Query(
+            Criteria.where("status").`is`(SubJobStatus.PROCESSING.toString())
+                .and("lastModifiedDate").lt(cutoff)
+        )
+        query.fields().include("routingKey", "lastModifiedDate", "parent")
+        return mongoTemplate.find(query, StaleSubJobView::class.java, mongoTemplate.getCollectionName(SubJob::class.java))
+    }
+
+    override fun timeoutSubJobs(subJobIds: Collection<ObjectId>, errorMessage: String) {
+        if (subJobIds.isEmpty()) return
+        val query = Query(Criteria.where("_id").`in`(subJobIds))
+        val update = Update()
+            .set("status", SubJobStatus.TIMEOUT.toString())
+            .set("errorMessage", errorMessage)
+        val collection = mongoTemplate.getCollectionName(SubJob::class.java)
+        val updateResult = mongoTemplate.updateMulti(query, update, collection)
+        log.info("Timed out stale sub-jobs — matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.Http11SslContextSpec
 import reactor.netty.http.client.HttpClient
+import reactor.netty.resources.ConnectionProvider
 import reactor.netty.tcp.SslProvider
 import java.time.Duration
 
@@ -85,11 +86,39 @@ class WebClientConfig(
     fun noSniWebClientBuilder(): WebClient.Builder =
         builderWithResponseTimeout(responseTimeoutSeconds, disableSni = true)
 
+    /**
+     * Creates a dedicated Reactor Netty connection pool for a high-fan-out import client (sodix, omega, ddb).
+     *
+     * The default pool (`HttpClient.create()`) caps at `max(cores, 8) * 2` = 16 connections per host on a
+     * 1-CPU pod, which would throttle import concurrency regardless of how high the consumer's `prefetch`
+     * or the virtual-thread count is — excess callers just queue on `pendingAcquire`. Each import module
+     * sizes its own pool to its per-pod concurrency K. `maxConnections` is applied **per remote host**, so
+     * a module whose clients hit several hosts (e.g. omega's API host + edupool validation) gets K per host.
+     * Kept separate from the shared default pool so document-converter/lumi are unaffected. Called from the
+     * module import configs, not exposed as a bean — the module owns the pool's lifecycle via its config.
+     */
+    fun importConnectionProvider(name: String, maxConnections: Int): ConnectionProvider =
+        ConnectionProvider.builder(name)
+            .maxConnections(maxConnections)
+            .pendingAcquireMaxCount(maxConnections * 2)
+            .pendingAcquireTimeout(Duration.ofSeconds(60))
+            .build()
+
+    /**
+     * Builds an import [WebClient.Builder] bound to the given [connectionProvider] (see
+     * [importConnectionProvider]), inheriting the same timeouts, codec limit and b3 tracing as the shared
+     * builders. Set [disableSni] for SNI-hostile hosts (see [noSniWebClientBuilder], e.g. omega's cp.sodis.de).
+     * Called from the module import configs so each import queue keeps its own pool + builder.
+     */
+    fun importWebClientBuilder(connectionProvider: ConnectionProvider, disableSni: Boolean = false): WebClient.Builder =
+        builderWithResponseTimeout(responseTimeoutSeconds, disableSni = disableSni, connectionProvider = connectionProvider)
+
     private fun builderWithResponseTimeout(
         responseTimeoutSeconds: Long,
         disableSni: Boolean = false,
+        connectionProvider: ConnectionProvider? = null,
     ): WebClient.Builder {
-        var httpClient = HttpClient.create()
+        var httpClient = (if (connectionProvider != null) HttpClient.create(connectionProvider) else HttpClient.create())
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis)
             .responseTimeout(Duration.ofSeconds(responseTimeoutSeconds))
         if (disableSni) {

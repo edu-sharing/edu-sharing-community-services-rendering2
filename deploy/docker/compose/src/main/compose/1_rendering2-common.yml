@@ -74,14 +74,23 @@ services:
       app.queue.eduHtml.consumersPerQueue: "${RENDERING2_QUEUE_EDUHTML_CONSUMERS:-5}"
       app.queue.document.consumersPerQueue: "${RENDERING2_QUEUE_DOCUMENT_CONSUMERS:-8}"
       app.queue.jupyter.consumersPerQueue: "${RENDERING2_QUEUE_JUPYTER_CONSUMERS:-8}"
-      app.queue.sodix.consumersPerQueue: "${RENDERING2_QUEUE_SODIX_CONSUMERS:-25}"
-      app.queue.omega.consumersPerQueue: "${RENDERING2_QUEUE_OMEGA_CONSUMERS:-25}"
+      # Import queues (sodix, omega, ddb) are DECOUPLED: one consumer/channel per pod, concurrency comes
+      # from app.module.<x>.import.concurrency on virtual threads. Keep at 1 and scale via pods, not consumers.
+      app.queue.sodix.consumersPerQueue: "${RENDERING2_QUEUE_SODIX_CONSUMERS:-1}"
+      app.queue.omega.consumersPerQueue: "${RENDERING2_QUEUE_OMEGA_CONSUMERS:-1}"
       app.queue.binder.consumersPerQueue: "${RENDERING2_QUEUE_BINDER_CONSUMERS:-1}"
       app.queue.binderPreview.consumersPerQueue: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONSUMERS:-1}"
-      app.queue.ddb.consumersPerQueue: "${RENDERING2_QUEUE_DDB_CONSUMERS:-25}"
+      app.queue.ddb.consumersPerQueue: "${RENDERING2_QUEUE_DDB_CONSUMERS:-1}"
       app.queue.onyx.consumersPerQueue: "${RENDERING2_QUEUE_ONYX_CONSUMERS:-8}"
       # Unacked messages buffered per consumer (broker round-trip amortization); one global default.
       app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
+      # Per-pod import concurrency K, per import queue (sodix/omega/ddb): the single import consumer
+      # processes up to K messages in parallel on virtual threads. `concurrency` sizes both the dedicated
+      # import HTTP pool (Reactor Netty maxConnections, per remote host) and the broker prefetch, so the
+      # two stay aligned per queue. Scale total throughput via converter pods, not by raising K.
+      app.module.sodix.import.concurrency: "${RENDERING2_IMPORT_SODIX_CONCURRENCY:-50}"
+      app.module.omega.import.concurrency: "${RENDERING2_IMPORT_OMEGA_CONCURRENCY:-50}"
+      app.module.ddb.import.concurrency: "${RENDERING2_IMPORT_DDB_CONCURRENCY:-50}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
@@ -126,6 +135,13 @@ services:
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
+      # Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs (crashed/lost conversions)
+      # so they cannot poison re-rendering until the 8-day TTL. schedule = fixed delay between runs in ms;
+      # max-process-time per routing key (ISO-8601 Duration) must exceed the longest real duration.
+      app.jobreaper.enabled: "${RENDERING2_JOBREAPER_ENABLED:-true}"
+      app.jobreaper.schedule: "${RENDERING2_JOBREAPER_SCHEDULE:-600000}"
+      app.jobreaper.default-max-process-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_PROCESS_TIME:-PT30M}"
+      app.jobreaper.max-process-time.av_job: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -148,6 +164,8 @@ services:
       app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
+      # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
+      # app.module.<x>.import.concurrency above (Reactor Netty maxConnections, per remote host).
       spring.mongodb.authentication-database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.username: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"

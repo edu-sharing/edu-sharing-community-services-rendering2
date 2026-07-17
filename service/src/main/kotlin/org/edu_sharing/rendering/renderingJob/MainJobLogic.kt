@@ -46,11 +46,14 @@ class MainJobLogic (
             return false
         }
         val areAllFinished = job.subJobs.all { it.status == SubJobStatus.FINISHED }
-        val areAllFailed = job.subJobs.all { it.status == SubJobStatus.FAILED }
-        val jobStatus = if (areAllFailed) {
-            RenderingJobStatus.FAILED
-        } else if (areAllFinished) {
+        // FAILED and TIMEOUT both count as "unsuccessful" here: an all-unsuccessful job is FAILED, a
+        // mix of finished + unsuccessful is PARTIALLY_FAILED. This lets the stale-job reaper resolve a
+        // timed-out job the same way an outright failure would.
+        val areAllUnsuccessful = job.subJobs.all { it.status.isUnsuccessful }
+        val jobStatus = if (areAllFinished) {
             RenderingJobStatus.FINISHED
+        } else if (areAllUnsuccessful) {
+            RenderingJobStatus.FAILED
         } else {
             RenderingJobStatus.PARTIALLY_FAILED
         }

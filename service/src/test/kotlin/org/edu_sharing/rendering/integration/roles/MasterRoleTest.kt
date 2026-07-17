@@ -6,6 +6,8 @@ import org.edu_sharing.rendering.edusharingRepo.AdminController
 import org.edu_sharing.rendering.edusharingRepo.AdminStorageController
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
 import org.edu_sharing.rendering.renderingJob.AdminJobController
+import org.edu_sharing.rendering.renderingJob.JobReaperProperties
+import org.edu_sharing.rendering.renderingJob.StaleJobReaper
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncScheduler
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
@@ -39,7 +41,9 @@ class MasterRoleTest(
             CacheCleaner::class,
             CorsAllowedOriginsReceiver::class,
             CorsSyncScheduler::class,
-            CorsSyncService::class
+            CorsSyncService::class,
+            JobReaperProperties::class,
+            StaleJobReaper::class
         )
     }
 

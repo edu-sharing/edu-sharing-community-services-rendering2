@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import tools.jackson.databind.ObjectMapper
@@ -19,7 +20,7 @@ class DdbApiService(
     private val renderingJobRepository: RenderingJobRepository,
     private val moduleRegistry: ModuleRegistry,
     private val subJobRepository: SubJobRepository,
-    private val webClientBuilder: WebClient.Builder,
+    @param:Qualifier("ddbImportWebClientBuilder") private val webClientBuilder: WebClient.Builder,
     private val ddbApiProperties: DdbApiProperties
 ) {
 

@@ -448,6 +448,20 @@ config:
         ## @param config.cache.cleaner.threshold.upper Set upper threshold for cache cleaner
         upper: -0.9
 
+  ## Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs so a crashed/lost conversion
+  ## cannot poison re-rendering of a node until the 8-day TTL. See StaleJobReaper.
+  jobreaper:
+    ## @param config.jobreaper.enabled Enable the stale-job reaper
+    enabled: true
+    ## @param config.jobreaper.schedule Fixed delay in milliseconds between reaper runs
+    schedule: "600000"
+    ## @param config.jobreaper.defaultMaxProcessTime Max processing time (ISO-8601 Duration) before a PROCESSING sub-job is timed out, for any routing key without an explicit override
+    defaultMaxProcessTime: "PT30M"
+    ## Per-routing-key overrides (ISO-8601 Duration); key = queue routing key (app.queue.<module>.key)
+    maxProcessTime:
+      ## @param config.jobreaper.maxProcessTime.av_job Max processing time for av_job (ffmpeg guard is PT30M, so give headroom)
+      av_job: "PT45M"
+
   converter:
     audio:
       ## @param config.converter.audio.mimetypes Set mimetypes for audio converter
@@ -616,21 +630,34 @@ config:
       document: "8"
       ## @param config.queue.consumersPerQueue.jupyter Consumer count for the jupyter queue (bounded by the remote converter)
       jupyter: "8"
-      ## @param config.queue.consumersPerQueue.sodix Consumer count for the sodix queue
-      sodix: "25"
-      ## @param config.queue.consumersPerQueue.omega Consumer count for the omega queue
-      omega: "25"
+      ## @param config.queue.consumersPerQueue.sodix Consumer count for the sodix queue (decoupled: keep 1, scale via config.import.concurrency.sodix + pods)
+      sodix: "1"
+      ## @param config.queue.consumersPerQueue.omega Consumer count for the omega queue (decoupled: keep 1, scale via config.import.concurrency.omega + pods)
+      omega: "1"
       ## @param config.queue.consumersPerQueue.binder Consumer count for the binder queue
       binder: "1"
       ## @param config.queue.consumersPerQueue.binderPreview Consumer count for the binder preview queue
       binderPreview: "1"
-      ## @param config.queue.consumersPerQueue.ddb Consumer count for the ddb queue
-      ddb: "25"
+      ## @param config.queue.consumersPerQueue.ddb Consumer count for the ddb queue (decoupled: keep 1, scale via config.import.concurrency.ddb + pods)
+      ddb: "1"
       ## @param config.queue.consumersPerQueue.onyx Consumer count for the onyx queue
       onyx: "8"
 
     ## @param config.queue.prefetch Unacked messages buffered per consumer (broker round-trip amortization); one global value for all queues
     prefetch: "1"
+
+  ## Per-pod import concurrency K, per decoupled import queue (sodix/omega/ddb): the single import
+  ## consumer processes up to K messages in parallel on virtual threads. `concurrency` sizes both the
+  ## dedicated import HTTP pool (Reactor Netty maxConnections, per remote host) and the broker prefetch,
+  ## so the two stay aligned per queue. Scale total throughput via converter pods, not by raising K.
+  import:
+    concurrency:
+      ## @param config.import.concurrency.sodix Per-pod import concurrency K for the sodix queue
+      sodix: "50"
+      ## @param config.import.concurrency.omega Per-pod import concurrency K for the omega queue
+      omega: "50"
+      ## @param config.import.concurrency.ddb Per-pod import concurrency K for the ddb queue
+      ddb: "50"
 
   redis:
     ## @param config.redis.host Set redis host
