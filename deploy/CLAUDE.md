@@ -73,8 +73,8 @@ dotted Spring keys set as env entries.
 | `RENDERING2_SERVICE_DATABASE_{NAME,USER}` | `spring.mongodb.database` / `.username` | `rendering` |
 | `REDIS_HOST` / `REDIS_PORT` | `spring.redis.standalone.host` / `.port` | `redis-cache` / `6379` |
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | `spring.rabbitmq.host` / `.port` | `rendering2-message-queue` / `5672` |
-| `RENDERING2_QUEUE_<KEY>_CONSUMERS` (Helm `config.queue.consumersPerQueue.<key>`) | `app.queue.<key>.consumersPerQueue` — fixed number of `DirectMessageListenerContainer` consumers registered per queue (all consume from the shared virtual-thread executor; no auto-scale, idle consumers hold no thread) | `1` (code); per-queue starting values in the chart |
-| `RENDERING2_QUEUE_PREFETCH` (Helm `config.queue.prefetch`) | `app.queue.prefetch` — unacked messages buffered per consumer, one global value for all queues | `1` |
+| `RENDERING2_QUEUE_<KEY>_CONCURRENCY` (Helm `config.queue.concurrency.<key>`) | `app.queue.<key>.concurrency` — the one per-queue scaling knob: max messages processed in parallel per pod. Meaning follows the queue's `mode` (code-only, in `application.properties`): STANDARD = registered `DirectMessageListenerContainer` consumers; IMPORT = K (import HTTP pool + prefetch, on virtual threads); SINGLE_ACTIVE (moodle/h5p) is forced to 1 and not exposed here | `1` (code); per-queue starting values in the chart |
+| `RENDERING2_QUEUE_PREFETCH` (Helm `config.queue.prefetch`) | `app.queue.prefetch` — global prefetch for STANDARD/SINGLE_ACTIVE queues (import queues derive prefetch from their concurrency) | `1` |
 | `app.public.{protocol,host,port,path}` | (direct) | `http` / nip.io host / `80` / `/rendering` |
 | `server.servlet.context-path` | (direct) | `/rendering` |
 | `app.session.<module>.nodePermissionExpirationTime` | (direct) | empty = not cached |

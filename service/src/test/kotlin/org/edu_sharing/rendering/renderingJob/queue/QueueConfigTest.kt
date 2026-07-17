@@ -36,7 +36,7 @@ class QueueConfigTest {
             JacksonJsonMessageConverter(),
             config.rabbitConsumerExecutor(),
             QueueConsumerMetrics(SimpleMeterRegistry()),
-            1,
+            QueueProperties().apply { prefetch = 1 },
         )
         assertInstanceOf(DirectRabbitListenerContainerFactory::class.java, factory)
     }

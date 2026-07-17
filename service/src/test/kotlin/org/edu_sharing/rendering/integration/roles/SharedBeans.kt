@@ -53,12 +53,10 @@ import org.edu_sharing.rendering.modules.noConversion.HtmlRenderModule
 import org.edu_sharing.rendering.modules.noConversion.NoConversionModuleTypeMapper
 import org.edu_sharing.rendering.modules.noConversion.PdfRenderModule
 import org.edu_sharing.rendering.modules.omega.OmegaImportConfig
-import org.edu_sharing.rendering.modules.omega.OmegaImportProperties
 import org.edu_sharing.rendering.modules.omega.OmegaRenderModule
 import org.edu_sharing.rendering.modules.omega.OmegaRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.onyx.OnyxRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixImportConfig
-import org.edu_sharing.rendering.modules.sodix.SodixImportProperties
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
@@ -68,6 +66,7 @@ import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
 import org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport
 import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
+import org.edu_sharing.rendering.renderingJob.queue.QueueProperties
 import org.edu_sharing.rendering.renderingJob.repository.CustomRenderingJobRepositoryImpl
 import org.edu_sharing.rendering.renderingJob.repository.CustomSubJobRepositoryImpl
 import org.edu_sharing.rendering.security.*
@@ -110,7 +109,6 @@ abstract class SharedBeans {
             DdbApiProperties::class,
             DdbApiService::class,
             DdbImportConfig::class,
-            DdbImportProperties::class,
             DdbJobService::class,
             DdbRenderModule::class,
             DdbRenderModuleTypeMapper::class,
@@ -150,7 +148,6 @@ abstract class SharedBeans {
             NodePermissionSessionContextRepository::class,
             NodeSessionContextRepository::class,
             OmegaImportConfig::class,
-            OmegaImportProperties::class,
             OmegaRenderModule::class,
             OmegaRenderModuleTypeMapper::class,
             OnyxRenderModule::class,
@@ -159,6 +156,7 @@ abstract class SharedBeans {
             PingController::class,
             QueueConfig::class,
             QueueConsumerMetrics::class,
+            QueueProperties::class,
             RedisConfig::class,
             RedisStandaloneConfigurationProperties::class,
             RenderingMetrics::class,
@@ -178,7 +176,6 @@ abstract class SharedBeans {
             SessionConfig::class,
             ShedLockConfig::class,
             SodixImportConfig::class,
-            SodixImportProperties::class,
             SodixRenderModule::class,
             SodixRenderModuleTypeMapper::class,
             SpreadsheetRenderModule::class,

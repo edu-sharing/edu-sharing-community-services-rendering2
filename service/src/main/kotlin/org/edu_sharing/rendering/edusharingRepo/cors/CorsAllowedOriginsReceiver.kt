@@ -25,7 +25,7 @@ class CorsAllowedOriginsReceiver(
                     autoDelete = "true"
                 ),
                 exchange = Exchange(
-                    name = $$"${app.queue.controllerBroadcastExchange}",
+                    name = "#{queueProperties.controllerBroadcastExchange}",
                     type = "fanout"
                 )
             )

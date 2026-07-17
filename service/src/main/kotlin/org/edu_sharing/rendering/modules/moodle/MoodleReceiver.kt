@@ -29,23 +29,28 @@ class MoodleReceiver (
 
     @RabbitListener(
         bindings = [
-            // Single Active Consumer: moodle can import only one document at a time, so the
-            // broker must route moodle jobs to exactly one consumer cluster-wide. Per-instance
-            // concurrency=1 alone is not enough — with N pods, N competing consumers would
-            // each process a job in parallel. x-single-active-consumer keeps a single consumer
-            // active across all pods; the others stay on standby and take over only on failover.
+            // Single Active Consumer (app.queue.moodle.mode=SINGLE_ACTIVE): moodle can import only one
+            // document at a time, so the broker must route moodle jobs to exactly one consumer cluster-wide.
+            // Per-instance concurrency=1 alone is not enough — with N pods, N competing consumers would each
+            // process a job in parallel. x-single-active-consumer keeps a single consumer active across all
+            // pods; the others stay on standby and take over only on failover. The argument MUST sit on the
+            // Queue (a queue-declaration argument), not on the QueueBinding (a binding argument, ignored by a
+            // topic exchange).
             QueueBinding(
-                value = Queue(name = $$"${app.queue.moodle.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                arguments = [Argument(
-                    name = "x-single-active-consumer",
-                    value = "true",
-                    type = "java.lang.Boolean"
-                )],
-                key = [$$"${app.queue.moodle.key}"]
+                value = Queue(
+                    name = "#{queueProperties.moodle.name}",
+                    durable = "false",
+                    arguments = [Argument(
+                        name = "x-single-active-consumer",
+                        value = "#{queueProperties.moodle.singleActiveConsumer}",
+                        type = "java.lang.Boolean"
+                    )]
+                ),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{queueProperties.moodle.key}"]
             )
         ], containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.moodle.consumersPerQueue:1}"
+        concurrency = "#{queueProperties.moodle.effectiveConcurrency}"
     )
     fun receiveMessage(message: MoodleJobMessage) {
         log.debug("Received Moodle job message for jobId ${message.id}, nodeId ${message.nodeId}")

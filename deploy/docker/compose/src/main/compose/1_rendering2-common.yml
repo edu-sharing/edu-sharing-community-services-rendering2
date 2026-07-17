@@ -63,34 +63,27 @@ services:
       app.s3.checksumCalculationWhenRequired: false
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
-      # Per-queue consumer count for the DirectMessageListenerContainer (consumersPerQueue): how many
-      # consumers are registered at the broker per queue. A burst is fanned out to all of them at once
-      # (no auto-scale ramp); idle consumers cost nothing (shared virtual-thread executor). Size the
-      # CPU-in-JVM queues (image, eduHtml) and ffmpeg (av) against cores; pure-wait queues can go higher.
-      app.queue.job.consumersPerQueue: "${RENDERING2_QUEUE_JOB_CONSUMERS:-20}"
-      app.queue.image.consumersPerQueue: "${RENDERING2_QUEUE_IMAGE_CONSUMERS:-4}"
-      app.queue.av.consumersPerQueue: "${RENDERING2_QUEUE_AV_CONSUMERS:-2}"
-      app.queue.moodle.consumersPerQueue: "${RENDERING2_QUEUE_MOODLE_CONSUMERS:-1}"
-      app.queue.eduHtml.consumersPerQueue: "${RENDERING2_QUEUE_EDUHTML_CONSUMERS:-5}"
-      app.queue.document.consumersPerQueue: "${RENDERING2_QUEUE_DOCUMENT_CONSUMERS:-8}"
-      app.queue.jupyter.consumersPerQueue: "${RENDERING2_QUEUE_JUPYTER_CONSUMERS:-8}"
-      # Import queues (sodix, omega, ddb) are DECOUPLED: one consumer/channel per pod, concurrency comes
-      # from app.module.<x>.import.concurrency on virtual threads. Keep at 1 and scale via pods, not consumers.
-      app.queue.sodix.consumersPerQueue: "${RENDERING2_QUEUE_SODIX_CONSUMERS:-1}"
-      app.queue.omega.consumersPerQueue: "${RENDERING2_QUEUE_OMEGA_CONSUMERS:-1}"
-      app.queue.binder.consumersPerQueue: "${RENDERING2_QUEUE_BINDER_CONSUMERS:-1}"
-      app.queue.binderPreview.consumersPerQueue: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONSUMERS:-1}"
-      app.queue.ddb.consumersPerQueue: "${RENDERING2_QUEUE_DDB_CONSUMERS:-1}"
-      app.queue.onyx.consumersPerQueue: "${RENDERING2_QUEUE_ONYX_CONSUMERS:-8}"
-      # Unacked messages buffered per consumer (broker round-trip amortization); one global default.
+      # One per-queue scaling knob: max messages processed in parallel per pod. Its meaning follows the
+      # queue's mode (set in application.properties): STANDARD counts DirectMessageListenerContainer
+      # consumers (burst fanned out at once, no auto-scale ramp; idle consumers cost nothing on the shared
+      # virtual-thread executor) — size CPU-in-JVM (image, eduHtml) and ffmpeg (av) against cores.
+      app.queue.job.concurrency: "${RENDERING2_QUEUE_JOB_CONCURRENCY:-20}"
+      app.queue.image.concurrency: "${RENDERING2_QUEUE_IMAGE_CONCURRENCY:-4}"
+      app.queue.av.concurrency: "${RENDERING2_QUEUE_AV_CONCURRENCY:-2}"
+      app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-5}"
+      app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-8}"
+      app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-8}"
+      app.queue.binder.concurrency: "${RENDERING2_QUEUE_BINDER_CONCURRENCY:-1}"
+      app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
+      app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-8}"
+      # IMPORT queues (sodix/omega/ddb): concurrency = K sizes the dedicated import HTTP pool AND the broker
+      # prefetch; K messages run in parallel on virtual threads. Scale throughput via more pods, not K.
+      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-50}"
+      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-50}"
+      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-50}"
+      # moodle/h5p are SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
+      # Global prefetch for STANDARD/SINGLE_ACTIVE queues (import queues derive prefetch from concurrency).
       app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
-      # Per-pod import concurrency K, per import queue (sodix/omega/ddb): the single import consumer
-      # processes up to K messages in parallel on virtual threads. `concurrency` sizes both the dedicated
-      # import HTTP pool (Reactor Netty maxConnections, per remote host) and the broker prefetch, so the
-      # two stay aligned per queue. Scale total throughput via converter pods, not by raising K.
-      app.module.sodix.import.concurrency: "${RENDERING2_IMPORT_SODIX_CONCURRENCY:-50}"
-      app.module.omega.import.concurrency: "${RENDERING2_IMPORT_OMEGA_CONCURRENCY:-50}"
-      app.module.ddb.import.concurrency: "${RENDERING2_IMPORT_DDB_CONCURRENCY:-50}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
@@ -165,7 +158,7 @@ services:
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
-      # app.module.<x>.import.concurrency above (Reactor Netty maxConnections, per remote host).
+      # app.queue.<x>.concurrency above (Reactor Netty maxConnections, per remote host).
       spring.mongodb.authentication-database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.username: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"

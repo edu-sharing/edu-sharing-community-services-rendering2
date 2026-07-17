@@ -609,55 +609,45 @@ config:
     password: ""
 
   queue:
-    ## Per-queue consumer count for the DirectMessageListenerContainer (consumersPerQueue): how many
-    ## consumers are registered at the broker for each queue. A burst is fanned out to all of them at
-    ## once (no auto-scale ramp); idle consumers cost nothing because the listener executor uses
-    ## virtual threads. These values are shared by every role deployment, so they are kept conservative
-    ## enough for co-located profiles (worker/aio) where image (CPU-in-JVM), eduHtml (in-JVM unzip) and
-    ## av (ffmpeg) compete for the same cores — raise them for dedicated converter/avconverter pods.
-    consumersPerQueue:
-      ## @param config.queue.consumersPerQueue.job Consumer count for the job dispatch queue
-      job: "20"
-      ## @param config.queue.consumersPerQueue.image Consumer count for the image queue (CPU-in-JVM; size ~ pod cores)
-      image: "4"
-      ## @param config.queue.consumersPerQueue.av Consumer count for the audio/video queue (each spawns an ffmpeg process)
-      av: "2"
-      ## @param config.queue.consumersPerQueue.moodle Consumer count for the moodle queue (single-active, keep 1)
-      moodle: "1"
-      ## @param config.queue.consumersPerQueue.eduHtml Consumer count for the eduHtml queue (in-JVM unzip; shares CPU with image)
-      eduHtml: "5"
-      ## @param config.queue.consumersPerQueue.document Consumer count for the document queue (bounded by the remote converter)
-      document: "8"
-      ## @param config.queue.consumersPerQueue.jupyter Consumer count for the jupyter queue (bounded by the remote converter)
-      jupyter: "8"
-      ## @param config.queue.consumersPerQueue.sodix Consumer count for the sodix queue (decoupled: keep 1, scale via config.import.concurrency.sodix + pods)
-      sodix: "1"
-      ## @param config.queue.consumersPerQueue.omega Consumer count for the omega queue (decoupled: keep 1, scale via config.import.concurrency.omega + pods)
-      omega: "1"
-      ## @param config.queue.consumersPerQueue.binder Consumer count for the binder queue
-      binder: "1"
-      ## @param config.queue.consumersPerQueue.binderPreview Consumer count for the binder preview queue
-      binderPreview: "1"
-      ## @param config.queue.consumersPerQueue.ddb Consumer count for the ddb queue (decoupled: keep 1, scale via config.import.concurrency.ddb + pods)
-      ddb: "1"
-      ## @param config.queue.consumersPerQueue.onyx Consumer count for the onyx queue
-      onyx: "8"
-
-    ## @param config.queue.prefetch Unacked messages buffered per consumer (broker round-trip amortization); one global value for all queues
-    prefetch: "1"
-
-  ## Per-pod import concurrency K, per decoupled import queue (sodix/omega/ddb): the single import
-  ## consumer processes up to K messages in parallel on virtual threads. `concurrency` sizes both the
-  ## dedicated import HTTP pool (Reactor Netty maxConnections, per remote host) and the broker prefetch,
-  ## so the two stay aligned per queue. Scale total throughput via converter pods, not by raising K.
-  import:
+    ## The one per-queue scaling knob: max messages processed in parallel per pod. Its meaning per queue
+    ## follows the queue's `mode` (set in application.properties, not tunable here):
+    ##  - STANDARD queues (job/image/av/eduHtml/document/jupyter/onyx/binder/binderPreview): the number of
+    ##    DirectMessageListenerContainer consumers registered per pod (burst fanned out at once, no
+    ##    auto-scale ramp; idle consumers cost nothing on the shared virtual-thread executor).
+    ##  - IMPORT queues (sodix/omega/ddb): K — sizes the dedicated import HTTP pool AND the broker prefetch,
+    ##    K messages run in parallel on virtual threads. Scale cluster throughput via more pods, not K.
+    ## moodle/h5p are SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) and are therefore not
+    ## listed — their concurrency is not tunable. Values are shared by every role deployment, so keep them
+    ## conservative for co-located profiles (worker/aio) where image/eduHtml/av compete for the same cores;
+    ## raise for dedicated converter/avconverter pods.
     concurrency:
-      ## @param config.import.concurrency.sodix Per-pod import concurrency K for the sodix queue
+      ## @param config.queue.concurrency.job Consumers for the job dispatch queue
+      job: "20"
+      ## @param config.queue.concurrency.image Consumers for the image queue (CPU-in-JVM; size ~ pod cores)
+      image: "4"
+      ## @param config.queue.concurrency.av Consumers for the audio/video queue (each spawns an ffmpeg process)
+      av: "2"
+      ## @param config.queue.concurrency.eduHtml Consumers for the eduHtml queue (in-JVM unzip; shares CPU with image)
+      eduHtml: "5"
+      ## @param config.queue.concurrency.document Consumers for the document queue (bounded by the remote converter)
+      document: "8"
+      ## @param config.queue.concurrency.jupyter Consumers for the jupyter queue (bounded by the remote converter)
+      jupyter: "8"
+      ## @param config.queue.concurrency.onyx Consumers for the onyx queue
+      onyx: "8"
+      ## @param config.queue.concurrency.binder Consumers for the binder queue
+      binder: "1"
+      ## @param config.queue.concurrency.binderPreview Consumers for the binder preview queue
+      binderPreview: "1"
+      ## @param config.queue.concurrency.sodix Import concurrency K for the sodix queue (HTTP pool + prefetch; scale via pods)
       sodix: "50"
-      ## @param config.import.concurrency.omega Per-pod import concurrency K for the omega queue
+      ## @param config.queue.concurrency.omega Import concurrency K for the omega queue (HTTP pool + prefetch; scale via pods)
       omega: "50"
-      ## @param config.import.concurrency.ddb Per-pod import concurrency K for the ddb queue
+      ## @param config.queue.concurrency.ddb Import concurrency K for the ddb queue (HTTP pool + prefetch; scale via pods)
       ddb: "50"
+
+    ## @param config.queue.prefetch Global prefetch for STANDARD/SINGLE_ACTIVE queues (import queues derive prefetch from concurrency)
+    prefetch: "1"
 
   redis:
     ## @param config.redis.host Set redis host

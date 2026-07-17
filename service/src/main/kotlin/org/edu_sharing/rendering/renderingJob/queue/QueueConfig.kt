@@ -9,7 +9,6 @@ import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.task.AsyncTaskExecutor
@@ -33,13 +32,16 @@ class QueueConfig {
         SimpleAsyncTaskExecutor("rabbit-consumer-").apply { setVirtualThreads(true) }
 
     /**
-     * [DirectMessageListenerContainer] factory for all queue consumers. Each queue's
-     * `consumersPerQueue` (from the `@RabbitListener` `concurrency` attribute, bound to
-     * `app.queue.<queue>.consumersPerQueue`) consumers are registered at the broker up front, so a
-     * burst is fanned out to all of them immediately — there is no `SimpleMessageListenerContainer`
-     * auto-scale ramp. The consumers share [rabbitConsumerExecutor], so an idle queue costs a single
-     * channel but zero busy threads. CPU-bound work (image, eduHtml inflate, av's ffmpeg process) is
-     * bounded per queue by `consumersPerQueue` and physically by the role split, not by a thread pool.
+     * [DirectMessageListenerContainer] factory for all STANDARD/SINGLE_ACTIVE queue consumers. Each queue's
+     * [org.edu_sharing.rendering.renderingJob.queue.QueueSpec.effectiveConcurrency] (from the
+     * `@RabbitListener` `concurrency` attribute, resolved via SpEL against [QueueProperties]) consumers are
+     * registered at the broker up front, so a burst is fanned out to all of them immediately — there is no
+     * `SimpleMessageListenerContainer` auto-scale ramp. The consumers share [rabbitConsumerExecutor], so an
+     * idle queue costs a single channel but zero busy threads. CPU-bound work (image, eduHtml inflate, av's
+     * ffmpeg process) is bounded per queue by its `concurrency` and physically by the role split, not by a
+     * thread pool. Prefetch is a single global value ([QueueProperties.prefetch]) — a
+     * `DirectRabbitListenerContainerFactory`'s prefetch applies to every container it builds, so it cannot be
+     * per-queue here; per-queue prefetch exists only for IMPORT queues via their own factory.
      */
     @Bean
     fun queueListenerContainerFactory(
@@ -47,14 +49,14 @@ class QueueConfig {
         messageConverter: MessageConverter,
         rabbitConsumerExecutor: AsyncTaskExecutor,
         queueConsumerMetrics: QueueConsumerMetrics,
-        @Value($$"${app.queue.prefetch:1}") prefetch: Int,
+        queueProperties: QueueProperties,
     ): RabbitListenerContainerFactory<DirectMessageListenerContainer> {
         val factory = DirectRabbitListenerContainerFactory()
         factory.setConnectionFactory(rabbitConnectionFactory)
         factory.setMessageConverter(messageConverter)
         factory.setDefaultRequeueRejected(false)
         factory.setTaskExecutor(rabbitConsumerExecutor)
-        factory.setPrefetchCount(prefetch)
+        factory.setPrefetchCount(queueProperties.prefetch)
         // Track messages currently being processed per queue → `rendering.queue.consumers.active`.
         factory.setAdviceChain(queueConsumerMetrics)
         // durable=false / anonymous (fanout) queues are re-declared on (re)connect; a transiently
@@ -66,11 +68,11 @@ class QueueConfig {
     }
 
     /**
-     * The high-fan-out **import** queues (sodix, omega, ddb) do NOT use this factory. They decouple
-     * consumption from processing via [AsyncAckDispatcher] on a per-module listener container built by
-     * [org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport] — each import
-     * module wires its own factory (with its own K) so the queues are tuned independently. See the
-     * `*ImportConfig` classes in the sodix/omega/ddb modules.
+     * The high-fan-out **import** queues (sodix, omega, ddb — [QueueMode.IMPORT]) do NOT use this factory.
+     * They decouple consumption from processing via [AsyncAckDispatcher] on a per-module listener container
+     * built by [org.edu_sharing.rendering.renderingJob.queue.ImportListenerContainerFactorySupport] — each
+     * import module wires its own factory sized from its [QueueSpec] (K = `app.queue.<x>.concurrency`) so the
+     * queues are tuned independently. See the `*ImportConfig` classes in the sodix/omega/ddb modules.
      */
 
     /**

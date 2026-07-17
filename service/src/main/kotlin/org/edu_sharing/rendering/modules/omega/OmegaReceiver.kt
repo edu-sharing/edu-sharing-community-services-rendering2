@@ -37,12 +37,12 @@ class OmegaReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.omega.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.omega.key}"]
+                value = Queue(name = "#{queueProperties.omega.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{queueProperties.omega.key}"]
             )
         ], containerFactory = "omegaImportListenerContainerFactory",
-        concurrency = $$"${app.queue.omega.consumersPerQueue:1}"
+        concurrency = "#{queueProperties.omega.effectiveConcurrency}"
     )
     fun receiveMessage(
         message: OmegaJobMessage,

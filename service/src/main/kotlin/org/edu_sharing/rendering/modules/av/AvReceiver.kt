@@ -41,7 +41,7 @@ class AvReceiver(
         bindings = [
             QueueBinding(
                 value = Queue(
-                    name = $$"${app.queue.av.name}",
+                    name = "#{queueProperties.av.name}",
                     durable = "false",
                     arguments = [Argument(
                         name = "x-max-priority",
@@ -49,12 +49,12 @@ class AvReceiver(
                         type = "java.lang.Integer"
                     )]
                 ),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.av.key}"]
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{queueProperties.av.key}"]
             )
         ],
         containerFactory = "queueListenerContainerFactory",
-        concurrency = $$"${app.queue.av.consumersPerQueue:1}"
+        concurrency = "#{queueProperties.av.effectiveConcurrency}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received AV sub-job message: id=${message.id}, quality=${message.quality}")

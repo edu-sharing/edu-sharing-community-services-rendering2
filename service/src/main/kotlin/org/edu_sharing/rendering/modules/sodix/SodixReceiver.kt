@@ -37,12 +37,12 @@ class SodixReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.sodix.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.sodix.key}"]
+                value = Queue(name = "#{queueProperties.sodix.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{queueProperties.sodix.key}"]
             )
         ], containerFactory = "sodixImportListenerContainerFactory",
-        concurrency = $$"${app.queue.sodix.consumersPerQueue:1}"
+        concurrency = "#{queueProperties.sodix.effectiveConcurrency}"
     )
     fun receiveMessage(
         message: SodixJobMessage,
