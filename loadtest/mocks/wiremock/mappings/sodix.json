@@ -1,0 +1,24 @@
+{
+  "mappings": [
+    {
+      "name": "sodix-render",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/sodix/render/(playout|paidmedia)"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "playoutUrl": "http://localhost:8092/sodix/playout/{{request.query.id}}.mp4",
+          "downloadUrl": "http://localhost:8092/sodix/download/{{request.query.id}}.mp4"
+        },
+        "delayDistribution": {
+          "type": "uniform",
+          "lower": 1000,
+          "upper": 2000
+        }
+      }
+    }
+  ]
+}

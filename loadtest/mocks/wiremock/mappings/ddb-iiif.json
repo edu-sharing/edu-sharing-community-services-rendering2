@@ -1,0 +1,22 @@
+{
+  "mappings": [
+    {
+      "name": "ddb-iiif-info",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/ddb/iiif/.*/info\\.json"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "sizes": [
+            { "width": 200, "height": 150 },
+            { "width": 800, "height": 600 },
+            { "width": 1600, "height": 1200 }
+          ]
+        }
+      }
+    }
+  ]
+}

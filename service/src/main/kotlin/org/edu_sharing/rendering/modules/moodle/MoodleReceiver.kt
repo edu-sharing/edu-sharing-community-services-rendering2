@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -28,13 +29,28 @@ class MoodleReceiver (
 
     @RabbitListener(
         bindings = [
+            // Single Active Consumer (app.queue.moodle.mode=SINGLE_ACTIVE): moodle can import only one
+            // document at a time, so the broker must route moodle jobs to exactly one consumer cluster-wide.
+            // Per-instance concurrency=1 alone is not enough — with N pods, N competing consumers would each
+            // process a job in parallel. x-single-active-consumer keeps a single consumer active across all
+            // pods; the others stay on standby and take over only on failover. The argument MUST sit on the
+            // Queue (a queue-declaration argument), not on the QueueBinding (a binding argument, ignored by a
+            // topic exchange).
             QueueBinding(
-                value = Queue(name = $$"${app.queue.moodle.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.moodle.key}"]
+                value = Queue(
+                    name = "#{moodleQueueProperties.name}",
+                    durable = "false",
+                    arguments = [Argument(
+                        name = "x-single-active-consumer",
+                        value = "#{moodleQueueProperties.singleActiveConsumer}",
+                        type = "java.lang.Boolean"
+                    )]
+                ),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{moodleQueueProperties.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
-        concurrency = $$"${app.queue.moodle.concurrency:1}"
+        ], containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{moodleQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: MoodleJobMessage) {
         log.debug("Received Moodle job message for jobId ${message.id}, nodeId ${message.nodeId}")

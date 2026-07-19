@@ -34,12 +34,12 @@ class JobReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.job.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.job.key}"]
+                value = Queue(name = "#{jobQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{jobQueueProperties.key}"]
             )
-        ],
-        concurrency = $$"${app.queue.job.concurrency:1}"
+        ], containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{jobQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received job message: id=${message.id}, missingQualities=${message.missingQualities}")

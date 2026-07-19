@@ -31,12 +31,12 @@ class JupyterReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.jupyter.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.jupyter.key}"]
+                value = Queue(name = "#{jupyterQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{jupyterQueueProperties.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory",
-        concurrency = $$"${app.queue.jupyter.concurrency:1}"
+        ], containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{jupyterQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Jupyter message received: jobId={}", message.id)

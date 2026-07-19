@@ -14,7 +14,6 @@ import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.*
 import ws.schild.jave.info.VideoSize
-import java.util.stream.Stream
 
 @ConditionalOnAvConverter
 @Service
@@ -65,17 +64,8 @@ class VideoConversionService(
             listener.subJob = subJob
             val encoder = encoderFactory.`object`
             val encodingAttributes = initEncodingAttributes(targetWidth, targetHeight)
-            val threadArgument = object : EncodingArgument {
-                override fun getArguments(var1: EncodingAttributes): Stream<String> {
-                    return Stream.of("-threads", threads.toString())
-                }
-
-                override fun getArgType(): ArgType {
-                    return ArgType.GLOBAL
-                }
-            }
             timeoutGuard.runEncode(encoder, subJob.id) {
-                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(threadArgument))
+                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(ffmpegThreadsArg(threads)))
             }
             outputCacheObject.size = fileHelper.outputFile.length()
             log.debug("Video encoding complete: nodeId=${cacheObject.nodeId}, outputSize=${outputCacheObject.size} bytes, quality=$targetHeight")

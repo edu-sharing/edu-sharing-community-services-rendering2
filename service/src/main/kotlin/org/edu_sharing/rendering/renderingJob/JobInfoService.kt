@@ -70,11 +70,12 @@ class JobInfoService(
                     jobInfo.additionalData = renderModule.getAdditionalData(it, job.repoId)
                 }
 
-                SubJobStatus.FAILED -> {
+                // TIMEOUT (reaped orphan) is surfaced to the client exactly like an outright failure.
+                SubJobStatus.FAILED, SubJobStatus.TIMEOUT -> {
                     jobInfo.publicErrorMessage = it.errorMessage
                 }
             }
-            if (it.status != SubJobStatus.FAILED) {
+            if (!it.status.isUnsuccessful) {
                 infoList.add(jobInfo)
             }
         }

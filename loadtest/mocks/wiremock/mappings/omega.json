@@ -1,0 +1,38 @@
+{
+  "mappings": [
+    {
+      "name": "omega-get",
+      "request": {
+        "method": "GET",
+        "urlPath": "/omega/get"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "get": {
+            "identifier": "{{request.query.token_id}}",
+            "streamURL": "http://localhost:8092/omega/stream/{{request.query.token_id}}.mp4",
+            "downloadURL": "http://localhost:8092/omega/download/{{request.query.token_id}}.mp4",
+            "error": null
+          }
+        },
+        "delayDistribution": {
+          "type": "uniform",
+          "lower": 100,
+          "upper": 400
+        }
+      }
+    },
+    {
+      "name": "omega-stream-head",
+      "request": {
+        "method": "HEAD",
+        "urlPathPattern": "/omega/(stream|download)/.*"
+      },
+      "response": {
+        "status": 200
+      }
+    }
+  ]
+}

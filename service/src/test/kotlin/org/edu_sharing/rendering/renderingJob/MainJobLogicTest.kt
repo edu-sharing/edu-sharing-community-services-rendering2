@@ -1,11 +1,13 @@
 package org.edu_sharing.rendering.renderingJob
 
 import io.mockk.mockk
+import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 
 class MainJobLogicTest {
     private val jobRepository: RenderingJobRepository = mockk()
-    private val mainJobLogic = MainJobLogic(jobRepository)
+    private val renderingMetrics: RenderingMetrics = mockk(relaxed = true)
+    private val mainJobLogic = MainJobLogic(jobRepository, renderingMetrics)
 
     /*@Test
     fun testIfProcessMainJobReturnsFalseIfNoJobFound() {

@@ -63,21 +63,34 @@ services:
       app.s3.checksumCalculationWhenRequired: false
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
-      # Per-queue consumer count (concurrentConsumers). Plain number ("5") fixes the count;
-      # a range ("1-5") enables auto-scaling. Default 1.
-      app.queue.job.concurrency: "${RENDERING2_QUEUE_JOB_CONCURRENCY:-100}"
-      app.queue.image.concurrency: "${RENDERING2_QUEUE_IMAGE_CONCURRENCY:-10}"
+      # One per-queue scaling knob: max messages processed in parallel per pod. Its meaning follows the
+      # queue's mode (set in application.properties): STANDARD counts DirectMessageListenerContainer
+      # consumers (burst fanned out at once, no auto-scale ramp; idle consumers cost nothing on the shared
+      # virtual-thread executor) — size CPU-in-JVM (image, eduHtml) and ffmpeg (av) against cores.
+      app.queue.job.concurrency: "${RENDERING2_QUEUE_JOB_CONCURRENCY:-20}"
+      app.queue.image.concurrency: "${RENDERING2_QUEUE_IMAGE_CONCURRENCY:-4}"
       app.queue.av.concurrency: "${RENDERING2_QUEUE_AV_CONCURRENCY:-2}"
-      app.queue.moodle.concurrency: "${RENDERING2_QUEUE_MOODLE_CONCURRENCY:-1}"
-      app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-10}"
-      app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-10}"
-      app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-10}"
-      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-100}"
-      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-10}"
+      app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-5}"
+      app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-8}"
+      app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-8}"
       app.queue.binder.concurrency: "${RENDERING2_QUEUE_BINDER_CONCURRENCY:-1}"
       app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
-      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-100}"
-      app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-1}"
+      app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-8}"
+      # REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: concurrency = K
+      # sizes the dedicated remote HTTP pool AND the broker prefetch; K messages run in parallel on virtual
+      # threads. Scale throughput via more pods, not K.
+      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-50}"
+      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-50}"
+      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-50}"
+      # Optional per-queue prefetch override for the remote queues — empty derives prefetch from concurrency
+      # (1:1 with the remote HTTP pool); set only to run prefetch above concurrency while jobs spend time in
+      # post-call Mongo/S3 work (must be >= concurrency, enforced at startup).
+      app.queue.sodix.prefetch: "${RENDERING2_QUEUE_SODIX_PREFETCH:-}"
+      app.queue.omega.prefetch: "${RENDERING2_QUEUE_OMEGA_PREFETCH:-}"
+      app.queue.ddb.prefetch: "${RENDERING2_QUEUE_DDB_PREFETCH:-}"
+      # moodle/h5p are SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
+      # Global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from concurrency).
+      app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
@@ -119,9 +132,17 @@ services:
       app.converter.video.resolutions: "${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"
       app.converter.audio.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma}"
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
+      app.converter.audio.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_AUDIO_FFMPEG_THREADS:-1}"
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
+      # Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs (crashed/lost conversions)
+      # so they cannot poison re-rendering until the 8-day TTL. schedule = fixed delay between runs in ms;
+      # max-process-time per routing key (ISO-8601 Duration) must exceed the longest real duration.
+      app.jobreaper.enabled: "${RENDERING2_JOBREAPER_ENABLED:-true}"
+      app.jobreaper.schedule: "${RENDERING2_JOBREAPER_SCHEDULE:-600000}"
+      app.jobreaper.default-max-process-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_PROCESS_TIME:-PT30M}"
+      app.jobreaper.max-process-time.av_job: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -144,6 +165,8 @@ services:
       app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
+      # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
+      # app.queue.<x>.concurrency above (Reactor Netty maxConnections, per remote host).
       spring.mongodb.authentication-database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.username: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
