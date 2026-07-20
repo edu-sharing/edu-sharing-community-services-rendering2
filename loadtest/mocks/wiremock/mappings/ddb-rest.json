@@ -1,0 +1,29 @@
+{
+  "mappings": [
+    {
+      "name": "ddb-rest-items",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/ddb/rest/items/.*"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "binaries": {
+            "binary": {
+              "@ref": "loadtest-binary-ref",
+              "@kind": "https://creativecommons.org/licenses/by/4.0/",
+              "@license_group": "cc"
+            }
+          },
+          "view": {
+            "item": {
+              "institution": { "name": "Loadtest-Institution" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

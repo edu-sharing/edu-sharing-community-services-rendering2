@@ -34,7 +34,8 @@ class AudioConversionServiceTest {
         listenerFactory = listenerFactory,
         encoderFactory = encoderFactory,
         timeoutGuard = timeoutGuard,
-        avFileHelperFactory = fileHelperFactory
+        avFileHelperFactory = fileHelperFactory,
+        threads = 1
     )
     private val jobDataProvider = JobDataProvider()
 
@@ -63,8 +64,8 @@ class AudioConversionServiceTest {
         every { fileHelper.originalFile } returns dummyOriginalFile
 
         val attrSlot = slot<EncodingAttributes>()
-        val mmoSlot = slot<MultimediaObject>()
-        every { encoder.encode(capture(mmoSlot), dummyOutputFile, capture(attrSlot), listener) } throws Exception()
+        val mmoSlot = slot<List<MultimediaObject>>()
+        every { encoder.encode(capture(mmoSlot), dummyOutputFile, capture(attrSlot), listener, any()) } throws Exception()
         justRun { fileHelper.close() }
 
         // Act
@@ -77,14 +78,14 @@ class AudioConversionServiceTest {
         assert(attrSlot.captured.audioAttributes.flatMap { it.channels }.get() == 2)
         assert(attrSlot.captured.audioAttributes.flatMap { it.codec }.get() == CODEC)
         assert(attrSlot.captured.outputFormat.get() == OUTPUT_FORMAT)
-        assert(mmoSlot.captured.file.toString() == DUMMY_ORIGINAL_FILE_PATH)
+        assert(mmoSlot.captured.single().file.toString() == DUMMY_ORIGINAL_FILE_PATH)
 
         verifySequence {
             fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
             fileHelper.originalFile
             fileHelper.outputFile
-            encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener)
+            encoder.encode(any<List<MultimediaObject>>(), dummyOutputFile, any(), listener, any())
             fileHelper.close()
         }
 
@@ -113,7 +114,7 @@ class AudioConversionServiceTest {
         justRun { fileHelper.fetchOriginalTempFile(cacheObject) }
         every { fileHelper.outputFile } returns dummyOutputFile
         every { fileHelper.originalFile } returns dummyOriginalFile
-        justRun { encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener) }
+        justRun { encoder.encode(any<List<MultimediaObject>>(), dummyOutputFile, any(), listener, any()) }
         val cacheObjectSlot = slot<CacheObject>()
         justRun { fileHelper.uploadToCache(capture(cacheObjectSlot)) }
         justRun { fileHelper.close() }
@@ -127,7 +128,7 @@ class AudioConversionServiceTest {
             fileHelper.fetchOriginalTempFile(cacheObject)
             fileHelper.originalFile
             fileHelper.outputFile
-            encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener)
+            encoder.encode(any<List<MultimediaObject>>(), dummyOutputFile, any(), listener, any())
             fileHelper.outputFile
             fileHelper.uploadToCache(any())
             fileHelper.close()

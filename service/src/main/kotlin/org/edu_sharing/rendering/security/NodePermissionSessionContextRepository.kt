@@ -94,7 +94,7 @@ class NodePermissionSessionContextRepository(
             return false
         }
 
-        val result = nodePermissions.firstOrNull { it.nodeId == nodeId }?.hasPermission(permission) == true
+        val result = findNodePermission(nodePermissions, nodeId)?.hasPermission(permission) == true
         log.debug("Permission check for nodeId=$nodeId, permission=$permission: ${if (result) "allowed" else "denied"}")
         return result
     }
@@ -103,6 +103,20 @@ class NodePermissionSessionContextRepository(
         val session = getSession(false) ?: return null
         val nodePermissions = readNodePermissionsFromSession(session) ?: return null
 
-        return nodePermissions.find { it.nodeId == nodeId}
+        return findNodePermission(nodePermissions, nodeId)
+    }
+
+    /**
+     * Permissions are stored under the id the repository issued the JWT for — for collection
+     * references that is the reference id, while the reference's assets and jobs are keyed by
+     * the original node's id. On a direct miss, resolve the original id through the signed
+     * reference node in the session and answer with the reference's permissions.
+     */
+    private fun findNodePermission(nodePermissions: List<NodePermission>, nodeId: String): NodePermission? {
+        nodePermissions.firstOrNull { it.nodeId == nodeId }?.let { return it }
+        val referenceNode = nodeSessionContextRepository.getNode(nodeId) ?: return null
+        if (referenceNode.ref.id == nodeId) return null
+        log.debug("Resolved nodeId=$nodeId to collection reference ${referenceNode.ref.id} for permission lookup")
+        return nodePermissions.firstOrNull { it.nodeId == referenceNode.ref.id }
     }
 }

@@ -36,7 +36,7 @@ class BinderService(
     @Value($$"${app.queue.binder.key}")
     lateinit var binderJobRoutingKey: String
 
-    @Value($$"${app.queue.binderPreview.key}")
+    @Value($$"${app.queue.binder-preview.key}")
     lateinit var previewJobRoutingKey: String
 
     private val log = LoggerFactory.getLogger(javaClass)

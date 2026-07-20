@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.utils.combinePath
+import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -35,8 +36,8 @@ class H5pRenderModule(
     override fun isOptionalModule() = true
 
     override fun handle(node: Node): RenderDataResponse {
-        log.debug("H5P handle called for nodeId={}, hash={}", node.ref.id, node.content?.hash)
-        val cachedLumiContentId = lumiContentManagementService.getContentId(node.ref.id, node.content?.hash ?: "")
+        log.debug("H5P handle called for nodeId={}, hash={}", node.storageNodeId(), node.content?.hash)
+        val cachedLumiContentId = lumiContentManagementService.getContentId(node.storageNodeId(), node.content?.hash ?: "")
         if (cachedLumiContentId != null) {
             log.debug("H5P cache hit for nodeId={}, lumiContentId={}", node.ref.id, cachedLumiContentId)
             return RenderDataResponse(

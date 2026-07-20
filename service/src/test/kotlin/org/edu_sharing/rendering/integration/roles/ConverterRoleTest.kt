@@ -2,6 +2,9 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
+import org.edu_sharing.rendering.modules.binder.BinderPreviewReceiver
+import org.edu_sharing.rendering.modules.binder.BinderReceiver
+import org.edu_sharing.rendering.modules.ddb.DdbReceiver
 import org.edu_sharing.rendering.modules.document.DocumentConversionService
 import org.edu_sharing.rendering.modules.document.DocumentConverterConfig
 import org.edu_sharing.rendering.modules.document.DocumentReceiver
@@ -42,7 +45,10 @@ class ConverterRoleTest(
     
     companion object {
         private val roleSpecificClassBeans = setOf(
+            BinderPreviewReceiver::class,
+            BinderReceiver::class,
             ConverterWebServiceCaller::class,
+            DdbReceiver::class,
             DocumentConversionService::class,
             DocumentConverterConfig::class,
             DocumentReceiver::class,

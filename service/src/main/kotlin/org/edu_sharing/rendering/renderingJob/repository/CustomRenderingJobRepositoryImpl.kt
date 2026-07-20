@@ -68,6 +68,6 @@ class CustomRenderingJobRepositoryImpl(
         }
         val collection = mongoTemplate.getCollectionName(RenderingJob::class.java)
         val updateResult = mongoTemplate.updateFirst(query, update, collection)
-        log.info("acknowledged: ${updateResult.wasAcknowledged()} matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+        log.debug("acknowledged: ${updateResult.wasAcknowledged()} matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
     }
 }

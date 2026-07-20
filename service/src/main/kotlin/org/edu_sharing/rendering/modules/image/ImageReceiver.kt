@@ -28,12 +28,13 @@ class ImageReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.image.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.image.key}"]
+                value = Queue(name = "#{imageQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{imageQueueProperties.key}"]
             )
         ],
-        containerFactory = "singlePrefetchConnectionFactory"
+        containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{imageQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received image sub-job message: id=${message.id}")

@@ -12,11 +12,13 @@ import reactor.core.publisher.Mono
 @ConditionalOnConverter
 class OmegaApiCallerService(
     // The Omega API host (cp.sodis.de) sends a fatal-to-the-JDK `unrecognized_name` TLS warning when
-    // SNI is present, so the API call must go through the SNI-suppressing builder. See WebClientConfig.
-    @param:Qualifier("noSniWebClientBuilder") private val noSniWebClientBuilder: WebClient.Builder,
-    // Default (SNI-enabled) builder for the stream/download URL validation — those hosts (edupool)
-    // *require* SNI and would fail the handshake without it.
-    private val webClientBuilder: WebClient.Builder,
+    // SNI is present, so the API call must go through the SNI-suppressing builder. The import variant
+    // additionally uses the larger import connection pool. See WebClientConfig.
+    @param:Qualifier("omegaNoSniRemoteWebClientBuilder") private val noSniWebClientBuilder: WebClient.Builder,
+    // SNI-enabled import builder for the stream/download URL validation — those hosts (edupool)
+    // *require* SNI and would fail the handshake without it; the import pool keeps validation from
+    // bottlenecking on the default 16-connection pool under high import concurrency.
+    @param:Qualifier("omegaRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 

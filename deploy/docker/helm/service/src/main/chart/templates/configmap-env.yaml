@@ -11,6 +11,17 @@ data:
   S3_PORT: {{ .Values.config.s3.port | quote }}
   RABBITMQ_HOST: {{ .Values.config.rabbitmq.host | quote }}
   RABBITMQ_PORT: {{ .Values.config.rabbitmq.port | quote }}
+  {{- range $q, $v := .Values.config.queue.concurrency }}
+  "app.queue.{{ $q }}.concurrency": {{ $v | quote }}
+  {{- end }}
+  {{- with .Values.config.queue.prefetch }}
+  "app.queue.prefetch": {{ . | quote }}
+  {{- end }}
+  {{- range $q, $v := .Values.config.queue.remotePrefetch }}
+  {{- with $v }}
+  "app.queue.{{ $q }}.prefetch": {{ . | quote }}
+  {{- end }}
+  {{- end }}
   REDIS_HOST: {{ .Values.config.redis.host | quote }}
   REDIS_PORT: {{ .Values.config.redis.port | quote }}
   MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
@@ -47,13 +58,22 @@ data:
   "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
   "app.converter.image.maxPixels": {{ .Values.config.converter.image.maxPixels | quote }}
   "app.converter.video.format": {{ .Values.config.converter.video.format | quote }}
+  "app.converter.video.ffmpegThreads": {{ .Values.config.converter.video.ffmpegThreads | quote }}
+  "app.converter.video.ffmpegPreset": {{ .Values.config.converter.video.ffmpegPreset | quote }}
   "app.converter.video.mimeTypes": {{ .Values.config.converter.video.mimetypes | quote }}
   "app.converter.video.resolutions": {{ .Values.config.converter.video.resolutions | quote }}
   "app.converter.audio.mimeTypes": {{ .Values.config.converter.audio.mimetypes | quote }}
   "app.converter.audio.bitrate": {{ .Values.config.converter.audio.bitrate | quote }}
+  "app.converter.audio.ffmpegThreads": {{ .Values.config.converter.audio.ffmpegThreads | quote }}
   "app.cache.cleaner.schedule": {{ .Values.config.cache.cleaner.schedule | quote }}
   "app.cache.cleaner.threshold.lower": {{ .Values.config.cache.cleaner.threshold.lower | quote }}
   "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}
+  "app.jobreaper.enabled": {{ .Values.config.jobreaper.enabled | quote }}
+  "app.jobreaper.schedule": {{ .Values.config.jobreaper.schedule | quote }}
+  "app.jobreaper.default-max-process-time": {{ .Values.config.jobreaper.defaultMaxProcessTime | quote }}
+  {{- range $k, $v := .Values.config.jobreaper.maxProcessTime }}
+  "app.jobreaper.max-process-time.{{ $k }}": {{ $v | quote }}
+  {{- end }}
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}

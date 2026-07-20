@@ -1577,7 +1577,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "QUEUED", "PROCESSING", "FINISHED", "FAILED" ]
+            "enum" : [ "QUEUED", "PROCESSING", "FINISHED", "FAILED", "TIMEOUT" ]
           },
           "quality" : {
             "type" : "integer",

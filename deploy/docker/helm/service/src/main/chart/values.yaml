@@ -448,12 +448,28 @@ config:
         ## @param config.cache.cleaner.threshold.upper Set upper threshold for cache cleaner
         upper: -0.9
 
+  ## Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs so a crashed/lost conversion
+  ## cannot poison re-rendering of a node until the 8-day TTL. See StaleJobReaper.
+  jobreaper:
+    ## @param config.jobreaper.enabled Enable the stale-job reaper
+    enabled: true
+    ## @param config.jobreaper.schedule Fixed delay in milliseconds between reaper runs
+    schedule: "600000"
+    ## @param config.jobreaper.defaultMaxProcessTime Max processing time (ISO-8601 Duration) before a PROCESSING sub-job is timed out, for any routing key without an explicit override
+    defaultMaxProcessTime: "PT30M"
+    ## Per-routing-key overrides (ISO-8601 Duration); key = queue routing key (app.queue.<module>.key)
+    maxProcessTime:
+      ## @param config.jobreaper.maxProcessTime.av_job Max processing time for av_job (ffmpeg guard is PT30M, so give headroom)
+      av_job: "PT45M"
+
   converter:
     audio:
       ## @param config.converter.audio.mimetypes Set mimetypes for audio converter
       mimetypes: audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma
       ## @param config.converter.audio.bitrate Set bitrate for audio converter
       bitrate: 160
+      ## @param config.converter.audio.ffmpegThreads Set ffmpeg threads for audio converter
+      ffmpegThreads: 1
     document:
       ## @param config.converter.document.host Set document-converter host
       host: edusharing-services-rendering2-document-converter
@@ -593,6 +609,59 @@ config:
     username: rendering2
     ## @param config.rabbitmq.password Set mongodb username
     password: ""
+
+  queue:
+    ## The one per-queue scaling knob: max messages processed in parallel per pod. Its meaning per queue
+    ## follows the queue's `mode` (set in application.properties, not tunable here):
+    ##  - STANDARD queues (job/image/av/eduHtml/document/jupyter/onyx/binder/binderPreview): the number of
+    ##    DirectMessageListenerContainer consumers registered per pod (burst fanned out at once, no
+    ##    auto-scale ramp; idle consumers cost nothing on the shared virtual-thread executor).
+    ##  - REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: K — sizes
+    ##    the dedicated remote HTTP pool AND the broker prefetch, K messages run in parallel on virtual
+    ##    threads. Scale cluster throughput via more pods, not K.
+    ## moodle/h5p are SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) and are therefore not
+    ## listed — their concurrency is not tunable. Values are shared by every role deployment, so keep them
+    ## conservative for co-located profiles (worker/aio) where image/eduHtml/av compete for the same cores;
+    ## raise for dedicated converter/avconverter pods.
+    concurrency:
+      ## @param config.queue.concurrency.job Consumers for the job dispatch queue
+      job: "20"
+      ## @param config.queue.concurrency.image Consumers for the image queue (CPU-in-JVM; size ~ pod cores)
+      image: "4"
+      ## @param config.queue.concurrency.av Consumers for the audio/video queue (each spawns an ffmpeg process)
+      av: "2"
+      ## @param config.queue.concurrency.eduHtml Consumers for the eduHtml queue (in-JVM unzip; shares CPU with image)
+      eduHtml: "5"
+      ## @param config.queue.concurrency.document Consumers for the document queue (bounded by the remote converter)
+      document: "8"
+      ## @param config.queue.concurrency.jupyter Consumers for the jupyter queue (bounded by the remote converter)
+      jupyter: "8"
+      ## @param config.queue.concurrency.onyx Consumers for the onyx queue
+      onyx: "8"
+      ## @param config.queue.concurrency.binder Consumers for the binder queue
+      binder: "1"
+      ## @param config.queue.concurrency.binderPreview Consumers for the binder preview queue
+      binderPreview: "1"
+      ## @param config.queue.concurrency.sodix Remote concurrency K for the sodix queue (HTTP pool + prefetch; scale via pods)
+      sodix: "50"
+      ## @param config.queue.concurrency.omega Remote concurrency K for the omega queue (HTTP pool + prefetch; scale via pods)
+      omega: "50"
+      ## @param config.queue.concurrency.ddb Remote concurrency K for the ddb queue (HTTP pool + prefetch; scale via pods)
+      ddb: "50"
+
+    ## @param config.queue.prefetch Global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from concurrency)
+    prefetch: "1"
+
+    ## Optional per-queue prefetch override for REMOTE queues (sodix/omega/ddb) — leave empty to derive
+    ## prefetch from concurrency (1:1 with the remote HTTP pool). Set only to run prefetch above concurrency
+    ## while jobs spend time in post-call Mongo/S3 work; must be >= concurrency (enforced at startup).
+    remotePrefetch:
+      ## @param config.queue.remotePrefetch.sodix Prefetch override for the sodix remote queue (empty = derive from concurrency)
+      sodix: ""
+      ## @param config.queue.remotePrefetch.omega Prefetch override for the omega remote queue (empty = derive from concurrency)
+      omega: ""
+      ## @param config.queue.remotePrefetch.ddb Prefetch override for the ddb remote queue (empty = derive from concurrency)
+      ddb: ""
 
   redis:
     ## @param config.redis.host Set redis host

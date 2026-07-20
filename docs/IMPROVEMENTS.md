@@ -33,28 +33,40 @@ Diese Punkte aus der Analyse sind erledigt und dienen hier nur der Nachvollziehb
 **Empfehlung:** Resilience4j einführen (aktuell **keine** Retry-Dependency im POM) oder Spring
 `@Retryable`; DLQ ist der Einstieg mit dem besten Nutzen/Aufwand-Verhältnis.
 
-## B1b · Durchsatz / Job-Parallelität (Prefetch & Concurrency)
+## B1b · Durchsatz / Job-Parallelität (Prefetch & Concurrency) — ✅ umgesetzt
 
 | Befund | Impact | Datei(en) | Aufwand | Prio |
 |---|---|---|---|---|
-| RabbitMQ-Listener fest auf **1 Job gleichzeitig**: `setPrefetchCount(1)` + `setConcurrentConsumers(1)` hartcodiert (`singlePrefetchConnectionFactory`) | Jede Instanz arbeitet pro Listener nur **einen** Job ab; Durchsatz skaliert nur über mehr Pods, nicht über vorhandene CPU/IO-Reserven einer Instanz | `renderingJob/queue/QueueConfig.kt` (Z22-23) | 1–2 PT | 🟡 |
+| ~~RabbitMQ-Listener fest auf **1 Job gleichzeitig** (`setPrefetchCount(1)` + `setConcurrentConsumers(1)` hartcodiert)~~ → Prefetch **und** Consumer-Anzahl pro Queue/Modul und pro Instanz konfigurierbar | Durchsatz je Instanz über die vorhandenen CPU/IO-Reserven skalierbar | `renderingJob/queue/{QueueConfig,QueueContainerConfig,TunableQueueContainerConfig}.kt` | — | ✅ |
 
-**Ziel:** Prefetch-Count und Consumer-Anzahl konfigurierbar machen — idealerweise **pro Modul
-und pro Instanz** tunebar, damit z.B. der Image-Converter viele leichte Jobs parallel abarbeitet,
-während ein RAM-intensiver AV-/Document-Job konservativ bei wenigen Consumern bleibt.
+**Umgesetzt (2026-07):**
+- **Concurrency** pro Queue via `app.queue.<modul>.concurrency` (SpEL im `@RabbitListener`),
+  inkl. Auto-Scaling-Range (`"1-200"` → `concurrentConsumers`/`maxConcurrentConsumers`) für die
+  leichten API-Passthroughs (sodix, omega, ddb).
+- **Prefetch** pro Queue modul-lokal über `QueueContainerConfig`-Beans (Convenience-Basisklasse
+  `TunableQueueContainerConfig`), von der geteilten `queueListenerContainerFactory` per
+  `ContainerCustomizer` eingesammelt und angewendet. Default bleibt **1** für die schweren
+  Konvertierer (fair dispatch bei ungleich langen Jobs); die leichten Passthroughs (sodix,
+  omega, ddb) nutzen **3**.
+- **Auto-Scaling-Geschwindigkeit** der leichten Queues (sodix, omega, ddb) burst-getunt, **pro Queue
+  separat** über je eine modul-lokale `@ConfigurationProperties`-Subklasse (`SodixQueueProperties`
+  usw. : `QueueProperties`), die name + prefetch + das `scaling`-Profil (`BurstScaling`) aus
+  `app.queue.<queue>.*` bündelt und in die `TunableQueueContainerConfig`-Bean fließt. Scaling-Knöpfe:
+  `startConsumerMinInterval`, `stopConsumerMinInterval`, `consecutiveActiveTrigger`,
+  `consecutiveIdleTrigger`. Burst-Defaults: schneller Ramp-up (+1 Consumer/s, Trigger 1) und Teardown
+  (−1/s, 3 Idle-Zyklen Grace). In Helm über die verschachtelte `config.queue.scaling`-Map exponiert
+  (rendert `app.queue.<queue>.scaling.*`); jeder Knopf unset = Framework-Default. (`key`/`concurrency`
+  bleiben flach, da sie nur die `@RabbitListener`-Placeholder speisen.)
+- **Pro Instanz** tunebar über Deploy-Env (`RENDERING2_QUEUE_<KEY>_CONCURRENCY` / `_PREFETCH`)
+  in compose + Helm.
+- Idempotenz unkritisch: Sub-Job-Ergebnisse landen pro `nodeId/hash` in S3, daher gefahrlos bei
+  prefetch/concurrency > 1.
+- Offen/kombinierbar: DLQ aus **B1** (höhere Parallelität → mehr Bedarf an sauberem
+  Fehler-Routing) und rollenspezifische Resource-Limits (Helm-Punkt in **B2**).
 
-**Skizze der Umsetzung:**
-- `prefetchCount` / `concurrentConsumers` (+ optional `maxConcurrentConsumers` für dynamisches
-  Hochskalieren) als Properties exponieren, z.B.
-  `app.queue.<modul>.prefetch-count` / `app.queue.<modul>.concurrency` mit globalem Default.
-- Entweder pro Modul eine eigene `RabbitListenerContainerFactory` registrieren und im jeweiligen
-  `@RabbitListener(containerFactory = ...)` referenzieren, oder die Werte per SpEL direkt im
-  `@RabbitListener(concurrency = "...")` aus den Properties ziehen.
-- Achtung Reihenfolge/Idempotenz: Prefetch > 1 bzw. mehrere Consumer heben die strikte
-  Sequenzierung auf — sicherstellen, dass Sub-Jobs idempotent sind (sie sind es i.d.R., da
-  Ergebnisse pro `nodeId/hash` in S3 landen). Werte modulweise konservativ defaulten.
-- Sinnvoll zu kombinieren mit der DLQ aus **B1** (höhere Parallelität → mehr Bedarf an sauberem
-  Fehler-Routing) und mit rollenspezifischen Resource-Limits (siehe Helm-Punkt in **B2**).
+**Betriebsdoku:** [`QUEUE_SCALING.md`](QUEUE_SCALING.md) — vollständige DevOps-Erklärung des
+Skalierungsmechanismus (zwei Ebenen, Auto-Scaling-Algorithmus, prefetch×concurrency,
+competing consumers, Config-Referenz, Tuning-Leitfaden).
 
 ## B2 · Sicherheit
 

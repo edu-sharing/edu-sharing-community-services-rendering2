@@ -19,8 +19,7 @@ class DdbRenderModule(
 
     companion object {
         private val requiredCredentialKeys = setOf("apiToken")
-        const val REST_API_BASE_URL = "https://api.deutsche-digitale-bibliothek.de"
-        const val IIIF_API_BASE_URL = "https://iiif.deutsche-digitale-bibliothek.de/image/2"
+        // Base URLs moved to DdbApiProperties (app.module.ddb.*) so the load test can point DDB at a mock.
         const val WIDTH_PLACEHOLDER = "{WIDTH}"
         const val HEIGHT_PLACEHOLDER = "{HEIGHT}"
     }
