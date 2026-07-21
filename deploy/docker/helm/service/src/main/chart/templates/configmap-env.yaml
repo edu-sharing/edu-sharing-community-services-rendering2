@@ -65,6 +65,7 @@ data:
   "app.converter.audio.mimeTypes": {{ .Values.config.converter.audio.mimetypes | quote }}
   "app.converter.audio.bitrate": {{ .Values.config.converter.audio.bitrate | quote }}
   "app.converter.audio.ffmpegThreads": {{ .Values.config.converter.audio.ffmpegThreads | quote }}
+  "app.converter.av.ffmpegPath": {{ .Values.config.converter.av.ffmpegPath | quote }}
   "app.cache.cleaner.schedule": {{ .Values.config.cache.cleaner.schedule | quote }}
   "app.cache.cleaner.threshold.lower": {{ .Values.config.cache.cleaner.threshold.lower | quote }}
   "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}

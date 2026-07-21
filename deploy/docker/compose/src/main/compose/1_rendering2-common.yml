@@ -134,6 +134,7 @@ services:
       app.converter.audio.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma}"
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
       app.converter.audio.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_AUDIO_FFMPEG_THREADS:-1}"
+      app.converter.av.ffmpegPath: "${RENDERING2_SERVICE_CONVERTER_AV_FFMPEG_PATH:-ffmpeg}"
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"

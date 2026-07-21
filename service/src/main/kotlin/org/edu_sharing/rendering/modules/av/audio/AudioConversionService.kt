@@ -16,6 +16,7 @@ import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.AudioAttributes
 import ws.schild.jave.encode.EncodingAttributes
+import ws.schild.jave.process.ProcessLocator
 
 @ConditionalOnAvConverter
 @Service
@@ -24,6 +25,7 @@ class AudioConversionService(
     private val encoderFactory: ObjectFactory<Encoder>,
     private val timeoutGuard: AvConversionTimeoutGuard,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
+    private val ffmpegLocator: ProcessLocator,
     @param:Value($$"${app.converter.audio.ffmpegThreads}")
     private val threads: Int
 ) : AvConversionService {
@@ -50,7 +52,7 @@ class AudioConversionService(
         fileHelper.use {
             fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
-            val multiMediaObject = MultimediaObject(fileHelper.originalFile)
+            val multiMediaObject = MultimediaObject(fileHelper.originalFile, ffmpegLocator)
             timeoutGuard.runEncode(encoder, subJob.id) {
                 encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, attributes, listener, listOf(ffmpegThreadsArg(threads)))
             }

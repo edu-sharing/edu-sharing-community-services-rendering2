@@ -5,11 +5,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Scope
 import ws.schild.jave.Encoder
+import ws.schild.jave.process.ProcessLocator
 
 @ConditionalOnAvConverter
 @Configuration
 class AvConfig {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    fun encoder(): Encoder = Encoder()
+    fun encoder(ffmpegLocator: ProcessLocator): Encoder = Encoder(ffmpegLocator)
 }
