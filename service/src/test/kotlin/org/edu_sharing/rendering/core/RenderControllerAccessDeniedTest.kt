@@ -6,6 +6,7 @@ import io.mockk.just
 import io.mockk.runs
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
+import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,6 +45,9 @@ class RenderControllerAccessDeniedTest(@param:Autowired val mockMvc: MockMvc) {
     @MockkBean
     lateinit var nodeSessionContextRepository: NodeSessionContextRepository
 
+    @MockkBean
+    lateinit var moduleRegistry: ModuleRegistry
+
     private fun requestBody(): String {
         val node = """{"ref": {"id": "TEST_file.h5p", "repo": "repo-1"}, "mediatype": "file"}"""
         val payload = Base64.getEncoder().encodeToString(node.toByteArray())
@@ -61,6 +65,7 @@ class RenderControllerAccessDeniedTest(@param:Autowired val mockMvc: MockMvc) {
 
     @Test
     fun `returns 403 instead of 500 when the PreAuthorize check denies access`() {
+        every { moduleRegistry.isFrontendRemoteRepository(any()) } returns false
         every { nodeSessionContextRepository.saveNode(any()) } just runs
         every { trackingService.trackObject(any(), any(), any()) } just runs
         every { service.getRenderModule(any(), any()) } throws AuthorizationDeniedException("Access Denied")

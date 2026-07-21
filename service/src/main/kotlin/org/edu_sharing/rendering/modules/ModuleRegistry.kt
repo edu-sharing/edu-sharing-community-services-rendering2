@@ -102,13 +102,24 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
         return result as T
     }
 
+    /**
+     * Nodes from frontend-only remote repositories (pixabay, youtube, …) are rendered
+     * client-side and are intentionally never registered here. Such repositories have no
+     * public key in the repository config, so signature verification for them cannot
+     * succeed — callers must reject these nodes before that point.
+     */
+    fun isFrontendRemoteRepository(node: Node): Boolean {
+        val remoteType = node.remote?.repository?.repositoryType ?: return false
+        return remoteType in FRONTEND_REMOTE_REPOSITORY_TYPES
+    }
+
     fun <T: RenderModule> getRenderModule(node: Node, moduleFilter: (RenderModule) -> Boolean = { true }): T {
-        node.remote?.let { remote ->
-            val remoteType = remote.repository?.repositoryType ?: ""
-            if (remoteType in FRONTEND_REMOTE_REPOSITORY_TYPES) {
-                log.debug("Node is from remote frontend repository (type='{}'), rendering done in frontend only", remoteType)
-                throw ObjectTypeNotSupportedException()
-            }
+        if (isFrontendRemoteRepository(node)) {
+            log.debug(
+                "Node is from remote frontend repository (type='{}'), rendering done in frontend only",
+                node.remote?.repository?.repositoryType
+            )
+            throw ObjectTypeNotSupportedException()
         }
         val location = node.properties?.getOrDefault("cclom:location", mutableListOf(""))[0]
         val hasLocalContent = location.isNullOrBlank() && !node.content?.hash.isNullOrBlank()
