@@ -470,6 +470,9 @@ config:
       bitrate: 160
       ## @param config.converter.audio.ffmpegThreads Set ffmpeg threads for audio converter
       ffmpegThreads: 1
+    av:
+      ## @param config.converter.av.ffmpegPath Path to the ffmpeg executable (installed in the image; override with an absolute path if not on PATH)
+      ffmpegPath: ffmpeg
     document:
       ## @param config.converter.document.host Set document-converter host
       host: edusharing-services-rendering2-document-converter

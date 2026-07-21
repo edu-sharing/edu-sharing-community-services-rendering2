@@ -13,6 +13,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.edu_sharing.rendering.modules.av.SystemFfmpegLocator
 import org.springframework.beans.factory.ObjectFactory
 import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
@@ -35,6 +36,7 @@ class AudioConversionServiceTest {
         encoderFactory = encoderFactory,
         timeoutGuard = timeoutGuard,
         avFileHelperFactory = fileHelperFactory,
+        ffmpegLocator = SystemFfmpegLocator("ffmpeg"),
         threads = 1
     )
     private val jobDataProvider = JobDataProvider()

@@ -14,6 +14,7 @@ import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.*
 import ws.schild.jave.info.VideoSize
+import ws.schild.jave.process.ProcessLocator
 
 @ConditionalOnAvConverter
 @Service
@@ -25,6 +26,7 @@ class VideoConversionService(
     private val configuredResolutions: VideoConverterConfig,
     private val storageImplementation: StorageService,
     private val subJobRepository: SubJobRepository,
+    private val ffmpegLocator: ProcessLocator,
     @param:Value($$"${app.converter.video.format}")
     private val videoFormat: String,
     @param:Value($$"${app.converter.video.ffmpegThreads}")
@@ -48,7 +50,7 @@ class VideoConversionService(
         fileHelper.use {
             fileHelper.initOutputTempFile(videoFormat)
             fileHelper.fetchOriginalTempFile(cacheObject)
-            val multiMediaObject = MultimediaObject(fileHelper.originalFile)
+            val multiMediaObject = MultimediaObject(fileHelper.originalFile, ffmpegLocator)
             val (targetWidth, targetHeight, recheckStorage) = calculateTargetDimensions(multiMediaObject, subJob.quality)
             log.debug("Target dimensions: ${targetWidth}x${targetHeight}, recheckStorage=$recheckStorage for nodeId=${cacheObject.nodeId}")
             val outputCacheObject = cacheObject.deepCopy()
