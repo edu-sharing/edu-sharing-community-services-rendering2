@@ -9,7 +9,6 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -29,23 +28,11 @@ class MoodleReceiver (
 
     @RabbitListener(
         bindings = [
-            // Single Active Consumer (app.queue.moodle.mode=SINGLE_ACTIVE): moodle can import only one
-            // document at a time, so the broker must route moodle jobs to exactly one consumer cluster-wide.
-            // Per-instance concurrency=1 alone is not enough — with N pods, N competing consumers would each
-            // process a job in parallel. x-single-active-consumer keeps a single consumer active across all
-            // pods; the others stay on standby and take over only on failover. The argument MUST sit on the
-            // Queue (a queue-declaration argument), not on the QueueBinding (a binding argument, ignored by a
-            // topic exchange).
+            // STANDARD fan-out queue on the shared listener factory: app.queue.moodle.concurrency consumers
+            // per pod, so moodle imports run in parallel across the cluster (each import mostly waits on the
+            // remote moodle, including a restore poll of up to 10 minutes).
             QueueBinding(
-                value = Queue(
-                    name = "#{moodleQueueProperties.name}",
-                    durable = "false",
-                    arguments = [Argument(
-                        name = "x-single-active-consumer",
-                        value = "#{moodleQueueProperties.singleActiveConsumer}",
-                        type = "java.lang.Boolean"
-                    )]
-                ),
+                value = Queue(name = "#{moodleQueueProperties.name}", durable = "false"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{moodleQueueProperties.key}"]
             )
