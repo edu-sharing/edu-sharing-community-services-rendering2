@@ -6,6 +6,7 @@ import net.javacrumbs.shedlock.core.LockProvider
 import net.javacrumbs.shedlock.core.LockingTaskExecutor
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMasterAndRegistration
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
+import org.edu_sharing.rendering.edusharingRepo.cors.RegistrationCorsSyncRetrier
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.PrivatePublicKeyService
@@ -27,6 +28,7 @@ class RegistrationRunner(
     private var repositoryRegistrationService: RepositoryRegistrationService,
     private var repositoryRegistrationConfig: RepositoryRegistrationConfig,
     private val corsSyncService: CorsSyncService,
+    private val registrationCorsSyncRetrier: RegistrationCorsSyncRetrier,
     lockProvider: LockProvider,
 ) : ApplicationRunner {
 
@@ -89,7 +91,7 @@ class RegistrationRunner(
                         log.warn("Settings provided for modules: ${orphanedSettingsKeys.joinToString(",")}. These modules are not in the optional-modules list. Did you forget them?")
                     }
                     log.info("Registration completed for ${registrationRequest.url}.")
-                    corsSyncService.syncAllowedOriginsWithRepository(registration.repoId)
+                    registrationCorsSyncRetrier.syncWithRetry(registration.repoId)
                     log.info("Synced allowed origins for ${registration.repoId}.")
                     registration
                 } catch (e: InvalidKeyException) {
