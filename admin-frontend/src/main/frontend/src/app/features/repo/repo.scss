@@ -1,0 +1,27 @@
+h1 { margin: 0 0 18px; }
+h2 { margin: 0 0 14px; font-size: 16px; }
+
+.card { margin-bottom: 18px; }
+
+dl.props {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+dl.props dt {
+  color: var(--es-text-muted-solid);
+  font-weight: 500;
+}
+dl.props dd { margin: 0; word-break: break-word; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: #eef2f7;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.csp { max-width: 420px; white-space: normal; word-break: break-all; }

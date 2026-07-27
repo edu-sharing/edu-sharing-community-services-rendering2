@@ -63,6 +63,7 @@ class H5pJobServiceTest {
 
         every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns listOf(renderingJob)
         every { node.ref.id } returns "dummyNodeId"
+        every { node.aspects } returns null
 
         // Act
         val result = underTest.createJob(node, "EDUHTML")
@@ -81,6 +82,7 @@ class H5pJobServiceTest {
         val node = mockk<Node>()
 
         every { node.ref.id } returns "dummyNodeId"
+        every { node.aspects } returns null
         every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns emptyList()
         every { mapper.nodeToRenderingJob(node, "H5P", true) } returns dummyJob
         every { jobRepository.save(dummyJob) } returns dummyJob
@@ -91,6 +93,7 @@ class H5pJobServiceTest {
 
         excludeRecords {
             node.ref.id
+            node.aspects
         }
 
         // Act
@@ -120,6 +123,7 @@ class H5pJobServiceTest {
         val node = mockk<Node>()
 
         every { node.ref.id } returns "dummyNodeId"
+        every { node.aspects } returns null
         every { finishedJob.status } returns RenderingJobStatus.FINISHED
         every { jobRepository.findAllByEsObjectId("dummyNodeId") } returns listOf(finishedJob)
         every { mapper.nodeToRenderingJob(node, "H5P", true) } returns dummyJob
@@ -130,6 +134,8 @@ class H5pJobServiceTest {
         justRun { amqpTemplate.convertAndSend("exchange", "routingkey", message) }
 
         excludeRecords {
+            node.ref.id
+            node.aspects
             finishedJob.status
         }
 

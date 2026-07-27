@@ -40,6 +40,9 @@ services:
     ports:
       - "9104:5672"
       - "15672:15672"
+      # Prometheus-Plugin (im offiziellen rabbitmq-Image standardmäßig aktiv) für den Lasttest:
+      # Queue-Tiefe/Consumer-Metriken unter :15692/metrics.
+      - "15692:15692"
 
   mongo:
     image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:7.0.15"
@@ -77,8 +80,9 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: rendering2
       AWS_SECRET_ACCESS_KEY: rendering2
+      AWS_S3_ENDPOINT: http://rustfs
       S3_HOST: rustfs
-      S3_PORT: 9000
+      S3_PORT: "9000"
       AWS_S3_MAX_FILE_LENGTH: 1000
       MONGODB_HOST: mongo
       MONGODB_PORT: 27017
@@ -92,8 +96,6 @@ services:
       TEMPORARY_AWS_S3_BUCKET: lumi-tempbucket
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: lumi-libbucket
-      USERDATA_MONGO_COLLECTION: userdata
-      FINISHED_MONGO_COLLECTION: finisheddata
       EDUSHARING_MONGO_COLLECTION: edusharing
       BASE_URL: /public/h5p
       CACHE: in-memory
@@ -102,6 +104,33 @@ services:
     ports:
       - "9112:3000"
 
+
+  # Mock für die Drittanbieter-Import-APIs (sodix, omega, ddb) im Lasttest. Ein einziger
+  # WireMock-Container bedient alle drei über Pfad-Präfixe (/sodix, /omega, /ddb). Die
+  # Mappings liegen unter loadtest/mocks/wiremock/mappings. Der Service (Profil loadtest)
+  # zeigt per Credentials/Property auf http://localhost:8092/... — siehe
+  # application-loadtest.properties. --global-response-templating erlaubt es den Stubs, den
+  # angefragten Identifier zurückzuspiegeln (nötig für omega: get.identifier muss matchen).
+  # Die Sodix-Stubs verzögern die Antwort um 1–2 s (delayDistribution), um die reale API
+  # nachzubilden.
+  # --async-response-enabled: verzögerte Antworten (sodix 1–2 s) belegen KEINEN Container-Thread,
+  # sonst würde der Mock bei vielen gleichzeitigen sodix-Consumern am Thread-Pool verhungern und
+  # das Queue-Scaling verfälschen. container/async-threads großzügig für die Lastspitzen.
+  rendering2-thirdparty-mock:
+    image: wiremock/wiremock:3.9.1
+    command:
+      - "--global-response-templating"
+      - "--disable-banner"
+      - "--async-response-enabled"
+      - "true"
+      - "--async-response-threads"
+      - "100"
+      - "--container-threads"
+      - "100"
+    volumes:
+      - ./loadtest/mocks/wiremock:/home/wiremock:ro
+    ports:
+      - "8092:8080"
 
   onix-service:
     image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-onyx:2025.05.1-0"

@@ -1,9 +1,12 @@
 package org.edu_sharing.rendering.core.dto
 
 import io.mockk.junit5.MockKExtension
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.NodeRef
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.utils.COLLECTION_REFERENCE_ASPECT
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
@@ -205,6 +208,55 @@ class MapperTest {
         assert(result.version == version)
         assert(result.repoId == repoId)
         assert(result.quality == null)
+    }
+
+    @Test
+    fun testNodeToCacheObjectUsesRefIdForPlainNodes() {
+        // Arrange
+        val node = Node().ref(NodeRef().id(nodeId).repo(repoId)).mediatype(type).mimetype(mimeType)
+
+        // Act
+        val result = underTest.nodeToCacheObject(node)
+
+        // Assert
+        assert(result.nodeId == nodeId)
+        assert(result.repoId == repoId)
+    }
+
+    @Test
+    fun testNodeToCacheObjectUsesOriginalIdForCollectionReferences() {
+        // Arrange
+        val node = Node()
+            .ref(NodeRef().id(nodeId).repo(repoId))
+            .aspects(listOf(COLLECTION_REFERENCE_ASPECT))
+            .properties(mapOf("ccm:original" to listOf("original123")))
+            .mediatype(type)
+            .mimetype(mimeType)
+
+        // Act
+        val result = underTest.nodeToCacheObject(node)
+
+        // Assert
+        assert(result.nodeId == "original123")
+        assert(result.repoId == repoId)
+    }
+
+    @Test
+    fun testNodeToRenderingJobUsesOriginalIdForCollectionReferences() {
+        // Arrange
+        val node = Node()
+            .ref(NodeRef().id(nodeId).repo(repoId))
+            .aspects(listOf(COLLECTION_REFERENCE_ASPECT))
+            .properties(mapOf("ccm:original" to listOf("original123")))
+            .mediatype(type)
+            .mimetype(mimeType)
+
+        // Act
+        val result = underTest.nodeToRenderingJob(node, "module123")
+
+        // Assert
+        assert(result.esObjectId == "original123")
+        assert(result.repoId == repoId)
     }
 
     @Test

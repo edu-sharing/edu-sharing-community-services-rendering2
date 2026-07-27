@@ -3,8 +3,10 @@ package org.edu_sharing.rendering.integration.roles
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.av.AvConfig
 import org.edu_sharing.rendering.modules.av.AvConversionListener
+import org.edu_sharing.rendering.modules.av.AvConversionTimeoutGuard
 import org.edu_sharing.rendering.modules.av.AvFileHelperFactory
 import org.edu_sharing.rendering.modules.av.AvReceiver
+import org.edu_sharing.rendering.modules.av.SystemFfmpegLocator
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService
 import org.edu_sharing.rendering.modules.av.video.VideoConversionService
 import org.junit.jupiter.api.Test
@@ -28,10 +30,12 @@ class AvConverterRoleTest(
         private val roleSpecificClassBeans = setOf(
             AvConfig::class,
             AvConversionListener::class,
+            AvConversionTimeoutGuard::class,
             AvFileHelperFactory::class,
             AvReceiver::class,
             AudioConversionService::class,
-            VideoConversionService::class
+            VideoConversionService::class,
+            SystemFfmpegLocator::class
         )
 
         private val roleSpecificFunctionalBeans = setOf(

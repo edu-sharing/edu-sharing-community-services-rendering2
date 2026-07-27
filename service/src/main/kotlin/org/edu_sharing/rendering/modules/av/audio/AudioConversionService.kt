@@ -4,8 +4,10 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.modules.av.AvConversionListener
 import org.edu_sharing.rendering.modules.av.AvConversionService
+import org.edu_sharing.rendering.modules.av.AvConversionTimeoutGuard
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
+import org.edu_sharing.rendering.modules.av.ffmpegThreadsArg
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
@@ -14,13 +16,18 @@ import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.AudioAttributes
 import ws.schild.jave.encode.EncodingAttributes
+import ws.schild.jave.process.ProcessLocator
 
 @ConditionalOnAvConverter
 @Service
 class AudioConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,
-    private val encoder: Encoder,
-    private val avFileHelperFactory: ObjectFactory<AvFileHelper>
+    private val encoderFactory: ObjectFactory<Encoder>,
+    private val timeoutGuard: AvConversionTimeoutGuard,
+    private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
+    private val ffmpegLocator: ProcessLocator,
+    @param:Value($$"${app.converter.audio.ffmpegThreads}")
+    private val threads: Int
 ) : AvConversionService {
     companion object {
         const val OUTPUT_FORMAT = "mp3"
@@ -38,14 +45,17 @@ class AudioConversionService(
         log.debug("Converting audio: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}, bitrate=$bitrate")
         val listener = listenerFactory.`object`
         listener.subJob = subJob
+        val encoder = encoderFactory.`object`
         val attributes = initAttributes()
 
         val fileHelper = avFileHelperFactory.`object`
         fileHelper.use {
             fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
-            val multiMediaObject = MultimediaObject(fileHelper.originalFile)
-            encoder.encode(multiMediaObject, fileHelper.outputFile, attributes, listener)
+            val multiMediaObject = MultimediaObject(fileHelper.originalFile, ffmpegLocator)
+            timeoutGuard.runEncode(encoder, subJob.id) {
+                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, attributes, listener, listOf(ffmpegThreadsArg(threads)))
+            }
             val outputCacheObject = cacheObject.deepCopy()
             outputCacheObject.quality = bitrate.toInt()
             outputCacheObject.size = fileHelper.outputFile.length()

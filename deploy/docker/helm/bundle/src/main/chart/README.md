@@ -103,3 +103,4 @@
 | `edusharing_services_rendering2_service.config.s3.username`                          | Set S3 username                                    | `rendering2`                                                   |
 | `edusharing_services_rendering2_service.config.s3.protocol`                          | Set S3 protocol                                    | `http`                                                         |
 | `edusharing_services_rendering2_service.config.s3.region`                            | Set S3 region                                      | `eu-central-1`                                                 |
+| `edusharing_services_rendering2_admin_frontend.enabled`                              | Enable rendering2 admin frontend                   | `true`                                                         |

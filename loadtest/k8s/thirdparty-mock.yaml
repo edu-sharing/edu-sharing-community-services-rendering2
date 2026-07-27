@@ -1,0 +1,94 @@
+# Drittanbieter-Mock (sodix/omega/ddb) für Phase B — In-Cluster-Pendant zum compose-Service
+# `rendering2-thirdparty-mock`. Ein WireMock-Pod bedient alle drei APIs über Pfad-Präfixe.
+#
+# Die Stub-Mappings liegen als Single-Source-of-Truth unter loadtest/mocks/wiremock/mappings/
+# und werden — analog zum k6-Archiv (siehe README §3) — als ConfigMap ins Cluster gebracht,
+# NICHT hier inline dupliziert:
+#
+#   kubectl -n <ns> create configmap rs2-thirdparty-mock-mappings \
+#     --from-file=loadtest/mocks/wiremock/mappings/
+#
+# Danach dieses Manifest anwenden (Namespace anpassen):
+#
+#   kubectl -n <ns> apply -f loadtest/k8s/thirdparty-mock.yaml
+#
+# Der Service muss anschließend auf den In-Cluster-DNS-Namen zeigen — siehe README §6.
+# Wichtig: --async-response-enabled, damit die künstliche sodix-Latenz (1–2 s) keinen
+# Container-Thread blockiert und der Mock unter Last nicht zum Flaschenhals wird.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rendering2-thirdparty-mock
+  labels:
+    app: rendering2-thirdparty-mock
+    app.kubernetes.io/part-of: rs2-loadtest
+spec:
+  # Bei sehr hoher Last den Pod-CPU im Blick behalten; der Mock darf das Queue-Scaling nicht
+  # verzerren. Bei Sättigung hochskalieren: kubectl -n <ns> scale deploy/rendering2-thirdparty-mock --replicas=N
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rendering2-thirdparty-mock
+  template:
+    metadata:
+      labels:
+        app: rendering2-thirdparty-mock
+        app.kubernetes.io/part-of: rs2-loadtest
+    spec:
+      containers:
+        - name: wiremock
+          image: wiremock/wiremock:3.9.1
+          args:
+            - "--global-response-templating"
+            - "--disable-banner"
+            - "--async-response-enabled"
+            - "true"
+            - "--async-response-threads"
+            - "100"
+            - "--container-threads"
+            - "100"
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: mappings
+              mountPath: /home/wiremock/mappings
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /__admin/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /__admin/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "2"
+              memory: "512Mi"
+      volumes:
+        - name: mappings
+          configMap:
+            name: rs2-thirdparty-mock-mappings
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rendering2-thirdparty-mock
+  labels:
+    app: rendering2-thirdparty-mock
+    app.kubernetes.io/part-of: rs2-loadtest
+spec:
+  selector:
+    app: rendering2-thirdparty-mock
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

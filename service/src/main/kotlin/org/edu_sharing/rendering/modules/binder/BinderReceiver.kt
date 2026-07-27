@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.binder.dto.BinderSubJobMessage
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -15,6 +16,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
+@ConditionalOnConverter
 class BinderReceiver(
     private val uploadService: BinderUploadService,
     private val subJobRepository: SubJobRepository,
@@ -26,11 +28,12 @@ class BinderReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.binder.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.binder.key}"]
+                value = Queue(name = "#{binderQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{binderQueueProperties.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{binderQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder upload message received: subJobId={}", message.subJobId)

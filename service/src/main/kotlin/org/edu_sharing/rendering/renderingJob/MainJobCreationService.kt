@@ -31,14 +31,25 @@ class MainJobCreationService(
         missingQualities: Collection<Int> = emptyList(),
         isConversionType: Boolean = false
     ): String {
-        log.debug("Creating main job for nodeId=${cacheObject.nodeId}, module=$module, conversionType=$isConversionType, missingQualities=$missingQualities")
+        log.debug(
+            "Creating main job for nodeId={}, module={}, conversionType={}, missingQualities={}",
+            cacheObject.nodeId,
+            module,
+            isConversionType,
+            missingQualities
+        )
         val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject, module, isConversionType)
         renderingJobRepository.save(renderingJob)
         val jobMessage = RenderingJobMessage(
             id = renderingJob.id.toString(),
             missingQualities = missingQualities
         )
-        log.debug("Publishing job message id=${renderingJob.id} to exchange=$topicExchangeName with routingKey=$jobRoutingKey")
+        log.debug(
+            "Publishing job message id={} to exchange={} with routingKey={}",
+            renderingJob.id,
+            topicExchangeName,
+            jobRoutingKey
+        )
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, jobMessage)
         return renderingJob.id.toString()
     }

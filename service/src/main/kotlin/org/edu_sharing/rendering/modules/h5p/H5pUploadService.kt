@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.modules.h5p
 
-import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -20,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
+import tools.jackson.databind.ObjectMapper
 import java.io.File
 import java.time.Duration
 
@@ -31,7 +31,8 @@ class H5pUploadService(
     private val lumiContentManagementService: LumiContentManagementService,
     private val trackingService: TrackingService,
     private val storageService: StorageService,
-    private val module: H5pRenderModule
+    private val module: H5pRenderModule,
+    private val objectMapper: ObjectMapper
 ) {
     private val log = LoggerFactory.getLogger(H5pUploadService::class.java)
 
@@ -78,23 +79,22 @@ class H5pUploadService(
             .bodyToMono<String>()
             .timeout(getTimeout(repoId))
             .block()
-        return ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
+        return objectMapper.readValue(response, LumiContentResponse::class.java).contentId
     }
 
     private fun uploadPackage(cacheObject: CacheObject): String {
         log.debug("Uploading H5P package to Lumi for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
-        val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val originalFile = File.createTempFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_",
             ".h5p"
         )
-        inputStream.use {
-            originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
-        }
-        val builder = MultipartBodyBuilder()
-        builder.part("file", FileSystemResource(originalFile))
-        builder.part("nodeId", cacheObject.nodeId + "_" + cacheObject.hash)
         try {
+            contentTransferService.getAsInputStream(cacheObject).use { inputStream ->
+                originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
+            }
+            val builder = MultipartBodyBuilder()
+            builder.part("file", FileSystemResource(originalFile))
+            builder.part("nodeId", cacheObject.nodeId + "_" + cacheObject.hash)
             val response = lumiWebClient
                 .post()
                 .uri {
@@ -109,11 +109,9 @@ class H5pUploadService(
                 .bodyToMono<String>()
                 .timeout(getTimeout(cacheObject.repoId))
                 .block()
-            val contentId = ObjectMapper().readValue(response, LumiContentResponse::class.java).contentId
+            val contentId = objectMapper.readValue(response, LumiContentResponse::class.java).contentId
             log.debug("H5P package upload complete: lumiContentId={} for nodeId={}", contentId, cacheObject.nodeId)
             return contentId
-        } catch (exception: Exception) {
-            throw exception
         } finally {
             originalFile.delete()
         }

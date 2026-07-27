@@ -1,7 +1,9 @@
 package org.edu_sharing.rendering.modules.image
 
+import org.edu_sharing.rendering.core.ErrorStrings
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.exception.ConversionException
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
@@ -26,12 +28,13 @@ class ImageReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.image.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.image.key}"]
+                value = Queue(name = "#{imageQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{imageQueueProperties.key}"]
             )
         ],
-        containerFactory = "singlePrefetchConnectionFactory"
+        containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{imageQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: SubJobMessage) {
         log.debug("Received image sub-job message: id=${message.id}")
@@ -42,7 +45,24 @@ class ImageReceiver(
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         log.debug("Processing image job for nodeId=${cacheObject.nodeId}, subJobCount=${jobEntry.subJobs.size}")
-        val sourceImage = conversionService.fetchSourceImage(cacheObject)
+        val maxQuality = jobEntry.subJobs.maxOfOrNull { it.quality } ?: 0
+        val sourceImage = try {
+            conversionService.fetchSourceImage(cacheObject, maxQuality)
+        } catch (exception: Exception) {
+            if (exception is ConversionException) {
+                log.warn(exception.message, exception)
+            } else {
+                log.error(exception.message, exception)
+            }
+            jobEntry.subJobs.forEach {
+                it.status = SubJobStatus.FAILED
+                it.errorMessage = ErrorStrings.GENERIC_CONVERSION_ERROR
+                subJobRepository.save(it)
+            }
+            conversionService.deleteTempFile(cacheObject)
+            mainJobLogic.processMainJob(message.id)
+            return
+        }
         jobEntry.subJobs.forEach {
             var subJob = it
             log.debug("Converting image sub-job: quality=${subJob.quality} for nodeId=${cacheObject.nodeId}")

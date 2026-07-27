@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.cacheCleaner
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.storage.StorageManagerRegistry
 import org.edu_sharing.rendering.storage.StorageService
@@ -23,6 +24,7 @@ class CacheCleaner(
     @Scheduled(
         cron = $$"${app.cache.cleaner.schedule}"
     )
+    @SchedulerLock(name = "cacheCleaner", lockAtMostFor = "30m", lockAtLeastFor = "1m")
     fun cleanCache() {
         log.info("Running cache cleaner...")
         storageService.getStorageInfo().forEach loop@{

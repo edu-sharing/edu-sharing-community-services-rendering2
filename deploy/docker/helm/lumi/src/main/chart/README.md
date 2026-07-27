@@ -51,6 +51,8 @@
 | `config.s3.region`                              | Set S3 region                                | `eu-central-1`                              |
 | `config.s3.username`                            | Set S3 username                              | `rendering2`                                |
 | `config.s3.password`                            | Set S3 password                              | `""`                                        |
+| `config.s3.trustAllCertificates`                | Set S3 trust all certificates                | `false`                                     |
+| `config.s3.checksumCalculationWhenRequired`     | Set S3 checksum calculation when required    | `false`                                     |
 | `config.s3.buckets.content`                     | Set S3 bucket for content                    | `lumi-contentbucket`                        |
 | `config.s3.buckets.library`                     | Set S3 bucket for library                    | `lumi-libbucket`                            |
 | `config.s3.buckets.temporary`                   | Set S3 bucket for temporary                  | `lumi-tempbucket`                           |

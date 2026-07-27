@@ -5,16 +5,17 @@ import org.edu_sharing.rendering.asset.dto.AssetLinkParams
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.utils.storageNodeId
 import org.springframework.stereotype.Component
 
 @Component
 class Mapper {
     fun nodeToCacheObject(node: Node): CacheObject {
         return CacheObject(
-            nodeId = node.ref.id,
+            nodeId = node.storageNodeId(),
             type = node.mediatype ?: "",
             hash = node.content?.hash ?: "nohash",
-            size = node.size?.toLong() ?: 0,
+            size = if (node.size.isNullOrEmpty()) -1 else node.size!!.toLong(),
             mimeType = node.mimetype ?: "",
             version = node.content?.version ?: "",
             repoId = node.ref.repo
@@ -23,13 +24,13 @@ class Mapper {
 
     fun nodeToRenderingJob(node: Node, module: String, isConversionType: Boolean = false): RenderingJob {
         return RenderingJob(
-            esObjectId = node.ref.id,
+            esObjectId = node.storageNodeId(),
             esObjectType = node.mediatype ?: "",
             esHash = node.content?.hash ?: "nohash",
             mimeType = node.mimetype ?: "",
             repoId = node.ref.repo,
             nodeVersion = node.content?.version ?: "",
-            size = if (node.size.isNullOrEmpty()) 0 else node.size?.toLong(),
+            size = if (node.size.isNullOrEmpty()) null else node.size?.toLong(),
             module = module,
             conversionType = isConversionType,
             externalUrl = node.properties?.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]

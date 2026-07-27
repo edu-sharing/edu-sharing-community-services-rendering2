@@ -10,7 +10,7 @@ FROM ${docker.from.eclipse-temurin.21}
 
 RUN set -eux \
     && apk update  \
-    && apk add --no-cache netcat-openbsd curl
+    && apk add --no-cache netcat-openbsd curl ffmpeg
 
 
 VOLUME /tmp

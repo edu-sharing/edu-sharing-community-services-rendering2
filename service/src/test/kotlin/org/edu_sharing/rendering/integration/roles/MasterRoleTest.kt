@@ -1,10 +1,16 @@
 package org.edu_sharing.rendering.integration.roles
 
+import org.edu_sharing.rendering.asset.AdminAssetController
 import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
 import org.edu_sharing.rendering.edusharingRepo.AdminController
+import org.edu_sharing.rendering.edusharingRepo.AdminStorageController
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
+import org.edu_sharing.rendering.renderingJob.AdminJobController
+import org.edu_sharing.rendering.renderingJob.JobReaperProperties
+import org.edu_sharing.rendering.renderingJob.StaleJobReaper
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncScheduler
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
+import org.edu_sharing.rendering.edusharingRepo.cors.RegistrationCorsSyncRetrier
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,10 +36,16 @@ class MasterRoleTest(
     companion object {
         private val roleSpecificBeans = setOf(
             AdminController::class,
+            AdminStorageController::class,
+            AdminJobController::class,
+            AdminAssetController::class,
             CacheCleaner::class,
             CorsAllowedOriginsReceiver::class,
             CorsSyncScheduler::class,
-            CorsSyncService::class
+            CorsSyncService::class,
+            RegistrationCorsSyncRetrier::class,
+            JobReaperProperties::class,
+            StaleJobReaper::class
         )
     }
 

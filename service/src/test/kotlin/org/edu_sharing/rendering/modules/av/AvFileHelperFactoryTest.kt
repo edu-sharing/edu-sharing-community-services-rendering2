@@ -1,9 +1,8 @@
 package org.edu_sharing.rendering.modules.av
 
-import io.mockk.justRun
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
-import io.mockk.slot
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
 import org.junit.jupiter.api.Test
@@ -24,14 +23,16 @@ class AvFileHelperFactoryTest {
         result.outputFile = File("src/test/resources/fixtures/testFileWith1")
         val cacheObject = mockk<CacheObject>(relaxed = true)
 
-        val inputStreamSlot = slot<InputStream>()
-        justRun { storageService.putObject(cacheObject, capture(inputStreamSlot)) }
+        var uploadedBytes: ByteArray? = null
+        // the stream is consumed and closed inside uploadToCache, so read it in the answer
+        every { storageService.putObject(cacheObject, any<InputStream>()) } answers {
+            uploadedBytes = secondArg<InputStream>().readAllBytes()
+        }
 
         // Act
         result.uploadToCache(cacheObject)
 
         // Assert
-        val uploadedStream = inputStreamSlot.captured
-        assert(uploadedStream.readAllBytes().toString(Charsets.UTF_8) == "1\n")
+        assert(uploadedBytes!!.toString(Charsets.UTF_8) == "1\n")
     }
 }

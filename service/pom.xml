@@ -25,6 +25,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>4.0.7</spring-boot.version>
         <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
+        <shedlock.version>7.7.0</shedlock.version>
     </properties>
 
     <dependencyManagement>
@@ -128,6 +129,12 @@
     </dependency>
 
         <dependency>
+            <groupId>com.drewnoakes</groupId>
+            <artifactId>metadata-extractor</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>tools.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
         </dependency>
@@ -140,12 +147,6 @@
         <dependency>
             <groupId>ws.schild</groupId>
             <artifactId>jave-core</artifactId>
-            <version>3.5.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ws.schild</groupId>
-            <artifactId>jave-nativebin-linux64</artifactId>
             <version>3.5.0</version>
         </dependency>
 
@@ -188,6 +189,11 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-core</artifactId>
         </dependency>
 
         <dependency>
@@ -271,6 +277,18 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
+        <!-- ShedLock: distributed lock for master-only scheduled/startup tasks (deadlock-free via lockAtMostFor). -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-mongo</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -305,6 +323,16 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>3.0.3</version>
+    </dependency>
+
+    <!-- Jackson 2 Kotlin module for swagger-core's (Jackson 2) ObjectMapper, so springdoc
+         detects Kotlin non-null properties and emits them as `required` in the OpenAPI schema
+         (see SpringDocConfig.modelResolver). The app itself runs on Jackson 3; this is only for
+         the swagger-core model introspection used to build the spec. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-kotlin</artifactId>
+      <version>2.21.4</version>
     </dependency>
 
         <!-- TESTS -->

@@ -37,6 +37,11 @@ spec:
         env:
         - name: APP_ROLES
           value: {{ $roleCfg.appRoles | quote }}
+        {{- /* Per-role heap sizing: role jvm.ram wins, global config.jvm.ram fills gaps. Explicit env overrides the ConfigMap's JAVA_OPTS. */}}
+        {{- $ram := $.Values.config.jvm.ram }}
+        {{- with $roleCfg.jvm }}{{- with .ram }}{{- $ram = merge (deepCopy .) $.Values.config.jvm.ram }}{{- end }}{{- end }}
+        - name: JAVA_OPTS
+          value: {{ include "edusharing_services_rendering.javaOpts" (dict "minPercentage" $ram.minPercentage "maxPercentage" $ram.maxPercentage "debug" (default $.Values.global.debug $.Values.debug)) | quote }}
         envFrom:
         - configMapRef:
             name: {{ include "edusharing_common_lib.names.name" $ }}-env
@@ -50,6 +55,11 @@ spec:
         {{- if default $.Values.global.debug $.Values.debug }}
         - name: jpda
           containerPort: 5005
+        {{- end }}
+        {{- if $.Values.persistence.data.temp.create }}
+        volumeMounts:
+        - name: temp
+          mountPath: /tmp
         {{- end }}
         {{- with $.Values.startupProbe }}
         startupProbe:
@@ -82,7 +92,7 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
-        {{- with $.Values.resources }}
+        {{- with $roleCfg.resources | default $.Values.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
         {{- with $.Values.securityContext }}
@@ -248,6 +258,13 @@ spec:
       - name: temp-proxy
         emptyDir: { }
       {{- end }}
+  {{- if $.Values.persistence.data.temp.create }}
+  volumeClaimTemplates:
+  - metadata:
+      name: temp
+      labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
+    spec: {{ merge $.Values.persistence.data.temp.spec $.Values.global.cluster.storage.data.spec | toYaml | nindent 6 }}
+  {{- end }}
 ---
 {{- end }}
 {{- end }}

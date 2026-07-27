@@ -16,9 +16,9 @@ in sync:
 deploy/docker/
 ├── compose/        # resource-filtered docker-compose YAML (Maven Resources Plugin)
 ├── build/          # per-module Dockerfiles + docker-maven-plugin
-│   ├── service/  document-converter/  jupyter-converter/  lumi/
+│   ├── service/  document-converter/  jupyter-converter/  lumi/  admin-frontend/
 └── helm/           # per-module Helm charts + helm-maven-plugin
-    ├── bundle/   service/  document-converter/  jupyter-converter/  lumi/
+    ├── bundle/   service/  document-converter/  jupyter-converter/  lumi/  admin-frontend/
 ```
 
 ## Compose
@@ -26,9 +26,17 @@ deploy/docker/
 the base stack; the others override per profile (e.g. `dev` mounts local JARs and sets
 `-Dspring.profiles.active=docker`). Services: `mongo-database`, `rendering2-rustfs-storage`
 (S3-compatible), `rendering2-message-queue` (RabbitMQ), `redis-cache`, `rendering2-service`,
-`rendering2-document-converter`, `rendering2-lumi`, `rendering2-jupyter-converter`.
+`rendering2-document-converter`, `rendering2-lumi`, `rendering2-jupyter-converter`,
+`rendering2-admin-frontend`.
 Values use `${RENDERING2_*}` env overrides with defaults; Maven resource filtering
 substitutes `${docker.*}` build properties.
+
+The **`rendering2-admin-frontend`** service shares the service's `VIRTUAL_HOST` and is routed
+at a separate path (`VIRTUAL_PATH=/rendering-admin/`, env `RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH`)
+so the SPA is same-origin with the `/admin` API (no CORS). It also publishes a host port
+(`RENDERING2_ADMIN_FRONTEND_PORT_HTTP`, default `10400`) for external Apache2 routing. Its
+container env `BASE_HREF` (UI path) and `ADMIN_API_BASE` (service context-path, e.g. `/rendering`)
+configure the static server at runtime — see [`../admin-frontend/CLAUDE.md`](../admin-frontend/CLAUDE.md).
 
 ## Dockerfiles (`build/<module>/src/main/build/Dockerfile`)
 - **service** & **document-converter**: Amazon Corretto 21-alpine, Spring Boot layered-jar
@@ -36,6 +44,9 @@ substitutes `${docker.*}` build properties.
   The document-converter image additionally installs **LibreOffice + fonts**.
 - **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000.
 - **jupyter-converter**: `python:3.13` (Poetry install in a builder stage), runs `python -m main`.
+- **admin-frontend**: `node:21-alpine`, serves the static Angular build via a dependency-free
+  `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
+  prefix, injects `BASE_HREF`/`ADMIN_API_BASE` into `index.html` at request time). Exposes 8080.
 
 `docker-maven-plugin` builds images on `install` and pushes on `deploy`, naming them from the
 root POM's `docker.registry` / `docker.repository` / `docker.prefix` and the git-derived `docker.tag`.
@@ -62,10 +73,14 @@ dotted Spring keys set as env entries.
 | `RENDERING2_SERVICE_DATABASE_{NAME,USER}` | `spring.mongodb.database` / `.username` | `rendering` |
 | `REDIS_HOST` / `REDIS_PORT` | `spring.redis.standalone.host` / `.port` | `redis-cache` / `6379` |
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | `spring.rabbitmq.host` / `.port` | `rendering2-message-queue` / `5672` |
+| `RENDERING2_QUEUE_<KEY>_CONCURRENCY` (Helm `config.queue.concurrency.<key>`) | `app.queue.<key>.concurrency` — the one per-queue scaling knob: max messages processed in parallel per pod. Meaning follows the queue's `mode` (code-only, in `application.properties`): STANDARD = registered `DirectMessageListenerContainer` consumers; REMOTE (sodix/omega/ddb — resolve a link/reference to externally-hosted material) = K (remote HTTP pool + prefetch, on virtual threads); SINGLE_ACTIVE (h5p) is forced to 1 and not exposed here | `1` (code); per-queue starting values in the chart |
+| `RENDERING2_QUEUE_PREFETCH` (Helm `config.queue.prefetch`) | `app.queue.prefetch` — global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from their concurrency) | `1` |
+| `RENDERING2_QUEUE_<KEY>_PREFETCH` (Helm `config.queue.remotePrefetch.<key>`, `key` ∈ sodix/omega/ddb only) | `app.queue.<key>.prefetch` — optional per-REMOTE-queue prefetch override; must be >= the queue's concurrency (enforced at startup) | empty = derive from `concurrency` |
 | `app.public.{protocol,host,port,path}` | (direct) | `http` / nip.io host / `80` / `/rendering` |
 | `server.servlet.context-path` | (direct) | `/rendering` |
 | `app.session.<module>.nodePermissionExpirationTime` | (direct) | empty = not cached |
 | `RENDERING2_LUMI_DATABASE_{NAME,USER}` | lumi Mongo db/user | `lumi` |
+| `BASE_HREF` / `ADMIN_API_BASE` (admin-frontend container) | static server, **not** Spring | `/rendering-admin/` / `/rendering` |
 
 (See `1_rendering2-common.yml` for the authoritative, complete list.)
 

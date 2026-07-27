@@ -2,6 +2,9 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
+import org.edu_sharing.rendering.modules.binder.BinderPreviewReceiver
+import org.edu_sharing.rendering.modules.binder.BinderReceiver
+import org.edu_sharing.rendering.modules.ddb.DdbReceiver
 import org.edu_sharing.rendering.modules.document.DocumentConversionService
 import org.edu_sharing.rendering.modules.document.DocumentConverterConfig
 import org.edu_sharing.rendering.modules.document.DocumentReceiver
@@ -16,6 +19,8 @@ import org.edu_sharing.rendering.modules.jupyter.JupyterConverterConfig
 import org.edu_sharing.rendering.modules.jupyter.JupyterReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleReceiver
 import org.edu_sharing.rendering.modules.moodle.MoodleUploadService
+import org.edu_sharing.rendering.modules.omega.OmegaApiCallerService
+import org.edu_sharing.rendering.modules.omega.OmegaReceiver
 import org.edu_sharing.rendering.modules.onyx.OnyxReceiver
 import org.edu_sharing.rendering.modules.onyx.OnyxUploadService
 import org.edu_sharing.rendering.modules.sodix.SodixApiCallerService
@@ -40,7 +45,10 @@ class ConverterRoleTest(
     
     companion object {
         private val roleSpecificClassBeans = setOf(
+            BinderPreviewReceiver::class,
+            BinderReceiver::class,
             ConverterWebServiceCaller::class,
+            DdbReceiver::class,
             DocumentConversionService::class,
             DocumentConverterConfig::class,
             DocumentReceiver::class,
@@ -55,6 +63,8 @@ class ConverterRoleTest(
             H5pUploadService::class,
             MoodleReceiver::class,
             MoodleUploadService::class,
+            OmegaApiCallerService::class,
+            OmegaReceiver::class,
             OnyxReceiver::class,
             OnyxUploadService::class,
             SodixApiCallerService::class,

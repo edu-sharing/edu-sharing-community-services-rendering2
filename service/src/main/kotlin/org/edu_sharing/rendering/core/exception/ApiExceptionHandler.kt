@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.core.exception
 
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_ACCESS_DENIED
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_BAD_REQUEST
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_INTERNAL_SERVER_ERROR
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_MODULE_NOT_AVAILABLE
@@ -9,6 +10,7 @@ import org.edu_sharing.rendering.core.dto.ErrorMessage
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -85,6 +87,19 @@ class ApiExceptionHandler {
             userMessage = GENERIC_NOT_FOUND
         )
         return ResponseEntity(errorMessage, HttpStatus.NOT_FOUND)
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    fun handleAccessDeniedException(exception: AccessDeniedException): ResponseEntity<ErrorMessage> {
+        val errorMessage = ErrorMessage(
+            status = HttpStatus.FORBIDDEN.value(),
+            message = exception.message,
+            details = emptyMap(),
+            exception = exception,
+            userMessage = GENERIC_ACCESS_DENIED
+        )
+        return ResponseEntity(errorMessage, HttpStatus.FORBIDDEN)
     }
 
     @ExceptionHandler

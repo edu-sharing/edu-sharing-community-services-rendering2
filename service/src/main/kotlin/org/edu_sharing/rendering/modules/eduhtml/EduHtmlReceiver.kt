@@ -32,11 +32,12 @@ class EduHtmlReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = $$"${app.queue.eduHtml.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.eduHtml.key}"]
+                value = Queue(name = "#{eduHtmlQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{eduHtmlQueueProperties.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{eduHtmlQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Message received: {}", message)
@@ -55,8 +56,9 @@ class EduHtmlReceiver(
         var success = true
         try {
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-            eduHtmlConversionService.cacheData(cacheObject)
-            subJob.message = eduHtmlService.getObjectLink(cacheObject).link
+            val candidates = eduHtmlService.entryCandidates(subJob.additionalData?.get(EduHtmlService.MAIN_ENTITY_KEY))
+            eduHtmlConversionService.cacheData(cacheObject, candidates)
+            subJob.message = eduHtmlService.getObjectLink(cacheObject, candidates).link
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.errorMessage = GENERIC_CONVERSION_ERROR

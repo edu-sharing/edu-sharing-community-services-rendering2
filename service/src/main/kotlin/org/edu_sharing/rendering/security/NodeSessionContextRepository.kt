@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.security
 
 import jakarta.servlet.http.HttpSession
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
+import org.edu_sharing.rendering.utils.collectionRefOriginalId
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.context.request.RequestContextHolder
@@ -50,7 +51,10 @@ class NodeSessionContextRepository {
         val session = getSession(false) ?: return null
         val nodes = readNodesFromSession(session) ?: return null
 
+        // nodes are stored under their reference id; assets/jobs of a collection reference
+        // are keyed by the original's id, so also resolve via the signed reference node
         val node = nodes.firstOrNull { it.ref.id == nodeId }
+            ?: nodes.firstOrNull { it.collectionRefOriginalId() == nodeId }
         log.debug("Node session cache ${if (node != null) "hit" else "miss"} for nodeId=$nodeId")
         return node
     }

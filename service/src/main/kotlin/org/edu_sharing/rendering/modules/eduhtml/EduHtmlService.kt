@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StaticStorageService
+import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -29,16 +30,21 @@ class EduHtmlService(
     @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
 
-    @Value($$"${app.queue.eduHtml.key}")
+    @Value($$"${app.queue.edu-html.key}")
     lateinit var jobRoutingKey: String
+
+    companion object {
+        const val MAIN_ENTITY_PROPERTY = "ccm:ccressourcemainentity"
+        const val MAIN_ENTITY_KEY = "mainEntity"
+    }
 
     fun createJob(node: Node, module: String): String {
         log.debug("Creating EduHTML job for nodeId ${node.ref.id}, module $module")
-        val existingJobs = jobRepository.findAllByEsObjectId(node.ref.id)
+        val existingJobs = jobRepository.findAllByEsObjectId(node.storageNodeId())
             .filter { it.status <= RenderingJobStatus.PROCESSING }
 
         if (existingJobs.isNotEmpty()) {
-            log.debug("Reusing existing EduHTML job ${existingJobs[0].id} for nodeId ${node.ref.id}")
+            log.debug("Reusing existing EduHTML job {} for nodeId {}", existingJobs[0].id, node.ref.id)
             return existingJobs[0].id.toString()
         }
 
@@ -53,22 +59,38 @@ class EduHtmlService(
             routingKey = jobRoutingKey,
             parent = job
         )
+        resolveMainEntity(node)?.let { subJob.additionalData = mapOf(MAIN_ENTITY_KEY to it) }
         subJobRepository.save(subJob)
 
         val message = RenderingJobMessage(id = job.id.toString())
-        log.debug("Sending EduHTML job message for jobId ${job.id} to queue $jobRoutingKey")
+        log.debug("Sending EduHTML job message for jobId {} to queue {}", job.id, jobRoutingKey)
         amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
 
         return job.id.toString()
     }
 
-    fun getObjectLink(cacheObject: CacheObject): ObjectLink {
-        log.debug("Looking up cached EduHTML index.html for nodeId ${cacheObject.nodeId}")
-        val fileExists = storageImplementation.objectExists(cacheObject, "index.html")
-        if (!fileExists) {
-            throw ResourceNotFoundException("Resource ${cacheObject.nodeId} not cached")
-        }
+    fun getObjectLink(cacheObject: CacheObject, candidates: List<String>): ObjectLink {
+        log.debug("Looking up cached EduHTML entry point for nodeId {}, candidates {}", cacheObject.nodeId, candidates)
+        val entryPath = candidates.firstOrNull { storageImplementation.objectExists(cacheObject, it) }
+            ?: throw ResourceNotFoundException("Resource ${cacheObject.nodeId} not cached")
 
-        return storageImplementation.getObjectLink(cacheObject, "index.html")
+        return storageImplementation.getObjectLink(cacheObject, entryPath)
     }
+
+    /**
+     * Resolves the custom entry-point override from the node's [`ccm:ccressourcemainentity`]
+     * property (OLD `mod_html::getIndexFileName`), or `null` if unset. The exact (double-s)
+     * property spelling is intentional and must match the repository's metadata.
+     */
+    fun resolveMainEntity(node: Node): String? =
+        node.properties?.getOrDefault(MAIN_ENTITY_PROPERTY, listOf(""))[0]
+            ?.takeIf { it.isNotBlank() }
+            ?.trimStart('/')
+
+    /**
+     * Prioritized list of archive-relative entry-point paths to look for: the custom override
+     * if present, otherwise the conventional defaults including Articulate Storyline's `story.html`.
+     */
+    fun entryCandidates(mainEntity: String?): List<String> =
+        mainEntity?.let { listOf(it) } ?: listOf("index.html", "index.htm", "story.html")
 }

@@ -28,16 +28,20 @@ class MoodleReceiver (
 
     @RabbitListener(
         bindings = [
+            // STANDARD fan-out queue on the shared listener factory: app.queue.moodle.concurrency consumers
+            // per pod, so moodle imports run in parallel across the cluster (each import mostly waits on the
+            // remote moodle, including a restore poll of up to 10 minutes).
             QueueBinding(
-                value = Queue(name = $$"${app.queue.moodle.name}", durable = "false"),
-                exchange = Exchange(name = $$"${app.queue.topicExchange}", type = "topic"),
-                key = [$$"${app.queue.moodle.key}"]
+                value = Queue(name = "#{moodleQueueProperties.name}", durable = "false"),
+                exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
+                key = ["#{moodleQueueProperties.key}"]
             )
-        ], containerFactory = "singlePrefetchConnectionFactory"
+        ], containerFactory = "queueListenerContainerFactory",
+        concurrency = "#{moodleQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: MoodleJobMessage) {
         log.debug("Received Moodle job message for jobId ${message.id}, nodeId ${message.nodeId}")
-        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
+        var jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
@@ -46,14 +50,14 @@ class MoodleReceiver (
         var subJob = jobEntry.subJobs.first()
         subJob.status = SubJobStatus.PROCESSING
         jobEntry.status = RenderingJobStatus.PROCESSING
-        renderingJobRepository.save(jobEntry)
+        jobEntry = renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         log.debug("Processing Moodle job ${message.id}, calling upload service for nodeId ${message.nodeId}")
         try {
             val url = moodleService.getUrl(
                 moodleJobMessage = message,
                 module = moduleRegistry.getRenderModule(jobEntry.module),
-                repoId = jobEntry.repoId
+                repoId = jobEntry.repoId,
             )
             log.debug("Moodle URL obtained for job ${message.id}, marking sub-job as FINISHED")
             subJob.message = url.first
@@ -62,7 +66,13 @@ class MoodleReceiver (
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
-            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            if (exception is MoodleUploadException) {
+                subJob.errorMessage = exception.publicMessage
+                jobEntry.errorMessage = exception.publicMessage
+                renderingJobRepository.save(jobEntry)
+            } else {
+                subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            }
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

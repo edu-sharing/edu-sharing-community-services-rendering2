@@ -2,10 +2,7 @@ package org.edu_sharing.rendering.modules.av.video
 
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ConversionException
-import org.edu_sharing.rendering.modules.av.AvConversionListener
-import org.edu_sharing.rendering.modules.av.AvConversionService
-import org.edu_sharing.rendering.modules.av.AvFileHelper
-import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
+import org.edu_sharing.rendering.modules.av.*
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
@@ -17,17 +14,19 @@ import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.*
 import ws.schild.jave.info.VideoSize
-import java.util.stream.Stream
+import ws.schild.jave.process.ProcessLocator
 
 @ConditionalOnAvConverter
 @Service
 class VideoConversionService(
     private val listenerFactory: ObjectFactory<AvConversionListener>,
-    private val encoder: Encoder,
+    private val encoderFactory: ObjectFactory<Encoder>,
+    private val timeoutGuard: AvConversionTimeoutGuard,
     private val avFileHelperFactory: ObjectFactory<AvFileHelper>,
     private val configuredResolutions: VideoConverterConfig,
     private val storageImplementation: StorageService,
     private val subJobRepository: SubJobRepository,
+    private val ffmpegLocator: ProcessLocator,
     @param:Value($$"${app.converter.video.format}")
     private val videoFormat: String,
     @param:Value($$"${app.converter.video.ffmpegThreads}")
@@ -38,7 +37,7 @@ class VideoConversionService(
 
     companion object {
         const val AUDIO_BITRATE = 160000
-        const val AUDIO_CODEC = "libmp3lame"
+        const val AUDIO_CODEC = "aac"
         const val VIDEO_CODEC = "libx264"
         const val VIDEO_CRF = 24
     }
@@ -51,7 +50,7 @@ class VideoConversionService(
         fileHelper.use {
             fileHelper.initOutputTempFile(videoFormat)
             fileHelper.fetchOriginalTempFile(cacheObject)
-            val multiMediaObject = MultimediaObject(fileHelper.originalFile)
+            val multiMediaObject = MultimediaObject(fileHelper.originalFile, ffmpegLocator)
             val (targetWidth, targetHeight, recheckStorage) = calculateTargetDimensions(multiMediaObject, subJob.quality)
             log.debug("Target dimensions: ${targetWidth}x${targetHeight}, recheckStorage=$recheckStorage for nodeId=${cacheObject.nodeId}")
             val outputCacheObject = cacheObject.deepCopy()
@@ -65,17 +64,11 @@ class VideoConversionService(
             }
             val listener = listenerFactory.`object`
             listener.subJob = subJob
+            val encoder = encoderFactory.`object`
             val encodingAttributes = initEncodingAttributes(targetWidth, targetHeight)
-            val threadArgument = object : EncodingArgument {
-                override fun getArguments(var1: EncodingAttributes): Stream<String> {
-                    return Stream.of("-threads", threads.toString())
-                }
-
-                override fun getArgType(): ArgType {
-                    return ArgType.GLOBAL
-                }
+            timeoutGuard.runEncode(encoder, subJob.id) {
+                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(ffmpegThreadsArg(threads)))
             }
-            encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(threadArgument))
             outputCacheObject.size = fileHelper.outputFile.length()
             log.debug("Video encoding complete: nodeId=${cacheObject.nodeId}, outputSize=${outputCacheObject.size} bytes, quality=$targetHeight")
             fileHelper.uploadToCache(outputCacheObject, mapOf(

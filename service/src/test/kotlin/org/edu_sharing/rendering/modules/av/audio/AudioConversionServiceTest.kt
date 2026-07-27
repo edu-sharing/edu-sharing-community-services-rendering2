@@ -4,6 +4,7 @@ import io.mockk.*
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.av.AvConversionListener
+import org.edu_sharing.rendering.modules.av.AvConversionTimeoutGuard
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.CODEC
 import org.edu_sharing.rendering.modules.av.audio.AudioConversionService.Companion.OUTPUT_FORMAT
@@ -12,11 +13,13 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.edu_sharing.rendering.modules.av.SystemFfmpegLocator
 import org.springframework.beans.factory.ObjectFactory
 import ws.schild.jave.Encoder
 import ws.schild.jave.MultimediaObject
 import ws.schild.jave.encode.EncodingAttributes
 import java.io.File
+import java.time.Duration
 
 class AudioConversionServiceTest {
     companion object {
@@ -25,11 +28,16 @@ class AudioConversionServiceTest {
 
     private val listenerFactory: ObjectFactory<AvConversionListener> = mockk()
     private val encoder: Encoder = mockk()
+    private val encoderFactory: ObjectFactory<Encoder> = mockk { every { `object` } returns encoder }
+    private val timeoutGuard = AvConversionTimeoutGuard(timeout = Duration.ofMinutes(30))
     private val fileHelperFactory: ObjectFactory<AvFileHelper> = mockk()
     private val underTest = AudioConversionService(
         listenerFactory = listenerFactory,
-        encoder = encoder,
-        avFileHelperFactory = fileHelperFactory
+        encoderFactory = encoderFactory,
+        timeoutGuard = timeoutGuard,
+        avFileHelperFactory = fileHelperFactory,
+        ffmpegLocator = SystemFfmpegLocator("ffmpeg"),
+        threads = 1
     )
     private val jobDataProvider = JobDataProvider()
 
@@ -58,8 +66,8 @@ class AudioConversionServiceTest {
         every { fileHelper.originalFile } returns dummyOriginalFile
 
         val attrSlot = slot<EncodingAttributes>()
-        val mmoSlot = slot<MultimediaObject>()
-        every { encoder.encode(capture(mmoSlot), dummyOutputFile, capture(attrSlot), listener) } throws Exception()
+        val mmoSlot = slot<List<MultimediaObject>>()
+        every { encoder.encode(capture(mmoSlot), dummyOutputFile, capture(attrSlot), listener, any()) } throws Exception()
         justRun { fileHelper.close() }
 
         // Act
@@ -72,14 +80,14 @@ class AudioConversionServiceTest {
         assert(attrSlot.captured.audioAttributes.flatMap { it.channels }.get() == 2)
         assert(attrSlot.captured.audioAttributes.flatMap { it.codec }.get() == CODEC)
         assert(attrSlot.captured.outputFormat.get() == OUTPUT_FORMAT)
-        assert(mmoSlot.captured.file.toString() == DUMMY_ORIGINAL_FILE_PATH)
+        assert(mmoSlot.captured.single().file.toString() == DUMMY_ORIGINAL_FILE_PATH)
 
         verifySequence {
             fileHelper.initOutputTempFile(OUTPUT_FORMAT)
             fileHelper.fetchOriginalTempFile(cacheObject)
             fileHelper.originalFile
             fileHelper.outputFile
-            encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener)
+            encoder.encode(any<List<MultimediaObject>>(), dummyOutputFile, any(), listener, any())
             fileHelper.close()
         }
 
@@ -108,7 +116,7 @@ class AudioConversionServiceTest {
         justRun { fileHelper.fetchOriginalTempFile(cacheObject) }
         every { fileHelper.outputFile } returns dummyOutputFile
         every { fileHelper.originalFile } returns dummyOriginalFile
-        justRun { encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener) }
+        justRun { encoder.encode(any<List<MultimediaObject>>(), dummyOutputFile, any(), listener, any()) }
         val cacheObjectSlot = slot<CacheObject>()
         justRun { fileHelper.uploadToCache(capture(cacheObjectSlot)) }
         justRun { fileHelper.close() }
@@ -122,7 +130,7 @@ class AudioConversionServiceTest {
             fileHelper.fetchOriginalTempFile(cacheObject)
             fileHelper.originalFile
             fileHelper.outputFile
-            encoder.encode(any() as MultimediaObject, dummyOutputFile, any(), listener)
+            encoder.encode(any<List<MultimediaObject>>(), dummyOutputFile, any(), listener, any())
             fileHelper.outputFile
             fileHelper.uploadToCache(any())
             fileHelper.close()

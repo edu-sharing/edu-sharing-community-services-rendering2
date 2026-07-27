@@ -21,16 +21,16 @@ class CorsAllowedOriginsReceiver(
             QueueBinding(
                 value = Queue(
                     name = "",
-                    durable = "false",
+                    durable = "true",
                     autoDelete = "true"
                 ),
                 exchange = Exchange(
-                    name = $$"${app.queue.controllerBroadcastExchange}",
+                    name = "#{queueProperties.controllerBroadcastExchange}",
                     type = "fanout"
                 )
             )
         ],
-        containerFactory = "singlePrefetchConnectionFactory"
+        containerFactory = "queueListenerContainerFactory"
     )
     fun handleBroadcast(message: String) {
         log.debug("Received CORS broadcast message; applying known origins")

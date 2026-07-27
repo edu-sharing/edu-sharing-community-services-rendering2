@@ -43,7 +43,7 @@ services:
       MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
 
   rendering2-service:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
     command:
       - -Xms${RENDERING2_SERVICE_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_JAVA_XMX:-512m}
@@ -63,6 +63,35 @@ services:
       app.s3.checksumCalculationWhenRequired: false
       RABBITMQ_HOST: rendering2-message-queue
       RABBITMQ_PORT: 5672
+      # One per-queue scaling knob: max messages processed in parallel per pod. Its meaning follows the
+      # queue's mode (set in application.properties): STANDARD counts DirectMessageListenerContainer
+      # consumers (burst fanned out at once, no auto-scale ramp; idle consumers cost nothing on the shared
+      # virtual-thread executor) — size CPU-in-JVM (image, eduHtml) and ffmpeg (av) against cores.
+      app.queue.job.concurrency: "${RENDERING2_QUEUE_JOB_CONCURRENCY:-20}"
+      app.queue.image.concurrency: "${RENDERING2_QUEUE_IMAGE_CONCURRENCY:-4}"
+      app.queue.av.concurrency: "${RENDERING2_QUEUE_AV_CONCURRENCY:-2}"
+      app.queue.eduHtml.concurrency: "${RENDERING2_QUEUE_EDUHTML_CONCURRENCY:-5}"
+      app.queue.document.concurrency: "${RENDERING2_QUEUE_DOCUMENT_CONCURRENCY:-8}"
+      app.queue.jupyter.concurrency: "${RENDERING2_QUEUE_JUPYTER_CONCURRENCY:-8}"
+      app.queue.binder.concurrency: "${RENDERING2_QUEUE_BINDER_CONCURRENCY:-1}"
+      app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
+      app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-8}"
+      app.queue.moodle.concurrency: "${RENDERING2_QUEUE_MOODLE_CONCURRENCY:-8}"
+      # REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: concurrency = K
+      # sizes the dedicated remote HTTP pool AND the broker prefetch; K messages run in parallel on virtual
+      # threads. Scale throughput via more pods, not K.
+      app.queue.sodix.concurrency: "${RENDERING2_QUEUE_SODIX_CONCURRENCY:-50}"
+      app.queue.omega.concurrency: "${RENDERING2_QUEUE_OMEGA_CONCURRENCY:-50}"
+      app.queue.ddb.concurrency: "${RENDERING2_QUEUE_DDB_CONCURRENCY:-50}"
+      # Optional per-queue prefetch override for the remote queues — empty derives prefetch from concurrency
+      # (1:1 with the remote HTTP pool); set only to run prefetch above concurrency while jobs spend time in
+      # post-call Mongo/S3 work (must be >= concurrency, enforced at startup).
+      app.queue.sodix.prefetch: "${RENDERING2_QUEUE_SODIX_PREFETCH:-}"
+      app.queue.omega.prefetch: "${RENDERING2_QUEUE_OMEGA_PREFETCH:-}"
+      app.queue.ddb.prefetch: "${RENDERING2_QUEUE_DDB_PREFETCH:-}"
+      # h5p is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
+      # Global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from concurrency).
+      app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       MONGODB_HOST: mongo-database
@@ -96,27 +125,41 @@ services:
       app.converter.image.format: "${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
       app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp}"
       app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-800,1280,1920}"
+      app.converter.image.maxPixels: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MAX_PIXELS:-100000000}"
       app.converter.video.format: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FORMAT:-mp4}"
-      app.converter.video.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_THREADS:-0}"
+      app.converter.video.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_THREADS:-4}"
       app.converter.video.ffmpegPreset: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_PRESET:-veryfast}"
       app.converter.video.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_VIDEO_MIME_TYPES:-video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv,video/theora}"
       app.converter.video.resolutions: "${RENDERING2_SERVICE_CONVERTER_VIDEO_RESOLUTIONS:-480,720,1080}"
       app.converter.audio.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_AUDIO_MIME_TYPES:-audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma}"
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
+      app.converter.audio.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_AUDIO_FFMPEG_THREADS:-1}"
+      app.converter.av.ffmpegPath: "${RENDERING2_SERVICE_CONVERTER_AV_FFMPEG_PATH:-ffmpeg}"
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
+      # Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs (crashed/lost conversions)
+      # so they cannot poison re-rendering until the 8-day TTL. schedule = fixed delay between runs in ms;
+      # max-process-time per routing key (ISO-8601 Duration) must exceed the longest real duration.
+      app.jobreaper.enabled: "${RENDERING2_JOBREAPER_ENABLED:-true}"
+      app.jobreaper.schedule: "${RENDERING2_JOBREAPER_SCHEDULE:-600000}"
+      app.jobreaper.default-max-process-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_PROCESS_TIME:-PT30M}"
+      app.jobreaper.max-process-time.av_job: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.repository.registration.id.local.optional-modules: H5P,EDUHTML,SPREADSHEET,HTML
+      app.repository.registration.id.local.optional-modules: H5P,EDUHTML,SPREADSHEET,HTML,OMEGA
       app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.publicurl: "${RENDERING2_MOODLE_PUBLIC_URL:-}"
       #app.repository.registration.id.local.buckets.renderingBucket: "${RENDERING2_S3_STORAGE_BUCKET:-rendering2}"
       #app.repository.registration.id.local.buckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-temp}"
 #      app.repository.registration.id.local.module.MOODLE.credentials.user: user
+      app.repository.registration.id.local.module.OMEGA.credentials.baseurl: https://cp.sodis.de/api/get
+      app.repository.registration.id.local.module.OMEGA.credentials.user: omega
+      app.repository.registration.id.local.module.OMEGA.credentials.validateUrls: false
+      app.repository.registration.id.local.module.OMEGA.credentials.identifierPrefixWhitelist: FWU-049,FWU-055,FWU-056
       app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
       app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
@@ -128,6 +171,8 @@ services:
       app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
+      # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
+      # app.queue.<x>.concurrency above (Reactor Netty maxConnections, per remote host).
       spring.mongodb.authentication-database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.database: "${RENDERING2_SERVICE_DATABASE_NAME:-rendering}"
       spring.mongodb.username: "${RENDERING2_SERVICE_DATABASE_USER:-rendering}"
@@ -147,7 +192,7 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
   rendering2-document-converter:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
       - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
@@ -159,7 +204,7 @@ services:
       - "8080"
 
   rendering2-lumi:
-    image: "${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-lumi:${docker.tag}"
     environment:
       AWS_ACCESS_KEY_ID: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
       AWS_SECRET_ACCESS_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
@@ -186,6 +231,24 @@ services:
       DEBUG: h5p:*
     expose:
       - "3000"
+
+  rendering2-admin-frontend:
+    image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-admin-frontend:${docker.tag}"
+    environment:
+      PORT: 8080
+      # Pfad, unter dem die UI ausgeliefert wird (eigener Pfad am selben Host wie der Service).
+      BASE_HREF: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
+      # Admin-API liegt am Context-Path des Service -> same-origin, kein CORS.
+      ADMIN_API_BASE: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}"
+      # Routing über nginx-proxy (VIRTUAL_*); externe Apache2-Deployments routen denselben
+      # Pfad selbst auf diesen Container und ignorieren diese Variablen.
+      VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
+      VIRTUAL_PATH: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
+      VIRTUAL_PORT: 8080
+    expose:
+      - "8080"
+    ports:
+      - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_ADMIN_FRONTEND_PORT_HTTP:-10400}:8080"
 
 volumes:
   rendering2-rustfs-storage-volume-data:

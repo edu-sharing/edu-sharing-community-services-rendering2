@@ -23,6 +23,21 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
     private final val modulesByResourceType: MutableMap<String, RenderModule> = mutableMapOf()
     private final val modulesByRemoteRepositoryType: MutableMap<String, RenderModule> = mutableMapOf()
 
+    companion object {
+        private val FRONTEND_REMOTE_REPOSITORY_TYPES = setOf(
+            "PIXABAY",
+            "YOUTUBE",
+            "LEARNINGAPPS",
+            "OERSI",
+            "BROCKHAUS",
+        )
+        private val WWWURL_EXEMPT_MODULES = setOf(
+            "SODIX",
+            "BINDER",
+            "OMEGA"
+        )
+    }
+
     init {
         moduleTypeMapper.forEach { mapper ->
             mapper.moduleTypeAssociations().forEach { (typeDefinition, mapper) ->
@@ -66,30 +81,63 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
         mimeType: String,
         replicationSource: String?,
         resourceType: String?,
-        remoteRepositoryType: String?
+        remoteRepositoryType: String?,
+        hasLocalContent: Boolean,
+        moduleFilter: (RenderModule) -> Boolean
     ): T {
         log.debug(
-            "getRenderModule lookup: type='{}', mimeType='{}', replicationSource='{}', resourceType='{}', remoteRepositoryType='{}'",
-            type, mimeType, replicationSource, resourceType, remoteRepositoryType
+            "getRenderModule lookup: type='{}', mimeType='{}', replicationSource='{}', resourceType='{}', remoteRepositoryType='{}', hasLocalContent={}",
+            type, mimeType, replicationSource, resourceType, remoteRepositoryType, hasLocalContent
         )
-        val result = modulesByType[type]?.also { log.debug("Resolved module '{}' via type='{}'", it.module(), type) }
-            ?: modulesByRemoteRepositoryType[remoteRepositoryType ?: ""]?.also { log.debug("Resolved module '{}' via remoteRepositoryType='{}'", it.module(), remoteRepositoryType) }
-            ?: modulesByReplicationSource[replicationSource ?: ""]?.also { log.debug("Resolved module '{}' via replicationSource='{}'", it.module(), replicationSource) }
-            ?: modulesByResourceType[resourceType ?: ""]?.also { log.debug("Resolved module '{}' via resourceType='{}'", it.module(), resourceType) }
-            ?: moduleByMimeType[mimeType]?.also { log.debug("Resolved module '{}' via mimeType='{}'", it.module(), mimeType) }
-            ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]?.also { log.debug("Resolved module '{}' via mimeTypePrefix='{}'", it.module(), mimeType.substringBefore("/")) }
+        val result = modulesByType[type]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via type='{}'", it.module(), type) }
+            ?: modulesByRemoteRepositoryType[remoteRepositoryType ?: ""]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via remoteRepositoryType='{}'", it.module(), remoteRepositoryType) }
+            ?: modulesByReplicationSource[replicationSource ?: ""]
+                ?.takeUnless { hasLocalContent && it.fallsThroughOnLocalContent() }
+                ?.takeIf(moduleFilter)
+                ?.also { log.debug("Resolved module '{}' via replicationSource='{}'", it.module(), replicationSource) }
+            ?: modulesByResourceType[resourceType ?: ""]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via resourceType='{}'", it.module(), resourceType) }
+            ?: moduleByMimeType[mimeType]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via mimeType='{}'", it.module(), mimeType) }
+            ?: modulesByMimeTypePrefix[mimeType.substringBefore("/")]?.takeIf(moduleFilter)?.also { log.debug("Resolved module '{}' via mimeTypePrefix='{}'", it.module(), mimeType.substringBefore("/")) }
             ?: throw ObjectTypeNotSupportedException()
         return result as T
     }
 
-    fun <T: RenderModule> getRenderModule(node: Node): T {
-        return getRenderModule(
+    /**
+     * Nodes from frontend-only remote repositories (pixabay, youtube, …) are rendered
+     * client-side and are intentionally never registered here. Such repositories have no
+     * public key in the repository config, so signature verification for them cannot
+     * succeed — callers must reject these nodes before that point.
+     */
+    fun isFrontendRemoteRepository(node: Node): Boolean {
+        val remoteType = node.remote?.repository?.repositoryType ?: return false
+        return remoteType in FRONTEND_REMOTE_REPOSITORY_TYPES
+    }
+
+    fun <T: RenderModule> getRenderModule(node: Node, moduleFilter: (RenderModule) -> Boolean = { true }): T {
+        if (isFrontendRemoteRepository(node)) {
+            log.debug(
+                "Node is from remote frontend repository (type='{}'), rendering done in frontend only",
+                node.remote?.repository?.repositoryType
+            )
+            throw ObjectTypeNotSupportedException()
+        }
+        val location = node.properties?.getOrDefault("cclom:location", mutableListOf(""))[0]
+        val hasLocalContent = location.isNullOrBlank() && !node.content?.hash.isNullOrBlank()
+        val result = getRenderModule<T>(
             type = node.mediatype ?: "",
             mimeType = node.mimetype ?: "",
             replicationSource = node.properties?.getOrDefault("ccm:replicationsource", mutableListOf(""))[0],
             resourceType = node.properties?.getOrDefault("ccm:ccressourcetype", mutableListOf(""))[0],
-            remoteRepositoryType = node.remote?.repository?.repositoryType
+            remoteRepositoryType = node.remote?.repository?.repositoryType,
+            hasLocalContent = hasLocalContent,
+            moduleFilter = moduleFilter
         )
+        val wwwUrl = node.properties?.get("ccm:wwwurl")?.firstOrNull()
+        if (!wwwUrl.isNullOrBlank() && WWWURL_EXEMPT_MODULES.none { it.equals(result.module(), ignoreCase = true) }) {
+            log.debug("Node has ccm:wwwurl and resolved module '{}' is not exempt, rendering done in frontend only", result.module())
+            throw ObjectTypeNotSupportedException()
+        }
+        return result
     }
 
     fun getModuleTypeMapperList() = moduleTypeMapper

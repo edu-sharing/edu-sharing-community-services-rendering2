@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -28,8 +29,8 @@ class H5pJobService(
     lateinit var topicExchangeName: String
 
     fun createJob(node: Node, module: String): String {
-        log.debug("Creating H5P job for nodeId={}, module={}", node.ref.id, module)
-        val existingJob = jobRepository.findAllByEsObjectId(node.ref.id)
+        log.debug("Creating H5P job for nodeId={}, module={}", node.storageNodeId(), module)
+        val existingJob = jobRepository.findAllByEsObjectId(node.storageNodeId())
             .firstOrNull { it.status <= RenderingJobStatus.PROCESSING }
 
         if (existingJob != null) {

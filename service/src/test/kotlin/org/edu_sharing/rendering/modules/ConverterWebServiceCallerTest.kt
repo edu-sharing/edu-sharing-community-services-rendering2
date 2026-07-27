@@ -1,13 +1,25 @@
 package org.edu_sharing.rendering.modules
 
+import io.mockk.clearAllMocks
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
+import io.mockk.verifySequence
+import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.storage.StorageService
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.util.UUID
 
 @ExtendWith(MockKExtension::class)
 class ConverterWebServiceCallerTest {
@@ -27,7 +39,7 @@ class ConverterWebServiceCallerTest {
 
     lateinit var underTest: ConverterWebServiceCaller
 
-    /*@BeforeEach
+    @BeforeEach
     fun setup() {
         mockServer = MockWebServer()
         mockServer.start()
@@ -46,87 +58,93 @@ class ConverterWebServiceCallerTest {
         mockServer.shutdown()
     }
 
+    private fun arguments(externalPath: String) = ConverterWebServiceArguments(
+        client = webClient,
+        originalFileExtension = ".doc",
+        targetMimeType = "application/pdf",
+        cacheObject = dummyCacheObjectWord,
+        externalServiceMethodPath = externalPath,
+        urlParams = mapOf("testParam" to "true")
+    )
+
     @Test
-    fun testCallConverterServiceCallsConverterWithProperParamsAndCachesResult() {
+    fun testCallConverterServiceCallsConverterWithProperParamsAndCachesResultWithKnownSize() {
         // Arrange
         val externalPath = UUID.randomUUID().toString()
-        val arguments = ConverterWebServiceArguments(
-            client = webClient,
-            originalFileExtension = ".doc",
-            targetMimeType = "application/pdf",
-            cacheObject = dummyCacheObjectWord,
-            externalServiceMethodPath = externalPath,
-            urlParams = mapOf("testParam" to "true")
-        )
-
         val dummyFileData = UUID.randomUUID().toString()
         every { contentTransferService.getAsInputStream(dummyCacheObjectWord) } returns ByteArrayInputStream(
             dummyFileData.toByteArray()
         )
 
         val expectedContent = "1234ABC"
-        val mockResponse = MockResponse()
-            .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
-            .setBody(expectedContent)
-            .setResponseCode(200)
-        mockServer.enqueue(mockResponse)
+        mockServer.enqueue(
+            MockResponse()
+                .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
+                .setBody(expectedContent)
+                .setResponseCode(200)
+        )
 
-        val expectedConvertedCacheObject = dummyCacheObjectWord.copy()
-        expectedConvertedCacheObject.mimeType = MediaType.APPLICATION_PDF_VALUE
-        val inputStreamSlot = slot<InputStream>()
-
-        justRun { storageImplementation.putObject(expectedConvertedCacheObject, capture(inputStreamSlot)) }
+        var uploadedCacheObject: CacheObject? = null
+        var uploadedBytes: ByteArray? = null
+        // the stream is consumed and closed inside callConverterService, so read it in the answer
+        every { storageImplementation.putObject(any(), any<InputStream>()) } answers {
+            uploadedCacheObject = firstArg()
+            uploadedBytes = secondArg<InputStream>().readAllBytes()
+        }
 
         // Act
-        underTest.callConverterService(arguments)
+        underTest.callConverterService(arguments(externalPath))
 
         // Assert
-        assert(inputStreamSlot.captured.readAllBytes().toString(Charsets.UTF_8) == expectedContent)
+        assert(uploadedBytes!!.toString(Charsets.UTF_8) == expectedContent)
+        assert(uploadedCacheObject!!.mimeType == MediaType.APPLICATION_PDF_VALUE)
+        assert(uploadedCacheObject!!.size == expectedContent.length.toLong())
         val request = mockServer.takeRequest()
         val body = request.body.readUtf8()
-        assert(body.contains("name=\"file\"; filename=\"${dummyCacheObjectWord.nodeId}_${dummyCacheObjectWord.hash}.doc\""))
         assert(body.contains(dummyFileData))
         assert(request.path == "/$externalPath")
         assert(request.method == "POST")
-        verifySequence{
+        verifySequence {
             contentTransferService.getAsInputStream(dummyCacheObjectWord)
-            storageImplementation.putObject(expectedConvertedCacheObject, any())
+            storageImplementation.putObject(any(), any<InputStream>())
         }
+    }
+
+    @Test
+    fun testCallConverterServiceThrowsOnEmptyResponse() {
+        // Arrange
+        val externalPath = UUID.randomUUID().toString()
+        every { contentTransferService.getAsInputStream(dummyCacheObjectWord) } returns ByteArrayInputStream(
+            UUID.randomUUID().toString().toByteArray()
+        )
+        mockServer.enqueue(
+            MockResponse()
+                .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
+                .setBody("")
+                .setResponseCode(200)
+        )
+
+        // Act and assert
+        val exception = assertThrows<Exception> { underTest.callConverterService(arguments(externalPath)) }
+        assert(exception.message == "Empty data returned")
     }
 
     @Test
     fun testCallConverterServiceThrowsExceptionThrownByStorageImplementation() {
         // Arrange
         val externalPath = UUID.randomUUID().toString()
-        val arguments = ConverterWebServiceArguments(
-            client = webClient,
-            originalFileExtension = ".doc",
-            targetMimeType = "application/pdf",
-            cacheObject = dummyCacheObjectWord,
-            externalServiceMethodPath = externalPath,
-            urlParams = mapOf("testParam" to "true")
-        )
-
-        val dummyFileData = UUID.randomUUID().toString()
         every { contentTransferService.getAsInputStream(dummyCacheObjectWord) } returns ByteArrayInputStream(
-            dummyFileData.toByteArray()
+            UUID.randomUUID().toString().toByteArray()
         )
-
-        val expectedContent = "1234ABC"
-        val mockResponse = MockResponse()
-            .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
-            .setBody(expectedContent)
-            .setResponseCode(200)
-        mockServer.enqueue(mockResponse)
-
-        val expectedConvertedCacheObject = dummyCacheObjectWord.copy()
-        expectedConvertedCacheObject.mimeType = MediaType.APPLICATION_PDF_VALUE
-        val inputStreamSlot = slot<InputStream>()
-
-        every { storageImplementation.putObject(expectedConvertedCacheObject, capture(inputStreamSlot)) } throws Exception()
-
+        mockServer.enqueue(
+            MockResponse()
+                .addHeader("Content-Type", MediaType.APPLICATION_PDF_VALUE)
+                .setBody("1234ABC")
+                .setResponseCode(200)
+        )
+        every { storageImplementation.putObject(any(), any<InputStream>()) } throws Exception()
 
         // Act and assert
-        assertThrows<Exception> { underTest.callConverterService(arguments) }
-    }*/
+        assertThrows<Exception> { underTest.callConverterService(arguments(externalPath)) }
+    }
 }
