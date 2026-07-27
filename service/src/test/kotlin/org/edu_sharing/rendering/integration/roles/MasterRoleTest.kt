@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.renderingJob.JobReaperProperties
 import org.edu_sharing.rendering.renderingJob.StaleJobReaper
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncScheduler
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
+import org.edu_sharing.rendering.edusharingRepo.cors.RegistrationCorsSyncRetrier
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -42,6 +43,7 @@ class MasterRoleTest(
             CorsAllowedOriginsReceiver::class,
             CorsSyncScheduler::class,
             CorsSyncService::class,
+            RegistrationCorsSyncRetrier::class,
             JobReaperProperties::class,
             StaleJobReaper::class
         )

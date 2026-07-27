@@ -7,10 +7,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.runApplication
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.MapPropertySource
+import org.springframework.resilience.annotation.EnableResilientMethods
 import org.springframework.stereotype.Component
 
 
 @SpringBootApplication
+@EnableResilientMethods
 class ServicesRenderingService2Application
 
 fun main(args: Array<String>) {

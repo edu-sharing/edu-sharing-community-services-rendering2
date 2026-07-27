@@ -1,4 +1,4 @@
-FROM ${docker.from.node.21}
+FROM ${docker.from.node.24}
 
 WORKDIR /application
 

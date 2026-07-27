@@ -77,6 +77,21 @@ class QueueConsumerMetrics(
         activeByQueue[queue]?.decrementAndGet()
     }
 
+    /**
+     * Times [work] into the same `rendering.queue.processing` timer [invoke] feeds, for callers whose
+     * listener container carries no advice chain (e.g.
+     * [org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher]) and therefore never traverses
+     * [invoke] itself.
+     */
+    fun <T> timeProcessing(queue: String, work: () -> T): T {
+        val sample = Timer.start(meterRegistry)
+        try {
+            return work()
+        } finally {
+            sample.stop(timerByQueue.computeIfAbsent(queue, ::registerTimer))
+        }
+    }
+
     private fun registerGauge(queue: String): AtomicInteger {
         log.debug("Registering active-consumer gauge for queue '{}'", queue)
         val active = AtomicInteger(0)
