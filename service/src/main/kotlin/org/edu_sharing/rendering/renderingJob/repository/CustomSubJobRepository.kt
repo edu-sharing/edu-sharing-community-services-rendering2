@@ -8,6 +8,17 @@ interface CustomSubJobRepository {
     fun updateStatusWithoutVersion(subJobId: ObjectId, status: SubJobStatus)
 
     /**
+     * Atomically claim a sub-job for a link refresh: transition it from a terminal state
+     * (FINISHED/FAILED/TIMEOUT) back to QUEUED in a single conditional update, clearing any prior
+     * error. Returns `true` iff this call won the claim (matched exactly one terminal sub-job).
+     *
+     * A `false` return means the sub-job is already QUEUED/PROCESSING — a refresh (or the initial
+     * fetch) is already in flight for the owning job — so the caller must NOT re-enqueue. This is
+     * the race-free guard that ensures at most one refresh runs per job at a time.
+     */
+    fun claimForRefresh(subJobId: ObjectId): Boolean
+
+    /**
      * Lightweight projection of sub-jobs still in PROCESSING whose last activity ([lastModifiedDate]) is
      * older than [cutoff] — the candidate set for the stale-job reaper. Deliberately a projection (not the
      * full [org.edu_sharing.rendering.renderingJob.entity.SubJob]) so the lazy `parent` document reference

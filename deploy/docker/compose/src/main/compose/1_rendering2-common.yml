@@ -150,16 +150,16 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.repository.registration.id.local.optional-modules: H5P,EDUHTML,SPREADSHEET,HTML,OMEGA
+      app.repository.registration.id.local.optional-modules: "${RENDERING2_OPTIONAL_MODULES:-H5P,EDUHTML,SPREADSHEET,HTML,SODIX}"
       app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.publicurl: "${RENDERING2_MOODLE_PUBLIC_URL:-}"
       #app.repository.registration.id.local.buckets.renderingBucket: "${RENDERING2_S3_STORAGE_BUCKET:-rendering2}"
       #app.repository.registration.id.local.buckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-temp}"
 #      app.repository.registration.id.local.module.MOODLE.credentials.user: user
-      app.repository.registration.id.local.module.OMEGA.credentials.baseurl: https://cp.sodis.de/api/get
-      app.repository.registration.id.local.module.OMEGA.credentials.user: omega
-      app.repository.registration.id.local.module.OMEGA.credentials.validateUrls: false
-      app.repository.registration.id.local.module.OMEGA.credentials.identifierPrefixWhitelist: FWU-049,FWU-055,FWU-056
+      #app.repository.registration.id.local.module.OMEGA.credentials.baseurl: https://cp.sodis.de/api/get
+      #app.repository.registration.id.local.module.OMEGA.credentials.user: omega
+      #app.repository.registration.id.local.module.OMEGA.credentials.validateUrls: false
+      #app.repository.registration.id.local.module.OMEGA.credentials.identifierPrefixWhitelist: FWU-049,FWU-055,FWU-056
       app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
       app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
@@ -167,6 +167,11 @@ services:
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
+
+      app.repository.registration.id.local.module.SODIX.credentials.baseurl: "${RENDERING2_SODIX_BASEURL:-}"
+      app.repository.registration.id.local.module.SODIX.credentials.playoutMimetypes: "${RENDERING2_SODIX_PLAYOUTMIMETYPES:-}"
+      app.repository.registration.id.local.module.SODIX.credentials.allowExternalFrameSrc: "${RENDERING2_SODIX_ALLOWEXTERNALFRAMESOURCES:-}"
+
       app.repository.registration.id.local.externalBuckets.renderingBucket: "${RENDERING2_S3_RENDERING_BUCKET:-}"
       app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"

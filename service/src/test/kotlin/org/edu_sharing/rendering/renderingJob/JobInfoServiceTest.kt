@@ -1,11 +1,20 @@
 package org.edu_sharing.rendering.renderingJob
 
+import io.mockk.Runs
+import io.mockk.clearAllMocks
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.verify
 import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -16,6 +25,37 @@ class JobInfoServiceTest {
     private val jobDataProvider = JobDataProvider()
 
     private lateinit var underTest: JobInfoService
+
+    @BeforeEach
+    fun setup() {
+        underTest = JobInfoService(jobRepository, subJobRepository, moduleRegistry)
+        clearAllMocks()
+    }
+
+    @Test
+    fun refreshLinksDelegatesToModuleWhenSupported() {
+        val job = jobDataProvider.getJobWithoutSubJobs()
+        val renderModule = mockk<RenderModule>()
+        every { moduleRegistry.getRenderModule<RenderModule>("HTML") } returns renderModule
+        every { renderModule.supportsLinkRefresh() } returns true
+        every { renderModule.refreshLinks(job) } just Runs
+
+        underTest.refreshLinks(job)
+
+        verify(exactly = 1) { renderModule.refreshLinks(job) }
+    }
+
+    @Test
+    fun refreshLinksThrowsWhenModuleDoesNotSupportIt() {
+        val job = jobDataProvider.getJobWithoutSubJobs()
+        val renderModule = mockk<RenderModule>()
+        every { moduleRegistry.getRenderModule<RenderModule>("HTML") } returns renderModule
+        every { renderModule.supportsLinkRefresh() } returns false
+
+        assertThrows<IllegalArgumentException> { underTest.refreshLinks(job) }
+
+        verify(exactly = 0) { renderModule.refreshLinks(any()) }
+    }
 
    /* @BeforeEach
     fun setup() {

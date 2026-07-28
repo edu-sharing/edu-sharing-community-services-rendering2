@@ -37,6 +37,28 @@ class CustomSubJobRepositoryImpl(
         }
     }
 
+    override fun claimForRefresh(subJobId: ObjectId): Boolean {
+        // status is persisted as the enum name (see updateStatusWithoutVersion); match the string form.
+        val terminalStates = listOf(
+            SubJobStatus.FINISHED.toString(),
+            SubJobStatus.FAILED.toString(),
+            SubJobStatus.TIMEOUT.toString()
+        )
+        val query = Query(
+            Criteria.where("_id").`is`(subJobId)
+                .and("status").`in`(terminalStates)
+        )
+        val update = Update()
+            .set("status", SubJobStatus.QUEUED.toString())
+            .unset("errorMessage")
+        // Entity-class overload so the WriteConcernResolver maps SubJob -> ACKNOWLEDGED; the
+        // matchedCount below is only meaningful (and only readable) on an acknowledged write.
+        val updateResult = mongoTemplate.updateFirst(query, update, SubJob::class.java)
+        val claimed = updateResult.wasAcknowledged() && updateResult.matchedCount == 1L
+        log.debug("claimForRefresh subJob=$subJobId claimed=$claimed")
+        return claimed
+    }
+
     override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> {
         // status is persisted as the enum name (see updateStatusWithoutVersion); match the string form.
         val query = Query(

@@ -36,5 +36,8 @@ data class RenderingJob(
     val version: Int? = null,
     val conversionType: Boolean = false,
     val externalUrl: String? = null,
-    var errorMessage: String? = null
+    var errorMessage: String? = null,
+    // Module-specific inputs captured at creation so an expiring link can be re-fetched later
+    // (see RenderModule.refreshLinks). Never serialized to the frontend.
+    var renderParams: Map<String, String>? = null
 )
