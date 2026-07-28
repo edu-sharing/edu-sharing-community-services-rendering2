@@ -122,6 +122,7 @@ services:
       app.session.spreadsheet.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SPREADSHEET_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.html.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_HTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.h5p.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_H5P_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.sodix.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SODIX_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.converter.image.format: "${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
       app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp}"
       app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-800,1280,1920}"

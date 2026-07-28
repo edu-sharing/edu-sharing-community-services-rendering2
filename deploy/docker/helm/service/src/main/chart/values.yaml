@@ -728,6 +728,8 @@ config:
       pdf: ""
       ## @param config.session.nodePermissionExpirationTime.scorm Set session nodePermissionExpirationTime for scorm
       scorm: ""
+      ## @param config.session.nodePermissionExpirationTime.sodix Set session nodePermissionExpirationTime for sodix
+      sodix: 7200
       ## @param config.session.nodePermissionExpirationTime.spreadsheet Set session nodePermissionExpirationTime for spreadsheet
       spreadsheet: ""
       ## @param config.session.nodePermissionExpirationTime.video Set session nodePermissionExpirationTime for video

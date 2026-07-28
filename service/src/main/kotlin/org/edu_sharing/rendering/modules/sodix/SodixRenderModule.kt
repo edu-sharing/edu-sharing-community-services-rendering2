@@ -28,7 +28,9 @@ class SodixRenderModule(
     @param:Value($$"${app.queue.topicExchange}")
     private val topicExchangeName: String,
     @param:Value($$"${app.queue.sodix.key}")
-    private val jobRoutingKey: String
+    private val jobRoutingKey: String,
+    @param:Value($$"${app.session.sodix.nodePermissionExpirationTime}")
+    private val nodePermissionExpirationTime: Long?
 ) : RenderModule, ThirdPartyModule {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -38,7 +40,7 @@ class SodixRenderModule(
         private val optionalCredentialKeys = setOf("playoutMimetypes", "allowExternalFrameSrc")
     }
 
-    override fun getNodePermissionExpirationTime() = null
+    override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
     override fun module() = "SODIX"
     override fun isOptionalModule() = true
