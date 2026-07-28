@@ -44,6 +44,16 @@ class JobReceiver(
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received job message: id=${message.id}, missingQualities=${message.missingQualities}")
         var jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
+        // RabbitMQ is at-least-once (see AsyncAckDispatcher): a lost ack redelivers this message.
+        // Guard against re-processing so a redelivery can't create a second set of sub-jobs.
+        if (jobEntry.status >= RenderingJobStatus.FINISHED) {
+            log.debug("Job ${jobEntry.id} already terminal (${jobEntry.status}); dropping redelivered message")
+            return
+        }
+        if (jobEntry.subJobs.isNotEmpty()) {
+            log.debug("Job ${jobEntry.id} already has ${jobEntry.subJobs.size} sub-job(s); skipping duplicate creation (redelivery)")
+            return
+        }
         try {
             log.debug("Transitioning job ${jobEntry.id} from ${jobEntry.status} to ${RenderingJobStatus.PROCESSING}")
             jobEntry.status = RenderingJobStatus.PROCESSING
