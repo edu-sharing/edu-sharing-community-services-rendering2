@@ -27,6 +27,7 @@ class SodixRenderModuleTest {
 
     private val exchange = "topic-exchange"
     private val routingKey = "sodix.key"
+    private val nodePermissionExpirationTime = 7200L
 
     private val underTest = spyk(
         SodixRenderModule(
@@ -36,7 +37,8 @@ class SodixRenderModuleTest {
             amqpTemplate,
             subJobRepository,
             exchange,
-            routingKey
+            routingKey,
+            nodePermissionExpirationTime
         )
     )
 
@@ -50,6 +52,13 @@ class SodixRenderModuleTest {
         )
         editorialState?.let { props["ccm:editorial_state"] = listOf(it) }
         return Node().ref(NodeRef().id("n1").repo("repoid")).mimetype(mimetype).properties(props)
+    }
+
+    // --- config wiring -----------------------------------------------------
+
+    @Test
+    fun exposesConfiguredNodePermissionExpirationTime() {
+        assert(underTest.getNodePermissionExpirationTime() == nodePermissionExpirationTime)
     }
 
     // --- deferral decision -------------------------------------------------
