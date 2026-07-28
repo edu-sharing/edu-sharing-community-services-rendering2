@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.retrieveOrCreateDeduplicatedJob
 import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
@@ -30,19 +31,22 @@ class H5pJobService(
 
     fun createJob(node: Node, module: String): String {
         log.debug("Creating H5P job for nodeId={}, module={}", node.storageNodeId(), module)
-        val existingJob = jobRepository.findAllByEsObjectId(node.storageNodeId())
-            .firstOrNull { it.status <= RenderingJobStatus.PROCESSING }
+        return retrieveOrCreateDeduplicatedJob(
+            findActiveJobId = {
+                findActiveJobId(node)?.also { log.debug("Reusing existing H5P job {} for nodeId={}", it, node.ref.id) }
+            },
+            create = { createNewJob(node, module) }
+        )
+    }
 
-        if (existingJob != null) {
-            log.debug("Reusing existing H5P job {} for nodeId={}", existingJob.id, node.ref.id)
-            return existingJob.id.toString()
-        }
-
+    private fun createNewJob(node: Node, module: String): String {
         var job = mapper.nodeToRenderingJob(
             node = node,
             module = module,
             isConversionType = true
         )
+        // Participate in the activeJobPerNodeHash unique index (one active job per node+hash).
+        job.deduplicated = true
         job = jobRepository.save(job)
 
         val subJob = SubJob(
@@ -56,4 +60,9 @@ class H5pJobService(
         log.debug("H5P job {} enqueued on routingKey={}", job.id, jobRoutingKey)
         return job.id.toString()
     }
+
+    private fun findActiveJobId(node: Node): String? =
+        jobRepository.findAllByEsObjectId(node.storageNodeId())
+            .firstOrNull { it.status <= RenderingJobStatus.PROCESSING }
+            ?.id?.toString()
 }

@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.h5p
 
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
+import org.bson.types.ObjectId
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
+import org.springframework.dao.DuplicateKeyException
 
 @ExtendWith(MockKExtension::class)
 class H5pJobServiceTest {
@@ -113,6 +115,37 @@ class H5pJobServiceTest {
             subJobRepository.save(any())
             amqpTemplate.convertAndSend("exchange", "routingkey", message)
         }
+    }
+
+    @Test
+    fun testCreateJobReusesExistingJobWhenConcurrentInsertLosesTheRace() {
+        // Arrange: no active job on the first lookup, but a concurrent request inserts one, so our
+        // save hits the activeJobPerNodeHash unique index (DuplicateKeyException) and we reuse it.
+        val existingJob = jobDataProvider.getJobWithoutSubJobs()
+        val newJob = jobDataProvider.getJobWithoutSubJobs(id = ObjectId(JobDataProvider.DUMMY_JOB_ID_2))
+        val node = mockk<Node>()
+
+        every { node.ref.id } returns "dummyNodeId"
+        every { node.aspects } returns null
+        every { jobRepository.findAllByEsObjectId("dummyNodeId") } returnsMany
+            listOf(emptyList(), listOf(existingJob))
+        every { mapper.nodeToRenderingJob(node, "H5P", true) } returns newJob
+        every { jobRepository.save(newJob) } throws DuplicateKeyException("duplicate active job")
+
+        excludeRecords {
+            node.ref.id
+            node.aspects
+        }
+
+        // Act
+        val result = underTest.createJob(node, "H5P")
+
+        // Assert: the existing job's id is returned, and no sub-job / message is created for the loser.
+        assert(result == JobDataProvider.DUMMY_JOB_ID)
+        verify(exactly = 2) { jobRepository.findAllByEsObjectId("dummyNodeId") }
+        verify(exactly = 1) { jobRepository.save(newJob) }
+        verify(exactly = 0) { subJobRepository.save(any()) }
+        verify(exactly = 0) { amqpTemplate.convertAndSend(any<String>(), any<String>(), any<RenderingJobMessage>()) }
     }
 
     @Test
