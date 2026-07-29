@@ -97,5 +97,6 @@ data:
   "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
   {{- end }}
   "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
+  "app.repository.registration.id.{{ $register.id }}.quota": {{ $register.quota | default 0 | quote }}
   "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}
   {{- end }}

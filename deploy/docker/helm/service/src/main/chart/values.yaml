@@ -444,9 +444,9 @@ config:
       schedule: 0 0 1 * * *
       threshold:
         ## @param config.cache.cleaner.threshold.lower Set lower threshold for cache cleaner
-        lower: -0.7
+        lower: 0.7
         ## @param config.cache.cleaner.threshold.upper Set upper threshold for cache cleaner
-        upper: -0.9
+        upper: 0.9
 
   ## Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs so a crashed/lost conversion
   ## cannot poison re-rendering of a node until the 8-day TTL. See StaleJobReaper.
@@ -517,6 +517,8 @@ config:
       username: admin
       ## @param config.home.registrations[0].password Set password for repository registration
       password: ""
+      ## @param config.home.registrations[0].quota Set storage quota in bytes for repository registration (0 = no limit; only enforced by the cache cleaner)
+      quota: 0
       ## @param config.home.registrations[0].modules Set modules for repository registration
       modules: []
       # - name: BINDER
