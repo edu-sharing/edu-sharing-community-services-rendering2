@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 
-class H5PReceiverTest {
+class H5pImportReceiverTest {
 
     // Create mocks
     private val mainJobLogic = mockk<MainJobLogic>()
@@ -31,7 +31,7 @@ class H5PReceiverTest {
     private val appInfo = AppInfo()
 
     // The class under test
-    private val underTest = H5pReceiver(
+    private val underTest = H5pImportReceiver(
         mainJobLogic,
         renderingJobRepository,
         subJobRepository,
@@ -65,7 +65,7 @@ class H5PReceiverTest {
         val statusList = mutableListOf<SubJobStatus>()
         val cacheObjectSlot = slot<CacheObject>()
 
-        every { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) } returns job
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
         every { renderingJobRepository.save(capture(mainJobSlot)) } answers {
             Assertions.assertEquals(RenderingJobStatus.PROCESSING, mainJobSlot.captured.status)
             job
@@ -90,7 +90,7 @@ class H5PReceiverTest {
 
         assert(subJob.message == "http://localhost:80$H5P_BASE_PATH/contentId")
 
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) }
+        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         verify(exactly = 1) { renderingJobRepository.save(any()) }
 
         verify(exactly = 2) { subJobRepository.save(any()) }
@@ -104,13 +104,13 @@ class H5PReceiverTest {
     fun testReceiveMessageJustReturnsIfNoMainJobFound() {
         // Arrange
         val message = RenderingJobMessage("messageId")
-        every { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) } returns null
+        every { mainJobLogic.getMainJobEntry(message.id) } returns null
 
         // Act
         underTest.receiveMessage(message)
 
         // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) }
+        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         confirmVerified(mainJobLogic)
     }
 
@@ -120,14 +120,39 @@ class H5PReceiverTest {
         // Arrange
         val message = RenderingJobMessage("messageId")
         val mainJob = jobDataProvider.getJobWithoutSubJobs("H5P")
-        every { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) } returns mainJob
+        every { mainJobLogic.getMainJobEntry(message.id) } returns mainJob
 
         // Act
         underTest.receiveMessage(message)
 
         // Assert
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) }
+        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         confirmVerified(mainJobLogic)
+    }
+
+    @Test
+    fun testReceiveMessageJustReturnsIfSubJobIsNotQueued() {
+        // A redelivered message must not import a second time — the sub-job is the stage marker.
+        // Arrange
+        val message = RenderingJobMessage("messageId")
+        val job = jobDataProvider.getJobWithoutSubJobs("H5P")
+        job.subJobs.add(
+            jobDataProvider.getDummySubJob(
+                subId = JobDataProvider.SUB_ID_1,
+                mimeType = "application/zip",
+                module = "H5P",
+                quality = 0,
+                status = SubJobStatus.PROCESSING
+            )
+        )
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+
+        // Act
+        underTest.receiveMessage(message)
+
+        // Assert
+        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
+        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, h5pUploadService)
     }
 
     @Test
@@ -150,7 +175,7 @@ class H5PReceiverTest {
         val cacheObjectSlot = slot<CacheObject>()
         val testMessage = "testMessage"
 
-        every { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) } returns job
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
         every { renderingJobRepository.save(capture(mainJobSlot)) } answers {
             Assertions.assertEquals(RenderingJobStatus.PROCESSING, mainJobSlot.captured.status)
             job
@@ -173,7 +198,7 @@ class H5PReceiverTest {
         val expectedStatusSequence = mutableListOf(SubJobStatus.PROCESSING, SubJobStatus.FAILED)
         assert(statusList == expectedStatusSequence)
 
-        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED) }
+        verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
         verify(exactly = 1) { renderingJobRepository.save(any()) }
 
         verify(exactly = 2) { subJobRepository.save(any()) }

@@ -28,22 +28,6 @@ class H5pJobServiceTest {
 
     private lateinit var underTest: H5pJobService
 
-   /* private val request = RenderDataRequest(
-        nodeId = "dummyNodeId",
-        size = 123L,
-        type = "dummyType",
-        hash = "dummyHash",
-        mimeType = "dummyMimeType",
-        version = "dummyVersion",
-        repoId = "dummyRepoId",
-        title = "dummyTitle",
-        userData = null,
-        replicationSource = null,
-        replicationSourceId = null,
-        url = null
-    )
-    */
-
     @BeforeEach
     fun setup() {
         underTest = H5pJobService(
@@ -52,7 +36,7 @@ class H5pJobServiceTest {
             subJobRepository = subJobRepository,
             amqpTemplate = amqpTemplate,
         )
-        underTest.jobRoutingKey = "routingkey"
+        underTest.lookupRoutingKey = "lookupRoutingKey"
         underTest.topicExchangeName = "exchange"
         clearAllMocks()
     }
@@ -91,7 +75,7 @@ class H5pJobServiceTest {
         val subJobSlot = slot<SubJob>()
         every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplate.convertAndSend("exchange", "routingkey", message) }
+        justRun { amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message) }
 
         excludeRecords {
             node.ref.id
@@ -102,7 +86,7 @@ class H5pJobServiceTest {
         val result = underTest.createJob(node, "H5P")
 
         // Assert
-        assert(subJobSlot.captured.routingKey == "routingkey")
+        assert(subJobSlot.captured.routingKey == "lookupRoutingKey")
         // What is this for?
         //assert(RenderingJob.id.toString() == dummyJob.id.toString())
 
@@ -113,7 +97,7 @@ class H5pJobServiceTest {
             mapper.nodeToRenderingJob(node, "H5P", true)
             jobRepository.save(dummyJob)
             subJobRepository.save(any())
-            amqpTemplate.convertAndSend("exchange", "routingkey", message)
+            amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message)
         }
     }
 
@@ -164,7 +148,7 @@ class H5pJobServiceTest {
         val subJobSlot = slot<SubJob>()
         every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplate.convertAndSend("exchange", "routingkey", message) }
+        justRun { amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message) }
 
         excludeRecords {
             node.ref.id
@@ -176,7 +160,7 @@ class H5pJobServiceTest {
         val result = underTest.createJob(node, "H5P")
 
         // Assert
-        assert(subJobSlot.captured.routingKey == "routingkey")
+        assert(subJobSlot.captured.routingKey == "lookupRoutingKey")
         //assert(RenderingJob.id.toString() == dummyJob.id.toString())
 
         assert(result == dummyJob.id.toString())
@@ -186,7 +170,7 @@ class H5pJobServiceTest {
             mapper.nodeToRenderingJob(node, "H5P", true)
             jobRepository.save(dummyJob)
             subJobRepository.save(any())
-            amqpTemplate.convertAndSend("exchange", "routingkey", message)
+            amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message)
         }
     }
 }

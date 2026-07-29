@@ -77,6 +77,8 @@ services:
       app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
       app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-8}"
       app.queue.moodle.concurrency: "${RENDERING2_QUEUE_MOODLE_CONCURRENCY:-8}"
+      # h5p stage 1: ask lumi whether the package is already imported (pure wait, fans out freely).
+      app.queue.h5p-lookup.concurrency: "${RENDERING2_QUEUE_H5P_LOOKUP_CONCURRENCY:-20}"
       # REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: concurrency = K
       # sizes the dedicated remote HTTP pool AND the broker prefetch; K messages run in parallel on virtual
       # threads. Scale throughput via more pods, not K.
@@ -89,7 +91,7 @@ services:
       app.queue.sodix.prefetch: "${RENDERING2_QUEUE_SODIX_PREFETCH:-}"
       app.queue.omega.prefetch: "${RENDERING2_QUEUE_OMEGA_PREFETCH:-}"
       app.queue.ddb.prefetch: "${RENDERING2_QUEUE_DDB_PREFETCH:-}"
-      # h5p is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
+      # h5p stage 2 (import) is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
       # Global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from concurrency).
       app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
       REDIS_HOST: redis-cache

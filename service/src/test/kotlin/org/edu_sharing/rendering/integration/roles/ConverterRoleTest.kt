@@ -10,7 +10,8 @@ import org.edu_sharing.rendering.modules.document.DocumentConverterConfig
 import org.edu_sharing.rendering.modules.document.DocumentReceiver
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
-import org.edu_sharing.rendering.modules.h5p.H5pReceiver
+import org.edu_sharing.rendering.modules.h5p.H5pImportReceiver
+import org.edu_sharing.rendering.modules.h5p.H5pLookupReceiver
 import org.edu_sharing.rendering.modules.h5p.H5pUploadService
 import org.edu_sharing.rendering.modules.image.ImageConversionService
 import org.edu_sharing.rendering.modules.image.ImageReceiver
@@ -59,7 +60,8 @@ class ConverterRoleTest(
             JupyterReceiver::class,
             JupyterConversionService::class,
             JupyterConverterConfig::class,
-            H5pReceiver::class,
+            H5pImportReceiver::class,
+            H5pLookupReceiver::class,
             H5pUploadService::class,
             MoodleReceiver::class,
             MoodleUploadService::class,
