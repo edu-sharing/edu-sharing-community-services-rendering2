@@ -68,6 +68,7 @@ import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.modules.av.AvQueueProperties
 import org.edu_sharing.rendering.modules.document.DocumentQueueProperties
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlQueueProperties
+import org.edu_sharing.rendering.modules.h5p.H5pLookupQueueProperties
 import org.edu_sharing.rendering.modules.h5p.H5pQueueProperties
 import org.edu_sharing.rendering.modules.image.ImageQueueProperties
 import org.edu_sharing.rendering.modules.jupyter.JupyterQueueProperties
@@ -136,6 +137,7 @@ abstract class SharedBeans {
             EduHtmlService::class,
             EncryptionService::class,
             H5pJobService::class,
+            H5pLookupQueueProperties::class,
             H5pQueueProperties::class,
             H5pRenderModule::class,
             H5pRenderModuleTypeMapper::class,

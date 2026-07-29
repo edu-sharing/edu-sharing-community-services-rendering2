@@ -622,8 +622,9 @@ config:
     ##  - REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: K — sizes
     ##    the dedicated remote HTTP pool AND the broker prefetch, K messages run in parallel on virtual
     ##    threads. Scale cluster throughput via more pods, not K.
-    ## h5p is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) and is therefore not
-    ## listed — its concurrency is not tunable. Values are shared by every role deployment, so keep them
+    ## The h5p *import* queue is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) and is
+    ## therefore not listed — its concurrency is not tunable. The h5p lookup queue in front of it is
+    ## STANDARD and is listed. Values are shared by every role deployment, so keep them
     ## conservative for co-located profiles (worker/aio) where image/eduHtml/av compete for the same cores;
     ## raise for dedicated converter/avconverter pods.
     concurrency:
@@ -641,6 +642,8 @@ config:
       jupyter: "8"
       ## @param config.queue.concurrency.moodle Consumers for the moodle queue (bounded by the remote moodle server)
       moodle: "8"
+      ## @param config.queue.concurrency.h5pLookup Consumers for the h5p lookup queue (pure wait: one lumi content-id lookup per message)
+      h5pLookup: "20"
       ## @param config.queue.concurrency.onyx Consumers for the onyx queue
       onyx: "8"
       ## @param config.queue.concurrency.binder Consumers for the binder queue

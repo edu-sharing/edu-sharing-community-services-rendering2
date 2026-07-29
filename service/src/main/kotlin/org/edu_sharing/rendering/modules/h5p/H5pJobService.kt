@@ -23,8 +23,9 @@ class H5pJobService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Value($$"${app.queue.h5p.key}")
-    lateinit var jobRoutingKey: String
+    /** A new job always starts in the lookup stage; only a miss is handed on to the import queue. */
+    @Value($$"${app.queue.h5p-lookup.key}")
+    lateinit var lookupRoutingKey: String
 
     @Value($$"${app.queue.topicExchange}")
     lateinit var topicExchangeName: String
@@ -50,14 +51,14 @@ class H5pJobService(
         job = jobRepository.save(job)
 
         val subJob = SubJob(
-            routingKey = jobRoutingKey,
+            routingKey = lookupRoutingKey,
             parent = job
         )
         subJobRepository.save(subJob)
 
         val message = RenderingJobMessage(job.id.toString())
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
-        log.debug("H5P job {} enqueued on routingKey={}", job.id, jobRoutingKey)
+        amqpTemplate.convertAndSend(topicExchangeName, lookupRoutingKey, message)
+        log.debug("H5P job {} enqueued on routingKey={}", job.id, lookupRoutingKey)
         return job.id.toString()
     }
 

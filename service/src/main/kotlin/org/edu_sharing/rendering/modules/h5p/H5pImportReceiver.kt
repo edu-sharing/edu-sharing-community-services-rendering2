@@ -20,9 +20,13 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
 
+/**
+ * Second stage of the H5P job flow: imports the package into lumi. Only sub-jobs that missed the lookup stage
+ * ([H5pLookupReceiver]) arrive here, and they arrive one at a time — see the queue binding below.
+ */
 @ConditionalOnConverter
 @Component
-class H5pReceiver(
+class H5pImportReceiver(
     private val mainJobLogic: MainJobLogic,
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
@@ -30,7 +34,7 @@ class H5pReceiver(
     private val mapper: Mapper,
     private val appInfo: AppInfo
 ){
-    private val log = LoggerFactory.getLogger(H5pReceiver::class.java)
+    private val log = LoggerFactory.getLogger(H5pImportReceiver::class.java)
 
     @RabbitListener(
         bindings = [
@@ -57,8 +61,10 @@ class H5pReceiver(
         concurrency = "#{h5pQueueProperties.effectiveConcurrency}"
     )
     fun receiveMessage(message: RenderingJobMessage) {
-        log.debug("H5P message received: jobId={}", message.id)
-        val jobEntry = mainJobLogic.getMainJobEntry(message.id, RenderingJobStatus.QUEUED)
+        log.debug("H5P import message received: jobId={}", message.id)
+        // The job is already PROCESSING when the lookup stage hands it over, so the redelivery guard keys on
+        // the sub-job instead of the main job's status. An H5P job carries exactly one sub-job.
+        val jobEntry = mainJobLogic.getMainJobEntry(message.id)
         if (jobEntry == null || jobEntry.subJobs.isEmpty()) {
             log.error(if (jobEntry == null) "No matching job entry with id {}"
             else "Job entry with id {} has no sub jobs" , message.id)
@@ -66,6 +72,11 @@ class H5pReceiver(
         }
         log.debug("H5P job looked up: esObjectId={}, status={}", jobEntry.esObjectId, jobEntry.status)
         var subJob = jobEntry.subJobs.first()
+        if (subJob.status != SubJobStatus.QUEUED) {
+            log.debug("H5P job {} not queued for import (sub-job {}); dropping redelivered message",
+                message.id, subJob.status)
+            return
+        }
         subJob.status = SubJobStatus.PROCESSING
         jobEntry.status = RenderingJobStatus.PROCESSING
         renderingJobRepository.save(jobEntry)
