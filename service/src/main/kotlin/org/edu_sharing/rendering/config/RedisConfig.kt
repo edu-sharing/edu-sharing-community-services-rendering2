@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.config
 
+import io.lettuce.core.AbstractRedisClient
 import io.lettuce.core.ReadFrom
 import io.lettuce.core.SocketOptions
 import io.lettuce.core.TimeoutOptions
@@ -25,7 +26,10 @@ class RedisConfig {
 
     @Bean
     @ConditionalOnBean(RedisClusterConfigurationProperties::class)
-    fun lettuceClusterConnectionFactory(configurationProperties: RedisClusterConfigurationProperties): RedisConnectionFactory {
+    fun lettuceClusterConnectionFactory(
+        configurationProperties: RedisClusterConfigurationProperties,
+        redisLettuceMetrics: RedisLettuceMetrics
+    ): RedisConnectionFactory {
         val redisConfig = RedisClusterConfiguration(configurationProperties.nodes)
 
         configurationProperties.maxRedirects?.let { redisConfig.setMaxRedirects(it) }
@@ -57,15 +61,18 @@ class RedisConfig {
             .clientOptions(clusterClientOptions)
             .build()
 
-        val factory = LettuceConnectionFactory(redisConfig, clientConfig)
+        val factory = MeteredClusterConnectionFactory(redisConfig, clientConfig, redisLettuceMetrics)
         return factory
     }
 
     @Bean
     @ConditionalOnMissingBean(RedisClusterConfigurationProperties::class)
-    fun lettuceStandaloneConnectionFactory(configurationProperties: RedisStandaloneConfigurationProperties): RedisConnectionFactory {
+    fun lettuceStandaloneConnectionFactory(
+        configurationProperties: RedisStandaloneConfigurationProperties,
+        redisLettuceMetrics: RedisLettuceMetrics
+    ): RedisConnectionFactory {
         val redisConfig = RedisStandaloneConfiguration(configurationProperties.host, configurationProperties.port)
-        val factory = LettuceConnectionFactory(redisConfig)
+        val factory = MeteredStandaloneConnectionFactory(redisConfig, redisLettuceMetrics)
         return factory
     }
 
@@ -94,4 +101,28 @@ class RedisConfig {
     }
 
 
+}
+
+/**
+ * `createClient()` ist der einzige Punkt, an dem sich [RedisLettuceMetrics] zuverlässig anhängen
+ * lässt: die Methode läuft genau einmal aus `afterPropertiesSet()` und damit **vor** dem ersten
+ * Verbindungsaufbau. Lettuce hängt seinen `CommandListenerWriter` nur ein, wenn beim Connect
+ * bereits Listener registriert sind — später hinzugefügte werden ignoriert.
+ */
+private class MeteredStandaloneConnectionFactory(
+    config: RedisStandaloneConfiguration,
+    private val metrics: RedisLettuceMetrics
+) : LettuceConnectionFactory(config) {
+    override fun createClient(): AbstractRedisClient =
+        super.createClient().also(metrics::bindTo)
+}
+
+/** Cluster-Pendant zu [MeteredStandaloneConnectionFactory]. */
+private class MeteredClusterConnectionFactory(
+    config: RedisClusterConfiguration,
+    clientConfig: LettuceClientConfiguration,
+    private val metrics: RedisLettuceMetrics
+) : LettuceConnectionFactory(config, clientConfig) {
+    override fun createClient(): AbstractRedisClient =
+        super.createClient().also(metrics::bindTo)
 }
