@@ -182,6 +182,7 @@ abstract class SharedBeans {
             QueueConsumerMetrics::class,
             QueueProperties::class,
             RedisConfig::class,
+            RedisLettuceMetrics::class,
             RedisStandaloneConfigurationProperties::class,
             RemoteListenerContainerFactorySupport::class,
             RenderingMetrics::class,
@@ -218,6 +219,11 @@ abstract class SharedBeans {
 
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
+            // Seit RedisConfig die Factory in eine eigene, mit RedisLettuceMetrics instrumentierte
+            // Subklasse hüllt, liegt deren Klasse in org.edu_sharing.rendering und fällt damit in
+            // den Paketfilter der Rollentests. Nur die Standalone-Variante: die Cluster-Factory
+            // existiert nur, wenn spring.redis.cluster.nodes gesetzt ist (in Tests nicht).
+            "lettuceStandaloneConnectionFactory",
             "permissionEvaluator",
             "writeConcernResolver",
         )
