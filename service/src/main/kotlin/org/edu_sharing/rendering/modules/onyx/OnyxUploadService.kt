@@ -25,7 +25,6 @@ class OnyxUploadService(
     fun uploadTest(cacheObject: CacheObject): String {
         log.debug("Downloading content for Onyx upload, nodeId ${cacheObject.nodeId}, hash ${cacheObject.hash}")
         val config = module.getCredentials(cacheObject.repoId)
-        val inputStream = contentTransferService.getAsInputStream(cacheObject)
         val originalFile = File.createTempFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}",
             "zip"
@@ -35,7 +34,9 @@ class OnyxUploadService(
             .baseUrl(config["onyxresturl"] ?: "")
             .build()
         try {
-            inputStream.use {
+            // Opened inside the try, after the temp file exists: a failure between opening the content
+            // stream and reaching `use` would orphan its pooled Netty buffers for the life of the JVM.
+            contentTransferService.getAsInputStream(cacheObject).use { inputStream ->
                 originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
             }
             val builder = MultipartBodyBuilder()
