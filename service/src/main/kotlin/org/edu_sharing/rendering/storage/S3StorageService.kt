@@ -446,23 +446,40 @@ class S3StorageService(
         trackingService.trackCacheObject(cacheObject, bucket, size)
     }
 
+    /**
+     * Uploads [inputStream] and **always closes it**, including on failure — this method takes
+     * ownership of the stream.
+     *
+     * Ownership matters because the stream is often a `FluxInputStream` bridge over a
+     * `Flux<DataBuffer>` of pooled Netty direct buffers. Neither `RequestBody.fromInputStream` nor
+     * `Files.copy` closes a caller-supplied stream, and both stop reading early whenever the upload
+     * is abandoned — a `cacheObject.size` that disagrees with what the repository actually serves,
+     * an S3 error, an SDK retry. The producer then stays blocked on a full pipe with an in-flight
+     * DataBuffer it never releases, and since Netty's `AdaptiveByteBufAllocator` serves allocations
+     * out of 2 MiB direct chunks, every such buffer pins a whole chunk. Accumulated over a run that
+     * exhausts `MaxDirectMemorySize` and the next component needing a fresh chunk dies with
+     * `OutOfDirectMemoryError` — in practice Lettuce, which allocates one per connection.
+     * Closing disposes the subscription and releases the buffers.
+     */
     private fun putObjectStreaming(request: PutObjectRequest, cacheObject: CacheObject, inputStream: InputStream) {
-        if (cacheObject.size >= 0) {
-            s3Client.putObject(request, RequestBody.fromInputStream(inputStream, cacheObject.size))
-            return
-        }
-        // AWS SDK v2 sync client needs a known content-length for InputStream.
-        // Fallback: spool to a temp file to determine the length without buffering on the heap.
-        log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
-        val tempFile = Files.createTempFile("s3-spool-", ".tmp")
-        try {
-            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING)
-            s3Client.putObject(request, RequestBody.fromFile(tempFile))
-        } finally {
+        inputStream.use { stream ->
+            if (cacheObject.size >= 0) {
+                s3Client.putObject(request, RequestBody.fromInputStream(stream, cacheObject.size))
+                return
+            }
+            // AWS SDK v2 sync client needs a known content-length for InputStream.
+            // Fallback: spool to a temp file to determine the length without buffering on the heap.
+            log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
+            val tempFile = Files.createTempFile("s3-spool-", ".tmp")
             try {
-                Files.deleteIfExists(tempFile)
-            } catch (e: Exception) {
-                log.warn("Could not delete temporary spool file: ${tempFile.toAbsolutePath()}", e)
+                Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING)
+                s3Client.putObject(request, RequestBody.fromFile(tempFile))
+            } finally {
+                try {
+                    Files.deleteIfExists(tempFile)
+                } catch (e: Exception) {
+                    log.warn("Could not delete temporary spool file: ${tempFile.toAbsolutePath()}", e)
+                }
             }
         }
     }

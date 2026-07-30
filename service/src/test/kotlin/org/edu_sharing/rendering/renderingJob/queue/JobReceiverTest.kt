@@ -100,4 +100,91 @@ class JobReceiverTest {
 
         verify(exactly = 1) { conversionModule.createConversionSubJobs(job, message) }
     }
+
+    /**
+     * The content stream is a `FluxInputStream` bridge over pooled Netty direct buffers in
+     * production. Leaving it open orphans those buffers (and a boundedElastic worker) for the life of
+     * the JVM; with the adaptive allocator each pins a 2 MiB direct chunk, so enough orphans exhaust
+     * `MaxDirectMemorySize` and the next component needing a fresh chunk dies with
+     * `OutOfDirectMemoryError`. These three cases pin the ownership contract down.
+     */
+    @Test
+    fun `closes the content stream after storing the conversion input`() {
+        val job = freshJob(conversionType = true)
+        val cacheObject = mockk<CacheObject>()
+        val contentStream = TrackingInputStream("content")
+        val conversionModule = mockk<ImageRenderModule>()
+        val message = RenderingJobMessage(id = jobId, missingQualities = listOf(1, 2))
+
+        every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
+        every { jobRepository.save(any()) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
+        justRun { storageService.putTempFile(cacheObject, contentStream) }
+        every { moduleRegistry.getRenderModule<RenderModule>("IMAGE") } returns conversionModule
+        justRun { conversionModule.createConversionSubJobs(job, message) }
+
+        underTest.receiveMessage(message)
+
+        assert(contentStream.closed) { "content stream must be closed after putTempFile" }
+    }
+
+    @Test
+    fun `closes the content stream after storing a non-conversion object`() {
+        val job = freshJob(conversionType = false)
+        val cacheObject = mockk<CacheObject>()
+        val contentStream = TrackingInputStream("content")
+
+        every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
+        every { jobRepository.save(any()) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
+        justRun { storageService.putObject(cacheObject, contentStream, any()) }
+
+        underTest.receiveMessage(RenderingJobMessage(jobId))
+
+        assert(contentStream.closed) { "content stream must be closed after putObject" }
+        assert(job.status == RenderingJobStatus.FINISHED)
+    }
+
+    @Test
+    fun `closes the content stream when the upload fails`() {
+        val job = freshJob(conversionType = true)
+        val cacheObject = mockk<CacheObject>()
+        val contentStream = TrackingInputStream("content")
+
+        every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
+        every { jobRepository.save(any()) } returns job
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
+        every { storageService.putTempFile(cacheObject, contentStream) } throws RuntimeException("S3 down")
+
+        underTest.receiveMessage(RenderingJobMessage(jobId))
+
+        assert(contentStream.closed) { "content stream must be closed even when the upload throws" }
+        assert(job.status == RenderingJobStatus.FAILED)
+    }
+
+    private fun freshJob(conversionType: Boolean) = RenderingJob(
+        id = ObjectId(jobId),
+        esHash = "hash",
+        esObjectId = "esobjectid",
+        esObjectType = "esobjecttype",
+        mimeType = "image/jpeg",
+        module = "IMAGE",
+        nodeVersion = "1.2",
+        repoId = "repoid",
+        status = RenderingJobStatus.QUEUED,
+        conversionType = conversionType
+    )
+
+    private class TrackingInputStream(content: String) : ByteArrayInputStream(content.toByteArray()) {
+        var closed = false
+            private set
+
+        override fun close() {
+            closed = true
+            super.close()
+        }
+    }
 }

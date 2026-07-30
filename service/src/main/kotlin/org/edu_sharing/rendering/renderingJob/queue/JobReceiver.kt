@@ -59,12 +59,20 @@ class JobReceiver(
             jobEntry.status = RenderingJobStatus.PROCESSING
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+            // `use` on the content stream even though the storage service closes it too: closing is
+            // idempotent, and an exception thrown between opening the stream and entering the upload
+            // would otherwise orphan it — an orphaned FluxInputStream keeps its pooled Netty buffers
+            // (and a boundedElastic worker) for the life of the JVM.
             if (jobEntry.conversionType) {
                 log.debug("Job ${jobEntry.id} is conversion type, storing temp file for module ${jobEntry.module}")
-                storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+                contentTransferService.getAsInputStream(cacheObject).use {
+                    storageImplementation.putTempFile(cacheObject, it)
+                }
             } else {
                 log.debug("Job ${jobEntry.id} is non-conversion type, storing final object and marking FINISHED")
-                storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+                contentTransferService.getAsInputStream(cacheObject).use {
+                    storageImplementation.putObject(cacheObject, it)
+                }
                 jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)
                 return
