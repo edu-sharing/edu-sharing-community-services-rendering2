@@ -33,6 +33,11 @@ edusharing_services_rendering2_rabbitmq:
     ## @param edusharing_services_rendering2_rabbitmq.config.username Set mongodb username
     username: &rabbitmqConfigUsername rendering2
 
+    metrics:
+      detailed:
+        ## @param edusharing_services_rendering2_rabbitmq.config.metrics.detailed.enabled Enable per-queue detailed RabbitMQ metrics (queue depth ready/unacked) for the RS2 Grafana dashboards
+        enabled: true
+
   init:
 
     permission:

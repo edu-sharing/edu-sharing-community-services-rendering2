@@ -20,9 +20,12 @@ object FluxInputStream {
      *
      * The blocking pipe writes run on [Schedulers.boundedElastic] (via `publishOn` on the
      * source) so a slow consumer that fills the pipe cannot stall a reactor/Netty event-loop
-     * thread. Closing the returned InputStream disposes the underlying subscription, so a
-     * client disconnect tears down the upstream Flux and releases its pooled DataBuffers
-     * instead of leaking them until GC.
+     * thread.
+     *
+     * This method owns the buffers it consumes and releases every one of them: emitted buffers via
+     * `releaseConsumer()`, buffers still sitting in the `publishOn` prefetch queue at cancellation
+     * via `doOnDiscard`. Closing the returned InputStream disposes the subscription, which is what
+     * turns an abandoned read (client disconnect, early close) into that cancellation.
      *
      * @param dataStream A reactive Flux stream of DataBuffer objects that need to be converted.
      * @return An InputStream that streams the data from the provided Flux of DataBuffer.
@@ -44,6 +47,15 @@ object FluxInputStream {
         }
 
         val disposable = DataBufferUtils.write(dataStream.publishOn(Schedulers.boundedElastic()), outStream)
+            // The `OutputStream` overload of `write` returns `Flux<DataBuffer>` and passes the
+            // buffers through **unreleased** — releasing is the subscriber's job (contrast the
+            // `Path` overload, which returns `Mono<Void>` and consumes them itself, as used in
+            // ConverterWebServiceCaller). Subscribing without `releaseConsumer()` therefore leaks
+            // every buffer of every transfer, on the happy path: these are pooled Netty direct
+            // buffers, and with the AdaptiveByteBufAllocator each one pins a 2 MiB chunk, so the
+            // process ratchets towards `MaxDirectMemorySize` until unrelated allocations start
+            // failing with OutOfDirectMemoryError.
+            .doOnDiscard(DataBuffer::class.java) { DataBufferUtils.release(it) }
             .doOnError { e ->
                 log.error("Error while streaming data from repository", e)
             }
@@ -59,7 +71,7 @@ object FluxInputStream {
                     log.error("Failed to close PipedOutputStream", e)
                 }
             }
-            .subscribe()
+            .subscribe(DataBufferUtils.releaseConsumer())
         disposableRef.set(disposable)
 
         return inStream

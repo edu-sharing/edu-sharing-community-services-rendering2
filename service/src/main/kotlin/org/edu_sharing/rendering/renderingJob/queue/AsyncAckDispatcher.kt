@@ -50,7 +50,7 @@ class AsyncAckDispatcher(
         executor.execute {
             metrics.started(queue)
             try {
-                work()
+                metrics.timeProcessing(queue, work)
                 acknowledge(channel, deliveryTag) { it.basicAck(deliveryTag, false) }
             } catch (throwable: Throwable) {
                 log.error("Unhandled error processing delivery $deliveryTag on queue '$queue', dropping message", throwable)

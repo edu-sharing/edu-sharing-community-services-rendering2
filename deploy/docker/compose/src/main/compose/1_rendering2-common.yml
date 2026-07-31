@@ -177,6 +177,8 @@ services:
 
       app.repository.registration.id.local.externalBuckets.renderingBucket: "${RENDERING2_S3_RENDERING_BUCKET:-}"
       app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
+      # Storage quota in bytes for this repository (0 = no limit). Only enforced by the cache cleaner
+      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-0}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
