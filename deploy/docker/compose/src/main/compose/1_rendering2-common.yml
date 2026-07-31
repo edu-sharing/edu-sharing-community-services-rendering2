@@ -77,6 +77,8 @@ services:
       app.queue.binderPreview.concurrency: "${RENDERING2_QUEUE_BINDER_PREVIEW_CONCURRENCY:-1}"
       app.queue.onyx.concurrency: "${RENDERING2_QUEUE_ONYX_CONCURRENCY:-8}"
       app.queue.moodle.concurrency: "${RENDERING2_QUEUE_MOODLE_CONCURRENCY:-8}"
+      # h5p stage 1: ask lumi whether the package is already imported (pure wait, fans out freely).
+      app.queue.h5p-lookup.concurrency: "${RENDERING2_QUEUE_H5P_LOOKUP_CONCURRENCY:-20}"
       # REMOTE queues (sodix/omega/ddb) resolve a link/reference to externally-hosted material: concurrency = K
       # sizes the dedicated remote HTTP pool AND the broker prefetch; K messages run in parallel on virtual
       # threads. Scale throughput via more pods, not K.
@@ -89,7 +91,7 @@ services:
       app.queue.sodix.prefetch: "${RENDERING2_QUEUE_SODIX_PREFETCH:-}"
       app.queue.omega.prefetch: "${RENDERING2_QUEUE_OMEGA_PREFETCH:-}"
       app.queue.ddb.prefetch: "${RENDERING2_QUEUE_DDB_PREFETCH:-}"
-      # h5p is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
+      # h5p stage 2 (import) is SINGLE_ACTIVE (exactly one consumer cluster-wide, forced to 1) — not tunable here.
       # Global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from concurrency).
       app.queue.prefetch: "${RENDERING2_QUEUE_PREFETCH:-1}"
       REDIS_HOST: redis-cache
@@ -122,6 +124,7 @@ services:
       app.session.spreadsheet.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SPREADSHEET_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.html.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_HTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.h5p.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_H5P_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.sodix.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SODIX_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.converter.image.format: "${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
       app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp}"
       app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-800,1280,1920}"
@@ -150,16 +153,16 @@ services:
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
       app.repository.registration.id.local.username: admin
       app.repository.registration.id.local.password: "${REPOSITORY_SERVICE_ADMIN_PASS:-admin}"
-      app.repository.registration.id.local.optional-modules: H5P,EDUHTML,SPREADSHEET,HTML,OMEGA
+      app.repository.registration.id.local.optional-modules: "${RENDERING2_OPTIONAL_MODULES:-H5P,EDUHTML,SPREADSHEET,HTML}"
       app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.publicurl: "${RENDERING2_MOODLE_PUBLIC_URL:-}"
       #app.repository.registration.id.local.buckets.renderingBucket: "${RENDERING2_S3_STORAGE_BUCKET:-rendering2}"
       #app.repository.registration.id.local.buckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-temp}"
 #      app.repository.registration.id.local.module.MOODLE.credentials.user: user
-      app.repository.registration.id.local.module.OMEGA.credentials.baseurl: https://cp.sodis.de/api/get
-      app.repository.registration.id.local.module.OMEGA.credentials.user: omega
-      app.repository.registration.id.local.module.OMEGA.credentials.validateUrls: false
-      app.repository.registration.id.local.module.OMEGA.credentials.identifierPrefixWhitelist: FWU-049,FWU-055,FWU-056
+      #app.repository.registration.id.local.module.OMEGA.credentials.baseurl: https://cp.sodis.de/api/get
+      #app.repository.registration.id.local.module.OMEGA.credentials.user: omega
+      #app.repository.registration.id.local.module.OMEGA.credentials.validateUrls: false
+      #app.repository.registration.id.local.module.OMEGA.credentials.identifierPrefixWhitelist: FWU-049,FWU-055,FWU-056
       app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
       app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
@@ -167,8 +170,15 @@ services:
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
+
+      app.repository.registration.id.local.module.SODIX.credentials.baseurl: "${RENDERING2_SODIX_BASEURL:-}"
+      app.repository.registration.id.local.module.SODIX.credentials.playoutMimetypes: "${RENDERING2_SODIX_PLAYOUTMIMETYPES:-}"
+      app.repository.registration.id.local.module.SODIX.credentials.allowExternalFrameSrc: "${RENDERING2_SODIX_ALLOWEXTERNALFRAMESOURCES:-}"
+
       app.repository.registration.id.local.externalBuckets.renderingBucket: "${RENDERING2_S3_RENDERING_BUCKET:-}"
       app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
+      # Storage quota in bytes for this repository (0 = no limit). Only enforced by the cache cleaner
+      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-0}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via

@@ -20,6 +20,7 @@ import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
 import reactor.netty.tcp.SslProvider
 import java.time.Duration
+import java.util.function.Function
 
 /**
  * Central [WebClient.Builder] bean.
@@ -122,6 +123,8 @@ class WebClientConfig(
         var httpClient = (if (connectionProvider != null) HttpClient.create(connectionProvider) else HttpClient.create())
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis)
             .responseTimeout(Duration.ofSeconds(responseTimeoutSeconds))
+            // Reactor-Netty-Metrics
+            .metrics(true, Function<String, String> { "unknown" })
         if (disableSni) {
             // Typed as GenericSslContextSpec so overload resolution avoids the deprecated
             // sslContext(ProtocolSslContextSpec) overload that Http11SslContextSpec would otherwise bind to.

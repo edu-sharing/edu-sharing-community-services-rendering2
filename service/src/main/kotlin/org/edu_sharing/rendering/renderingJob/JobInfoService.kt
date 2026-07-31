@@ -34,6 +34,18 @@ class JobInfoService(
         return jobRepository.findByIdOrNull(ObjectId(jobId)) ?: throw EntryNotFoundException("Invalid jobId: $jobId")
     }
 
+    // Re-triggers fresh links for an existing job (e.g. Sodix' short-lived playout URLs). Same
+    // permission gate as getJobInfo; the module re-enqueues its fetch and the client resumes polling.
+    @PreAuthorize("hasPermission(#job.esObjectId, 'ReadAll')")
+    fun refreshLinks(job: RenderingJob) {
+        val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
+        require(renderModule.supportsLinkRefresh()) {
+            "Module ${job.module} does not support link refresh"
+        }
+        log.debug("Refreshing links for job ${job.id}, module=${job.module}")
+        renderModule.refreshLinks(job)
+    }
+
     @PreAuthorize("hasPermission(#job.esObjectId, 'ReadAll')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
         log.debug("Fetching job info for job ${job.id}, status=${job.status}, conversionType=${job.conversionType}, subJobs=${job.subJobs.size}")

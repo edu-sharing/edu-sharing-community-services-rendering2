@@ -68,6 +68,7 @@ import org.edu_sharing.rendering.renderingJob.metrics.RenderingMetrics
 import org.edu_sharing.rendering.modules.av.AvQueueProperties
 import org.edu_sharing.rendering.modules.document.DocumentQueueProperties
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlQueueProperties
+import org.edu_sharing.rendering.modules.h5p.H5pLookupQueueProperties
 import org.edu_sharing.rendering.modules.h5p.H5pQueueProperties
 import org.edu_sharing.rendering.modules.image.ImageQueueProperties
 import org.edu_sharing.rendering.modules.jupyter.JupyterQueueProperties
@@ -136,6 +137,7 @@ abstract class SharedBeans {
             EduHtmlService::class,
             EncryptionService::class,
             H5pJobService::class,
+            H5pLookupQueueProperties::class,
             H5pQueueProperties::class,
             H5pRenderModule::class,
             H5pRenderModuleTypeMapper::class,
@@ -180,6 +182,7 @@ abstract class SharedBeans {
             QueueConsumerMetrics::class,
             QueueProperties::class,
             RedisConfig::class,
+            RedisLettuceMetrics::class,
             RedisStandaloneConfigurationProperties::class,
             RemoteListenerContainerFactorySupport::class,
             RenderingMetrics::class,
@@ -216,6 +219,11 @@ abstract class SharedBeans {
 
         private val functionalBeans = setOf(
             "auditingDateTimeProvider",
+            // Seit RedisConfig die Factory in eine eigene, mit RedisLettuceMetrics instrumentierte
+            // Subklasse hüllt, liegt deren Klasse in org.edu_sharing.rendering und fällt damit in
+            // den Paketfilter der Rollentests. Nur die Standalone-Variante: die Cluster-Factory
+            // existiert nur, wenn spring.redis.cluster.nodes gesetzt ist (in Tests nicht).
+            "lettuceStandaloneConnectionFactory",
             "permissionEvaluator",
             "writeConcernResolver",
         )

@@ -1,14 +1,21 @@
 package org.edu_sharing.rendering.renderingJob
 
 import io.mockk.clearAllMocks
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
+import io.mockk.verify
+import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
+import org.springframework.dao.DuplicateKeyException
 
 @ExtendWith(MockKExtension::class)
 class MainJobCreationServiceTest {
@@ -27,6 +34,33 @@ class MainJobCreationServiceTest {
         underTest.topicExchangeName = "topicExchangeName"
         underTest.jobRoutingKey = "jobRoutingKey"
         clearAllMocks()
+    }
+
+    @Test
+    fun retrieveOrCreateJobReusesExistingJobWhenConcurrentInsertLosesTheRace() {
+        // Arrange: no reusable job on the first lookup, but a concurrent request inserts one, so our
+        // save hits the activeJobPerNodeHash unique index (DuplicateKeyException) and we reuse it.
+        val cacheObject = mockk<CacheObject>()
+        val module = mockk<RenderModule>()
+        val existingJob = jobDataProvider.getJobWithoutSubJobs() // PROCESSING, esHash "hash"
+        val newJob = jobDataProvider.getJobWithoutSubJobs(id = ObjectId(JobDataProvider.DUMMY_JOB_ID_2))
+
+        every { module.module() } returns "IMAGE"
+        every { cacheObject.nodeId } returns "node123"
+        every { cacheObject.hash } returns JobDataProvider.HASH
+        every { renderingJobRepository.findAllByEsObjectId("node123") } returnsMany
+            listOf(emptyList(), listOf(existingJob))
+        every { mapper.cacheObjectToRenderingJob(cacheObject, "IMAGE", true) } returns newJob
+        every { renderingJobRepository.save(newJob) } throws DuplicateKeyException("duplicate active job")
+
+        // Act
+        val result = underTest.retrieveOrCreateJob(cacheObject, module)
+
+        // Assert: the existing job's id is returned, and the loser never publishes a message.
+        assert(result == JobDataProvider.DUMMY_JOB_ID)
+        verify(exactly = 2) { renderingJobRepository.findAllByEsObjectId("node123") }
+        verify(exactly = 1) { renderingJobRepository.save(newJob) }
+        verify(exactly = 0) { amqpTemplate.convertAndSend(any<String>(), any<String>(), any<Any>()) }
     }
 
     /*@Test

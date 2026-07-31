@@ -39,6 +39,8 @@ class MainJobCreationService(
             missingQualities
         )
         val renderingJob = mapper.cacheObjectToRenderingJob(cacheObject, module, isConversionType)
+        // Participate in the activeJobPerNodeHash unique index (one active job per node+hash).
+        renderingJob.deduplicated = true
         renderingJobRepository.save(renderingJob)
         val jobMessage = RenderingJobMessage(
             id = renderingJob.id.toString(),
@@ -63,18 +65,16 @@ class MainJobCreationService(
         return if (unfinishedJob !== null) unfinishedJob.id.toString() else null
     }
 
-    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModule): String {
-        val existingJobId = getExistingJobId(cacheObject)
-        if (existingJobId != null) {
-            log.debug("Reusing existing job id=$existingJobId for nodeId=${cacheObject.nodeId}")
-            return existingJobId
-        }
-
-        log.debug("No reusable job found for nodeId=${cacheObject.nodeId}, creating new job with module=${module.module()}")
-        return createMainJob(
-            cacheObject = cacheObject,
-            module = module.module(),
-            isConversionType = true
+    fun retrieveOrCreateJob(cacheObject: CacheObject, module: RenderModule): String =
+        retrieveOrCreateDeduplicatedJob(
+            findActiveJobId = {
+                getExistingJobId(cacheObject)?.also {
+                    log.debug("Reusing existing job id=$it for nodeId=${cacheObject.nodeId}")
+                }
+            },
+            create = {
+                log.debug("No reusable job found for nodeId=${cacheObject.nodeId}, creating new job with module=${module.module()}")
+                createMainJob(cacheObject = cacheObject, module = module.module(), isConversionType = true)
+            }
         )
-    }
 }

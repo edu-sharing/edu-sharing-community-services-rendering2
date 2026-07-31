@@ -53,6 +53,7 @@ data:
   "app.session.spreadsheet.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.spreadsheet | quote }}
   "app.session.html.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.html | quote }}
   "app.session.h5p.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.h5p | quote }}
+  "app.session.sodix.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.sodix | quote }}
   "app.converter.image.format": {{ .Values.config.converter.image.format | quote }}
   "app.converter.image.mimeTypes": {{ .Values.config.converter.image.mimetypes | quote }}
   "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
@@ -97,5 +98,6 @@ data:
   "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
   {{- end }}
   "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
+  "app.repository.registration.id.{{ $register.id }}.quota": {{ $register.quota | default 0 | quote }}
   "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}
   {{- end }}

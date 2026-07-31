@@ -47,4 +47,16 @@ class QueueConsumerMetricsTest {
         runCatching { metrics.invoke(invocation) }
         assertEquals(0.0, gauge(registry, "sodix_job_queue"))
     }
+
+    @Test
+    fun `timeProcessing feeds the same queue processing timer for both success and failure`() {
+        val registry = SimpleMeterRegistry()
+        val metrics = QueueConsumerMetrics(registry)
+
+        assertEquals("done", metrics.timeProcessing("sodix_job_queue") { "done" })
+        runCatching { metrics.timeProcessing("sodix_job_queue") { throw RuntimeException("boom") } }
+
+        val timer = registry.get("rendering.queue.processing").tag("queue", "sodix_job_queue").timer()
+        assertEquals(2, timer.count())
+    }
 }

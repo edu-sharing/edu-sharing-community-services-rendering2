@@ -155,6 +155,10 @@ H5P single-active-consumer.
 | `rendering_job_duration_seconds{module,outcome}` | Timer/Histogram | End-to-End-Job-Dauer |
 | `rendering_job_failed_total{module,outcome}` | Counter | fehlgeschlagene Jobs |
 | `rendering_subjob_failed_total{module,quality}` | Counter | fehlgeschlagene Sub-Jobs |
+| `rendering_redis_commands_pending` | Gauge | an Lettuce übergebene, noch nicht abgeschlossene Redis-Kommandos; wächst im Redis-Ausfall unbegrenzt (Lettuce puffert statt abzulehnen) |
+| `rendering_redis_connections_active` | Gauge | aktuell verbundene Lettuce-Connections; fällt im Ausfall auf 0 |
+| `rendering_redis_disconnects_total` | Counter | Verbindungsabbrüche zu Redis (auch pro fehlgeschlagenem Reconnect) |
+| `rendering_redis_errors_total` | Counter | von Lettuce gemeldete Verbindungsfehler |
 
 Dazu die nativen RabbitMQ-Metriken pro Queue über den Detail-Endpoint
 (`rabbitmq_detailed_queue_messages_ready/_unacked`, `:15692/metrics/detailed?family=queue_coarse_metrics`).

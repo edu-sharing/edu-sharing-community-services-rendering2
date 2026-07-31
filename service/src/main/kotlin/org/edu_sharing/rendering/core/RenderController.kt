@@ -6,6 +6,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.core.dto.RenderDataRequest
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
+import org.edu_sharing.rendering.core.exception.EntryNotFoundException
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
@@ -78,6 +80,20 @@ class RenderController (
         return ResponseEntity
             .ok()
             .body(renderModule.handle(node))
+    }
+
+    // On-demand fetch for modules that deferred their (expiring) links (see RenderDataResponse.deferred).
+    // Uses the node cached in the session at initial render time, so no signature is re-verified —
+    // only the node-permission session gate (enforced in RenderDataService.fetchOnDemand).
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/ondemand", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getRenderDataOnDemand(
+        @RequestParam nodeId: String
+    ): ResponseEntity<RenderDataResponse> {
+        log.debug("On-demand render data requested: nodeId=$nodeId")
+        val node = nodeSessionContextRepository.getNode(nodeId)
+            ?: throw EntryNotFoundException("No cached node for id $nodeId; a full re-render is required")
+        return ResponseEntity.ok(service.fetchOnDemand(nodeId, node))
     }
 
     private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String, signatureAlgorithm: String) {
