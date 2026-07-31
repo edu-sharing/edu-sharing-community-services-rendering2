@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.eduHtml
 
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
+import org.bson.types.ObjectId
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.amqp.core.AmqpTemplate
+import org.springframework.dao.DuplicateKeyException
 
 
 @ExtendWith(MockKExtension::class)
@@ -95,6 +97,29 @@ class EduHtmlServiceTest {
             subJobRepoMock.save(any())
             amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
         }
+    }
+
+    @Test
+    fun testCreateJobReusesExistingJobWhenConcurrentInsertLosesTheRace() {
+        // Arrange: no active job on the first lookup, but a concurrent request inserts one, so our
+        // save hits the activeJobPerNodeHash unique index (DuplicateKeyException) and we reuse it.
+        val existingJob = jobDataProvider.getJobWithoutSubJobs()
+        val newJob = jobDataProvider.getJobWithoutSubJobs(id = ObjectId(JobDataProvider.DUMMY_JOB_ID_2))
+        every { node.ref.id } returns "dummyNodeId"
+        every { jobRepoMock.findAllByEsObjectId("dummyNodeId") } returnsMany
+            listOf(emptyList(), listOf(existingJob))
+        every { mapperMock.nodeToRenderingJob(node, "EDUHTML", true) } returns newJob
+        every { jobRepoMock.save(newJob) } throws DuplicateKeyException("duplicate active job")
+
+        // Act
+        val result = underTest.createJob(node, "EDUHTML")
+
+        // Assert: the existing job's id is returned, and no sub-job / message is created for the loser.
+        assert(result == JobDataProvider.DUMMY_JOB_ID)
+        verify(exactly = 2) { jobRepoMock.findAllByEsObjectId("dummyNodeId") }
+        verify(exactly = 1) { jobRepoMock.save(newJob) }
+        verify(exactly = 0) { subJobRepoMock.save(any()) }
+        verify(exactly = 0) { amqpTemplateMock.convertAndSend(any<String>(), any<String>(), any<RenderingJobMessage>()) }
     }
 
     @Test

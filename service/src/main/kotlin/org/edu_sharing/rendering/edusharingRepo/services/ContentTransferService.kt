@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.bodyToFlux
 import org.springframework.web.util.UriComponentsBuilder
@@ -65,6 +66,9 @@ class ContentTransferService(
             .bodyToFlux<org.springframework.core.io.buffer.DataBuffer>()
             .handle { buffer, sink ->
                 if (buffer.readableByteCount() == 0) {
+                    // `handle` transfers ownership of the buffer: one we neither emit nor release
+                    // leaks its pooled Netty chunk (see S3StorageService.putObjectStreaming).
+                    DataBufferUtils.release(buffer)
                     sink.error(Exception("Empty response received for ${cacheObject.repoId}/${cacheObject.nodeId}"))
                 } else {
                     sink.next(buffer)

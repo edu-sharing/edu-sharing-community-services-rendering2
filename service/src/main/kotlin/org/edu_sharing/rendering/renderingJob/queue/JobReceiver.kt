@@ -44,17 +44,35 @@ class JobReceiver(
     fun receiveMessage(message: RenderingJobMessage) {
         log.debug("Received job message: id=${message.id}, missingQualities=${message.missingQualities}")
         var jobEntry = jobRepository.findByIdOrNull(ObjectId(message.id)) ?: return
+        // RabbitMQ is at-least-once (see AsyncAckDispatcher): a lost ack redelivers this message.
+        // Guard against re-processing so a redelivery can't create a second set of sub-jobs.
+        if (jobEntry.status >= RenderingJobStatus.FINISHED) {
+            log.debug("Job ${jobEntry.id} already terminal (${jobEntry.status}); dropping redelivered message")
+            return
+        }
+        if (jobEntry.subJobs.isNotEmpty()) {
+            log.debug("Job ${jobEntry.id} already has ${jobEntry.subJobs.size} sub-job(s); skipping duplicate creation (redelivery)")
+            return
+        }
         try {
             log.debug("Transitioning job ${jobEntry.id} from ${jobEntry.status} to ${RenderingJobStatus.PROCESSING}")
             jobEntry.status = RenderingJobStatus.PROCESSING
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+            // `use` on the content stream even though the storage service closes it too: closing is
+            // idempotent, and an exception thrown between opening the stream and entering the upload
+            // would otherwise orphan it — an orphaned FluxInputStream keeps its pooled Netty buffers
+            // (and a boundedElastic worker) for the life of the JVM.
             if (jobEntry.conversionType) {
                 log.debug("Job ${jobEntry.id} is conversion type, storing temp file for module ${jobEntry.module}")
-                storageImplementation.putTempFile(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+                contentTransferService.getAsInputStream(cacheObject).use {
+                    storageImplementation.putTempFile(cacheObject, it)
+                }
             } else {
                 log.debug("Job ${jobEntry.id} is non-conversion type, storing final object and marking FINISHED")
-                storageImplementation.putObject(cacheObject, contentTransferService.getAsInputStream(cacheObject))
+                contentTransferService.getAsInputStream(cacheObject).use {
+                    storageImplementation.putObject(cacheObject, it)
+                }
                 jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)
                 return

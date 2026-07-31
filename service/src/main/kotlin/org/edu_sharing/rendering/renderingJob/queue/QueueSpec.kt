@@ -14,7 +14,8 @@ import jakarta.annotation.PostConstruct
  *   remote HTTP pool AND the broker prefetch, and up to K messages run in parallel on virtual threads via
  *   [AsyncAckDispatcher]. Scale via pods, not K.
  * - [SINGLE_ACTIVE] — the queue is declared with `x-single-active-consumer` so exactly one consumer is
- *   active cluster-wide (moodle/h5p, whose downstream imports one file at a time). Concurrency is forced to 1.
+ *   active cluster-wide (the h5p *import* queue, since lumi imports one file at a time; the h5p lookup queue
+ *   feeding it is STANDARD). Concurrency is forced to 1.
  */
 enum class QueueMode { STANDARD, REMOTE, SINGLE_ACTIVE }
 
@@ -95,7 +96,8 @@ abstract class RemoteQueueProperties : QueueSpec() {
 /**
  * Base for a queue declared with `x-single-active-consumer` (exactly one consumer cluster-wide). [concurrency]
  * is ignored — [effectiveConcurrency] is forced to 1 — so only queues whose receiver actually declares the
- * `x-single-active-consumer` argument may use this base.
+ * `x-single-active-consumer` argument may use this base. Put only the serialized step behind such a queue: the
+ * h5p flow keeps its presence lookup on a separate STANDARD queue so it is not serialized along with the import.
  */
 abstract class SingleActiveQueueProperties : QueueSpec() {
     override val mode = QueueMode.SINGLE_ACTIVE

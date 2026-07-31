@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.renderingJob.retrieveOrCreateDeduplicatedJob
 import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
@@ -40,19 +41,22 @@ class EduHtmlService(
 
     fun createJob(node: Node, module: String): String {
         log.debug("Creating EduHTML job for nodeId ${node.ref.id}, module $module")
-        val existingJobs = jobRepository.findAllByEsObjectId(node.storageNodeId())
-            .filter { it.status <= RenderingJobStatus.PROCESSING }
+        return retrieveOrCreateDeduplicatedJob(
+            findActiveJobId = {
+                findActiveJobId(node)?.also { log.debug("Reusing existing EduHTML job {} for nodeId {}", it, node.ref.id) }
+            },
+            create = { createNewJob(node, module) }
+        )
+    }
 
-        if (existingJobs.isNotEmpty()) {
-            log.debug("Reusing existing EduHTML job {} for nodeId {}", existingJobs[0].id, node.ref.id)
-            return existingJobs[0].id.toString()
-        }
-
+    private fun createNewJob(node: Node, module: String): String {
         var job = mapper.nodeToRenderingJob(
             node = node,
             module = module,
             isConversionType = true
         )
+        // Participate in the activeJobPerNodeHash unique index (one active job per node+hash).
+        job.deduplicated = true
         job = jobRepository.save(job)
 
         val subJob = SubJob(
@@ -68,6 +72,11 @@ class EduHtmlService(
 
         return job.id.toString()
     }
+
+    private fun findActiveJobId(node: Node): String? =
+        jobRepository.findAllByEsObjectId(node.storageNodeId())
+            .firstOrNull { it.status <= RenderingJobStatus.PROCESSING }
+            ?.id?.toString()
 
     fun getObjectLink(cacheObject: CacheObject, candidates: List<String>): ObjectLink {
         log.debug("Looking up cached EduHTML entry point for nodeId {}, candidates {}", cacheObject.nodeId, candidates)

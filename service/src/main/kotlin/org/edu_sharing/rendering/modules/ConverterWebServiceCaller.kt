@@ -23,12 +23,14 @@ class ConverterWebServiceCaller(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun callConverterService(arguments: ConverterWebServiceArguments) {
-        val inputStream = arguments.inputStream ?: contentTransferService.getAsInputStream(arguments.cacheObject)
         val originalFile = File.createTempFile(
             "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}",
             arguments.originalFileExtension
         )
         try {
+            // Opened inside the try, after the temp file exists: a failure between opening the content
+            // stream and reaching `use` would orphan its pooled Netty buffers for the life of the JVM.
+            val inputStream = arguments.inputStream ?: contentTransferService.getAsInputStream(arguments.cacheObject)
             inputStream.use {
                 originalFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
             }

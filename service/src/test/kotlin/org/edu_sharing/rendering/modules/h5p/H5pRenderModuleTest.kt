@@ -3,10 +3,7 @@ package org.edu_sharing.rendering.modules.h5p
 import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
-import org.edu_sharing.rendering.config.AppInfo
-import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
-import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.junit.jupiter.api.BeforeEach
@@ -16,20 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(MockKExtension::class)
 class H5pRenderModuleTest {
     private val h5pJobServiceMock = mockk<H5pJobService>()
-    private val lumiContentManagementServiceMock = mockk<LumiContentManagementService>()
     private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
-    private val appInfo = AppInfo()
 
     private lateinit var underTest: H5pRenderModule
 
     @BeforeEach
     fun setUp() {
-        appInfo.public = AppInfo.ConnectionInfo("http", "test.com", 8000, "", "http://test.com:8000" )
         underTest = H5pRenderModule(
             33L,
             h5pJobServiceMock,
-            lumiContentManagementServiceMock,
-            appInfo,
             repositoryRegistrationStorageService,
             securityEnabled = true
         )
@@ -37,41 +29,14 @@ class H5pRenderModuleTest {
     }
 
     @Test
-    fun testHandleReturnsCachedContentIdIfFoundInRedisCache() {
+    fun testHandleAlwaysCreatesAJobAndNeverCallsLumi() {
+        // handle() runs on the synchronous renderdata path: Mongo + one publish, no lumi call. Whether the
+        // package is already imported is decided asynchronously by H5pLookupReceiver.
         // Arrange
         val node = mockk<Node>()
         every { node.ref.id } returns "node123"
         every { node.aspects } returns null
         every { node.content!!.hash } returns "hash123"
-        every { lumiContentManagementServiceMock.getContentId("node123", "hash123") } returns "lumiid123"
-
-        excludeRecords {
-            node.ref.id
-            node.aspects
-            node.content!!.hash
-        }
-
-        // Act
-        val result = underTest.handle(node)
-
-        // Assert
-        assert(result.module == "H5P")
-        assert(result.objectLinks?.get(0)?.link == "http://test.com:8000$H5P_BASE_PATH/lumiid123")
-        assert(result.jobId == null)
-
-        verify(exactly = 1) {
-            lumiContentManagementServiceMock.getContentId("node123", "hash123")
-        }
-    }
-
-    @Test
-    fun testHandleCreatesNewJobIfNotCachedAndReturnsJobId() {
-        // Arrange
-        val node = mockk<Node>()
-        every { node.ref.id } returns "node123"
-        every { node.aspects } returns null
-        every { node.content!!.hash } returns "hash123"
-        every { lumiContentManagementServiceMock.getContentId("node123", "hash123") } returns null
         every { h5pJobServiceMock.createJob(node, "H5P") } returns "job123"
 
         excludeRecords {
@@ -89,7 +54,6 @@ class H5pRenderModuleTest {
         assert(result.objectLinks?.size == 0)
 
         verifySequence {
-            lumiContentManagementServiceMock.getContentId("node123", "hash123")
             h5pJobServiceMock.createJob(node, "H5P")
         }
     }

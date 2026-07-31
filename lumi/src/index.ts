@@ -158,7 +158,9 @@ const start = async () => {
     );
 
     const eduCollection = mongoDb.collection(process.env.EDUSHARING_MONGO_COLLECTION)
-    await eduCollection.createIndexes([{key: { 'nodeId': 1}}])
+    // Both directions are hot: the rendering service resolves nodeId -> contentId to check whether a
+    // package is already rendered, and contentId -> nodeId on every proxied request.
+    await eduCollection.createIndexes([{key: { 'nodeId': 1}}, {key: { 'contentId': 1}}])
 
     app.use(
         h5pEditor.config.baseUrl,
