@@ -66,6 +66,7 @@ object FluxInputStream {
                     // servlet thread (cancel) — never a Netty event loop. PipedOutputStream.close() is
                     // also just a synchronized notify, not real blocking I/O.
                     //noinspection BlockingMethodInNonBlockingContext
+                    @Suppress("BlockingMethodInNonBlockingContext")
                     outStream.close()
                 } catch (e: Exception) {
                     log.error("Failed to close PipedOutputStream", e)
