@@ -150,7 +150,7 @@ config:
     checksumCalculationWhenRequired: false
     ## @param config.s3.maxSockets Set max parallel S3 connections
     maxSockets: 256
-    ## @param config.s3.connectionTimeoutMs Set S3 connect timeout in ms (0 = off, also bounds pool wait)
+    ## @param config.s3.connectionTimeoutMs Set S3 connect timeout in ms (0 = off)
     connectionTimeoutMs: 0
     ## @param config.s3.requestTimeoutMs Set S3 socket idle timeout in ms
     requestTimeoutMs: 0
