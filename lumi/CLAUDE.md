@@ -14,7 +14,9 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 |---|---|
 | `src/index.ts` | Entry point; Express init, graceful shutdown (SIGINT/SIGTERM). |
 | `src/router.ts` | edu-sharing-specific routes (below). |
-| `src/createH5PEditor.ts` | Builds the H5P editor with S3 + Mongo storage. |
+| `src/createH5PEditor.ts` | Builds the H5P editor with S3 + Mongo storage (incl. the S3 connection pool). |
+| `src/s3Streams.ts` | Binds S3 body streams to the request; without it aborted downloads leak pool sockets. |
+| `src/traceContext.ts` | Adopts the incoming b3/W3C trace id and prefixes every `debug` log line with it. |
 | `src/eduSharingPlayer.ts` | Custom H5P player/renderer. |
 | `src/EduSharingModel.ts` | Mongo node↔content mapping model. |
 | `src/User.ts` | Dummy user for H5P context. |
@@ -43,6 +45,11 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 - **S3 / MinIO**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`,
   `AWS_S3_REGION`, `AWS_S3_TRUST_ALL_CERTIFICATES`; buckets `CONTENT_AWS_S3_BUCKET`,
   `TEMPORARY_AWS_S3_BUCKET`, `LIBRARY_AWS_S3_BUCKET`.
+- **S3 connection pool** (`createH5PEditor.ts`): `AWS_S3_MAX_SOCKETS` (default 256 — the AWS SDK
+  default of 50 is a hard ceiling on parallel file serving, since every library/content file of every
+  H5P page is its own S3 `GetObject`), `AWS_S3_CONNECTION_TIMEOUT_MS` (default 5000),
+  `AWS_S3_REQUEST_TIMEOUT_MS` (default 0 = off; it is a *socket inactivity* timeout, and backpressure
+  from a slow client stalls the S3 socket, so enabling it can truncate large downloads).
 - **Server**: `PORT` (default 3000), `BASE_URL=/public/h5p`, `CACHE=in-memory`.
 
 ## Build & packaging (Maven)

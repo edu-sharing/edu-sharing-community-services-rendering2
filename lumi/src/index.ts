@@ -15,6 +15,7 @@ import dotenv from 'dotenv';
 import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} from "./h5p.settings";
 import eduSharingPlayer from "./eduSharingPlayer";
+import {fileStreamScopeMiddleware} from "./s3Streams";
 
 const log = new Logger("Index")
 
@@ -115,6 +116,10 @@ const start = async () => {
 
     // Must run first so the adopted trace id is in scope for every downstream middleware/handler log.
     app.use(traceContextMiddleware);
+
+    // Opens the scope that ties the S3 streams of a GET request to its response, so an aborted download
+    // cannot pin a socket of the S3 connection pool. Must wrap every route that serves files.
+    app.use(fileStreamScopeMiddleware);
 
     const promBundle = require("express-prom-bundle");
     const metricsMiddleware = promBundle({
