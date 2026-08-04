@@ -57,8 +57,14 @@ export default async function createH5PEditor(
     // a hard ceiling on that fan-out: once it is reached, requests queue up
     // ("socket usage at capacity=50 and N additional requests are enqueued") and the player stalls.
     const maxSockets = Number.parseInt(process.env.AWS_S3_MAX_SOCKETS || '256', 10);
-    // Connection setup only - safe to bound tightly.
-    const connectionTimeout = Number.parseInt(process.env.AWS_S3_CONNECTION_TIMEOUT_MS || '5000', 10);
+    // 0 = disabled, and keep it that way unless you have measured otherwise. Despite the name this is not
+    // a TCP-connect timeout: @smithy/node-http-handler starts the timer when the request is *created* and
+    // only clears it once a socket has been assigned and connected, so it also bounds the time a request
+    // waits for a free socket in the pool. Importing one H5P package fans out over every file of every
+    // library it contains (unbounded `Promise.all`, easily >1500 queued uploads), and any value short of
+    // that queue's drain time kills the queued uploads - on which LibraryManager deletes the libraries it
+    // was copying and the whole import fails.
+    const connectionTimeout = Number.parseInt(process.env.AWS_S3_CONNECTION_TIMEOUT_MS || '0', 10);
     // Socket *inactivity* timeout, 0 = disabled (the SDK default). Leave it off unless you know your
     // clients are fast: piping to a slow client applies backpressure, which stalls reads from the S3
     // socket and would trip this timeout mid-download. Leaked sockets are handled by s3Streams instead.

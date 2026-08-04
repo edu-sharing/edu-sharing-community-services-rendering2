@@ -47,9 +47,14 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
   `TEMPORARY_AWS_S3_BUCKET`, `LIBRARY_AWS_S3_BUCKET`.
 - **S3 connection pool** (`createH5PEditor.ts`): `AWS_S3_MAX_SOCKETS` (default 256 — the AWS SDK
   default of 50 is a hard ceiling on parallel file serving, since every library/content file of every
-  H5P page is its own S3 `GetObject`), `AWS_S3_CONNECTION_TIMEOUT_MS` (default 5000),
-  `AWS_S3_REQUEST_TIMEOUT_MS` (default 0 = off; it is a *socket inactivity* timeout, and backpressure
-  from a slow client stalls the S3 socket, so enabling it can truncate large downloads).
+  H5P page is its own S3 `GetObject`). **Both S3 timeouts default to 0 = off, and should stay off**:
+  - `AWS_S3_CONNECTION_TIMEOUT_MS` is not a TCP-connect timeout — `@smithy/node-http-handler` starts
+    the timer at request creation and clears it only once a socket is connected, so it also bounds the
+    wait for a free pool socket. A package import queues >1500 uploads (unbounded `Promise.all` over
+    every file of every library), so a short value kills queued uploads, and `LibraryManager` reacts by
+    deleting the libraries it was copying — the whole import then fails (`s3-upload-error`).
+  - `AWS_S3_REQUEST_TIMEOUT_MS` is a *socket inactivity* timeout; backpressure from a slow client
+    stalls reads on the S3 socket, so enabling it can truncate large downloads.
 - **Server**: `PORT` (default 3000), `BASE_URL=/public/h5p`, `CACHE=in-memory`.
 
 ## Build & packaging (Maven)
