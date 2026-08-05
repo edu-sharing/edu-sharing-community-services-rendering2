@@ -80,6 +80,7 @@ dotted Spring keys set as env entries.
 | `server.servlet.context-path` | (direct) | `/rendering` |
 | `app.session.<module>.nodePermissionExpirationTime` | (direct) | empty = not cached |
 | `RENDERING2_LUMI_DATABASE_{NAME,USER}` | lumi Mongo db/user | `lumi` |
+| `RENDERING2_LUMI_S3_MAX_SOCKETS` (Helm `config.s3.maxSockets`) | lumi `AWS_S3_MAX_SOCKETS` — parallel S3 connections; every H5P library/content file is one S3 request, so the AWS SDK default of 50 throttles the player | `256` |
 | `BASE_HREF` / `ADMIN_API_BASE` (admin-frontend container) | static server, **not** Spring | `/rendering-admin/` / `/rendering` |
 
 (See `1_rendering2-common.yml` for the authoritative, complete list.)

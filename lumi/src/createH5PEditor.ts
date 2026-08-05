@@ -3,8 +3,9 @@ import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {caching} from "cache-manager";
 import {Db} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import {LaissezFairePermissionSystem, Logger} from "@lumieducation/h5p-server";
+import * as http from "http";
 import * as https from "https";
-import { NodeHttpHandler } from "@smithy/node-http-handler";
+import {guardFileStreams} from "./s3Streams";
 
 const log = new Logger("CreateH5PEditor")
 
@@ -51,6 +52,26 @@ export default async function createH5PEditor(
     const checksumCalculationWhenRequired =
         process.env.AWS_S3_CHECKSUM_CALCULATION_WHEN_REQUIRED === 'true';
 
+    // Every file of every H5P page (all library JS/CSS plus the content files) is a separate S3 request,
+    // and each one occupies a pool socket for as long as it streams. The AWS SDK default of 50 sockets is
+    // a hard ceiling on that fan-out: once it is reached, requests queue up
+    // ("socket usage at capacity=50 and N additional requests are enqueued") and the player stalls.
+    const maxSockets = Number.parseInt(process.env.AWS_S3_MAX_SOCKETS || '256', 10);
+    // 0 = disabled, and keep it that way unless you have measured otherwise. Despite the name this is not
+    // a TCP-connect timeout: @smithy/node-http-handler starts the timer when the request is *created* and
+    // only clears it once a socket has been assigned and connected, so it also bounds the time a request
+    // waits for a free socket in the pool. Importing one H5P package fans out over every file of every
+    // library it contains (unbounded `Promise.all`, easily >1500 queued uploads), and any value short of
+    // that queue's drain time kills the queued uploads - on which LibraryManager deletes the libraries it
+    // was copying and the whole import fails.
+    const connectionTimeout = Number.parseInt(process.env.AWS_S3_CONNECTION_TIMEOUT_MS || '0', 10);
+    // Socket *inactivity* timeout, 0 = disabled (the SDK default). Leave it off unless you know your
+    // clients are fast: piping to a slow client applies backpressure, which stalls reads from the S3
+    // socket and would trip this timeout mid-download. Leaked sockets are handled by s3Streams instead.
+    const requestTimeout = Number.parseInt(process.env.AWS_S3_REQUEST_TIMEOUT_MS || '0', 10);
+
+    const agentOptions = {keepAlive: true, maxSockets: maxSockets};
+
     const s3 = dbImplementations.initS3({
         forcePathStyle: true,
         region: region,
@@ -60,15 +81,19 @@ export default async function createH5PEditor(
                 responseChecksumValidation: "WHEN_REQUIRED"
             }
             : {}),
-        ...(trustAllCertificates
-            ? {
-                requestHandler: new NodeHttpHandler({
-                    httpsAgent: new https.Agent({ rejectUnauthorized: false })
-                })
-            }
-            : {})
+        // Passed as plain NodeHttpHandler options (not an instance) so the client builds the handler with
+        // the @smithy/node-http-handler version it depends on itself.
+        requestHandler: {
+            connectionTimeout: connectionTimeout,
+            requestTimeout: requestTimeout,
+            httpAgent: new http.Agent(agentOptions),
+            httpsAgent: new https.Agent({
+                ...agentOptions,
+                ...(trustAllCertificates ? {rejectUnauthorized: false} : {})
+            })
+        }
     })
-    log.info("Initiated S3 client.")
+    log.info(`Initiated S3 client (maxSockets=${maxSockets}, connectionTimeout=${connectionTimeout}ms, requestTimeout=${requestTimeout}ms).`)
 
     const ensureBucketExists = async (bucketName: string): Promise<void> => {
         try {
@@ -104,11 +129,14 @@ export default async function createH5PEditor(
         s3Bucket: process.env.LIBRARY_AWS_S3_BUCKET,
         maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
     }
-    const mongoS3LibraryStorage = new dbImplementations.MongoS3LibraryStorage(
+    // guardFileStreams: free the S3 socket when a client aborts a download - see s3Streams.ts.
+    // The index names the position of `rangeStart` in the storage's getFileStream signature
+    // (library files are never range-requested, hence none).
+    const mongoS3LibraryStorage = guardFileStreams(new dbImplementations.MongoS3LibraryStorage(
         s3,
         mongoDb.collection(process.env.LIBRARY_MONGO_COLLECTION),
         libraryStorageOptions
-    );
+    ));
     await mongoS3LibraryStorage.createIndexes();
     log.info("Initiated mongoDB library storage.")
 
@@ -128,21 +156,23 @@ export default async function createH5PEditor(
         s3Bucket: process.env.CONTENT_AWS_S3_BUCKET,
         maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
     }
-    const contentStorage = new dbImplementations.MongoS3ContentStorage(
+    // getFileStream(contentId, filename, user, rangeStart, rangeEnd)
+    const contentStorage = guardFileStreams(new dbImplementations.MongoS3ContentStorage(
         s3,
         mongoDb.collection(process.env.CONTENT_MONGO_COLLECTION),
         contentStorageOptions
-    )
+    ), 3)
 
     log.info("Initiated S3 and mongo content storage.")
     const tempFileStorageOptions = {
         s3Bucket: process.env.TEMPORARY_AWS_S3_BUCKET,
         maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
     }
-    const tempFileStorage = new dbImplementations.S3TemporaryFileStorage(
+    // getFileStream(filename, user, rangeStart, rangeEnd)
+    const tempFileStorage = guardFileStreams(new dbImplementations.S3TemporaryFileStorage(
         s3,
         tempFileStorageOptions
-    )
+    ), 2)
     log.info("Initiated S3 temp file storage.")
 
     const editorOptions = {
