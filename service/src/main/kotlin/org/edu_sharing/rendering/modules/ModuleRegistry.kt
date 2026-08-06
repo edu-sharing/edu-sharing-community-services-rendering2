@@ -36,6 +36,10 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             "BINDER",
             "OMEGA"
         )
+        private val SIMPLE_CONNECTOR_VIRTUAL_PROPERTIES = setOf(
+            "ltiurl",
+            "connectorrenderurl"
+        )
     }
 
     init {
@@ -118,6 +122,16 @@ class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapp
             log.debug(
                 "Node is from remote frontend repository (type='{}'), rendering done in frontend only",
                 node.remote?.repository?.repositoryType
+            )
+            throw ObjectTypeNotSupportedException()
+        }
+        val simpleConnectorProperty = SIMPLE_CONNECTOR_VIRTUAL_PROPERTIES.firstOrNull {
+            !node.properties?.get("virtual:$it")?.firstOrNull().isNullOrBlank()
+        }
+        if (simpleConnectorProperty != null) {
+            log.debug(
+                "Node has simple connector property 'virtual:{}', rendering done in frontend only",
+                simpleConnectorProperty
             )
             throw ObjectTypeNotSupportedException()
         }

@@ -54,12 +54,16 @@ class ModuleRegistryTest {
         location: String? = null,
         hash: String? = null,
         wwwUrl: String? = null,
+        ltiUrl: String? = null,
+        connectorRenderUrl: String? = null,
     ): Node {
         val props = mutableMapOf<String, MutableList<String>>()
         replicationSource?.let { props["ccm:replicationsource"] = mutableListOf(it) }
         resourceType?.let { props["ccm:ccressourcetype"] = mutableListOf(it) }
         location?.let { props["cclom:location"] = mutableListOf(it) }
         wwwUrl?.let { props["ccm:wwwurl"] = mutableListOf(it) }
+        ltiUrl?.let { props["virtual:ltiurl"] = mutableListOf(it) }
+        connectorRenderUrl?.let { props["virtual:connectorrenderurl"] = mutableListOf(it) }
         val n = Node().mimetype(mimetype).properties(props)
         mediatype?.let { n.mediatype(it) }
         hash?.let { n.content(Content().hash(it)) }
@@ -129,6 +133,36 @@ class ModuleRegistryTest {
             node(resourceType = "git-binder", wwwUrl = "https://github.com/org/repo")
         )
         assertSame(binder, resolved)
+    }
+
+    @Test
+    fun ltiUrlNodeIsRejected() {
+        // resolves to IMAGE via mimetype, but the simple connector property marks it as frontend-rendered
+        assertThrows<ObjectTypeNotSupportedException> {
+            underTest.getRenderModule<RenderModule>(node(ltiUrl = "https://example.org/lti/launch"))
+        }
+    }
+
+    @Test
+    fun connectorRenderUrlNodeIsRejected() {
+        assertThrows<ObjectTypeNotSupportedException> {
+            underTest.getRenderModule<RenderModule>(node(connectorRenderUrl = "https://example.org/connector/render"))
+        }
+    }
+
+    @Test
+    fun simpleConnectorPropertyIsRejectedEvenForOtherwiseExemptModules() {
+        // unlike ccm:wwwurl there is no module exemption: SODIX is rejected as well
+        assertThrows<ObjectTypeNotSupportedException> {
+            underTest.getRenderModule<RenderModule>(
+                node(replicationSource = "SODIX", ltiUrl = "https://example.org/lti/launch")
+            )
+        }
+    }
+
+    @Test
+    fun blankSimpleConnectorPropertyIsIgnored() {
+        assertSame(image, underTest.getRenderModule<RenderModule>(node(ltiUrl = "")))
     }
 
     @Test
