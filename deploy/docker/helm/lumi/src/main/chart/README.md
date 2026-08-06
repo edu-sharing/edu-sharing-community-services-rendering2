@@ -53,6 +53,9 @@
 | `config.s3.password`                            | Set S3 password                              | `""`                                        |
 | `config.s3.trustAllCertificates`                | Set S3 trust all certificates                | `false`                                     |
 | `config.s3.checksumCalculationWhenRequired`     | Set S3 checksum calculation when required    | `false`                                     |
+| `config.s3.maxSockets`                          | Set max parallel S3 connections              | `256`                                       |
+| `config.s3.connectionTimeoutMs`                 | Set S3 connect timeout in ms (0 = off)       | `0`                                         |
+| `config.s3.requestTimeoutMs`                    | Set S3 socket idle timeout in ms             | `0`                                         |
 | `config.s3.buckets.content`                     | Set S3 bucket for content                    | `lumi-contentbucket`                        |
 | `config.s3.buckets.library`                     | Set S3 bucket for library                    | `lumi-libbucket`                            |
 | `config.s3.buckets.temporary`                   | Set S3 bucket for temporary                  | `lumi-tempbucket`                           |
