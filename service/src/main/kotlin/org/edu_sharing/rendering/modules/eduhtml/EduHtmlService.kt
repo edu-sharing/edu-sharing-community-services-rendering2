@@ -37,6 +37,15 @@ class EduHtmlService(
     companion object {
         const val MAIN_ENTITY_PROPERTY = "ccm:ccressourcemainentity"
         const val MAIN_ENTITY_KEY = "mainEntity"
+
+        /**
+         * Zero-byte object written as the **last** step of a successful extraction. A rendering is
+         * only considered cached once this marker exists, which guards against two states in which
+         * the entry point alone is present but the archive is not usable: an extraction that failed
+         * part-way through (its already-uploaded objects used to be served forever, because the
+         * entry point is typically near the top of the archive), and one that is still running.
+         */
+        const val COMPLETION_MARKER_PATH = ".rendering-complete"
     }
 
     fun createJob(node: Node, module: String): String {
@@ -80,6 +89,13 @@ class EduHtmlService(
 
     fun getObjectLink(cacheObject: CacheObject, candidates: List<String>): ObjectLink {
         log.debug("Looking up cached EduHTML entry point for nodeId {}, candidates {}", cacheObject.nodeId, candidates)
+        if (!storageImplementation.objectExists(cacheObject, COMPLETION_MARKER_PATH)) {
+            log.debug(
+                "EduHTML rendering for nodeId {} has no completion marker, treating it as not cached",
+                cacheObject.nodeId
+            )
+            throw ResourceNotFoundException("Resource ${cacheObject.nodeId} not cached")
+        }
         val entryPath = candidates.firstOrNull { storageImplementation.objectExists(cacheObject, it) }
             ?: throw ResourceNotFoundException("Resource ${cacheObject.nodeId} not cached")
 

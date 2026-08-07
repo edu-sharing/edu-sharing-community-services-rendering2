@@ -720,7 +720,7 @@ config:
       ## @param config.session.nodePermissionExpirationTime.document Set session nodePermissionExpirationTime for document
       document: ""
       ## @param config.session.nodePermissionExpirationTime.eduhtml Set session nodePermissionExpirationTime for eduhtml
-      eduhtml: ""
+      eduhtml: 7200
       ## @param config.session.nodePermissionExpirationTime.h5p Set session nodePermissionExpirationTime for h5p
       h5p: ""
       ## @param config.session.nodePermissionExpirationTime.html Set session nodePermissionExpirationTime for html

@@ -7,6 +7,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -128,6 +129,7 @@ class EduHtmlServiceTest {
         val objectLink = ObjectLink(link = "mylink")
         val cacheObject = mockk<CacheObject>(relaxed = true)
 
+        every { storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH) } returns true
         every {
             storageMock.objectExists(cacheObject, "index.html")
         } returns true
@@ -141,6 +143,7 @@ class EduHtmlServiceTest {
         assert(result == objectLink)
 
         verifySequence {
+            storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH)
             storageMock.objectExists(cacheObject, "index.html")
             storageMock.getObjectLink(cacheObject, "index.html")
         }
@@ -152,6 +155,7 @@ class EduHtmlServiceTest {
         val objectLink = ObjectLink(link = "storylink")
         val cacheObject = mockk<CacheObject>(relaxed = true)
 
+        every { storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH) } returns true
         every { storageMock.objectExists(cacheObject, "index.html") } returns false
         every { storageMock.objectExists(cacheObject, "index.htm") } returns false
         every { storageMock.objectExists(cacheObject, "story.html") } returns true
@@ -164,6 +168,7 @@ class EduHtmlServiceTest {
         assert(result == objectLink)
 
         verifySequence {
+            storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH)
             storageMock.objectExists(cacheObject, "index.html")
             storageMock.objectExists(cacheObject, "index.htm")
             storageMock.objectExists(cacheObject, "story.html")
@@ -177,6 +182,7 @@ class EduHtmlServiceTest {
         val objectLink = ObjectLink(link = "customlink")
         val cacheObject = mockk<CacheObject>(relaxed = true)
 
+        every { storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH) } returns true
         every { storageMock.objectExists(cacheObject, "content/start.html") } returns true
         every { storageMock.getObjectLink(cacheObject, "content/start.html") } returns objectLink
 
@@ -186,6 +192,7 @@ class EduHtmlServiceTest {
         // Assert
         assert(result == objectLink)
         verifySequence {
+            storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH)
             storageMock.objectExists(cacheObject, "content/start.html")
             storageMock.getObjectLink(cacheObject, "content/start.html")
         }
@@ -196,16 +203,38 @@ class EduHtmlServiceTest {
         // Arrange
         val cacheObject = mockk<CacheObject>(relaxed = true)
 
-        every { storageMock.objectExists(cacheObject, any()) } returns false
+        every { storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH) } returns true
+        every { storageMock.objectExists(cacheObject, not(EduHtmlService.COMPLETION_MARKER_PATH)) } returns false
 
         // Act and assert
-        assertThrows<Exception> {
+        assertThrows<ResourceNotFoundException> {
             underTest.getObjectLink(cacheObject, listOf("index.html", "index.htm", "story.html"))
         }
         verifySequence {
+            storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH)
             storageMock.objectExists(cacheObject, "index.html")
             storageMock.objectExists(cacheObject, "index.htm")
             storageMock.objectExists(cacheObject, "story.html")
+        }
+    }
+
+    @Test
+    fun testGetObjectLinkTreatsRenderingWithoutCompletionMarkerAsNotCached() {
+        // A half-extracted archive still has its entry point (index.html sits near the top of the
+        // central directory), so without the marker check it would be served forever and the
+        // conversion would never be retried.
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+
+        every { storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH) } returns false
+        every { storageMock.objectExists(cacheObject, "index.html") } returns true
+
+        assertThrows<ResourceNotFoundException> {
+            underTest.getObjectLink(cacheObject, listOf("index.html", "index.htm", "story.html"))
+        }
+
+        // The entry point is never probed, so no link can be handed out for an incomplete rendering.
+        verifySequence {
+            storageMock.objectExists(cacheObject, EduHtmlService.COMPLETION_MARKER_PATH)
         }
     }
 
