@@ -16,6 +16,12 @@ spec:
     metadata:
       labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
         role: {{ $roleName }}
+        {{- /* One marker label per application role carried by this pod, so Services can
+               select pods by application role (e.g. controller) instead of by deployment
+               role name — independent of the chosen topology (aio / master+worker / split). */}}
+        {{- range $appRole := splitList "," $roleCfg.appRoles }}
+        app-role-{{ $appRole }}: "true"
+        {{- end }}
       annotations:
         checksum/configmap-env: {{ include (print $.Template.BasePath "/configmap-env.yaml") $ | sha256sum | trunc 63 }}
         checksum/configmap-file: {{ include (print $.Template.BasePath "/configmap-file.yaml") $ | sha256sum | trunc 63 }}
