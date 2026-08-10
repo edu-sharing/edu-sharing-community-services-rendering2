@@ -119,7 +119,7 @@ services:
       app.session.pdf.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_PDF_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.moodle.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_MOODLE_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.scorm.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SCORM_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      app.session.eduHtml.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_EDUHTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.eduHtml.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_EDUHTML_NODE_PERMISSION_EXPIRATION_TIME:-7200}"
       app.session.document.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_DOCUMENT_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.spreadsheet.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SPREADSHEET_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.html.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_HTML_NODE_PERMISSION_EXPIRATION_TIME:-}"

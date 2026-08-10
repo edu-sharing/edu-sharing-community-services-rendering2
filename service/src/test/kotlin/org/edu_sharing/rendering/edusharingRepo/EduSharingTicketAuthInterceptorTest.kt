@@ -12,8 +12,10 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.A
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.io.IOException
 
 class EduSharingTicketAuthInterceptorTest {
 
@@ -82,6 +84,32 @@ class EduSharingTicketAuthInterceptorTest {
     }
 
     @Test
+    fun `re-authenticates and retries once when served as guest despite 200`() {
+        every { ticketRepository.getTicket(SESSION_ID, REPO_ID) } returns CACHED_TICKET
+        server.enqueue(MockResponse().setResponseCode(200).setHeader(AUTHENTICATED_HEADER, "false"))
+        server.enqueue(MockResponse().setResponseCode(200).setHeader(AUTHENTICATED_HEADER, "true"))
+
+        execute(interceptor(SESSION_ID), trackingRequest())
+
+        assertEquals("EDU-TICKET $CACHED_TICKET", server.takeRequest().getHeader("Authorization"))
+        assertEquals("EDU-TICKET $FRESH_TICKET", server.takeRequest().getHeader("Authorization"))
+        verify { ticketRepository.invalidate(SESSION_ID, REPO_ID) }
+        verify(exactly = 1) { authApi.authenticate(USER_ID, any()) }
+    }
+
+    @Test
+    fun `fails when still served as guest after re-authentication`() {
+        every { ticketRepository.getTicket(SESSION_ID, REPO_ID) } returns CACHED_TICKET
+        server.enqueue(MockResponse().setResponseCode(200).setHeader(AUTHENTICATED_HEADER, "false"))
+        server.enqueue(MockResponse().setResponseCode(200).setHeader(AUTHENTICATED_HEADER, "false"))
+
+        assertThrows(IOException::class.java) { execute(interceptor(SESSION_ID), trackingRequest()) }
+
+        verify { ticketRepository.invalidate(SESSION_ID, REPO_ID) }
+        verify(exactly = 1) { authApi.authenticate(USER_ID, any()) }
+    }
+
+    @Test
     fun `authenticates without caching when there is no session`() {
         server.enqueue(MockResponse().setResponseCode(200))
 
@@ -118,5 +146,6 @@ class EduSharingTicketAuthInterceptorTest {
         private const val SESSION_ID = "session-123"
         private const val CACHED_TICKET = "CACHED-TICKET"
         private const val FRESH_TICKET = "FRESH-TICKET"
+        private const val AUTHENTICATED_HEADER = "X-Edu-Authenticated"
     }
 }
