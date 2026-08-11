@@ -88,9 +88,6 @@ image:
 
 ########################################################################################################################
 
-## @param roleForInternalUse Define role for internal usage
-roleForInternalUse: aio
-
 roles:
 
   aio:
@@ -316,8 +313,8 @@ roles:
         maxPercentage: "30.0"
 
   ## The worker role is the Master+Worker topology counterpart to master: it bundles every
-  ## non-master role in one instance. To run Master+Worker, enable master + worker, disable aio,
-  ## and set roleForInternalUse: worker (the worker carries the controller role that serves /public).
+  ## non-master role in one instance. To run Master+Worker, enable master + worker and disable aio
+  ## (the worker carries the controller role that serves /public, so the internal service selects it).
   worker:
     ## @param roles.worker.enabled Enabled worker role (composite: everything except master)
     enabled: false
@@ -720,7 +717,7 @@ config:
       ## @param config.session.nodePermissionExpirationTime.document Set session nodePermissionExpirationTime for document
       document: ""
       ## @param config.session.nodePermissionExpirationTime.eduhtml Set session nodePermissionExpirationTime for eduhtml
-      eduhtml: ""
+      eduhtml: 7200
       ## @param config.session.nodePermissionExpirationTime.h5p Set session nodePermissionExpirationTime for h5p
       h5p: ""
       ## @param config.session.nodePermissionExpirationTime.html Set session nodePermissionExpirationTime for html

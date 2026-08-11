@@ -5,8 +5,10 @@ metadata:
   labels: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
 spec:
   type: ClusterIP
+  {{- /* Internal entrypoint: match every pod that carries the "controller" application role,
+         regardless of which deployment role (aio / worker / controller) it runs in. */}}
   selector: {{ include "edusharing_common_lib.labels.app" . | nindent 4 }}
-    role: {{ .Values.roleForInternalUse }}
+    app-role-controller: "true"
   ports:
   - name: http-api
     port: {{ .Values.service.port.api }}

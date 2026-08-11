@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.util.UriUtils
 import java.net.URLDecoder
 
 @RestController
@@ -62,7 +63,14 @@ class AssetController(
         @RequestHeader(value = HttpHeaders.RANGE, required = false) range: String = "",
         request: HttpServletRequest
     ): ResponseEntity<Resource> {
-        val (cacheObject, path) = storageService.getCacheObjectFromStaticPath(request.requestURI.substringAfter("$ROOT_REQUEST_PATH$STATIC_ASSET_PATH"))
+        // The request URI is still percent-encoded; storage keys hold the raw archive entry names, so
+        // decode before looking anything up. UriUtils (not URLDecoder) because this is a path segment:
+        // a literal "+" in a file name must stay a "+", not become a space.
+        val staticPath = UriUtils.decode(
+            request.requestURI.substringAfter("$ROOT_REQUEST_PATH$STATIC_ASSET_PATH"),
+            Charsets.UTF_8
+        )
+        val (cacheObject, path) = storageService.getCacheObjectFromStaticPath(staticPath)
         log.debug("Static asset request: nodeId=${cacheObject.nodeId}, repoId=${cacheObject.repoId}, path=$path, rangePresent=${range.isNotBlank()}")
         val asset = assetService.getStaticAsset(range, cacheObject, path)
         val node = nodeSessionRepo.getNode(cacheObject.nodeId) ?: throw IllegalStateException("Node not found in session for asset with nodeId: ${cacheObject.nodeId}")
