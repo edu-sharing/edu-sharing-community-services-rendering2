@@ -10,12 +10,14 @@ import org.springframework.stereotype.Component
 
 @Component
 class Mapper {
+    private val log = org.slf4j.LoggerFactory.getLogger(this.javaClass)
+
     fun nodeToCacheObject(node: Node): CacheObject {
         return CacheObject(
             nodeId = node.storageNodeId(),
             type = node.mediatype ?: "",
             hash = node.content?.hash ?: "nohash",
-            size = if (node.size.isNullOrEmpty()) -1 else node.size!!.toLong(),
+            size = if (node.size.isNullOrEmpty()) -1 else try{ node.size!!.toLong() } catch (e: NumberFormatException) { log.warn("Size of node with nodeId ${node.ref.id} couldn't be parsed: \"${node.size}\"", e); -1 },
             mimeType = node.mimetype ?: "",
             version = node.content?.version ?: "",
             repoId = node.ref.repo
@@ -30,7 +32,7 @@ class Mapper {
             mimeType = node.mimetype ?: "",
             repoId = node.ref.repo,
             nodeVersion = node.content?.version ?: "",
-            size = if (node.size.isNullOrEmpty()) null else node.size?.toLong(),
+            size = if (node.size.isNullOrEmpty()) null else try { node.size?.toLong() } catch (e: NumberFormatException) { log.warn("Size of node with nodeId ${node.ref.id} couldn't be parsed: \"${node.size}\"", e); null },
             module = module,
             conversionType = isConversionType,
             externalUrl = node.properties?.getOrDefault("ccm:wwwurl", mutableListOf(""))[0]
