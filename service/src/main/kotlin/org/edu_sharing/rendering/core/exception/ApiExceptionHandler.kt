@@ -27,6 +27,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     fun handleNotFoundException(exception: EntryNotFoundException): ResponseEntity<ErrorMessage> {
+        log.warn(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.NOT_FOUND.value(),
             message = exception.message,
@@ -40,6 +41,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     fun handleIllegalArgumentException(exception: IllegalArgumentException): ResponseEntity<ErrorMessage> {
+        log.debug(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.BAD_REQUEST.value(),
             message = exception.message,
@@ -53,6 +55,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     fun handleModuleNotRegisteredException(exception: ModuleNotRegisteredException): ResponseEntity<ErrorMessage> {
+        log.warn(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
             message = exception.message,
@@ -66,6 +69,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     fun handleObjectTypeNotSupportedException(exception: ObjectTypeNotSupportedException): ResponseEntity<ErrorMessage> {
+        log.warn(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
             message = exception.message,
@@ -79,6 +83,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     fun handleResourceNotFoundException(exception: ResourceNotFoundException): ResponseEntity<ErrorMessage> {
+        log.warn(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.NOT_FOUND.value(),
             message = exception.message,
@@ -92,6 +97,7 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.FORBIDDEN)
     fun handleAccessDeniedException(exception: AccessDeniedException): ResponseEntity<ErrorMessage> {
+        log.debug(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.FORBIDDEN.value(),
             message = exception.message,
