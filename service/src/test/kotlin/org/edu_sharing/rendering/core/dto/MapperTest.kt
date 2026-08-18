@@ -242,6 +242,30 @@ class MapperTest {
     }
 
     @Test
+    fun testNodeToCacheObjectFallsBackToMinusOneOnUnparsableSize() {
+        // Arrange
+        val node = Node().ref(NodeRef().id(nodeId).repo(repoId)).mediatype(type).mimetype(mimeType).size("not-a-number")
+
+        // Act
+        val result = underTest.nodeToCacheObject(node)
+
+        // Assert
+        assert(result.size == -1L)
+    }
+
+    @Test
+    fun testNodeToRenderingJobFallsBackToNullOnUnparsableSize() {
+        // Arrange
+        val node = Node().ref(NodeRef().id(nodeId).repo(repoId)).mediatype(type).mimetype(mimeType).size("not-a-number")
+
+        // Act
+        val result = underTest.nodeToRenderingJob(node, "module123")
+
+        // Assert
+        assert(result.size == null)
+    }
+
+    @Test
     fun testNodeToRenderingJobUsesOriginalIdForCollectionReferences() {
         // Arrange
         val node = Node()
