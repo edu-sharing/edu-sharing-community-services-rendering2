@@ -25,7 +25,7 @@
 
 
     <!-- release-2 -->
-    <bom.repository.version>11.0.0-RC22</bom.repository.version>
+    <bom.repository.version>11.0.0-RC23</bom.repository.version>
 
   </properties>
 
