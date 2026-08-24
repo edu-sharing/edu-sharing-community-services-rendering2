@@ -16,11 +16,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
 import java.security.Signature
@@ -72,10 +68,11 @@ class RenderController (
             log.debug("Verifying node signature: repoId=${body.repoId}, algorithm=$signatureAlgorithm, nodeDataLength=${decodedNode.size}")
             verifySignedNode(decodedNode, decodedSignature, body.repoId, signatureAlgorithm)
         }
-        nodeSessionContextRepository.saveNode(node)
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
 
         val renderModule = service.getRenderModule(body, node)
+        nodeSessionContextRepository.saveNode(node)
+
         log.debug("Dispatching to render module: ${renderModule::class.simpleName}, nodeId=${node.ref.id}")
         return ResponseEntity
             .ok()
