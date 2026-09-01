@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.renderingJob.queue
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -92,7 +93,7 @@ class JobReceiverTest {
         every { jobRepository.save(any()) } returns job
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
-        justRun { storageService.putTempFile(cacheObject, contentStream) }
+        justRun { storageService.putTempFile(cacheObject, any()) }
         every { moduleRegistry.getRenderModule<RenderModule>("IMAGE") } returns conversionModule
         justRun { conversionModule.createConversionSubJobs(job, message) }
 
@@ -102,53 +103,60 @@ class JobReceiverTest {
     }
 
     /**
-     * The content stream is a `FluxInputStream` bridge over pooled Netty direct buffers in
-     * production. Leaving it open orphans those buffers (and a boundedElastic worker) for the life of
-     * the JVM; with the adaptive allocator each pins a 2 MiB direct chunk, so enough orphans exhaust
-     * `MaxDirectMemorySize` and the next component needing a fresh chunk dies with
-     * `OutOfDirectMemoryError`. These three cases pin the ownership contract down.
+     * `JobReceiver` hands the storage layer a *supplier* of the content stream (see
+     * `S3StorageService.putObjectStreaming`): the supplier is invoked again with a fresh, unread
+     * stream whenever a retry needs to re-read the payload from the start, so `JobReceiver` itself
+     * no longer opens or closes a stream directly. These three cases pin that contract down: the
+     * supplier passed to the storage service, when invoked, returns exactly what
+     * `ContentTransferService.getAsInputStream` produces.
      */
     @Test
-    fun `closes the content stream after storing the conversion input`() {
+    fun `passes a supplier that fetches the content stream for the conversion input`() {
         val job = freshJob(conversionType = true)
         val cacheObject = mockk<CacheObject>()
         val contentStream = TrackingInputStream("content")
         val conversionModule = mockk<ImageRenderModule>()
         val message = RenderingJobMessage(id = jobId, missingQualities = listOf(1, 2))
+        val streamProviderSlot = slot<() -> java.io.InputStream>()
 
         every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
         every { jobRepository.save(any()) } returns job
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
-        justRun { storageService.putTempFile(cacheObject, contentStream) }
+        justRun { storageService.putTempFile(cacheObject, capture(streamProviderSlot)) }
         every { moduleRegistry.getRenderModule<RenderModule>("IMAGE") } returns conversionModule
         justRun { conversionModule.createConversionSubJobs(job, message) }
 
         underTest.receiveMessage(message)
 
-        assert(contentStream.closed) { "content stream must be closed after putTempFile" }
+        assert(streamProviderSlot.captured.invoke() === contentStream) {
+            "supplier passed to putTempFile must (re-)fetch the content stream"
+        }
     }
 
     @Test
-    fun `closes the content stream after storing a non-conversion object`() {
+    fun `passes a supplier that fetches the content stream for a non-conversion object`() {
         val job = freshJob(conversionType = false)
         val cacheObject = mockk<CacheObject>()
         val contentStream = TrackingInputStream("content")
+        val streamProviderSlot = slot<() -> java.io.InputStream>()
 
         every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
         every { jobRepository.save(any()) } returns job
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
-        justRun { storageService.putObject(cacheObject, contentStream, any()) }
+        justRun { storageService.putObject(cacheObject, capture(streamProviderSlot), any()) }
 
         underTest.receiveMessage(RenderingJobMessage(jobId))
 
-        assert(contentStream.closed) { "content stream must be closed after putObject" }
+        assert(streamProviderSlot.captured.invoke() === contentStream) {
+            "supplier passed to putObject must (re-)fetch the content stream"
+        }
         assert(job.status == RenderingJobStatus.FINISHED)
     }
 
     @Test
-    fun `closes the content stream when the upload fails`() {
+    fun `marks the job failed when the upload throws`() {
         val job = freshJob(conversionType = true)
         val cacheObject = mockk<CacheObject>()
         val contentStream = TrackingInputStream("content")
@@ -157,11 +165,10 @@ class JobReceiverTest {
         every { jobRepository.save(any()) } returns job
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { contentTransferService.getAsInputStream(cacheObject) } returns contentStream
-        every { storageService.putTempFile(cacheObject, contentStream) } throws RuntimeException("S3 down")
+        every { storageService.putTempFile(cacheObject, any()) } throws RuntimeException("S3 down")
 
         underTest.receiveMessage(RenderingJobMessage(jobId))
 
-        assert(contentStream.closed) { "content stream must be closed even when the upload throws" }
         assert(job.status == RenderingJobStatus.FAILED)
     }
 

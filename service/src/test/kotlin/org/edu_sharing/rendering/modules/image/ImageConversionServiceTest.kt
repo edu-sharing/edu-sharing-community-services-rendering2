@@ -31,14 +31,14 @@ class ImageConversionServiceTest {
         val file = File("src/test/resources/fixtures/chernihiv.jpg")
         val sourceImage = ImageIO.read(file)
         val cacheObject = prepareCacheObject()
-        justRun {storageService.putObject(cacheObject = any(), inputStream = any(), metadata = any())}
+        justRun {storageService.putObject(cacheObject = any(), streamProvider = any(), metadata = any())}
         underTest.imageFormat = "jpeg"
         // Act
         underTest.convert(cacheObject, 100, sourceImage)
         // Assert
         verify(exactly = 1) {storageService.putObject(
             cacheObject = any(),
-            inputStream = any(),
+            streamProvider = any(),
             metadata = mapOf("height" to "66", "width" to "100"))
         }
         assert(cacheObject.quality == 100)
@@ -51,14 +51,14 @@ class ImageConversionServiceTest {
         val file = File("src/test/resources/fixtures/portait.png")
         val sourceImage = ImageIO.read(file)
         val cacheObject = prepareCacheObject()
-        justRun {storageService.putObject(cacheObject = any(), inputStream = any(), metadata = any())}
+        justRun {storageService.putObject(cacheObject = any(), streamProvider = any(), metadata = any())}
         underTest.imageFormat = "jpeg"
         // Act
         underTest.convert(cacheObject, 100, sourceImage)
         // Assert
         verify(exactly = 1) {storageService.putObject(
             cacheObject = any(),
-            inputStream = any(),
+            streamProvider = any(),
             metadata = mapOf("height" to "100", "width" to "70"))
         }
         assert(cacheObject.quality == 100)

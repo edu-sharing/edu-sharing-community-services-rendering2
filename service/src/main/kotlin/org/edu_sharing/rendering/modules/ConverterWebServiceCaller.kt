@@ -70,9 +70,7 @@ class ConverterWebServiceCaller(
                 val convertedCacheObject = arguments.cacheObject.copy()
                 convertedCacheObject.mimeType = arguments.targetMimeType
                 convertedCacheObject.size = convertedFile.length()
-                convertedFile.inputStream().use {
-                    storageImplementation.putObject(convertedCacheObject, it)
-                }
+                storageImplementation.putObject(convertedCacheObject, { convertedFile.inputStream() })
             } finally {
                 convertedFile.delete()
             }

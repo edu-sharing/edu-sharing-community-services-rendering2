@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
 import software.amazon.awssdk.core.sync.RequestBody
+import software.amazon.awssdk.http.ContentStreamProvider
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.*
 import tools.jackson.databind.ObjectMapper
@@ -38,13 +39,13 @@ class S3StorageService(
 ) : StorageService, StaticStorageService {
     override fun putObject(
         cacheObject: CacheObject,
-        inputStream: InputStream,
+        streamProvider: () -> InputStream,
         metadata: Map<String, String>
     ) {
         log.debug("PUT object: nodeId=${cacheObject.nodeId}, type=${cacheObject.type}, size=${cacheObject.size}")
         putObjectInternal(
             cacheObject = cacheObject,
-            inputStream = inputStream,
+            streamProvider = streamProvider,
             targetPath = bucketStrategy.getStoragePath(cacheObject),
             metadata = metadata
         )
@@ -186,7 +187,7 @@ class S3StorageService(
 
     override fun putTempFile(
         cacheObject: CacheObject,
-        inputStream: InputStream
+        streamProvider: () -> InputStream
     ) {
         log.debug("PUT temp file: nodeId=${cacheObject.nodeId}, type=${cacheObject.type}, size=${cacheObject.size}")
         createBucketIfMissing(bucketStrategy.getTempBucket(cacheObject.repoId))
@@ -196,7 +197,7 @@ class S3StorageService(
             .contentType(cacheObject.mimeType.ifBlank { "application/octet-stream" })
             .build()
 
-        putObjectStreaming(request, cacheObject, inputStream)
+        putObjectStreaming(request, cacheObject, streamProvider)
     }
 
     override fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails {
@@ -286,9 +287,12 @@ class S3StorageService(
         targetPath: String,
         metadata: Map<String, String>
     ) {
+        // Backed by a single, caller-owned stream (zip entry / in-memory buffer) that can't be
+        // re-supplied on retry — unlike the queue-driven uploads in putObject/putTempFile above,
+        // which stream straight from the repository via a real streamProvider.
         putObjectInternal(
             cacheObject = cacheObject,
-            inputStream = inputStream,
+            streamProvider = { inputStream },
             targetPath = bucketStrategy.getStoragePath(cacheObject, targetPath).trimStart('/'),
             metadata = metadata
         )
@@ -421,7 +425,7 @@ class S3StorageService(
 
     private fun putObjectInternal(
         cacheObject: CacheObject,
-        inputStream: InputStream,
+        streamProvider: () -> InputStream,
         targetPath: String,
         metadata: Map<String, String>
     ) {
@@ -440,46 +444,60 @@ class S3StorageService(
 
         val request = requestBuilder.build()
 
-        putObjectStreaming(request, cacheObject, inputStream)
+        putObjectStreaming(request, cacheObject, streamProvider)
         val size = getDirectorySize(bucket, bucketStrategy.getCacheObjectRootPath(cacheObject))
         log.debug("PUT object complete: bucket=$bucket, key=$targetPath, directorySize=$size bytes")
         trackingService.trackCacheObject(cacheObject, bucket, size)
     }
 
     /**
-     * Uploads [inputStream] and **always closes it**, including on failure — this method takes
-     * ownership of the stream.
+     * Uploads the object read from [streamProvider].
      *
-     * Ownership matters because the stream is often a `FluxInputStream` bridge over a
-     * `Flux<DataBuffer>` of pooled Netty direct buffers. Neither `RequestBody.fromInputStream` nor
-     * `Files.copy` closes a caller-supplied stream, and both stop reading early whenever the upload
-     * is abandoned — a `cacheObject.size` that disagrees with what the repository actually serves,
-     * an S3 error, an SDK retry. The producer then stays blocked on a full pipe with an in-flight
-     * DataBuffer it never releases, and since Netty's `AdaptiveByteBufAllocator` serves allocations
-     * out of 2 MiB direct chunks, every such buffer pins a whole chunk. Accumulated over a run that
-     * exhausts `MaxDirectMemorySize` and the next component needing a fresh chunk dies with
-     * `OutOfDirectMemoryError` — in practice Lettuce, which allocates one per connection.
-     * Closing disposes the subscription and releases the buffers.
+     * When [cacheObject]'s size is known, [streamProvider] is handed to the S3 client as a
+     * `ContentStreamProvider` rather than a single opened stream. The SDK calls it again — closing
+     * whatever it previously returned — every time it needs to re-read the payload from the start:
+     * on a retried attempt after a transient network/storage error, and even within one attempt,
+     * because the default SigV4 chunked signer (checksum calculation `WHEN_SUPPORTED`, the SDK
+     * default) takes an extra read-through to precompute the trailing checksum. `RequestBody.fromInputStream`
+     * cannot support either case — it wraps one fixed, already-open stream — so the second read
+     * fails with `IllegalStateException: ... does not support mark/reset, and was already read once`
+     * (observed against RustFS). A provider fixes this the way the SDK intends: every re-read just
+     * reopens the source (here, a fresh signed GET against the repository via
+     * `ContentTransferService.getAsInputStream`) instead of buffering, so this still streams straight
+     * through with no heap/disk copy — [streamProvider] must therefore return a **fresh, unread
+     * stream on every call**, and the SDK takes care of closing each one after use.
+     *
+     * The unknown-size fallback below still owns and closes the single stream it reads, since it
+     * only needs one pass to spool the content to a temp file.
      */
-    private fun putObjectStreaming(request: PutObjectRequest, cacheObject: CacheObject, inputStream: InputStream) {
-        inputStream.use { stream ->
-            if (cacheObject.size >= 0) {
-                s3Client.putObject(request, RequestBody.fromInputStream(stream, cacheObject.size))
-                return
-            }
-            // AWS SDK v2 sync client needs a known content-length for InputStream.
-            // Fallback: spool to a temp file to determine the length without buffering on the heap.
-            log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
-            val tempFile = Files.createTempFile("s3-spool-", ".tmp")
+    private fun putObjectStreaming(
+        request: PutObjectRequest,
+        cacheObject: CacheObject,
+        streamProvider: () -> InputStream
+    ) {
+        if (cacheObject.size >= 0) {
+            s3Client.putObject(
+                request,
+                RequestBody.fromContentProvider(
+                    ContentStreamProvider.fromInputStreamSupplier { streamProvider() },
+                    cacheObject.size,
+                    request.contentType() ?: "application/octet-stream"
+                )
+            )
+            return
+        }
+        // AWS SDK v2 sync client needs a known content-length for InputStream.
+        // Fallback: spool to a temp file to determine the length without buffering on the heap.
+        log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
+        val tempFile = Files.createTempFile("s3-spool-", ".tmp")
+        try {
+            streamProvider().use { stream -> Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING) }
+            s3Client.putObject(request, RequestBody.fromFile(tempFile))
+        } finally {
             try {
-                Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING)
-                s3Client.putObject(request, RequestBody.fromFile(tempFile))
-            } finally {
-                try {
-                    Files.deleteIfExists(tempFile)
-                } catch (e: Exception) {
-                    log.warn("Could not delete temporary spool file: ${tempFile.toAbsolutePath()}", e)
-                }
+                Files.deleteIfExists(tempFile)
+            } catch (e: Exception) {
+                log.warn("Could not delete temporary spool file: ${tempFile.toAbsolutePath()}", e)
             }
         }
     }
