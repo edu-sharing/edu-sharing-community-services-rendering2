@@ -59,20 +59,17 @@ class JobReceiver(
             jobEntry.status = RenderingJobStatus.PROCESSING
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
-            // `use` on the content stream even though the storage service closes it too: closing is
-            // idempotent, and an exception thrown between opening the stream and entering the upload
-            // would otherwise orphan it — an orphaned FluxInputStream keeps its pooled Netty buffers
-            // (and a boundedElastic worker) for the life of the JVM.
+            // Pass a stream supplier instead of an opened stream: the storage service (re-)invokes it
+            // to get a fresh signed GET against the repository whenever it needs to re-read the
+            // payload from the start (SDK retry, or the checksum signer's extra read-through) — see
+            // `S3StorageService.putObjectStreaming`. That also means it — not this method — owns
+            // closing every stream it obtains.
             if (jobEntry.conversionType) {
                 log.debug("Job ${jobEntry.id} is conversion type, storing temp file for module ${jobEntry.module}")
-                contentTransferService.getAsInputStream(cacheObject).use {
-                    storageImplementation.putTempFile(cacheObject, it)
-                }
+                storageImplementation.putTempFile(cacheObject, { contentTransferService.getAsInputStream(cacheObject) })
             } else {
                 log.debug("Job ${jobEntry.id} is non-conversion type, storing final object and marking FINISHED")
-                contentTransferService.getAsInputStream(cacheObject).use {
-                    storageImplementation.putObject(cacheObject, it)
-                }
+                storageImplementation.putObject(cacheObject, { contentTransferService.getAsInputStream(cacheObject) })
                 jobEntry.status = RenderingJobStatus.FINISHED
                 jobRepository.save(jobEntry)
                 return

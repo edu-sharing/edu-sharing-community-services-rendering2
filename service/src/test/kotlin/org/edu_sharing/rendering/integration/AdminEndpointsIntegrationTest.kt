@@ -335,6 +335,6 @@ class AdminEndpointsIntegrationTest(
     private fun putAsset(repoId: String, nodeId: String, hash: String, type: String, mimeType: String) {
         val bytes = "test-content-$nodeId".toByteArray()
         val obj = cacheObject(repoId, nodeId, hash, type, mimeType).apply { size = bytes.size.toLong() }
-        storageService.putObject(obj, bytes.inputStream())
+        storageService.putObject(obj, { bytes.inputStream() })
     }
 }

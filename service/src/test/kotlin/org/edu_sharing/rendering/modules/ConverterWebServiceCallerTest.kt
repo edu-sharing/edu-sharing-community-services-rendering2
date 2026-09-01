@@ -87,9 +87,9 @@ class ConverterWebServiceCallerTest {
         var uploadedCacheObject: CacheObject? = null
         var uploadedBytes: ByteArray? = null
         // the stream is consumed and closed inside callConverterService, so read it in the answer
-        every { storageImplementation.putObject(any(), any<InputStream>()) } answers {
+        every { storageImplementation.putObject(any(), any<() -> InputStream>()) } answers {
             uploadedCacheObject = firstArg()
-            uploadedBytes = secondArg<InputStream>().readAllBytes()
+            uploadedBytes = secondArg<() -> InputStream>().invoke().readAllBytes()
         }
 
         // Act
@@ -106,7 +106,7 @@ class ConverterWebServiceCallerTest {
         assert(request.method == "POST")
         verifySequence {
             contentTransferService.getAsInputStream(dummyCacheObjectWord)
-            storageImplementation.putObject(any(), any<InputStream>())
+            storageImplementation.putObject(any(), any<() -> InputStream>())
         }
     }
 
@@ -142,7 +142,7 @@ class ConverterWebServiceCallerTest {
                 .setBody("1234ABC")
                 .setResponseCode(200)
         )
-        every { storageImplementation.putObject(any(), any<InputStream>()) } throws Exception()
+        every { storageImplementation.putObject(any(), any<() -> InputStream>()) } throws Exception()
 
         // Act and assert
         assertThrows<Exception> { underTest.callConverterService(arguments(externalPath)) }

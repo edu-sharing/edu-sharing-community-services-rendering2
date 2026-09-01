@@ -7,18 +7,20 @@ import java.io.InputStream
 
 interface StorageService {
     /**
-     * Stores [inputStream] as the final object. Implementations take ownership of the stream and
-     * **must close it**, also when the upload fails — callers may pass a stream backed by pooled
-     * Netty buffers that leak unless the stream is closed (see `S3StorageService.putObjectStreaming`).
+     * Stores the object read from [streamProvider] as the final object. [streamProvider] must return
+     * a **fresh, unread stream on every call** — implementations may invoke it more than once (e.g.
+     * to retry an upload after a transient storage error) and close every stream it returns, also
+     * when the upload fails — a returned stream may be backed by pooled Netty buffers that leak
+     * unless closed (see `S3StorageService.putObjectStreaming`).
      */
-    fun putObject(cacheObject: CacheObject, inputStream: InputStream, metadata: Map<String, String> = emptyMap())
+    fun putObject(cacheObject: CacheObject, streamProvider: () -> InputStream, metadata: Map<String, String> = emptyMap())
     fun getObjectLink(cacheObject: CacheObject): Pair<ObjectLink, Long>
     fun removeTempObject(cacheObject: CacheObject)
     fun removeObjects(cacheObjects: List<CacheObject>, isTemp: Boolean = false)
     fun getObjectStream(cacheObject: CacheObject, isTemp: Boolean = false): InputStream
     fun getObjectChunkStream(cacheObject: CacheObject, length: Long, offset: Long, isTemp: Boolean = false): InputStream
-    /** Stores [inputStream] as the conversion input. Same ownership contract as [putObject]. */
-    fun putTempFile(cacheObject: CacheObject, inputStream: InputStream)
+    /** Stores the conversion input read from [streamProvider]. Same contract as [putObject]. */
+    fun putTempFile(cacheObject: CacheObject, streamProvider: () -> InputStream)
     fun getFileProperties(cacheObject: CacheObject): CachedObjectDetails
     fun getStorageInfo(): List<StorageInfo>
     fun objectExists(cacheObject: CacheObject): Boolean
