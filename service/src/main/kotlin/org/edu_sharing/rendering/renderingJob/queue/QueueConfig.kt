@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
+import com.rabbitmq.client.ConnectionFactory as RabbitClientConnectionFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.config.DirectRabbitListenerContainerFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
@@ -9,10 +10,12 @@ import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
+import org.springframework.boot.amqp.autoconfigure.ConnectionFactoryCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.core.task.SimpleAsyncTaskExecutor
+import java.util.concurrent.Executors
 
 @Configuration
 class QueueConfig {
@@ -32,16 +35,37 @@ class QueueConfig {
         SimpleAsyncTaskExecutor("rabbit-consumer-").apply { setVirtualThreads(true) }
 
     /**
+     * Fixes a hidden, connection-wide concurrency ceiling underneath every queue's tuning.
+     * `DirectMessageListenerContainer` only uses [rabbitConsumerExecutor] to bootstrap the initial
+     * per-queue consumer registrations (`actualStart` → `startConsumers`) — each consumer's own message
+     * handling runs synchronously inside `SimpleConsumer.handleDelivery`, called by the RabbitMQ Java
+     * client on whichever thread its **own**, connection-wide `ConsumerWorkService` hands it. Left
+     * unconfigured, that service sizes its thread pool from `Runtime.availableProcessors()`
+     * (`ConsumerWorkService.DEFAULT_NUM_THREADS`) — on a cgroup-limited pod (`jobmanager`/`master` at
+     * 250m, `controller`/`converter` at ≤1000m CPU) that rounds up to exactly 1, so every queue's
+     * carefully tuned `app.queue.<x>.concurrency` collapses to one message processed at a time across
+     * the *entire* connection, independent of which queue or module it belongs to. Handing the
+     * RabbitMQ client its own virtual-thread executor removes that ceiling the same way
+     * [rabbitConsumerExecutor] does for the (here, irrelevant) container-bootstrap threads.
+     */
+    @Bean
+    fun rabbitConnectionFactoryCustomizer(): ConnectionFactoryCustomizer =
+        ConnectionFactoryCustomizer { factory: RabbitClientConnectionFactory ->
+            factory.setSharedExecutor(Executors.newVirtualThreadPerTaskExecutor())
+        }
+
+    /**
      * [DirectMessageListenerContainer] factory for all STANDARD/SINGLE_ACTIVE queue consumers. Each queue's
      * [org.edu_sharing.rendering.renderingJob.queue.QueueSpec.effectiveConcurrency] (from the
      * `@RabbitListener` `concurrency` attribute, resolved via SpEL against [QueueProperties]) consumers are
      * registered at the broker up front, so a burst is fanned out to all of them immediately — there is no
-     * `SimpleMessageListenerContainer` auto-scale ramp. The consumers share [rabbitConsumerExecutor], so an
-     * idle queue costs a single channel but zero busy threads. CPU-bound work (image, eduHtml inflate, av's
-     * ffmpeg process) is bounded per queue by its `concurrency` and physically by the role split, not by a
-     * thread pool. Prefetch is a single global value ([QueueProperties.prefetch]) — a
-     * `DirectRabbitListenerContainerFactory`'s prefetch applies to every container it builds, so it cannot be
-     * per-queue here; per-queue prefetch exists only for REMOTE queues via their own factory.
+     * `SimpleMessageListenerContainer` auto-scale ramp. [rabbitConsumerExecutor] only runs that bootstrap;
+     * actual message handling concurrency is governed by [rabbitConnectionFactoryCustomizer] instead (see
+     * its doc). CPU-bound work (image, eduHtml inflate, av's ffmpeg process) is bounded per queue by its
+     * `concurrency` and physically by the role split, not by a thread pool. Prefetch is a single global
+     * value ([QueueProperties.prefetch]) — a `DirectRabbitListenerContainerFactory`'s prefetch applies to
+     * every container it builds, so it cannot be per-queue here; per-queue prefetch exists only for REMOTE
+     * queues via their own factory.
      */
     @Bean
     fun queueListenerContainerFactory(
