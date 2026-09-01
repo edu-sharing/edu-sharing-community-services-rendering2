@@ -225,6 +225,10 @@ abstract class SharedBeans {
             // existiert nur, wenn spring.redis.cluster.nodes gesetzt ist (in Tests nicht).
             "lettuceStandaloneConnectionFactory",
             "permissionEvaluator",
+            // QueueConfig's ConnectionFactoryCustomizer is a Kotlin SAM-conversion lambda, whose
+            // synthetic class lives in QueueConfig's own package (org.edu_sharing.rendering...), so
+            // it falls into the role tests' package filter like the other functional beans here.
+            "rabbitConnectionFactoryCustomizer",
             "writeConcernResolver",
         )
 
