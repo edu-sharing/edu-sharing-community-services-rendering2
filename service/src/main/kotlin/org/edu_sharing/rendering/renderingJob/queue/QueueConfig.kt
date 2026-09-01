@@ -1,8 +1,8 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
-import com.rabbitmq.client.ConnectionFactory as RabbitClientConnectionFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.config.DirectRabbitListenerContainerFactory
+import org.springframework.amqp.rabbit.connection.AbstractConnectionFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer
@@ -10,7 +10,7 @@ import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
-import org.springframework.boot.amqp.autoconfigure.ConnectionFactoryCustomizer
+import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.task.AsyncTaskExecutor
@@ -39,19 +39,38 @@ class QueueConfig {
      * `DirectMessageListenerContainer` only uses [rabbitConsumerExecutor] to bootstrap the initial
      * per-queue consumer registrations (`actualStart` → `startConsumers`) — each consumer's own message
      * handling runs synchronously inside `SimpleConsumer.handleDelivery`, called by the RabbitMQ Java
-     * client on whichever thread its **own**, connection-wide `ConsumerWorkService` hands it. Left
-     * unconfigured, that service sizes its thread pool from `Runtime.availableProcessors()`
-     * (`ConsumerWorkService.DEFAULT_NUM_THREADS`) — on a cgroup-limited pod (`jobmanager`/`master` at
-     * 250m, `controller`/`converter` at ≤1000m CPU) that rounds up to exactly 1, so every queue's
-     * carefully tuned `app.queue.<x>.concurrency` collapses to one message processed at a time across
-     * the *entire* connection, independent of which queue or module it belongs to. Handing the
-     * RabbitMQ client its own virtual-thread executor removes that ceiling the same way
-     * [rabbitConsumerExecutor] does for the (here, irrelevant) container-bootstrap threads.
+     * client on whichever thread its **own**, connection-wide `ConsumerWorkService` hands it.
+     *
+     * That executor comes from `AbstractConnectionFactory.executorService`
+     * ([AbstractConnectionFactory.setExecutor]), which Spring passes explicitly into
+     * `com.rabbitmq.client.ConnectionFactory#newConnection(ExecutorService, ...)` — **not** from
+     * `com.rabbitmq.client.ConnectionFactory#setSharedExecutor`/a Boot `ConnectionFactoryCustomizer`,
+     * which configure a field Spring's call bypasses entirely by always passing its own (by default
+     * `null`) executor explicitly. Left unconfigured, the RabbitMQ client falls back to its own
+     * `ConsumerWorkService.DEFAULT_NUM_THREADS`, sized from `Runtime.availableProcessors()` — on a
+     * cgroup-limited pod (`jobmanager`/`master` at 250m, `controller`/`converter` at ≤1000m CPU) that
+     * rounds up to exactly 1, so every queue's carefully tuned `app.queue.<x>.concurrency` collapses to
+     * one message processed at a time across the *entire* connection, independent of which queue or
+     * module it belongs to. A `BeanPostProcessor` is used (rather than a `@Bean AbstractConnectionFactory`
+     * override) because Spring Boot's auto-configured `CachingConnectionFactory` is the one that must be
+     * mutated, and this runs regardless of which bean method produced it. Declared via the companion
+     * object (a real `static` method) as Spring recommends for `BeanPostProcessor` `@Bean` methods — a
+     * non-static one forces early instantiation of this whole `@Configuration` class, before all
+     * `BeanPostProcessor`s are registered — logging a "not eligible for getting processed by all
+     * BeanPostProcessors" warning for it. Harmless here (`QueueConfig`'s other beans need no such
+     * post-processing) and left as an instance method: a `@JvmStatic` companion-object method would
+     * silence it, but Spring also registers the companion object itself as a bean in that case, which
+     * this module's role tests (exact per-role bean-set assertions) would then need to special-case.
      */
     @Bean
-    fun rabbitConnectionFactoryCustomizer(): ConnectionFactoryCustomizer =
-        ConnectionFactoryCustomizer { factory: RabbitClientConnectionFactory ->
-            factory.setSharedExecutor(Executors.newVirtualThreadPerTaskExecutor())
+    fun rabbitConnectionFactoryExecutorPostProcessor(): BeanPostProcessor =
+        object : BeanPostProcessor {
+            override fun postProcessBeforeInitialization(bean: Any, beanName: String): Any {
+                if (bean is AbstractConnectionFactory) {
+                    bean.setExecutor(Executors.newVirtualThreadPerTaskExecutor())
+                }
+                return bean
+            }
         }
 
     /**
@@ -60,8 +79,8 @@ class QueueConfig {
      * `@RabbitListener` `concurrency` attribute, resolved via SpEL against [QueueProperties]) consumers are
      * registered at the broker up front, so a burst is fanned out to all of them immediately — there is no
      * `SimpleMessageListenerContainer` auto-scale ramp. [rabbitConsumerExecutor] only runs that bootstrap;
-     * actual message handling concurrency is governed by [rabbitConnectionFactoryCustomizer] instead (see
-     * its doc). CPU-bound work (image, eduHtml inflate, av's ffmpeg process) is bounded per queue by its
+     * actual message handling concurrency is governed by [rabbitConnectionFactoryExecutorPostProcessor]
+     * instead (see its doc). CPU-bound work (image, eduHtml inflate, av's ffmpeg process) is bounded per queue by its
      * `concurrency` and physically by the role split, not by a thread pool. Prefetch is a single global
      * value ([QueueProperties.prefetch]) — a `DirectRabbitListenerContainerFactory`'s prefetch applies to
      * every container it builds, so it cannot be per-queue here; per-queue prefetch exists only for REMOTE
