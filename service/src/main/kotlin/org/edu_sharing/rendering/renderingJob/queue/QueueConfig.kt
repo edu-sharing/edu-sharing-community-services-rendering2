@@ -46,21 +46,29 @@ class QueueConfig {
      * `com.rabbitmq.client.ConnectionFactory#newConnection(ExecutorService, ...)` — **not** from
      * `com.rabbitmq.client.ConnectionFactory#setSharedExecutor`/a Boot `ConnectionFactoryCustomizer`,
      * which configure a field Spring's call bypasses entirely by always passing its own (by default
-     * `null`) executor explicitly. Left unconfigured, the RabbitMQ client falls back to its own
+     * `null`) executor explicitly. **This was tried first and looked correct — `ConnectionFactoryCustomizer`
+     * is Spring Boot's documented "fine-tune the auto-configured `ConnectionFactory`" hook — but a k6 load
+     * test showed zero effect: `rendering_queue_consumers_active` still never exceeded 1 across all queues
+     * combined.** Left unconfigured, the RabbitMQ client falls back to its own
      * `ConsumerWorkService.DEFAULT_NUM_THREADS`, sized from `Runtime.availableProcessors()` — on a
      * cgroup-limited pod (`jobmanager`/`master` at 250m, `controller`/`converter` at ≤1000m CPU) that
      * rounds up to exactly 1, so every queue's carefully tuned `app.queue.<x>.concurrency` collapses to
      * one message processed at a time across the *entire* connection, independent of which queue or
-     * module it belongs to. A `BeanPostProcessor` is used (rather than a `@Bean AbstractConnectionFactory`
-     * override) because Spring Boot's auto-configured `CachingConnectionFactory` is the one that must be
-     * mutated, and this runs regardless of which bean method produced it. Declared via the companion
-     * object (a real `static` method) as Spring recommends for `BeanPostProcessor` `@Bean` methods — a
-     * non-static one forces early instantiation of this whole `@Configuration` class, before all
-     * `BeanPostProcessor`s are registered — logging a "not eligible for getting processed by all
-     * BeanPostProcessors" warning for it. Harmless here (`QueueConfig`'s other beans need no such
-     * post-processing) and left as an instance method: a `@JvmStatic` companion-object method would
-     * silence it, but Spring also registers the companion object itself as a bean in that case, which
-     * this module's role tests (exact per-role bean-set assertions) would then need to special-case.
+     * module it belongs to.
+     *
+     * A `BeanPostProcessor` (rather than a `@Bean CachingConnectionFactoryConfigurer` override, the other
+     * available hook) is what actually reaches the bean Spring uses for the real connection: it matches
+     * by type, so it works regardless of which bean method produced the `CachingConnectionFactory`, and
+     * unlike overriding the configurer bean, it doesn't need to replicate Boot's constructor signature for
+     * that bean (`RabbitProperties`, `RabbitConnectionDetails`, …) — which a Boot upgrade could change.
+     *
+     * Declared as a plain instance method, not a `@JvmStatic` companion-object one: Spring logs a "not
+     * eligible for getting processed by all BeanPostProcessors" warning for a `BeanPostProcessor` `@Bean`
+     * declared this way (it forces early instantiation of this whole `@Configuration` class, before all
+     * `BeanPostProcessor`s are registered) and recommends `static` instead — harmless here, since
+     * `QueueConfig`'s other beans need no such post-processing themselves. The `@JvmStatic` alternative was
+     * tried and reverted: Spring then also registers the companion object itself as a bean, which this
+     * module's role tests (exact per-role bean-set assertions) would need to special-case for no real gain.
      */
     @Bean
     fun rabbitConnectionFactoryExecutorPostProcessor(): BeanPostProcessor =
