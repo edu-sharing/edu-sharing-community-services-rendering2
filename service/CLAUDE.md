@@ -94,6 +94,17 @@ repo at a time. Controllers:
 - MongoDB uses Boot 4 `spring.mongodb.*`. Outbound converter hosts:
   `app.lumi.host` (3000), `app.documentConverter.host` (8081), `app.jupyterConverter.host` (9120).
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.
+- **RabbitMQ listener concurrency is not just `app.queue.<x>.concurrency`.** `DirectMessageListenerContainer`
+  only uses `QueueConfig.rabbitConsumerExecutor` to bootstrap consumer registration; each consumer's message
+  handling runs on whichever thread the RabbitMQ Java client's own, **connection-wide** `ConsumerWorkService`
+  hands it — by default sized from `Runtime.availableProcessors()`, which rounds up to 1 on this app's
+  cgroup-limited pods, serializing *every* queue's messages regardless of module. Boot's documented
+  `ConnectionFactoryCustomizer` hook looks like the fix but has **no effect**: Spring's own
+  `AbstractConnectionFactory.executorService` always overrides it when opening the connection. The actual
+  fix — `QueueConfig.rabbitConnectionFactoryExecutorPostProcessor`, a `BeanPostProcessor` calling
+  `AbstractConnectionFactory.setExecutor` directly — is validated with the k6 load test (see
+  `../loadtest/README.md`): `rendering_queue_consumers_active` summed across queues, capped at 1 before the
+  fix, reaches the sum of each queue's configured `concurrency` after it.
 
 ## Session / Redis serialization
 `SessionConfig` stores Spring Sessions in Redis using a Jackson 3 (`tools.jackson.*`)
