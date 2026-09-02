@@ -10,6 +10,7 @@ import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
+import io.micrometer.context.ContextSnapshotFactory
 import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -29,10 +30,21 @@ class QueueConfig {
      *
      * Deliberately a dedicated executor and **not** the global `spring.threads.virtual.enabled` flag:
      * the latter would also switch Tomcat and every other pool to virtual threads.
+     *
+     * The `taskDecorator` re-attaches the trace/baggage context (MDC, current span) that
+     * [AsyncAckDispatcher] would otherwise drop when it hands the REMOTE queues' (sodix/omega/ddb) work
+     * off this executor: the decorator runs on the *submitting* (listener) thread, where the observation
+     * opened by `queueListenerContainerFactory`'s/the REMOTE containers' `observationEnabled` is still
+     * active, so [ContextSnapshotFactory.captureAll] captures it there and [io.micrometer.context.ContextSnapshot.wrap]
+     * restores it on the virtual thread that actually runs the task.
      */
     @Bean
     fun rabbitConsumerExecutor(): AsyncTaskExecutor =
-        SimpleAsyncTaskExecutor("rabbit-consumer-").apply { setVirtualThreads(true) }
+        SimpleAsyncTaskExecutor("rabbit-consumer-").apply {
+            setVirtualThreads(true)
+            val contextSnapshotFactory = ContextSnapshotFactory.builder().build()
+            setTaskDecorator { runnable -> contextSnapshotFactory.captureAll().wrap(runnable) }
+        }
 
     /**
      * Fixes a hidden, connection-wide concurrency ceiling underneath every queue's tuning.
