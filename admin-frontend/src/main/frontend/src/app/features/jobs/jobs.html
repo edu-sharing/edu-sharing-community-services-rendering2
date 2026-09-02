@@ -10,14 +10,13 @@
     [expansion]="subJobsTpl"
     [canExpand]="hasSubJobs"
     [rowActions]="actionsTpl"
-    searchPlaceholder="Search jobs…"
+    searchPlaceholder="Search jobs… (nodeId1, nodeId2 …)"
     (sortChange)="onSort($event)"
     (queryChange)="onSearch($event)"
   >
     <mat-form-field dt-filters appearance="outline" subscriptSizing="dynamic" class="filter-field">
       <mat-label>Status</mat-label>
-      <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
-        <mat-option value="">All</mat-option>
+      <mat-select multiple [value]="selectedStatuses()" (selectionChange)="setStatuses($event.value)">
         @for (s of statuses; track s) {
           <mat-option [value]="s">{{ s }}</mat-option>
         }

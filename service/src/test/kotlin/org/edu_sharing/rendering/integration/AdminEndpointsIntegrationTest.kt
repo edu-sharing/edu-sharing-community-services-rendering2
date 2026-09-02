@@ -138,13 +138,58 @@ class AdminEndpointsIntegrationTest(
         mockMvc.perform(
             get("/admin/jobs")
                 .param("repoId", repoId)
-                .param("status", "FAILED")
+                .param("statuses", "FAILED")
                 .header(HttpHeaders.AUTHORIZATION, basicAuth),
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.totalElements").value(2))
             .andExpect(jsonPath("$.content.length()").value(2))
             .andExpect(jsonPath("$.content[*].status", containsInAnyOrder("FAILED", "FAILED")))
+    }
+
+    @Test
+    fun `list jobs filters by multiple statuses`() {
+        val repoId = "jobs-repo-list-multi"
+        saveJob(repoId, RenderingJobStatus.FINISHED)
+        saveJob(repoId, RenderingJobStatus.FAILED)
+        saveJob(repoId, RenderingJobStatus.QUEUED)
+
+        mockMvc.perform(
+            get("/admin/jobs")
+                .param("repoId", repoId)
+                .param("statuses", "FAILED", "QUEUED")
+                .header(HttpHeaders.AUTHORIZATION, basicAuth),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.content[*].status", containsInAnyOrder("FAILED", "QUEUED")))
+    }
+
+    @Test
+    fun `list jobs search accepts comma or space separated multi values`() {
+        val repoId = "jobs-repo-search-multi"
+        val a = saveJob(repoId, RenderingJobStatus.FINISHED)
+        val b = saveJob(repoId, RenderingJobStatus.FINISHED)
+        saveJob(repoId, RenderingJobStatus.FINISHED)
+
+        mockMvc.perform(
+            get("/admin/jobs")
+                .param("repoId", repoId)
+                .param("search", "${a.esObjectId}, ${b.esObjectId}")
+                .header(HttpHeaders.AUTHORIZATION, basicAuth),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.content[*].esObjectId", containsInAnyOrder(a.esObjectId, b.esObjectId)))
+
+        mockMvc.perform(
+            get("/admin/jobs")
+                .param("repoId", repoId)
+                .param("search", "${a.esObjectId} ${b.esObjectId}")
+                .header(HttpHeaders.AUTHORIZATION, basicAuth),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(2))
     }
 
     @Test
@@ -265,6 +310,51 @@ class AdminEndpointsIntegrationTest(
         mockMvc.perform(get("/admin/assets/versions").param("repoId", repoId).param("nodeId", "node-a").header(HttpHeaders.AUTHORIZATION, basicAuth))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
+    }
+
+    @Test
+    fun `list asset nodes filters by multiple types`() {
+        val repoId = "assets-repo-nodes-multi-type"
+        trackingEntryRepository.save(trackingEntry(repoId, "node-a", "h1", "image", "rs2-image", 100))
+        trackingEntryRepository.save(trackingEntry(repoId, "node-b", "h2", "video", "rs2-video", 200))
+        trackingEntryRepository.save(trackingEntry(repoId, "node-c", "h3", "audio", "rs2-audio", 50))
+
+        mockMvc.perform(
+            get("/admin/assets/nodes")
+                .param("repoId", repoId)
+                .param("types", "image", "video")
+                .header(HttpHeaders.AUTHORIZATION, basicAuth),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.content[*].type", containsInAnyOrder("image", "video")))
+    }
+
+    @Test
+    fun `list asset nodes search accepts comma or space separated multi values`() {
+        val repoId = "assets-repo-nodes-search-multi"
+        trackingEntryRepository.save(trackingEntry(repoId, "node-a", "h1", "image", "rs2-image", 100))
+        trackingEntryRepository.save(trackingEntry(repoId, "node-b", "h2", "video", "rs2-video", 200))
+        trackingEntryRepository.save(trackingEntry(repoId, "node-c", "h3", "audio", "rs2-audio", 50))
+
+        mockMvc.perform(
+            get("/admin/assets/nodes")
+                .param("repoId", repoId)
+                .param("search", "node-a, node-b")
+                .header(HttpHeaders.AUTHORIZATION, basicAuth),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.content[*].nodeId", containsInAnyOrder("node-a", "node-b")))
+
+        mockMvc.perform(
+            get("/admin/assets/nodes")
+                .param("repoId", repoId)
+                .param("search", "node-a node-b")
+                .header(HttpHeaders.AUTHORIZATION, basicAuth),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(2))
     }
 
     @Test
