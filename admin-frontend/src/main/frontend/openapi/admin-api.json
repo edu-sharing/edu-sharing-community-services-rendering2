@@ -526,12 +526,15 @@
             "type" : "string"
           }
         }, {
-          "name" : "status",
+          "name" : "statuses",
           "in" : "query",
           "required" : false,
           "schema" : {
-            "type" : "string",
-            "enum" : [ "QUEUED", "PROCESSING", "FINISHED", "FAILED", "PARTIALLY_FAILED" ]
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "QUEUED", "PROCESSING", "FINISHED", "FAILED", "PARTIALLY_FAILED" ]
+            }
           }
         }, {
           "name" : "search",
@@ -1015,11 +1018,14 @@
             "type" : "string"
           }
         }, {
-          "name" : "type",
+          "name" : "types",
           "in" : "query",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         }, {
           "name" : "search",

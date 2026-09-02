@@ -33,7 +33,7 @@ export class Assets {
   private readonly confirm = inject(ConfirmService);
   private readonly repoId$ = toObservable(this.repoCtx.activeRepoId);
 
-  protected readonly filterType = signal<string | null>(null);
+  protected readonly selectedTypes = signal<string[]>([]);
   protected readonly page = signal(0);
   protected readonly size = 50;
   private readonly refreshTick = signal(0);
@@ -55,7 +55,7 @@ export class Assets {
   protected readonly nodes = toSignal(
     combineLatest([
       this.repoId$,
-      toObservable(this.filterType),
+      toObservable(this.selectedTypes),
       toObservable(this.nodeSort),
       toObservable(this.nodeDir),
       toObservable(this.nodeSearch),
@@ -65,12 +65,12 @@ export class Assets {
       toObservable(this.refreshTick),
       this.poll.ticks$,
     ]).pipe(
-      switchMap(([repoId, type, sort, dir, search, accessedFrom, accessedTo, page]) =>
+      switchMap(([repoId, types, sort, dir, search, accessedFrom, accessedTo, page]) =>
         repoId
           ? this.api
               .listAssetNodes({
                 repoId,
-                type: type ?? undefined,
+                types: types.length ? types : undefined,
                 sort,
                 dir,
                 search: search || undefined,
@@ -133,8 +133,8 @@ export class Assets {
     return this.repoCtx.activeRepoId();
   }
 
-  setFilterType(value: string): void {
-    this.filterType.set(value || null);
+  setFilterTypes(values: string[]): void {
+    this.selectedTypes.set(values);
     this.page.set(0);
   }
 
