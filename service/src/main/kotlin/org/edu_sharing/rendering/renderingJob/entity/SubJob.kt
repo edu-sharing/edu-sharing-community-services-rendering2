@@ -28,6 +28,9 @@ data class SubJob(
     var quality: Int = 0,
     var progress: Int = 0,
     var message: String? = null,
+    // Trägt SubJobRepository.findByParentId(In) (u.a. die Admin-Jobliste) – ohne Index scannt
+    // Mongo pro Lookup die komplette subJob-Collection.
+    @Indexed
     @DocumentReference(lazy = true)
     var parent: RenderingJob,
     @Indexed(expireAfter = "8d")

@@ -23,6 +23,14 @@ interface SubJobRepository: MongoRepository<SubJob, ObjectId>, CustomSubJobRepos
     @Query("{ 'parent': ?0 }")
     fun findByParentId(parentId: ObjectId): List<SubJob>
 
+    // Gebündelte Variante für die Jobliste (AdminJobController): eine Abfrage für eine ganze
+    // Seite statt vorher einmal findByParentId pro Zeile (N+1). Projiziert auf SubJobListItem,
+    // dessen 'parent'-Feld eine rohe ObjectId ist statt eine RenderingJob-Referenz – so wird
+    // beim Gruppieren KEINE @DocumentReference-Lazy-Proxy-Auflösung ausgelöst (die würde pro
+    // Sub-Job den zugehörigen RenderingJob nachladen und das N+1-Problem nur verschieben).
+    @Query("{ 'parent': { \$in: ?0 } }")
+    fun findByParentIdIn(parentIds: Collection<ObjectId>): List<SubJobListItem>
+
     @Query(value = "{ 'parent': ?0 }", delete = true)
     fun deleteByParentId(parentId: ObjectId)
 
@@ -42,4 +50,14 @@ interface SubJobRepository: MongoRepository<SubJob, ObjectId>, CustomSubJobRepos
 data class SubJobStatusCount(
     val status: SubJobStatus,
     val count: Long
+)
+
+data class SubJobListItem(
+    val id: ObjectId,
+    val parent: ObjectId,
+    val routingKey: String,
+    val status: SubJobStatus,
+    val quality: Int,
+    val progress: Int,
+    val errorMessage: String?
 )
