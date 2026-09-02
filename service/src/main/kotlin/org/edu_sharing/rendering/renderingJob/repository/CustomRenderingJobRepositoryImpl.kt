@@ -23,23 +23,29 @@ class CustomRenderingJobRepositoryImpl(
 
     override fun findJobsPage(
         repoId: String,
-        status: RenderingJobStatus?,
+        statuses: List<RenderingJobStatus>?,
         search: String?,
         createdFrom: Long?,
         createdTo: Long?,
         pageable: Pageable
     ): Page<RenderingJob> {
         val criteria = Criteria.where("repoId").`is`(repoId)
-        if (status != null) {
-            criteria.and("status").`is`(status)
+        if (!statuses.isNullOrEmpty()) {
+            criteria.and("status").`in`(statuses)
         }
-        if (!search.isNullOrBlank()) {
-            val q = Pattern.quote(search)
+        val terms = searchTerms(search)
+        if (terms.isNotEmpty()) {
+            // Jeder Begriff darf auf irgendeinem der Felder matchen (nodeId1, nodeId2 -> ODER).
             criteria.orOperator(
-                Criteria.where("module").regex(q, "i"),
-                Criteria.where("esObjectId").regex(q, "i"),
-                Criteria.where("errorMessage").regex(q, "i"),
-                Criteria.where("status").regex(q, "i"),
+                *terms.flatMap { term ->
+                    val q = Pattern.quote(term)
+                    listOf(
+                        Criteria.where("module").regex(q, "i"),
+                        Criteria.where("esObjectId").regex(q, "i"),
+                        Criteria.where("errorMessage").regex(q, "i"),
+                        Criteria.where("status").regex(q, "i"),
+                    )
+                }.toTypedArray()
             )
         }
         if (createdFrom != null || createdTo != null) {
@@ -70,4 +76,8 @@ class CustomRenderingJobRepositoryImpl(
         val updateResult = mongoTemplate.updateFirst(query, update, collection)
         log.debug("acknowledged: ${updateResult.wasAcknowledged()} matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
     }
+
+    /** Zerlegt die Sucheingabe an Kommas/Whitespace in einzelne Begriffe (leere verworfen). */
+    private fun searchTerms(search: String?): List<String> =
+        search?.split(Regex("[,\\s]+"))?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 }

@@ -28,6 +28,17 @@ import java.time.Instant
         def = "{'esObjectId': 1, 'esHash': 1}",
         unique = true,
         partialFilter = "{ 'status': { '\$in': ['QUEUED', 'PROCESSING'] }, 'deduplicated': true }"
+    ),
+    // Trägt GET /admin/jobs (AdminJobController.listJobs). 'status' bewusst NACH
+    // creationTimestamp: der häufigste Fall ist der Default-Aufruf ohne Status-Filter (jeder
+    // Poll-Tick des Dashboards, siehe jobs.ts) sortiert nach creationTimestamp – die Reihenfolge
+    // liefert dafür die Sortierung direkt aus dem Index (kein In-Memory-Sort). Mit Status-Filter
+    // nutzt Mongo weiterhin den repoId-Präfix zum Scannen und filtert status nachträglich; da die
+    // Collection per TTL auf 8 Tage begrenzt ist, ist das unkritisch. Deckt auch
+    // countByRepoId(AndStatus) (Stats-Endpoint) über denselben repoId-Präfix ab.
+    CompoundIndex(
+        name = "repoIdCreationTimestampStatus",
+        def = "{'repoId': 1, 'creationTimestamp': -1, 'status': 1}"
     )
 )
 data class RenderingJob(

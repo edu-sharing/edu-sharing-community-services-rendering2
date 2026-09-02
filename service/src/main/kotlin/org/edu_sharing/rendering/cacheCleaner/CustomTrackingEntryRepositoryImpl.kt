@@ -47,7 +47,7 @@ class CustomTrackingEntryRepositoryImpl(
 
     override fun aggregateNodes(
         repoId: String,
-        type: String?,
+        types: List<String>?,
         search: String?,
         sort: String?,
         dir: String,
@@ -57,15 +57,21 @@ class CustomTrackingEntryRepositoryImpl(
         size: Int
     ): NodeAggregationResult {
         val criteria = Criteria.where("repoId").`is`(repoId)
-        if (type != null) {
-            criteria.and("type").`is`(type)
+        if (!types.isNullOrEmpty()) {
+            criteria.and("type").`in`(types)
         }
-        if (!search.isNullOrBlank()) {
-            val q = Pattern.quote(search)
+        val terms = searchTerms(search)
+        if (terms.isNotEmpty()) {
+            // Jeder Begriff darf auf irgendeinem der Felder matchen (nodeId1, nodeId2 -> ODER).
             criteria.orOperator(
-                Criteria.where("nodeId").regex(q, "i"),
-                Criteria.where("type").regex(q, "i"),
-                Criteria.where("hash").regex(q, "i"),
+                *terms.flatMap { term ->
+                    val q = Pattern.quote(term)
+                    listOf(
+                        Criteria.where("nodeId").regex(q, "i"),
+                        Criteria.where("type").regex(q, "i"),
+                        Criteria.where("hash").regex(q, "i"),
+                    )
+                }.toTypedArray()
             )
         }
         if (accessedFrom != null || accessedTo != null) {
@@ -130,8 +136,9 @@ class CustomTrackingEntryRepositoryImpl(
         dir: String
     ): List<AssetTypeAggregation> {
         val criteria = Criteria.where("repoId").`is`(repoId)
-        if (!search.isNullOrBlank()) {
-            criteria.and("type").regex(Pattern.quote(search), "i")
+        val terms = searchTerms(search)
+        if (terms.isNotEmpty()) {
+            criteria.orOperator(*terms.map { Criteria.where("type").regex(Pattern.quote(it), "i") }.toTypedArray())
         }
 
         val sortField = TYPE_SORT_FIELDS[sort] ?: "totalSize"
@@ -150,4 +157,8 @@ class CustomTrackingEntryRepositoryImpl(
             )
         }
     }
+
+    /** Zerlegt die Sucheingabe an Kommas/Whitespace in einzelne Begriffe (leere verworfen). */
+    private fun searchTerms(search: String?): List<String> =
+        search?.split(Regex("[,\\s]+"))?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 }

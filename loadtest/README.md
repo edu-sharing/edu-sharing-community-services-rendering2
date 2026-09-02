@@ -146,6 +146,56 @@ Die Queue-Knöpfe sind ohne Rebuild per Property/Env setzbar (siehe `../docs/QUE
 z. B. feste vs. auto-skalierende `concurrency`, `prefetch` 1 vs. >1, aggressivere Scaling-Trigger,
 H5P single-active-consumer.
 
+## Virtual-Thread-Pinning bei CPU-gebundenen Modulen (image) reproduzieren
+
+Hypothese: `image` (in-process, `ImageConversionService`) läuft wie alle Converter-Queues auf
+`rabbitConsumerExecutor` (virtuelle Threads, `QueueConfig.kt`). Deren Carrier-Pool ist
+standardmäßig `Runtime.availableProcessors()` groß. `ImageConversionService` nutzt Java2D/ImageIO
+(`BufferedImage`, `Graphics2D`, `ImageIO`) — deren JDK-Interna verwenden `synchronized`-Blöcke, die
+auf Java 21 (vor JEP 491 "Unpinning", JDK 24) einen virtuellen Thread für die gesamte
+Konvertierungsdauer an seinen Carrier **pinnen**. Auf CPU-knapp limitierten Pods (Prod: die
+`converter`-Rolle) kollabiert die effektive Parallelität dadurch auf ~Kernzahl, unabhängig von
+`app.queue.image.concurrency`.
+
+So reproduzieren:
+
+1. Service mit produktionsnah reduzierter Kernzahl **und** Pinning-Tracing starten:
+
+   ```bash
+   DEV=true ./service/mvnw -Pdev -pl service spring-boot:run \
+     -Dspring-boot.run.profiles=debug,loadtest \
+     -Dspring-boot.run.jvmArguments="-XX:ActiveProcessorCount=2 -Djdk.tracePinnedThreads=full"
+   ```
+
+   `-XX:ActiveProcessorCount=2` zwingt `Runtime.availableProcessors()` — und damit den
+   Default-Carrier-Pool der virtuellen Threads — auf 2, unabhängig von der echten Kernzahl der
+   Dev-Maschine (passend zur `converter`-Rolle im Cluster). `-Djdk.tracePinnedThreads=full`
+   schreibt bei jedem Pinning-Event einen Stacktrace nach stdout — der direkte Beweis.
+
+2. Burst über der konfigurierten Concurrency fahren (`app.queue.image.concurrency=4` lokal):
+
+   ```bash
+   k6 run -e PROFILE=arrival -e RATE=10 -e DURATION=2m loadtest/k6/scenarios/image.js
+   ```
+
+3. Im Grafana-Dashboard **„RS2 Lasttest"** beobachten:
+   - **„Aktive Consumer-Threads pro Queue"** (`rendering_queue_consumers_active{queue="image"}`,
+     misst tatsächlich gerade verarbeitete Nachrichten, nicht nur registrierte Consumer): Bleibt
+     der Wert deutlich unter 4 (z. B. bei ~2), während **„Queue-Tiefe: ready"** für
+     `image_job_queue` gleichzeitig wächst (Backlog vorhanden, aber nicht abgearbeitet) →
+     bestätigt die Hypothese.
+   - Im Service-Log parallel nach Stacktraces der Form `Thread[...] Pinned ... at
+     java.desktop/... (synchronized)` während der Konvertierung suchen.
+4. Kontrolllauf **ohne** `-XX:ActiveProcessorCount` wiederholen (Dev-Maschine mit mehr Kernen):
+   Der Consumer-Gauge sollte jetzt näher an 4 herankommen und keine Pinning-Traces mehr auftauchen
+   — das belegt, dass die knappe Kernzahl (nicht der Code-Pfad an sich) die Ursache ist.
+
+Das gleiche Rezept eignet sich auch für `av`/`video` (ffmpeg läuft zwar außerhalb der JVM, aber der
+Consumer-Thread wartet blockierend auf den Subprozess — dort ist Pinning weniger wahrscheinlich,
+aber ein Kontrolllauf schadet nicht). Für `document` ist die Ursache bereits separat identifiziert
+(einzelner LibreOffice-Prozess im `document-converter`, siehe `jodconverter.local.port-numbers`) —
+das Pinning-Rezept ist dort nicht der relevante Mechanismus.
+
 ## Neue Metriken (Referenz)
 
 | Metrik | Typ | Bedeutung |

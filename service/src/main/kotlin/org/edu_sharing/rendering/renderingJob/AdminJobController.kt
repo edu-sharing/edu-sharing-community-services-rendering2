@@ -14,6 +14,7 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
+import org.edu_sharing.rendering.renderingJob.repository.SubJobListItem
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -30,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * Admin-Endpoints für die Job-Verwaltung des Dashboards, gescopt auf genau eine repoId.
  *
- * Hinweis: `RenderingJob` hat einen TTL-Index (6h), daher zeigt die Liste nur jüngere Jobs.
+ * Hinweis: `RenderingJob` hat einen TTL-Index (8 Tage), daher zeigt die Liste nur jüngere Jobs.
  * Beim Löschen muss die RabbitMQ-Queue nicht angefasst werden – Receiver verwerfen Messages
  * ohne zugehörigen DB-Eintrag automatisch (siehe `JobReceiver`/`*Receiver`).
  */
@@ -83,7 +84,7 @@ class AdminJobController(
     @GetMapping("/jobs")
     fun listJobs(
         @RequestParam repoId: String,
-        @RequestParam(required = false) status: RenderingJobStatus?,
+        @RequestParam(required = false) statuses: List<RenderingJobStatus>?,
         @RequestParam(required = false) search: String?,
         @RequestParam(required = false) sort: String?,
         @RequestParam(required = false, defaultValue = "desc") dir: String,
@@ -92,14 +93,18 @@ class AdminJobController(
         @RequestParam(required = false, defaultValue = "0") page: Int,
         @RequestParam(required = false, defaultValue = "20") size: Int
     ): JobPage {
-        log.debug("GET /admin/jobs for repoId=$repoId, status=$status, search=$search, sort=$sort, dir=$dir, createdFrom=$createdFrom, createdTo=$createdTo, page=$page, size=$size")
+        log.debug("GET /admin/jobs for repoId=$repoId, statuses=$statuses, search=$search, sort=$sort, dir=$dir, createdFrom=$createdFrom, createdTo=$createdTo, page=$page, size=$size")
         // Whitelist gegen beliebige Sort-Eingaben; Default wie bisher: neueste zuerst.
         val sortField = JOB_SORT_FIELDS[sort] ?: "creationTimestamp"
         val direction = if (dir.equals("asc", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
         val pageable = PageRequest.of(page, size, Sort.by(direction, sortField))
-        val result: Page<RenderingJob> = renderingJobRepository.findJobsPage(repoId, status, search, createdFrom, createdTo, pageable)
+        val result: Page<RenderingJob> = renderingJobRepository.findJobsPage(repoId, statuses, search, createdFrom, createdTo, pageable)
+        // Eine gebündelte Abfrage für die ganze Seite statt vorher einmal findByParentId pro
+        // Zeile (N+1) – das war der Hauptanteil der 1-2s Ladezeit dieser Liste.
+        val jobIds = result.content.map { it.id }
+        val subJobsByParent = if (jobIds.isEmpty()) emptyMap() else subJobRepository.findByParentIdIn(jobIds).groupBy { it.parent }
         return JobPage(
-            content = result.content.map { toJobListItem(it) },
+            content = result.content.map { toJobListItem(it, subJobsByParent[it.id].orEmpty()) },
             page = result.number,
             size = result.size,
             totalElements = result.totalElements,
@@ -123,17 +128,7 @@ class AdminJobController(
         return ResponseEntity.noContent().build()
     }
 
-    private fun toJobListItem(job: RenderingJob): JobListItem {
-        val subJobs = subJobRepository.findByParentId(job.id).map {
-            SubJobInfo(
-                id = it.id.toHexString(),
-                routingKey = it.routingKey,
-                status = it.status,
-                quality = it.quality,
-                progress = it.progress,
-                errorMessage = it.errorMessage
-            )
-        }
+    private fun toJobListItem(job: RenderingJob, subJobs: List<SubJobListItem>): JobListItem {
         return JobListItem(
             id = job.id.toHexString(),
             module = job.module,
@@ -144,7 +139,16 @@ class AdminJobController(
             creationTimestamp = job.creationTimestamp,
             finishedTimestamp = job.finishedTimestamp,
             errorMessage = job.errorMessage,
-            subJobs = subJobs
+            subJobs = subJobs.map {
+                SubJobInfo(
+                    id = it.id.toHexString(),
+                    routingKey = it.routingKey,
+                    status = it.status,
+                    quality = it.quality,
+                    progress = it.progress,
+                    errorMessage = it.errorMessage
+                )
+            }
         )
     }
 }
