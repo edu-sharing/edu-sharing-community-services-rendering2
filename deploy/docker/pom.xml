@@ -71,7 +71,7 @@
     </docker.edu_sharing.community.common.rustfs.name>
 
     <docker.edu_sharing.community.common.rustfs.tag>
-      1.0.0-alpha.82
+      1.0.0-rc.5
     </docker.edu_sharing.community.common.rustfs.tag>
 
     <docker.edu_sharing.community.common.rabbitmq.name>
