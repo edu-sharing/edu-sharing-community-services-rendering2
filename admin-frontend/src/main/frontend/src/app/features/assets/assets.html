@@ -29,14 +29,13 @@
     [expansion]="versionsTpl"
     [rowActions]="nodeActionsTpl"
     (expanded)="onExpandNode($event)"
-    searchPlaceholder="Search assets…"
+    searchPlaceholder="Search assets… (nodeId1, nodeId2 …)"
     (sortChange)="onNodeSort($event)"
     (queryChange)="onNodeSearch($event)"
   >
     <mat-form-field dt-filters appearance="outline" subscriptSizing="dynamic" class="filter-field">
       <mat-label>Filter type</mat-label>
-      <mat-select [value]="filterType() ?? ''" (selectionChange)="setFilterType($event.value)">
-        <mat-option value="">All</mat-option>
+      <mat-select multiple [value]="selectedTypes()" (selectionChange)="setFilterTypes($event.value)">
         @for (t of filterTypes(); track t.type) {
           <mat-option [value]="t.type">{{ t.type }}</mat-option>
         }

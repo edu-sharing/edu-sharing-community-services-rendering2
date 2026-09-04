@@ -35,7 +35,7 @@ export class Jobs {
   protected readonly statuses: RenderingJobStatus[] =
     ['QUEUED', 'PROCESSING', 'FINISHED', 'FAILED', 'PARTIALLY_FAILED'];
 
-  protected readonly status = signal<RenderingJobStatus | null>(null);
+  protected readonly selectedStatuses = signal<RenderingJobStatus[]>([]);
   protected readonly page = signal(0);
   protected readonly size = 50;
   // Server-side sort + search (defaults mirror the table's initialSort / backend default).
@@ -50,7 +50,7 @@ export class Jobs {
   protected readonly jobs = toSignal(
     combineLatest([
       this.repoId$,
-      toObservable(this.status),
+      toObservable(this.selectedStatuses),
       toObservable(this.sort),
       toObservable(this.dir),
       toObservable(this.search),
@@ -60,12 +60,12 @@ export class Jobs {
       toObservable(this.refreshTick),
       this.poll.ticks$,
     ]).pipe(
-      switchMap(([repoId, status, sort, dir, search, createdFrom, createdTo, page]) =>
+      switchMap(([repoId, statuses, sort, dir, search, createdFrom, createdTo, page]) =>
         repoId
           ? this.api
               .listJobs({
                 repoId,
-                status: status ?? undefined,
+                statuses: statuses.length ? statuses : undefined,
                 sort,
                 dir,
                 search: search || undefined,
@@ -84,6 +84,7 @@ export class Jobs {
   protected readonly rows = computed<JobListItem[]>(() => this.jobs()?.content ?? []);
 
   protected readonly columns: Column[] = [
+    { key: 'id', label: 'Job ID', cssClass: 'mono' },
     { key: 'module', label: 'Module', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true, kind: 'badge',
@@ -96,8 +97,8 @@ export class Jobs {
 
   protected readonly hasSubJobs = (job: JobListItem): boolean => job.subJobs.length > 0;
 
-  setStatus(value: string): void {
-    this.status.set(value ? (value as RenderingJobStatus) : null);
+  setStatuses(values: RenderingJobStatus[]): void {
+    this.selectedStatuses.set(values);
     this.page.set(0);
   }
 

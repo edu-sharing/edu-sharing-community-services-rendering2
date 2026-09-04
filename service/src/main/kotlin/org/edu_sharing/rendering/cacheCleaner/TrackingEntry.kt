@@ -22,7 +22,16 @@ import java.util.*
 
     // Covers: findAllByBucket
     // Also covers queries filtering by bucket and lastAccessed
-    CompoundIndex(name="bucket_lastAccessed_idx", def="{'bucket': 1, 'lastAccessed': 1}")
+    CompoundIndex(name="bucket_lastAccessed_idx", def="{'bucket': 1, 'lastAccessed': 1}"),
+
+    // Trägt GET /admin/assets/nodes (AdminAssetController.listAssetNodes ->
+    // CustomTrackingEntryRepositoryImpl.aggregateNodes) für den Fall mit Typ-Filter: 'type'
+    // (bzw. jetzt 'types' via $in) direkt nach 'repoId', damit der $match der Aggregation per
+    // Index bedient wird statt jeden Tracking-Eintrag des Repos in-memory nach Typ zu filtern;
+    // 'lastAccessed' danach liefert die anschließende $sort-Stage (die vor dem $group über die
+    // Versionen steht, um pro nodeId die neueste Version zu bestimmen) direkt aus dem Index statt
+    // per In-Memory-Sort. Ohne Typ-Filter greift weiterhin repo_lastAccessed_idx.
+    CompoundIndex(name="repo_type_lastAccessed_idx", def="{'repoId': 1, 'type': 1, 'lastAccessed': -1}")
 )
 data class TrackingEntry(
     @Id

@@ -83,7 +83,7 @@ class ImageConversionService (
         log.debug("Storing converted image: nodeId=${cacheObject.nodeId}, quality=$size, size=${byteArrayOutputStream.size()} bytes")
         storageImplementation.putObject(
             cacheObject = cacheObject,
-            inputStream = byteArrayOutputStream.toInputStream(),
+            streamProvider = { byteArrayOutputStream.toInputStream() },
             metadata = metadata
         )
     }

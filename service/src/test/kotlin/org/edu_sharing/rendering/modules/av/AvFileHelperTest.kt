@@ -42,8 +42,8 @@ class AvFileHelperTest {
 
         var uploadedBytes: ByteArray? = null
         // the stream is consumed and closed inside uploadToCache, so read it in the answer
-        every { storageService.putObject(cacheObject, any<InputStream>(), metadata) } answers {
-            uploadedBytes = secondArg<InputStream>().readAllBytes()
+        every { storageService.putObject(cacheObject, any<() -> InputStream>(), metadata) } answers {
+            uploadedBytes = secondArg<() -> InputStream>().invoke().readAllBytes()
         }
 
         // Act
@@ -51,6 +51,6 @@ class AvFileHelperTest {
 
         // Assert
         assert(uploadedBytes!!.toString(Charsets.UTF_8) == expectedContent)
-        verify(exactly = 1) { storageService.putObject(cacheObject, any<InputStream>(), metadata) }
+        verify(exactly = 1) { storageService.putObject(cacheObject, any<() -> InputStream>(), metadata) }
     }
 }

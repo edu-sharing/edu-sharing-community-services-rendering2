@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 
 interface TraceStore {
     traceId: string;
+    clientTraceId?: string;
 }
 
 /**
@@ -18,7 +19,7 @@ interface TraceStore {
 export const traceStore = new AsyncLocalStorage<TraceStore>();
 
 /**
- * Prepend the active trace id to every log line. Lumi's own code and the `@lumieducation/h5p-*`
+ * Prepend the active trace id(s) to every log line. Lumi's own code and the `@lumieducation/h5p-*`
  * libraries all log through the shared `debug` module, so patching its formatter once covers all
  * output. Lines logged outside of a request (e.g. at startup) simply have no trace id.
  */
@@ -31,9 +32,10 @@ function patchDebugWithTraceId(): void {
     const originalFormatArgs = createDebug.formatArgs;
     createDebug.formatArgs = function (args: any[]): void {
         originalFormatArgs.call(this, args);
-        const traceId = traceStore.getStore()?.traceId;
-        if (traceId) {
-            args[0] = `[traceId=${traceId}] ${args[0]}`;
+        const store = traceStore.getStore();
+        if (store?.traceId) {
+            const clientTraceId = store.clientTraceId ? ` clientTraceId=${store.clientTraceId}` : '';
+            args[0] = `[traceId=${store.traceId}${clientTraceId}] ${args[0]}`;
         }
     };
 }
@@ -79,10 +81,20 @@ export function extractTraceId(req: Request): string {
 }
 
 /**
+ * Extracts the client-supplied `X-Client-Trace-Id` header, if present. Unlike {@link extractTraceId}
+ * this is not a b3/mesh trace id — it's an opaque correlation id the calling client set, forwarded
+ * unchanged by the rendering service, so it's logged alongside the b3 trace id rather than replacing it.
+ */
+export function extractClientTraceId(req: Request): string | undefined {
+    return firstHeaderValue(req.headers['x-client-trace-id']);
+}
+
+/**
  * Express middleware: derive the trace id for the request and run the remaining handler chain within
  * the trace context, so every log line emitted while handling the request carries the trace id.
  */
 export function traceContextMiddleware(req: Request, res: Response, next: NextFunction): void {
     const traceId = extractTraceId(req);
-    traceStore.run({ traceId }, () => next());
+    const clientTraceId = extractClientTraceId(req);
+    traceStore.run({ traceId, clientTraceId }, () => next());
 }

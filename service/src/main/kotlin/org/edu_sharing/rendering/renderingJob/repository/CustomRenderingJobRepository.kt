@@ -10,15 +10,16 @@ interface CustomRenderingJobRepository {
     fun updateStatusWithoutVersion(jobId: ObjectId, status: RenderingJobStatus)
 
     /**
-     * Admin-Job-Liste eines Repos (paginiert), optional nach Status gefiltert und per Freitext
-     * durchsucht (`search`, Regex über module/esObjectId/errorMessage/status). Optional auf einen
-     * Zeitraum eingegrenzt (`createdFrom`/`createdTo`, epoch-ms, inklusiv, gegen
-     * `creationTimestamp`). Sortierung kommt über das `Pageable` (vom Controller aus einer
-     * Whitelist gebaut).
+     * Admin-Job-Liste eines Repos (paginiert), optional nach einer oder mehreren Statuswerten
+     * gefiltert (leer/null ⇒ kein Filter) und per Freitext durchsucht (`search`, komma-/
+     * leerzeichengetrennte Begriffe, jeder als Regex über module/esObjectId/errorMessage/status,
+     * Ergebnis matcht bei Treffer auf irgendeinen Begriff). Optional auf einen Zeitraum
+     * eingegrenzt (`createdFrom`/`createdTo`, epoch-ms, inklusiv, gegen `creationTimestamp`).
+     * Sortierung kommt über das `Pageable` (vom Controller aus einer Whitelist gebaut).
      */
     fun findJobsPage(
         repoId: String,
-        status: RenderingJobStatus?,
+        statuses: List<RenderingJobStatus>?,
         search: String?,
         createdFrom: Long?,
         createdTo: Long?,

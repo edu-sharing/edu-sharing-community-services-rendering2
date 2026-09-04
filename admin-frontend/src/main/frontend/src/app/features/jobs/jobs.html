@@ -10,14 +10,13 @@
     [expansion]="subJobsTpl"
     [canExpand]="hasSubJobs"
     [rowActions]="actionsTpl"
-    searchPlaceholder="Search jobs…"
+    searchPlaceholder="Search jobs… (nodeId1, nodeId2 …)"
     (sortChange)="onSort($event)"
     (queryChange)="onSearch($event)"
   >
     <mat-form-field dt-filters appearance="outline" subscriptSizing="dynamic" class="filter-field">
       <mat-label>Status</mat-label>
-      <mat-select [value]="status() ?? ''" (selectionChange)="setStatus($event.value)">
-        <mat-option value="">All</mat-option>
+      <mat-select multiple [value]="selectedStatuses()" (selectionChange)="setStatuses($event.value)">
         @for (s of statuses; track s) {
           <mat-option [value]="s">{{ s }}</mat-option>
         }
@@ -45,11 +44,12 @@
 <ng-template #subJobsTpl let-job>
   <table class="data sub">
     <thead>
-      <tr><th scope="col">Routing key</th><th scope="col">Status</th><th scope="col">Quality</th><th scope="col">Progress</th><th scope="col">Error</th></tr>
+      <tr><th scope="col">Sub-job ID</th><th scope="col">Routing key</th><th scope="col">Status</th><th scope="col">Quality</th><th scope="col">Progress</th><th scope="col">Error</th></tr>
     </thead>
     <tbody>
       @for (sub of job.subJobs; track sub.id) {
         <tr>
+          <td class="mono">{{ sub.id }}</td>
           <td class="mono">{{ sub.routingKey }}</td>
           <td><span class="badge badge-{{ sub.status.toLowerCase() }}">{{ sub.status }}</span></td>
           <td>{{ sub.quality }}</td>

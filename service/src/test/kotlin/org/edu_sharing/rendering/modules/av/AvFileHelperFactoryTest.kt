@@ -25,8 +25,8 @@ class AvFileHelperFactoryTest {
 
         var uploadedBytes: ByteArray? = null
         // the stream is consumed and closed inside uploadToCache, so read it in the answer
-        every { storageService.putObject(cacheObject, any<InputStream>()) } answers {
-            uploadedBytes = secondArg<InputStream>().readAllBytes()
+        every { storageService.putObject(cacheObject, any<() -> InputStream>()) } answers {
+            uploadedBytes = secondArg<() -> InputStream>().invoke().readAllBytes()
         }
 
         // Act
