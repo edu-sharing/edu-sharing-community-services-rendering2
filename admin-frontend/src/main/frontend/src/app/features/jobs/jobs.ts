@@ -84,6 +84,7 @@ export class Jobs {
   protected readonly rows = computed<JobListItem[]>(() => this.jobs()?.content ?? []);
 
   protected readonly columns: Column[] = [
+    { key: 'id', label: 'Job ID', cssClass: 'mono' },
     { key: 'module', label: 'Module', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true, kind: 'badge',
