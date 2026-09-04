@@ -26,6 +26,12 @@ class CustomSubJobRepositoryImpl(
         val query = Query(Criteria.where("_id").`is`(subJobId))
         val update = Update()
         update.set("status", status.toString())
+        if (status == SubJobStatus.PROCESSING) {
+            update.set("processingStartedDate", Instant.now())
+        }
+        if (status.isUnsuccessful || status == SubJobStatus.FINISHED) {
+            update.set("finishedDate", Instant.now())
+        }
         // Entity-class overload so the WriteConcernResolver maps SubJob -> ACKNOWLEDGED (see timeoutSubJobs);
         // the collection-name overload leaves MongoAction.entityType null -> UNACKNOWLEDGED, on which reading
         // matchedCount/modifiedCount below throws UnsupportedOperationException.
@@ -53,6 +59,7 @@ class CustomSubJobRepositoryImpl(
         val update = Update()
             .set("status", SubJobStatus.TIMEOUT.toString())
             .set("errorMessage", errorMessage)
+            .set("finishedDate", Instant.now())
         // Use the entity-class overload, NOT the collection-name one: the WriteConcernResolver maps
         // SubJob -> ACKNOWLEDGED via MongoAction.entityType, which the collection-name overload leaves
         // null -> it falls through to UNACKNOWLEDGED, and reading matchedCount/modifiedCount on an

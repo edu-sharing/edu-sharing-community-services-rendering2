@@ -1740,6 +1740,10 @@
             "type" : "integer",
             "format" : "int64"
           },
+          "processingStartedTimestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "finishedTimestamp" : {
             "type" : "integer",
             "format" : "int64"
@@ -1805,6 +1809,18 @@
           },
           "errorMessage" : {
             "type" : "string"
+          },
+          "createdDate" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "processingStartedDate" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "finishedDate" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         },
         "required" : [ "id", "progress", "quality", "routingKey", "status" ]

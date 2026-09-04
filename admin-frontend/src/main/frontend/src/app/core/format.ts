@@ -30,3 +30,27 @@ export class EpochPipe implements PipeTransform {
     return new Date(value).toLocaleString();
   }
 }
+
+/** Formats a duration in milliseconds in a human-readable way (e.g. "2m 5s", "1h 12m"). */
+export function formatDuration(millis: number | null | undefined): string {
+  if (millis == null || millis < 0) {
+    return '–';
+  }
+  const totalSeconds = Math.floor(millis / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m ${seconds}s`;
+  }
+  const totalHours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (totalHours < 24) {
+    return `${totalHours}h ${minutes}m`;
+  }
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  return `${days}d ${hours}h`;
+}
