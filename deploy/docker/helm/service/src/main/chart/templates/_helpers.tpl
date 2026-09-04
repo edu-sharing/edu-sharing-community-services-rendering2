@@ -7,6 +7,23 @@ share-data-{{ include "edusharing_common_lib.names.name" . }}
 {{- end -}}
 
 {{/*
+Normalize a config.home.registrations[*].id into a value that is safe as a Spring
+property-map key when delivered as an env-var name (ConfigMap/Secret keys via envFrom).
+
+Spring splits property names on ".", and the SystemEnvironmentPropertyMapper additionally
+treats "_" as a separator, so "my.repo"/"my_repo" would be bound as map key "my" with a
+bogus nested property "repo.url". Bracket notation (id[my.repo].url) would be the Spring
+fix but is not expressible here: ConfigMap/Secret keys are limited to [-._a-zA-Z0-9].
+
+So everything outside [a-z0-9-] is folded to "-" and the result is lowercased. The map key
+is only a label (it is never used as a repoId; only the literal "local" is looked up in
+test mode), so normalizing it is safe. Collisions are rejected by validate-registrations.yaml.
+*/}}
+{{- define "edusharing_services_rendering.registrationId" -}}
+{{- regexReplaceAll "^-+|-+$" (regexReplaceAll "[^a-z0-9-]" (lower (toString .)) "-") "" -}}
+{{- end -}}
+
+{{/*
 Build the JAVA_OPTS string from a dict {minPercentage, maxPercentage, debug}.
 Single source for both the global default (configmap-env) and the per-role override
 (statefulset). Empty min/max percentages are skipped, mirroring the previous behaviour.

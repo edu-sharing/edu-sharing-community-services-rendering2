@@ -506,7 +506,7 @@ config:
     appid: rendering2
 
     registrations:
-      ## @param config.home.registrations[0].id Set id for repository registration
+      ## @param config.home.registrations[0].id Set id for repository registration (normalized to [a-z0-9-]: uppercase is lowercased, every other character — e.g. "." or "_" — becomes "-", since the id is used as an env-var name; two ids must not normalize to the same value)
     - id: local
       ## @param config.home.registrations[0].url Set url for repository registration
       url: http://edusharing-repository-service:8080/edu-sharing

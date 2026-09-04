@@ -87,17 +87,18 @@ data:
   "server.servlet.session.cookie.secure": {{ .Values.config.session.cookie.secure | quote}}
   "server.servlet.session.cookie.partitioned": {{ .Values.config.session.cookie.partitioned | quote}}
   {{- range $register := .Values.config.home.registrations }}
+  {{- $id := include "edusharing_services_rendering.registrationId" $register.id }}
   {{- $modules := list -}}
   {{- range $module := $register.modules }}
   {{- $modules = append $modules $module.name }}
   {{- with $module.cspHeader }}
-  "app.repository.registration.id.{{ $register.id }}.module.{{ $module.name }}.cspHeader": {{ . | quote }}
+  "app.repository.registration.id.{{ $id }}.module.{{ $module.name }}.cspHeader": {{ . | quote }}
   {{- end }}
   {{- end }}
   {{- range $bucket := $register.buckets }}
-  "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
+  "app.repository.registration.id.{{ $id }}.externalBuckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
   {{- end }}
-  "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
-  "app.repository.registration.id.{{ $register.id }}.quota": {{ $register.quota | default 0 | quote }}
-  "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}
+  "app.repository.registration.id.{{ $id }}.optional-modules": {{ join "," $modules | quote }}
+  "app.repository.registration.id.{{ $id }}.quota": {{ $register.quota | default 0 | quote }}
+  "app.repository.registration.id.{{ $id }}.url": {{ $register.url | quote }}
   {{- end }}
