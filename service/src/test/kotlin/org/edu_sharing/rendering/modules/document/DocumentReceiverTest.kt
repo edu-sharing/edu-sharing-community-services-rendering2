@@ -74,6 +74,7 @@ class DocumentReceiverTest {
         every { job.subJobs } returns mutableListOf(mockk<SubJob>())
         every { renderingJobRepository.save(job) } returns job
         justRun { job.status = RenderingJobStatus.PROCESSING }
+        justRun { job.processingStartedTimestamp = any() }
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         justRun { documentConversionService.process(cacheObject, job) }
         every { mainJobLogic.processMainJob("job123") } returns true

@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @ConditionalOnConverter
 @Component
@@ -52,6 +53,9 @@ class EduHtmlReceiver(
         log.debug("Job retrieved: {}", jobEntry)
         jobRepository.updateStatusWithoutVersion(jobEntry.id, RenderingJobStatus.PROCESSING)
         var subJob = jobEntry.subJobs[0]
+        // No SubJobStatus.PROCESSING transition here (unlike the other modules) - this is a single,
+        // synchronous conversion step, so only the timestamp is tracked for the admin job list.
+        subJob.processingStartedDate = Instant.now()
         subJob = subJobRepository.save(subJob)
         var success = true
         try {
@@ -65,6 +69,7 @@ class EduHtmlReceiver(
             success = false
         } finally {
             subJob.status = if (success) SubJobStatus.FINISHED else SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJobRepository.save(subJob)
         }
         mainJobLogic.processMainJob(jobEntry.id.toString())

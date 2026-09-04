@@ -33,7 +33,10 @@ data class SubJobInfo(
     val status: SubJobStatus,
     val quality: Int,
     val progress: Int,
-    val errorMessage: String?
+    val errorMessage: String?,
+    val createdDate: Long?,
+    val processingStartedDate: Long?,
+    val finishedDate: Long?
 )
 
 data class JobListItem(
@@ -44,6 +47,7 @@ data class JobListItem(
     val esObjectType: String,
     val mimeType: String,
     val creationTimestamp: Long,
+    val processingStartedTimestamp: Long?,
     val finishedTimestamp: Long?,
     val errorMessage: String?,
     val subJobs: List<SubJobInfo>

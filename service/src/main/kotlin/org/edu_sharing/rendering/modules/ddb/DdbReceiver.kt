@@ -55,6 +55,10 @@ class DdbReceiver(
         }
         log.debug("Processing DDB job ${message.id}, nodeId ${mainJob.esObjectId}")
         renderingJobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
+        // Mirror what the versionless update above just wrote: DdbApiService.process falls back to a
+        // full save of this same (pre-update) mainJob instance when it has no sub-jobs, which would
+        // otherwise clobber processingStartedTimestamp back to null.
+        mainJob.processingStartedTimestamp = System.currentTimeMillis()
         try {
             ddbApiService.process(message.remoteId, mainJob)
         } catch (exception: Exception) {
