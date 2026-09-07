@@ -99,21 +99,23 @@
 <ng-template #bucketActionsTpl let-row>
   <div class="dt-row-actions">
     <button
-      matIconButton
+      matButton
       [attr.aria-label]="'Measure exact size for bucket ' + row.name"
       title="Recompute this bucket's exact size live from S3. The value then stays pinned across automatic refreshes until reset."
       (click)="measureExact(row.name)"
     >
       <mat-icon aria-hidden="true">refresh</mat-icon>
+      Measure exact
     </button>
     @if (isPinned(row)) {
       <button
-        matIconButton
-        [attr.aria-label]="'Reset exact size for bucket ' + row.name"
-        title="Resume automatic tracked updates for this bucket."
+        matButton
+        [attr.aria-label]="'Unpin exact size for bucket ' + row.name"
+        title="This row is pinned to the measured exact snapshot. Click to resume automatic tracked updates."
         (click)="resetExact(row.name)"
       >
-        <mat-icon aria-hidden="true">restart_alt</mat-icon>
+        <mat-icon aria-hidden="true">push_pin</mat-icon>
+        Unpin
       </button>
     }
   </div>
