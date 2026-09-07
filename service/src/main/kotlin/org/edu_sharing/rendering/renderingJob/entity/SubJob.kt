@@ -40,5 +40,10 @@ data class SubJob(
     val version: Int? = null,
     val priority: Int = 0,
     var additionalData: Map<String, String>? = null,
-    var errorMessage: String? = null
+    var errorMessage: String? = null,
+    // Set when the sub-job leaves QUEUED for PROCESSING / reaches a terminal status (see the
+    // module receivers/services and CustomSubJobRepositoryImpl) - lets the admin job list show
+    // queued time vs. processing time separately instead of only createdDate/lastModifiedDate.
+    var processingStartedDate: Instant? = null,
+    var finishedDate: Instant? = null
 )

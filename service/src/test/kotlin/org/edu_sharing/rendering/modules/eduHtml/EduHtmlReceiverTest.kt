@@ -77,6 +77,7 @@ class EduHtmlReceiverTest {
         every { mainJobLogic.getMainJobEntry("id") } returns job
         every { job.id } returns jobId
         justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
+        justRun { subJob.processingStartedDate = any() }
         every  { subJobRepository.save(subJob) } returns subJob
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { subJob.additionalData } returns null
@@ -84,6 +85,7 @@ class EduHtmlReceiverTest {
         every { eduHtmlConversionService.cacheData(cacheObject, candidates) } throws Exception("testException")
         justRun { subJob.errorMessage = GENERIC_CONVERSION_ERROR }
         justRun { subJob.status = SubJobStatus.FAILED }
+        justRun { subJob.finishedDate = any() }
         every { mainJobLogic.processMainJob(jobId.toString()) } returns true
 
         excludeRecords {
@@ -100,12 +102,14 @@ class EduHtmlReceiverTest {
         verifySequence {
             mainJobLogic.getMainJobEntry("id")
             renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING)
+            subJob.processingStartedDate = any()
             subJobRepository.save(subJob)
             mapper.renderingJobToCacheObject(job)
             eduHtmlService.entryCandidates(null)
             eduHtmlConversionService.cacheData(cacheObject, candidates)
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = any()
             subJobRepository.save(subJob)
             mainJobLogic.processMainJob(jobId.toString())
         }
@@ -126,6 +130,7 @@ class EduHtmlReceiverTest {
         every { mainJobLogic.getMainJobEntry("id") } returns job
         every { job.id } returns jobId
         justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
+        justRun { subJob.processingStartedDate = any() }
         every { subJobRepository.save(subJob) } returns subJob
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { subJob.additionalData } returns mapOf("mainEntity" to "player.html")
@@ -135,6 +140,7 @@ class EduHtmlReceiverTest {
             org.edu_sharing.rendering.core.dto.ObjectLink(link = "ok")
         justRun { subJob.message = "ok" }
         justRun { subJob.status = SubJobStatus.FINISHED }
+        justRun { subJob.finishedDate = any() }
         every { mainJobLogic.processMainJob(jobId.toString()) } returns true
 
         excludeRecords {

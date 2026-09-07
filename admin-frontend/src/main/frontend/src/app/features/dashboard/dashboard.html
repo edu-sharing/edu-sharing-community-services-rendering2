@@ -52,11 +52,9 @@
 <div class="card storage">
   <div class="storage-head">
     <h2>Storage usage</h2>
-    @if (storage()?.exact) {
-      <span class="badge badge-finished">exact</span>
-    } @else {
-      <span class="badge badge-queued">tracked</span>
-    }
+    <span class="info-icon" tabindex="0" role="img" [attr.aria-label]="storageInfoText" [title]="storageInfoText">
+      <mat-icon aria-hidden="true">info</mat-icon>
+    </span>
   </div>
 
   @if (storage(); as s) {
@@ -88,6 +86,7 @@
     <app-data-table
       [columns]="bucketColumns"
       [rows]="buckets()"
+      [rowActions]="bucketActionsTpl"
       trackKey="name"
       [initialSort]="{ key: 'size', dir: 'desc' }"
       searchPlaceholder="Search buckets…"
@@ -96,3 +95,28 @@
     <p class="muted">Loading storage data…</p>
   }
 </div>
+
+<ng-template #bucketActionsTpl let-row>
+  <div class="dt-row-actions">
+    <button
+      matButton
+      [attr.aria-label]="'Measure exact size for bucket ' + row.name"
+      title="Recompute this bucket's exact size live from S3. The value then stays pinned across automatic refreshes until reset."
+      (click)="measureExact(row.name)"
+    >
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+      Measure exact
+    </button>
+    @if (isPinned(row)) {
+      <button
+        matButton
+        [attr.aria-label]="'Unpin exact size for bucket ' + row.name"
+        title="This row is pinned to the measured exact snapshot. Click to resume automatic tracked updates."
+        (click)="resetExact(row.name)"
+      >
+        <mat-icon aria-hidden="true">push_pin</mat-icon>
+        Unpin
+      </button>
+    }
+  </div>
+</ng-template>

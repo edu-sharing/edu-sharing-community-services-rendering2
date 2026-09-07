@@ -157,6 +157,8 @@ config:
     buckets:
       ## @param config.s3.buckets.content Set S3 bucket for content
       content: lumi-contentbucket
+      ## @param config.s3.buckets.contentQuota Set storage quota for the content bucket — a plain byte count or a human-readable size like "10GB" (binary units, 1KB = 1024 bytes); 0/unset = no limit; enforced by rendering2's CacheCleaner
+      contentQuota: 0
       ## @param config.s3.buckets.library Set S3 bucket for library
       library: lumi-libbucket
       ## @param config.s3.buckets.temporary Set S3 bucket for temporary

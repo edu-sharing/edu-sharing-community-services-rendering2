@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Instant
 
 @ConditionalOnConverter
 @Service
@@ -32,12 +33,15 @@ class JupyterConversionService(
         var subJob = renderingJob.subJobs.first()
         try {
             subJob.status = SubJobStatus.PROCESSING
+            subJob.processingStartedDate = Instant.now()
             subJob = subJobRepository.save(subJob)
             convertAndMoveToCache(cacheObject)
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
             log.error("Jupyter conversion failed for object ${renderingJob.esObjectId} with exception ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
         }
         subJobRepository.save(subJob)

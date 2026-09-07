@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -52,13 +53,18 @@ class OnyxReceiver(
             log.debug("Processing Onyx job ${message.id} for nodeId ${cacheObject.nodeId}")
             subJobRepository.updateStatusWithoutVersion(subJob.id, SubJobStatus.PROCESSING)
             renderingJobRepository.updateStatusWithoutVersion(jobEntry.id, RenderingJobStatus.PROCESSING)
+            // Mirror what the versionless updates above just wrote, so the full save below (of a
+            // subJob instance fetched before those updates) doesn't clobber it back to null.
+            subJob.processingStartedDate = Instant.now()
             subJob.message = onyxUploadService.uploadTest(cacheObject)
             log.debug("Onyx upload finished for job ${message.id}, sub-job marked FINISHED")
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
             subJobRepository.save(subJob)
         } catch (exception: Exception) {
             log.error("Onyx upload failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJobRepository.save(subJob)
         } finally {

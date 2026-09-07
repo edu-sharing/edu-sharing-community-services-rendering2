@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.messaging.handler.annotation.Header
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -63,9 +64,11 @@ class OmegaReceiver(
         }
         log.debug("Processing Omega job ${message.id}")
         jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         jobEntry = renderingJobRepository.save(jobEntry)
         var streamUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
         streamUrlSubJob.status = SubJobStatus.PROCESSING
+        streamUrlSubJob.processingStartedDate = Instant.now()
         streamUrlSubJob = subJobRepository.save(streamUrlSubJob)
         try {
             val (streamUrl, downloadUrl) = omegaService.getContentUrl(
@@ -75,6 +78,7 @@ class OmegaReceiver(
             )
             log.debug("Omega content URL retrieved for job ${message.id}, marking sub-job as FINISHED")
             streamUrlSubJob.status = SubJobStatus.FINISHED
+            streamUrlSubJob.finishedDate = Instant.now()
             streamUrlSubJob.message = streamUrl
             if (downloadUrl != null) {
                 streamUrlSubJob.additionalData = mapOf("downloadUrl" to downloadUrl)
@@ -96,6 +100,7 @@ class OmegaReceiver(
             jobEntry.errorMessage = userMessage
             renderingJobRepository.save(jobEntry)
             streamUrlSubJob.status = SubJobStatus.FAILED
+            streamUrlSubJob.finishedDate = Instant.now()
             streamUrlSubJob.errorMessage = userMessage
             subJobRepository.save(streamUrlSubJob)
         }

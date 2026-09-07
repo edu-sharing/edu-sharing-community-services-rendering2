@@ -15,6 +15,7 @@ import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Instant
 
 @ConditionalOnConverter
 @Service
@@ -33,6 +34,7 @@ class DocumentConversionService(
         log.debug("process: nodeId=${cacheObject.nodeId}, module=${renderingJob.module}")
         var subJob = renderingJob.subJobs.first()
         subJob.status = SubJobStatus.PROCESSING
+        subJob.processingStartedDate = Instant.now()
         subJob = subJobRepository.save(subJob)
         try {
             convertAndMoveToCache(
@@ -40,10 +42,12 @@ class DocumentConversionService(
                 moduleRegistry.getRenderModule(renderingJob.module)
             )
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
             log.debug("Document conversion FINISHED: nodeId=${cacheObject.nodeId}")
         } catch (exception: Exception) {
             log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${exception.message}",exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
         } finally {
             storageService.removeTempObject(cacheObject = cacheObject)

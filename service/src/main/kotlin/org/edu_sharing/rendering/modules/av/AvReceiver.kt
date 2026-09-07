@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.*
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @ConditionalOnAvConverter
 @Component
@@ -72,6 +73,7 @@ class AvReceiver(
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         log.debug("Dispatching AV conversion: nodeId=${cacheObject.nodeId}, module=${jobEntry.module}, quality=${subJob.quality}")
         subJob.status = SubJobStatus.PROCESSING
+        subJob.processingStartedDate = Instant.now()
         subJob = subJobRepository.save(subJob)
         try {
             val service = when(jobEntry.module) {
@@ -86,6 +88,7 @@ class AvReceiver(
             val finishedSubJob = subJobRepository.findByIdOrNull(subJob.id)
             if (finishedSubJob !== null) {
                 finishedSubJob.status = SubJobStatus.FINISHED
+                finishedSubJob.finishedDate = Instant.now()
                 finishedSubJob.progress = 100
                 subJobRepository.save(finishedSubJob)
                 log.debug("AV sub-job FINISHED: nodeId=${cacheObject.nodeId}, quality=${subJob.quality}")
@@ -99,6 +102,7 @@ class AvReceiver(
             }
             if (failedSubJob != null) {
                 failedSubJob.status = SubJobStatus.FAILED
+                failedSubJob.finishedDate = Instant.now()
                 failedSubJob.errorMessage = GENERIC_CONVERSION_ERROR
                 subJobRepository.save(failedSubJob)
                 log.debug("AV sub-job FAILED: nodeId=${cacheObject.nodeId}, quality=${subJob.quality}")

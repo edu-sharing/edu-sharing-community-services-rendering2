@@ -57,6 +57,7 @@ class JobReceiver(
         try {
             log.debug("Transitioning job ${jobEntry.id} from ${jobEntry.status} to ${RenderingJobStatus.PROCESSING}")
             jobEntry.status = RenderingJobStatus.PROCESSING
+            jobEntry.processingStartedTimestamp = System.currentTimeMillis()
             jobEntry = jobRepository.save(jobEntry)
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
             // Pass a stream supplier instead of an opened stream: the storage service (re-)invokes it
@@ -71,6 +72,7 @@ class JobReceiver(
                 log.debug("Job ${jobEntry.id} is non-conversion type, storing final object and marking FINISHED")
                 storageImplementation.putObject(cacheObject, { contentTransferService.getAsInputStream(cacheObject) })
                 jobEntry.status = RenderingJobStatus.FINISHED
+                jobEntry.finishedTimestamp = System.currentTimeMillis()
                 jobRepository.save(jobEntry)
                 return
             }

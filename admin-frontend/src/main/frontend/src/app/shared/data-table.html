@@ -78,6 +78,31 @@
               @case ('badge') {
                 <span class="badge {{ col.badgeClass ? col.badgeClass(row) : '' }}">{{ cell(row, col) }}</span>
               }
+              @case ('percent') {
+                <!-- Explicit null/undefined check (not truthiness) so a genuine 0% still renders a bar. -->
+                @let percent = cell(row, col);
+                @if (percent === null || percent === undefined) {
+                  <span class="muted">–</span>
+                } @else {
+                  <div class="dt-percent-cell">
+                    <div
+                      class="dt-percent-bar"
+                      role="progressbar"
+                      [attr.aria-valuenow]="clampPercent(percent)"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      [attr.aria-label]="percent.toFixed(1) + '%'"
+                    >
+                      <div
+                        class="dt-percent-fill"
+                        [style.width.%]="clampPercent(percent)"
+                        [style.background]="col.barColor ? col.barColor(row) : null"
+                      ></div>
+                    </div>
+                    <span class="dt-percent-label">{{ percent.toFixed(1) }}%</span>
+                  </div>
+                }
+              }
               @default { {{ cell(row, col) }} }
             }
           </td>

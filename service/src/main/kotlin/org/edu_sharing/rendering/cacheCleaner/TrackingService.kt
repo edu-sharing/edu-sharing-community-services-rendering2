@@ -74,6 +74,14 @@ class TrackingService(
         return TrackingIterator {trackingEntryRepository.findAllByRepoId(repoId, it)}
     }
 
+    /**
+     * Like [getTrackedObjectsByRepoId], but scoped to a single bucket — for the per-bucket
+     * CacheCleaner scope (see [org.edu_sharing.rendering.storage.StorageInfo]).
+     */
+    fun getTrackedObjectsByRepoIdAndBucket(repoId: String, bucket: String): TrackingIterator {
+        return TrackingIterator {trackingEntryRepository.findAllByRepoIdAndBucket(repoId, bucket, it)}
+    }
+
     fun trackCacheObject(cacheObject: CacheObject, bucket: String, size: Long? = null) {
         val trackingEntry = trackingEntryRepository.findByRepoIdAndNodeIdAndHashAndBucket(
             cacheObject.repoId,

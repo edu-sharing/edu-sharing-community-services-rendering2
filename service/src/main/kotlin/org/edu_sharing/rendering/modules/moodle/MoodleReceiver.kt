@@ -14,6 +14,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -49,7 +50,9 @@ class MoodleReceiver (
         }
         var subJob = jobEntry.subJobs.first()
         subJob.status = SubJobStatus.PROCESSING
+        subJob.processingStartedDate = Instant.now()
         jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         jobEntry = renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         log.debug("Processing Moodle job ${message.id}, calling upload service for nodeId ${message.nodeId}")
@@ -63,9 +66,11 @@ class MoodleReceiver (
             subJob.message = url.first
             subJob.additionalData = mapOf("linkUrl" to url.second)
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             if (exception is MoodleUploadException) {
                 subJob.errorMessage = exception.publicMessage
                 jobEntry.errorMessage = exception.publicMessage

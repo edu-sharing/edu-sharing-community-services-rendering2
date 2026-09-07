@@ -123,3 +123,6 @@ rename a Spring property, update
 - Commit/push only when asked; branch off `master` for PRs.
 - Match the surrounding Kotlin style; keep changes minimal and verify with the relevant
   `mvnw` command before reporting done.
+- **All code comments are in English** — across every module (service/Kotlin, lumi/TypeScript,
+  admin-frontend, deploy YAML/properties), regardless of the language the conversation with
+  Claude is in. Only user-facing conversation replies follow the user's language.

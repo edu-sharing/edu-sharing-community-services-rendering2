@@ -31,6 +31,7 @@ abstract class AbstractReceiver(
         }
         log.debug("Job id='{}' found with {} sub-job(s), transitioning to status PROCESSING", message.id, jobEntry.subJobs.size)
         jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         jobEntry = renderingJobRepository.save(jobEntry)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         log.debug("Dispatching job id='{}' to ConversionService.process()", message.id)

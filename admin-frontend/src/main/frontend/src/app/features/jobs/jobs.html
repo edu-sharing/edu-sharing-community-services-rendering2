@@ -44,7 +44,12 @@
 <ng-template #subJobsTpl let-job>
   <table class="data sub">
     <thead>
-      <tr><th scope="col">Sub-job ID</th><th scope="col">Routing key</th><th scope="col">Status</th><th scope="col">Quality</th><th scope="col">Progress</th><th scope="col">Error</th></tr>
+      <tr>
+        <th scope="col">Sub-job ID</th><th scope="col">Routing key</th><th scope="col">Status</th>
+        <th scope="col">Quality</th><th scope="col">Progress</th>
+        <th scope="col">Queued</th><th scope="col">Processing</th><th scope="col">Ended</th>
+        <th scope="col">Error</th>
+      </tr>
     </thead>
     <tbody>
       @for (sub of job.subJobs; track sub.id) {
@@ -54,6 +59,9 @@
           <td><span class="badge badge-{{ sub.status.toLowerCase() }}">{{ sub.status }}</span></td>
           <td>{{ sub.quality }}</td>
           <td>{{ sub.progress }}%</td>
+          <td>{{ sub.createdDate ? queuedTime(sub.createdDate, sub.processingStartedDate, sub.finishedDate) : '–' }}</td>
+          <td>{{ processingTime(sub.processingStartedDate, sub.finishedDate) }}</td>
+          <td>{{ sub.finishedDate | epoch }}</td>
           <td class="err">{{ sub.errorMessage ?? '' }}</td>
         </tr>
       }

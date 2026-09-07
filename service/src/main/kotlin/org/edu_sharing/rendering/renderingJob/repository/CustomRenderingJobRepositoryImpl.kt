@@ -69,6 +69,9 @@ class CustomRenderingJobRepositoryImpl(
         val query = Query(Criteria.where("_id").`is`(jobId))
         val update = Update()
         update.set("status", status.toString())
+        if (status == RenderingJobStatus.PROCESSING) {
+            update.set("processingStartedTimestamp", System.currentTimeMillis())
+        }
         if (status >= RenderingJobStatus.FINISHED) {
             update.set("finishedTimestamp", System.currentTimeMillis())
         }

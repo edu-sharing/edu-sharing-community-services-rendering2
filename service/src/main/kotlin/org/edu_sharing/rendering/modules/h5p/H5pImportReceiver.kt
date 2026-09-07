@@ -19,6 +19,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 /**
  * Second stage of the H5P job flow: imports the package into lumi. Only sub-jobs that missed the lookup stage
@@ -78,7 +79,9 @@ class H5pImportReceiver(
             return
         }
         subJob.status = SubJobStatus.PROCESSING
+        subJob.processingStartedDate = Instant.now()
         jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         renderingJobRepository.save(jobEntry)
         subJob = subJobRepository.save(subJob)
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
@@ -87,10 +90,12 @@ class H5pImportReceiver(
             val contentId = h5pUploadService.getContentId(cacheObject)
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
             subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
             log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
         }
         subJobRepository.save(subJob)
