@@ -24,6 +24,8 @@ class ExternalBucketStrategy(
             }
             .buckets
             ?.renderingBucket
+            ?.takeIf { it.isConfigured }
+            ?.name
             ?: throw IllegalArgumentException("No bucket ID configured for repository ${cacheObject.repoId}")
         log.debug("Resolved bucket (external strategy): repoId=${cacheObject.repoId}, bucket=$bucket")
         return bucket
@@ -51,7 +53,8 @@ class ExternalBucketStrategy(
             .orElse(null)
             ?.buckets
             ?.renderingBucket
-            ?.let { bucket == it }
+            ?.takeIf { it.isConfigured }
+            ?.let { bucket == it.name }
             ?: false
     }
 
@@ -63,6 +66,8 @@ class ExternalBucketStrategy(
             }
             .buckets
             ?.tempBucket
+            ?.takeIf { it.isConfigured }
+            ?.name
             ?: throw IllegalArgumentException("No temp bucket ID configured for repository $repoId")
         log.debug("Resolved temp bucket (external strategy): repoId=$repoId, bucket=$bucket")
         return bucket

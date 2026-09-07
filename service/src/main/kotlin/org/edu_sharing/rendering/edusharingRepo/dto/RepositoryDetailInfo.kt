@@ -12,9 +12,15 @@ data class RepositoryDetailInfo(
     val domains: List<String>,
     val optionalModules: List<String>,
     val modules: Map<String, ModuleSettingInfo>,
+    /** Repo-wide quota (bytes); only relevant as long as no bucket quota is configured. */
     val quota: Long,
     val renderingBucket: String?,
+    val renderingBucketQuota: Long?,
     val tempBucket: String?,
+    val tempBucketQuota: Long?,
+    /** H5P/lumi content bucket; name + quota come from lumi itself, not from this registration. */
+    val contentBucket: String?,
+    val contentBucketQuota: Long?,
     val allowedOrigins: List<String>,
     val allowedOriginPatterns: List<String>,
     val lastAllowedOriginSync: Long,

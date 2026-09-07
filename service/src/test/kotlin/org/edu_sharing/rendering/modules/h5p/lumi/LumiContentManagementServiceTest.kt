@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import tools.jackson.databind.json.JsonMapper
+import java.time.Duration
 
 @ExtendWith(MockKExtension::class)
 class LumiContentManagementServiceTest {
@@ -38,7 +39,8 @@ class LumiContentManagementServiceTest {
             nodeSessionContextRepo = nodeSessionContextRepo,
             objectMapper = JsonMapper.builder().build(),
             module = module,
-            securityEnabled = false
+            securityEnabled = false,
+            bucketInfoCacheTtl = Duration.ofMinutes(1)
         )
         clearAllMocks()
     }
@@ -170,5 +172,83 @@ class LumiContentManagementServiceTest {
         enqueueJson("""{"nodeId": "node126_hash126"}""")
         underTest.getNodeInfo("content126")
         assertEquals("/edusharing/contentid/content126", mockServer.takeRequest().path)
+    }
+
+    @Test
+    fun testGetContentBucketReturnsNameFromLumi() {
+        // Arrange
+        enqueueJson("""{"contentBucket": "lumi-contentbucket"}""")
+
+        // Act
+        val result = underTest.getContentBucket("repo1")
+
+        // Assert
+        val request = mockServer.takeRequest()
+        assertEquals("/edusharing/buckets/", request.path)
+        assertEquals("lumi-contentbucket", result)
+    }
+
+    @Test
+    fun testGetContentBucketInfoReturnsNameAndQuotaFromLumi() {
+        // Arrange
+        enqueueJson("""{"contentBucket": "lumi-contentbucket", "contentBucketQuota": 10737418240}""")
+
+        // Act
+        val result = underTest.getContentBucketInfo("repo1")
+
+        // Assert
+        assertEquals("lumi-contentbucket", result.contentBucket)
+        assertEquals(10737418240L, result.contentBucketQuota)
+    }
+
+    @Test
+    fun testGetContentBucketInfoHasNoQuotaWhenLumiReportsNone() {
+        // Arrange — older lumi versions/without quota configured omit the field entirely
+        enqueueJson("""{"contentBucket": "lumi-contentbucket"}""")
+
+        // Act
+        val result = underTest.getContentBucketInfo("repo1")
+
+        // Assert
+        assertNull(result.contentBucketQuota)
+    }
+
+    @Test
+    fun testGetContentBucketAndGetContentBucketInfoShareOneCachedLumiCallPerRepo() {
+        // Arrange — a single response for both getContentBucket and getContentBucketInfo
+        enqueueJson("""{"contentBucket": "lumi-contentbucket", "contentBucketQuota": 5368709120}""")
+
+        // Act
+        val bucket = underTest.getContentBucket("repo1")
+        val info = underTest.getContentBucketInfo("repo1")
+
+        // Assert — both reads served from the same cached bucket info, only one HTTP call
+        assertEquals("lumi-contentbucket", bucket)
+        assertEquals(5368709120L, info.contentBucketQuota)
+        assertEquals(1, mockServer.requestCount)
+    }
+
+    @Test
+    fun testGetContentBucketRefreshesAfterTtlExpires() {
+        // Arrange — a short-lived instance so the test doesn't need to wait for the real default TTL
+        val shortLived = LumiContentManagementService(
+            lumiWebClient = WebClient.builder().baseUrl(mockServer.url("/").toString()).build(),
+            nodeSessionContextRepo = nodeSessionContextRepo,
+            objectMapper = JsonMapper.builder().build(),
+            module = module,
+            securityEnabled = false,
+            bucketInfoCacheTtl = Duration.ofMillis(20)
+        )
+        enqueueJson("""{"contentBucket": "lumi-contentbucket"}""")
+        shortLived.getContentBucket("repo1")
+        Thread.sleep(50)
+        enqueueJson("""{"contentBucket": "lumi-contentbucket-renamed"}""")
+
+        // Act
+        val result = shortLived.getContentBucket("repo1")
+
+        // Assert
+        assertEquals("lumi-contentbucket-renamed", result)
+        assertEquals(2, mockServer.requestCount)
     }
 }

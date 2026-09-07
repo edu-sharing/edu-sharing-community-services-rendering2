@@ -36,6 +36,24 @@ h2 { margin: 0; font-size: 16px; }
   margin-bottom: 14px;
 }
 
+.info-icon {
+  display: inline-flex;
+  color: var(--es-text-muted-solid);
+  cursor: help;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.dt-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
 .overall { margin-bottom: 16px; }
 .bar {
   height: 14px;

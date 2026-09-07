@@ -94,9 +94,28 @@ data:
   {{- end }}
   {{- end }}
   {{- range $bucket := $register.buckets }}
-  "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}": {{ $bucket.value | quote }}
+  "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}.name": {{ $bucket.value | quote }}
+  {{- with $bucket.quota }}
+  {{/* Quota may be a plain byte count or a human-readable size (e.g. "10GB", accepted by the app's
+       @DataSizeUnit-annotated config binding). A human-readable value already arrives as a Go
+       string (YAML has no numeric syntax for it) and must pass through unchanged. A plain number,
+       though, decodes as float64 (sigs.k8s.io/yaml -> JSON -> interface{}), so a bare `quote` on a
+       multi-GB byte value would render scientific notation (e.g. "1.073741824e+10") — `int64` forces
+       a proper integer round-trip first. */}}
+  {{- if kindIs "string" . }}
+  "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}.quota": {{ . | quote }}
+  {{- else }}
+  "app.repository.registration.id.{{ $register.id }}.externalBuckets.{{ $bucket.name }}.quota": {{ . | int64 | quote }}
+  {{- end }}
+  {{- end }}
   {{- end }}
   "app.repository.registration.id.{{ $register.id }}.optional-modules": {{ join "," $modules | quote }}
-  "app.repository.registration.id.{{ $register.id }}.quota": {{ $register.quota | default 0 | quote }}
+  {{- $quota := $register.quota | default 0 }}
+  {{/* Same human-readable-size-vs-float64 handling as the bucket quota above. */}}
+  {{- if kindIs "string" $quota }}
+  "app.repository.registration.id.{{ $register.id }}.quota": {{ $quota | quote }}
+  {{- else }}
+  "app.repository.registration.id.{{ $register.id }}.quota": {{ $quota | int64 | quote }}
+  {{- end }}
   "app.repository.registration.id.{{ $register.id }}.url": {{ $register.url | quote }}
   {{- end }}

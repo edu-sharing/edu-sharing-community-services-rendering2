@@ -11,7 +11,6 @@ import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -19,7 +18,9 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
 import java.time.Duration
+import java.time.Instant
 import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
 // TODO impl. lumi per repoId!!!
 @Service
@@ -29,7 +30,9 @@ class LumiContentManagementService(
     private val objectMapper: ObjectMapper,
     private val module: H5pRenderModule,
     @param:Value($$"${app.security.enabled}")
-    private val securityEnabled: Boolean
+    private val securityEnabled: Boolean,
+    @param:Value($$"${app.lumi.bucketInfo.cacheTtl:PT1M}")
+    private val bucketInfoCacheTtl: Duration
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -38,6 +41,16 @@ class LumiContentManagementService(
         private val LOOKUP_TIMEOUT: Duration = Duration.ofSeconds(10)
         private const val NODE_INFO_CACHE_SIZE = 1024
     }
+
+    /**
+     * `getBucketInfo` is polled by the admin dashboard (storage usage, every poll tick) and by the
+     * daily CacheCleaner — both need the bucket name/quota, but `@Cacheable` is a no-op in this module
+     * (no `@EnableCaching`/`spring-boot-starter-cache`, see `RepositoryRegistrationStorageService` for
+     * the same gap). Without a real cache here, every dashboard poll would add an extra HTTP round
+     * trip to lumi. Bucket name/quota change essentially never at runtime, so a short, hand-rolled TTL
+     * cache is enough — this is deliberately scoped to just this one call, not a general cache fix.
+     */
+    private val bucketInfoCache = ConcurrentHashMap<String, Pair<LumiBucketInfo, Instant>>()
 
     /**
      * contentId -> node mapping, resolved on every proxied request — including every asset below
@@ -126,8 +139,20 @@ class LumiContentManagementService(
         )
     }
 
-    @Cacheable("contentBucket")
-    fun getContentBucket(repoId: String): String {
+    fun getContentBucket(repoId: String): String = getBucketInfo(repoId).contentBucket
+
+    /**
+     * Name + quota in one call. Prefer this over `getContentBucket(repoId)` followed by a separate
+     * quota lookup whenever a caller needs both — one call is guaranteed to pair a consistent
+     * name/quota from the same fetch, whereas two calls could (in the rare case a TTL refresh lands
+     * between them) return values from two different fetches.
+     */
+    fun getContentBucketInfo(repoId: String): LumiBucketInfo = getBucketInfo(repoId)
+
+    private fun getBucketInfo(repoId: String): LumiBucketInfo {
+        bucketInfoCache[repoId]?.let { (info, fetchedAt) ->
+            if (Duration.between(fetchedAt, Instant.now()) < bucketInfoCacheTtl) return info
+        }
         val response = lumiWebClient.get()
             .uri {
                 val uri = UriComponentsBuilder.fromUri(it.build())
@@ -138,7 +163,9 @@ class LumiContentManagementService(
             }.retrieve()
             .bodyToMono<String>()
             .block()
-        return objectMapper.readValue(response, LumiBucketInfo::class.java).contentBucket
+        val info = objectMapper.readValue(response, LumiBucketInfo::class.java)
+        bucketInfoCache[repoId] = info to Instant.now()
+        return info
     }
 
     fun deleteContent(trackingEntry: TrackingEntry) {

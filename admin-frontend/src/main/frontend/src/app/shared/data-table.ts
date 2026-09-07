@@ -10,7 +10,7 @@ import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { BytesPipe, EpochPipe } from '../core/format';
 
-export type ColumnKind = 'text' | 'number' | 'bytes' | 'date' | 'badge';
+export type ColumnKind = 'text' | 'number' | 'bytes' | 'date' | 'badge' | 'percent';
 
 /**
  * Column definition. Deliberately loosely typed (`any` accessors) so the non-generic table is
@@ -29,6 +29,9 @@ export interface Column {
   /** CSS class for the badge rendering (kind = 'badge'). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   badgeClass?: (row: any) => string;
+  /** Bar color for the progress bar (kind = 'percent'); defaults to `--es-primary`. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  barColor?: (row: any) => string;
   /** Additional CSS class for the cell (e.g. 'mono'). */
   cssClass?: string;
 }
@@ -149,6 +152,11 @@ export class DataTable {
 
   protected cell(row: Row, col: Column): Row {
     return col.value ? col.value(row) : (row as Record<string, unknown>)[col.key];
+  }
+
+  /** Clamps a percent value into [0, 100] for the progress-bar width/aria-valuenow (kind = 'percent'). */
+  protected clampPercent(value: number): number {
+    return Math.min(100, Math.max(0, value));
   }
 
   protected cellClass(col: Column): string {

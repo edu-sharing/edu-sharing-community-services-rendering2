@@ -514,7 +514,7 @@ config:
       username: admin
       ## @param config.home.registrations[0].password Set password for repository registration
       password: ""
-      ## @param config.home.registrations[0].quota Set storage quota in bytes for repository registration (0 = no limit; only enforced by the cache cleaner)
+      ## @param config.home.registrations[0].quota Set storage quota for repository registration — a plain byte count or a human-readable size like "10GB" (Spring's binary units, 1KB = 1024 bytes); 0/unset = no limit; only enforced by the cache cleaner, and only as long as none of this repo's buckets below has its own quota configured
       quota: 0
       ## @param config.home.registrations[0].modules Set modules for repository registration
       modules: []
@@ -550,12 +550,14 @@ config:
       #   credentials:
       #   - name: baseurl
       #     value:
-      ## @param config.home.registrations[0].buckets Set buckets for repository registration
+      ## @param config.home.registrations[0].buckets Set buckets for repository registration (externalBucket mode only). Each entry's `value` is the bucket name; optional `quota` (a plain byte count or a human-readable size like "10GB", 0/unset = no limit) is only enforced for renderingBucket, informational-only for tempBucket
       buckets: []
       # - name: renderingBucket
       #   value: rendering2
+      #   quota: 10GB
       # - name: tempBucket
       #   value: temp
+      #   quota: 0
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages

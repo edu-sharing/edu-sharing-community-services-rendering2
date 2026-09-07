@@ -417,6 +417,13 @@
             "type" : "boolean",
             "default" : false
           }
+        }, {
+          "name" : "bucket",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "400" : {
@@ -1545,16 +1552,34 @@
         },
         "required" : [ "module", "repoId" ]
       },
+      "ExternalBucket" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "quota" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "isConfigured" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "isConfigured", "name", "quota" ]
+      },
       "ExternalBuckets" : {
         "properties" : {
           "renderingBucket" : {
-            "type" : "string"
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/ExternalBucket"
+            } ]
           },
           "tempBucket" : {
-            "type" : "string"
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/ExternalBucket"
+            } ]
           }
-        },
-        "required" : [ "renderingBucket", "tempBucket" ]
+        }
       },
       "RegisterRepositoryRequest" : {
         "properties" : {
@@ -1607,9 +1632,23 @@
           "size" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "quota" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "usedPercent" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "enforced" : {
+            "type" : "boolean"
+          },
+          "measured" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "name", "size" ]
+        "required" : [ "enforced", "measured", "name", "size" ]
       },
       "StorageUsageInfo" : {
         "properties" : {
@@ -1687,8 +1726,23 @@
           "renderingBucket" : {
             "type" : "string"
           },
+          "renderingBucketQuota" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "tempBucket" : {
             "type" : "string"
+          },
+          "tempBucketQuota" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "contentBucket" : {
+            "type" : "string"
+          },
+          "contentBucketQuota" : {
+            "type" : "integer",
+            "format" : "int64"
           },
           "allowedOrigins" : {
             "type" : "array",
