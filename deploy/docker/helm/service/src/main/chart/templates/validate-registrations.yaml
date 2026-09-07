@@ -1,0 +1,21 @@
+{{- /*
+Guard: config.home.registrations[*].id becomes a Spring property-map key that is delivered
+as an env-var name (ConfigMap/Secret key via envFrom). Since Spring splits on "." — and, for
+env sources, also on "_" — those characters would silently produce a wrong map key, so
+"edusharing_services_rendering.registrationId" normalizes every id to [a-z0-9-].
+
+This template renders no resource; it only runs `fail` when that normalization is lossy in a
+way the user must resolve: an id that normalizes to an empty string, or two ids that collapse
+onto the same key (e.g. "my.repo" and "my_repo") and would overwrite each other's properties.
+*/ -}}
+{{- $seen := dict -}}
+{{- range $register := .Values.config.home.registrations }}
+{{-   $id := include "edusharing_services_rendering.registrationId" $register.id }}
+{{-   if not $id }}
+{{-     fail (printf "config.home.registrations: id %q contains no usable character; ids are normalized to [a-z0-9-] because they are used as env-var names" (toString $register.id)) }}
+{{-   end }}
+{{-   if hasKey $seen $id }}
+{{-     fail (printf "config.home.registrations: ids %q and %q both normalize to %q; ids are normalized to [a-z0-9-] because they are used as env-var names — pick ids that differ in more than '.', '_' or case" (get $seen $id) (toString $register.id) $id) }}
+{{-   end }}
+{{-   $seen = set $seen $id (toString $register.id) }}
+{{- end }}
