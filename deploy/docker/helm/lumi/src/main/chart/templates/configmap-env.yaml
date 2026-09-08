@@ -15,6 +15,18 @@ data:
   BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}
+  {{- $contentQuota := .Values.config.s3.buckets.contentQuota | default 0 }}
+  {{/* Quota may be a plain byte count or a human-readable size (e.g. "10GB", parsed by lumi's own
+       parseDataSize). A human-readable value already arrives as a Go string (YAML has no numeric
+       syntax for it) and must pass through unchanged. A plain number, though, decodes as float64
+       (sigs.k8s.io/yaml -> JSON -> interface{}), so a bare `quote` on a multi-GB byte value would
+       render scientific notation (e.g. "1.073741824e+10") — `int64` forces a proper integer
+       round-trip first. */}}
+  {{- if kindIs "string" $contentQuota }}
+  CONTENT_AWS_S3_BUCKET_QUOTA: {{ $contentQuota | quote }}
+  {{- else }}
+  CONTENT_AWS_S3_BUCKET_QUOTA: {{ $contentQuota | int64 | quote }}
+  {{- end }}
   CONTENT_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.content | quote }}
   EDUSHARING_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.edusharing | quote }}
   LIBRARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.library | quote }}

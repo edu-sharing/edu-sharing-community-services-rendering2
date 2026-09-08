@@ -18,8 +18,8 @@ class RepositoryRegistrationConfig {
                         url = it.value.url,
                         username = it.value.username,
                         password = it.value.password,
-                        quota = it.value.quota,
-                        externalBuckets = it.value.externalBuckets
+                        quota = it.value.quota.toBytes(),
+                        externalBuckets = it.value.externalBuckets?.toExternalBuckets()
                     ),
                     it.value.optionalModules,
                     it.value.module

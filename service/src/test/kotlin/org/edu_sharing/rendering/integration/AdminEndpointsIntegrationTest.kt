@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.integration
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.edusharingRepo.entity.ExternalBucket
 import org.edu_sharing.rendering.edusharingRepo.entity.ExternalBuckets
 import org.edu_sharing.rendering.edusharingRepo.entity.ModuleSettings
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
@@ -14,6 +15,7 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
+import org.hamcrest.Matchers.contains
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.hamcrest.Matchers.hasItem
 import org.hamcrest.Matchers.not
@@ -98,6 +100,30 @@ class AdminEndpointsIntegrationTest(
             .andExpect(jsonPath("$.totalSize").value(42))
             .andExpect(jsonPath("$.quota", nullValue()))
             .andExpect(jsonPath("$.usedPercent", nullValue()))
+    }
+
+    @Test
+    fun `storage usage with a bucket quota reports it per bucket and enforced`() {
+        val repoId = "storage-repo-bucket-quota"
+        storeRegistration(
+            repoId,
+            quota = 999_999, // repo-wide fallback — must be superseded once a bucket quota exists
+            buckets = ExternalBuckets(renderingBucket = ExternalBucket(name = "rendering2", quota = 1000)),
+        )
+        trackingEntryRepository.save(trackingEntry(repoId, "n1", "h1", "image", "rendering2", 300))
+        // A tracked bucket without its own quota (e.g. lumi) stays visible, but without a quota/unenforced.
+        trackingEntryRepository.save(trackingEntry(repoId, "n2", "h2", "h5p", "lumi-contentbucket", 50))
+
+        mockMvc.perform(get("/admin/storage/usage").param("repoId", repoId).header(HttpHeaders.AUTHORIZATION, basicAuth))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.buckets.length()").value(2))
+            .andExpect(jsonPath("$.buckets[?(@.name=='rendering2')].quota").value(1000))
+            .andExpect(jsonPath("$.buckets[?(@.name=='rendering2')].usedPercent").value(30.0))
+            .andExpect(jsonPath("$.buckets[?(@.name=='rendering2')].enforced").value(true))
+            // JsonPath filter expressions always return a list, even with exactly one match — against
+            // a matcher (instead of a scalar value) Spring checks the unwrapped result as-is.
+            .andExpect(jsonPath("$.buckets[?(@.name=='lumi-contentbucket')].quota").value(contains(nullValue())))
+            .andExpect(jsonPath("$.buckets[?(@.name=='lumi-contentbucket')].enforced").value(false))
     }
 
     @Test
@@ -226,7 +252,10 @@ class AdminEndpointsIntegrationTest(
             optionalModules = mutableListOf("h5p"),
             module = mutableMapOf("sodix" to ModuleSettings(credentials = mapOf("apiKey" to "super-secret"), cspHeader = "frame-ancestors *")),
             quota = 12345,
-            buckets = ExternalBuckets(renderingBucket = "rb", tempBucket = "tb"),
+            buckets = ExternalBuckets(
+                renderingBucket = ExternalBucket(name = "rb", quota = 999),
+                tempBucket = ExternalBucket(name = "tb", quota = 111),
+            ),
             signingAlgorithm = "SHA256withRSA",
         )
         registrationStorageService.storeRegistration(registration)
@@ -237,7 +266,13 @@ class AdminEndpointsIntegrationTest(
             .andExpect(jsonPath("$.quota").value(12345))
             .andExpect(jsonPath("$.optionalModules", hasItem("h5p")))
             .andExpect(jsonPath("$.renderingBucket").value("rb"))
+            .andExpect(jsonPath("$.renderingBucketQuota").value(999))
             .andExpect(jsonPath("$.tempBucket").value("tb"))
+            .andExpect(jsonPath("$.tempBucketQuota").value(111))
+            // lumi is unreachable in the test context -> content bucket info stays null instead of
+            // failing the request.
+            .andExpect(jsonPath("$.contentBucket", nullValue()))
+            .andExpect(jsonPath("$.contentBucketQuota", nullValue()))
             .andExpect(jsonPath("$.signingAlgorithm").value("SHA256withRSA"))
             // Credential-Schlüssel sind sichtbar, der Wert NICHT.
             .andExpect(jsonPath("$.modules.sodix.credentialKeys", hasItem("apiKey")))
@@ -391,13 +426,14 @@ class AdminEndpointsIntegrationTest(
 
     // --- Helpers ------------------------------------------------------------------------------
 
-    private fun storeRegistration(repoId: String, quota: Long) {
+    private fun storeRegistration(repoId: String, quota: Long, buckets: ExternalBuckets? = null) {
         registrationStorageService.storeRegistration(
             RepositoryRegistration(
                 repoId = repoId,
                 url = "https://$repoId.example.org/edu-sharing",
                 publicKey = "key",
                 quota = quota,
+                buckets = buckets,
             ),
         )
     }

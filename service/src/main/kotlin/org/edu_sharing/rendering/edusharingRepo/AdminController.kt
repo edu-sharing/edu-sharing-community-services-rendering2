@@ -17,6 +17,7 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
@@ -39,7 +40,8 @@ class AdminController(
     private val mapper: Mapper,
     private val trackingService: TrackingService,
     private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
-    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService
+    private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    private val lumiContentManagementService: LumiContentManagementService
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -158,6 +160,21 @@ class AdminController(
         )
     }
 
+    /**
+     * Name + quota of the H5P/lumi content bucket, queried directly from lumi (see
+     * [LumiContentManagementService]) instead of from this registration. `null` if lumi is currently
+     * unreachable — that must not prevent the detail view from showing the rest of the repo data.
+     */
+    private fun lumiContentBucketInfo(repoId: String): Pair<String, Long>? {
+        return try {
+            val info = lumiContentManagementService.getContentBucketInfo(repoId)
+            info.contentBucket.takeIf { it.isNotBlank() }?.let { it to (info.contentBucketQuota ?: 0) }
+        } catch (exception: Exception) {
+            log.warn("Could not retrieve Lumi content bucket info for repoId=$repoId: ${exception.message}")
+            null
+        }
+    }
+
     private fun toRegistrationInfo(entity: RepositoryRegistration): RegistrationInfo {
         return RegistrationInfo(
             repoId = entity.repoId,
@@ -168,6 +185,7 @@ class AdminController(
     }
 
     private fun toRepositoryDetailInfo(entity: RepositoryRegistration): RepositoryDetailInfo {
+        val contentBucketInfo = lumiContentBucketInfo(entity.repoId)
         return RepositoryDetailInfo(
             repoId = entity.repoId,
             url = entity.url,
@@ -180,8 +198,12 @@ class AdminController(
                 )
             },
             quota = entity.quota,
-            renderingBucket = entity.buckets?.renderingBucket,
-            tempBucket = entity.buckets?.tempBucket,
+            renderingBucket = entity.buckets?.renderingBucket?.takeIf { it.isConfigured }?.name,
+            renderingBucketQuota = entity.buckets?.renderingBucket?.quota?.takeIf { it > 0 },
+            tempBucket = entity.buckets?.tempBucket?.takeIf { it.isConfigured }?.name,
+            tempBucketQuota = entity.buckets?.tempBucket?.quota?.takeIf { it > 0 },
+            contentBucket = contentBucketInfo?.first,
+            contentBucketQuota = contentBucketInfo?.second?.takeIf { it > 0 },
             allowedOrigins = entity.allowedOrigins.toList(),
             allowedOriginPatterns = entity.allowedOriginPatterns?.toList() ?: emptyList(),
             lastAllowedOriginSync = entity.lastAllowedOriginSync,

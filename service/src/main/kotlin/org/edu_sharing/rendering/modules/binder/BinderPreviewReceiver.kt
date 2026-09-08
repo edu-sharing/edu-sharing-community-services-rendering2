@@ -16,6 +16,7 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -47,6 +48,7 @@ class BinderPreviewReceiver(
         jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
 
         previewJob.status = SubJobStatus.PROCESSING
+        previewJob.processingStartedDate = Instant.now()
         previewJob = subJobRepository.save(previewJob)
 
         val cacheObject = mapper.renderingJobToCacheObject(mainJob)
@@ -59,6 +61,7 @@ class BinderPreviewReceiver(
             previewJob.status = SubJobStatus.FAILED
             previewJob.errorMessage = GENERIC_CONVERSION_ERROR
         } finally {
+            previewJob.finishedDate = Instant.now()
             subJobRepository.save(previewJob)
             binderMainJobLogic.processMainJob(mainJob.id.toString())
         }

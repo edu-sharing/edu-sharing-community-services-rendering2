@@ -5,6 +5,7 @@ import multer from "multer";
 import {Collection} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import EduSharingModel from "./EduSharingModel";
 import {H5pError, Logger} from "@lumieducation/h5p-server";
+import {parseDataSize} from "./dataSize";
 
 const log = new Logger("Router")
 
@@ -193,8 +194,22 @@ const router = (
     })
 
     router.get("/edusharing/buckets", async (_req, res) => {
+        // Quota for the content bucket, enforced by rendering2's CacheCleaner. A plain byte count or
+        // a human-readable size (e.g. "10GB", see parseDataSize); unset/empty => no limit. Kept
+        // alongside the bucket name so both live in the same place instead of being duplicated into
+        // rendering2's own repository registration. A misconfigured value must not break this
+        // endpoint — it's polled by every admin dashboard tick and by the daily CacheCleaner.
+        let contentBucketQuota: number | undefined
+        if (process.env.CONTENT_AWS_S3_BUCKET_QUOTA) {
+            try {
+                contentBucketQuota = parseDataSize(process.env.CONTENT_AWS_S3_BUCKET_QUOTA)
+            } catch (error) {
+                log.warn(`Ignoring invalid CONTENT_AWS_S3_BUCKET_QUOTA: ${(error as Error).message}`)
+            }
+        }
         const buckets = {
-            contentBucket: process.env.CONTENT_AWS_S3_BUCKET
+            contentBucket: process.env.CONTENT_AWS_S3_BUCKET,
+            contentBucketQuota
         }
         res.send(JSON.stringify(buckets))
         res.status(200).end()

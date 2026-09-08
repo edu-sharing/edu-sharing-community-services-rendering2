@@ -22,6 +22,7 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 /**
  * First stage of the H5P job flow: asks lumi whether the node revision is already imported.
@@ -82,7 +83,9 @@ class H5pLookupReceiver(
             return
         }
         subJob.status = SubJobStatus.PROCESSING
+        subJob.processingStartedDate = Instant.now()
         jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         renderingJobRepository.save(jobEntry)
         val processingSubJob = subJobRepository.save(subJob)
 
@@ -105,6 +108,7 @@ class H5pLookupReceiver(
         }
         log.info("H5P already imported, skipping the import queue. Content id: {}", contentId)
         processingSubJob.status = SubJobStatus.FINISHED
+        processingSubJob.finishedDate = Instant.now()
         processingSubJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         subJobRepository.save(processingSubJob)
         mainJobLogic.processMainJob(message.id)
@@ -119,6 +123,11 @@ class H5pLookupReceiver(
      */
     private fun handOverToImport(jobEntry: RenderingJob, subJob: SubJob) {
         subJob.status = SubJobStatus.QUEUED
+        // Reset so the eventual processingStartedDate (set by H5pImportReceiver) reflects when the
+        // import stage actually starts - not this lookup's brief PROCESSING window - and the
+        // "queued time" the admin UI derives from createdDate/processingStartedDate keeps covering
+        // the whole wait, including this hand-off.
+        subJob.processingStartedDate = null
         subJob.routingKey = importRoutingKey
         subJobRepository.save(subJob)
         amqpTemplate.convertAndSend(topicExchangeName, importRoutingKey, RenderingJobMessage(jobEntry.id.toString()))

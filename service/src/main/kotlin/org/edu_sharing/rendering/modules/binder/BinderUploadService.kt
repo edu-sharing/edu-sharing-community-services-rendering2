@@ -18,6 +18,7 @@ import org.springframework.http.codec.ServerSentEvent
 import org.springframework.stereotype.Service
 import org.springframework.util.unit.DataSize
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Instant
 import java.time.LocalTime
 import java.util.function.Consumer
 
@@ -46,6 +47,7 @@ class BinderUploadService(
                 ?: throw IllegalStateException("Git service for url not found: ${cacheObject.externalUrl ?: ""}. This should NOT happen at this point")
             val gitDetails = gitService.getGitDetailsFromUrl(cacheObject.externalUrl ?: "")
             binderUploadSubJob.status = SubJobStatus.PROCESSING
+            binderUploadSubJob.processingStartedDate = Instant.now()
             binderUploadSubJob.message = "Initializing binder import"
             binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             val binderWebClient = getWebclient(module = module, repoId = cacheObject.repoId)
@@ -71,6 +73,7 @@ class BinderUploadService(
                 Consumer { error: Throwable? ->
                     log.error("Error receiving SSE: ", error)
                     binderUploadSubJob.status = SubJobStatus.FAILED
+                    binderUploadSubJob.finishedDate = Instant.now()
                     binderUploadSubJob.message = "Error receiving SSE " + error?.message
                     binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
                 }
@@ -80,6 +83,7 @@ class BinderUploadService(
         } catch (exception: Exception) {
             log.error("Error creating jupyterHub URL: ", exception)
             binderUploadSubJob.status = SubJobStatus.FAILED
+            binderUploadSubJob.finishedDate = Instant.now()
             binderUploadSubJob.message = "Error creating jupyterHub URL: " + exception.message
             binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
             mainJobLogic.processMainJob(binderUploadSubJob.parent.id.toString())
@@ -128,6 +132,7 @@ class BinderUploadService(
                 link = link.plus("?token=${eventData.token}")
                 subJob.progress = 100
                 subJob.status = SubJobStatus.FINISHED
+                subJob.finishedDate = Instant.now()
                 subJob.message = link
                 hasBeenFinished = true
             }
@@ -135,6 +140,7 @@ class BinderUploadService(
             BinderPhases.FAILED.event -> {
                 subJob.progress = 100
                 subJob.status = SubJobStatus.FAILED
+                subJob.finishedDate = Instant.now()
                 subJob.message = eventData.message
                 hasBeenFinished = true
             }

@@ -35,8 +35,8 @@ class RepositoryRegistrationStorageService(
                 publicKey = UUID.randomUUID().toString(),
                 optionalModules = localConfig?.optionalModules?.toMutableList() ?: mutableListOf(),
                 module = localConfig?.module?.toMutableMap() ?: mutableMapOf(),
-                quota = localConfig?.quota ?: 0L,
-                buckets = localConfig?.externalBuckets,
+                quota = localConfig?.quota?.toBytes() ?: 0L,
+                buckets = localConfig?.externalBuckets?.toExternalBuckets(),
                 signingAlgorithm = "SHA1withRSA"
             )
             return Optional.of<RepositoryRegistration>(registration)

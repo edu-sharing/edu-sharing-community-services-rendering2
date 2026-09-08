@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
@@ -85,24 +86,14 @@ class DocumentConversionServiceTest {
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
-        val processingSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.PROCESSING,
-            module = "DOCUMENT",
-            mimeType = "application/msword"
-        )
-        val finishedSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.FINISHED,
-            module = "DOCUMENT",
-            mimeType = "application/msword"
-        )
         val module = mockk<DocumentRenderModule>()
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns processingSubJob
-        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
+        // Returns a copy (not the same reference) so later mutations of the returned subJob don't
+        // retroactively change what this call was recorded with - production now also stamps
+        // processingStartedDate/finishedDate with Instant.now(), which an eq()-matched stub can't predict.
+        every { subJobRepository.save(any()) } answers { firstArg<SubJob>().copy() }
         every { job.module } returns "DOCUMENT"
         every { module.module() } returns "DOCUMENT"
         every { module.getTargetMimetype() } returns "application/pdf"
@@ -131,11 +122,11 @@ class DocumentConversionServiceTest {
         assert(argumentSlot.captured.urlParams.isEmpty())
 
         verifySequence {
-            subJobRepository.save(any())
+            subJobRepository.save(match { it.status == SubJobStatus.PROCESSING })
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
             storageService.removeTempObject(cacheObject = dummyCacheObjectWord)
-            subJobRepository.save(finishedSubJob)
+            subJobRepository.save(match { it.status == SubJobStatus.FINISHED })
         }
     }
 
@@ -158,24 +149,11 @@ class DocumentConversionServiceTest {
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
-        val processingSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.PROCESSING,
-            module = "DOCUMENT",
-            mimeType = "application/msword"
-        )
-        val finishedSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.FINISHED,
-            module = "DOCUMENT",
-            mimeType = "application/msword"
-        )
         val module = mockk<DocumentRenderModule>()
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns processingSubJob
-        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
+        every { subJobRepository.save(any()) } answers { firstArg<SubJob>().copy() }
         every { job.module } returns "DOCUMENT"
         every { module.module() } returns "DOCUMENT"
         every { module.getTargetMimetype() } returns "application/pdf"
@@ -202,11 +180,11 @@ class DocumentConversionServiceTest {
         assert(argumentSlot.captured.urlParams.isEmpty())
 
         verifySequence {
-            subJobRepository.save(any())
+            subJobRepository.save(match { it.status == SubJobStatus.PROCESSING })
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
             storageService.removeTempObject(cacheObject = dummyCacheObjectWord)
-            subJobRepository.save(finishedSubJob)
+            subJobRepository.save(match { it.status == SubJobStatus.FINISHED })
         }
     }
 
@@ -229,24 +207,11 @@ class DocumentConversionServiceTest {
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
-        val processingSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.PROCESSING,
-            module = "DOCUMENT",
-            mimeType = "application/vnd.ms-excel"
-        )
-        val finishedSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.FINISHED,
-            module = "DOCUMENT",
-            mimeType = "application/vnd.ms-excel"
-        )
         val module = mockk<DocumentRenderModule>()
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns processingSubJob
-        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
+        every { subJobRepository.save(any()) } answers { firstArg<SubJob>().copy() }
         every { job.module } returns "DOCUMENT"
         every { module.module() } returns "DOCUMENT"
         every { module.getTargetMimetype() } returns "application/pdf"
@@ -273,11 +238,11 @@ class DocumentConversionServiceTest {
         assert(argumentSlot.captured.urlParams.isEmpty())
 
         verifySequence {
-            subJobRepository.save(any())
+            subJobRepository.save(match { it.status == SubJobStatus.PROCESSING })
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             serviceCaller.callConverterService(capture(argumentSlot))
             storageService.removeTempObject(cacheObject = dummyCacheObjectExcel)
-            subJobRepository.save(finishedSubJob)
+            subJobRepository.save(match { it.status == SubJobStatus.FINISHED })
         }
     }
 
@@ -300,24 +265,11 @@ class DocumentConversionServiceTest {
             module = "DOCUMENT",
             mimeType = "application/vnd.ms-excel"
         )
-        val processingSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.PROCESSING,
-            module = "DOCUMENT",
-            mimeType = "application/vnd.ms-excel"
-        )
-        val finishedSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.FINISHED,
-            module = "DOCUMENT",
-            mimeType = "application/vnd.ms-excel"
-        )
         val module = mockk<SpreadsheetRenderModule>()
         val argumentSlot = slot<ConverterWebServiceArguments>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns processingSubJob
-        every { subJobRepository.save(finishedSubJob) } returns finishedSubJob
+        every { subJobRepository.save(any()) } answers { firstArg<SubJob>().copy() }
         every { job.module } returns "SPREADSHEET"
         every { module.module() } returns "SPREADSHEET"
         every { module.getTargetMimetype() } returns "text/html"
@@ -346,11 +298,11 @@ class DocumentConversionServiceTest {
         assert(argumentSlot.captured.urlParams["format"] == "html")
 
         verifySequence {
-            subJobRepository.save(any())
+            subJobRepository.save(match { it.status == SubJobStatus.PROCESSING })
             moduleRegistry.getRenderModule<RenderModule>("SPREADSHEET")
             serviceCaller.callConverterService(capture(argumentSlot))
             storageService.removeTempObject(cacheObject = dummyCacheObjectExcel)
-            subJobRepository.save(finishedSubJob)
+            subJobRepository.save(match { it.status == SubJobStatus.FINISHED })
         }
     }
 
@@ -373,25 +325,10 @@ class DocumentConversionServiceTest {
             module = "DOCUMENT",
             mimeType = "application/msword"
         )
-        val processingSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.PROCESSING,
-            module = "DOCUMENT",
-            mimeType = "application/msword"
-        )
-        val failedSubJob = jobDataProvider.getDummySubJob(
-            subId = subId,
-            status = SubJobStatus.FAILED,
-            module = "DOCUMENT",
-            mimeType = "application/msword"
-        )
-
-        failedSubJob.errorMessage = GENERIC_CONVERSION_ERROR
         val module = mockk<DocumentRenderModule>()
 
         every { job.subJobs } returns mutableListOf(subJob)
-        every { subJobRepository.save(processingSubJob) } returns processingSubJob
-        every { subJobRepository.save(failedSubJob) } returns failedSubJob
+        every { subJobRepository.save(any()) } answers { firstArg<SubJob>().copy() }
         every { job.module } returns "DOCUMENT"
         every { job.esObjectId } returns "node123"
         every { module.module() } returns "DOCUMENT"
@@ -415,11 +352,10 @@ class DocumentConversionServiceTest {
         // Assert
 
         verifySequence {
-            subJobRepository.save(any())
+            subJobRepository.save(match { it.status == SubJobStatus.PROCESSING })
             moduleRegistry.getRenderModule<RenderModule>("DOCUMENT")
             storageService.removeTempObject(cacheObject = dummyCacheObjectWithNonsenseMimeType)
-            subJobRepository.save(failedSubJob)
+            subJobRepository.save(match { it.status == SubJobStatus.FAILED && it.errorMessage == GENERIC_CONVERSION_ERROR })
         }
     }
 }
-

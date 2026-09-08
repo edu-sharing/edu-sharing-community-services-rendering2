@@ -9,8 +9,27 @@
       <dt>Quota</dt>
       <dd>@if (r.quota > 0) { {{ r.quota | bytes }} } @else { <span class="muted">no limit</span> }</dd>
       <dt>Signing algorithm</dt><dd>{{ r.signingAlgorithm || '–' }}</dd>
-      <dt>Rendering bucket</dt><dd class="mono">{{ r.renderingBucket ?? '–' }}</dd>
-      <dt>Temp bucket</dt><dd class="mono">{{ r.tempBucket ?? '–' }}</dd>
+      <dt>Rendering bucket</dt>
+      <dd class="mono">
+        {{ r.renderingBucket ?? '–' }}
+        @if (r.renderingBucketQuota) {
+          <span class="muted">({{ r.renderingBucketQuota | bytes }} quota)</span>
+        }
+      </dd>
+      <dt>Temp bucket</dt>
+      <dd class="mono">
+        {{ r.tempBucket ?? '–' }}
+        @if (r.tempBucketQuota) {
+          <span class="muted">({{ r.tempBucketQuota | bytes }} quota — informational only, never enforced)</span>
+        }
+      </dd>
+      <dt>Content bucket (H5P/lumi)</dt>
+      <dd class="mono">
+        {{ r.contentBucket ?? '–' }}
+        @if (r.contentBucketQuota) {
+          <span class="muted">({{ r.contentBucketQuota | bytes }} quota)</span>
+        }
+      </dd>
       <dt>Public Key</dt><dd class="mono">{{ r.publicKeyPreview }}</dd>
     </dl>
   </div>

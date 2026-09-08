@@ -55,6 +55,11 @@ data class RenderingJob(
     val nodeVersion: String,
     val size: Long? = null,
     val creationTimestamp: Long = System.currentTimeMillis(),
+    // Set when the job leaves QUEUED for PROCESSING (see the various *Receiver classes and
+    // CustomRenderingJobRepositoryImpl.updateStatusWithoutVersion) - together with
+    // creationTimestamp/finishedTimestamp this lets the admin job list show queued time vs.
+    // processing time separately instead of only the total turnaround.
+    var processingStartedTimestamp: Long? = null,
     var finishedTimestamp: Long? = null,
     @ReadOnlyProperty
     @DocumentReference(lazy = true, lookup = "{'parent':?#{#self._id} }")

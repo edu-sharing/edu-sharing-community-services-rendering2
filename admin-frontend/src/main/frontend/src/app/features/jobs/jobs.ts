@@ -9,18 +9,29 @@ import { catchError, switchMap } from 'rxjs/operators';
 import { JobsService } from '../../api/services';
 import { JobListItem } from '../../api/models';
 import { ConfirmService } from '../../core/confirm.service';
+import { EpochPipe, formatDuration } from '../../core/format';
 import { NotificationService } from '../../core/notification.service';
 import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
 import { Column, DataTable, SortConfig } from '../../shared/data-table';
 import { DateRange, DateRangeFilter } from '../../shared/date-range-filter';
 
+/** Time a job/sub-job spent waiting, i.e. between creation and the start of processing. */
+function queuedTime(createdAt: number, processingStartedAt: number | undefined, finishedAt: number | undefined): string {
+  return formatDuration((processingStartedAt ?? finishedAt ?? Date.now()) - createdAt);
+}
+
+/** Time a job/sub-job spent actually processing, i.e. between processing start and end. */
+function processingTime(processingStartedAt: number | undefined, finishedAt: number | undefined): string {
+  return processingStartedAt == null ? '–' : formatDuration((finishedAt ?? Date.now()) - processingStartedAt);
+}
+
 /** Job status union, derived from the generated contract (the enum is inlined in the spec). */
 type RenderingJobStatus = NonNullable<JobListItem['status']>;
 
 @Component({
   selector: 'app-jobs',
-  imports: [DataTable, DateRangeFilter, MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule],
+  imports: [DataTable, DateRangeFilter, EpochPipe, MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule],
   templateUrl: './jobs.html',
   styleUrl: './jobs.scss',
 })
@@ -84,6 +95,7 @@ export class Jobs {
   protected readonly rows = computed<JobListItem[]>(() => this.jobs()?.content ?? []);
 
   protected readonly columns: Column[] = [
+    { key: 'id', label: 'Job ID', cssClass: 'mono' },
     { key: 'module', label: 'Module', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true, kind: 'badge',
@@ -91,10 +103,21 @@ export class Jobs {
     },
     { key: 'esObjectId', label: 'Node', sortable: true, cssClass: 'mono' },
     { key: 'creationTimestamp', label: 'Created', sortable: true, kind: 'date' },
+    {
+      key: 'queuedTime', label: 'Queued',
+      value: (r: JobListItem) => queuedTime(r.creationTimestamp, r.processingStartedTimestamp, r.finishedTimestamp),
+    },
+    {
+      key: 'processingTime', label: 'Processing',
+      value: (r: JobListItem) => processingTime(r.processingStartedTimestamp, r.finishedTimestamp),
+    },
+    { key: 'finishedTimestamp', label: 'Ended', kind: 'date' },
     { key: 'errorMessage', label: 'Error', cssClass: 'err' },
   ];
 
   protected readonly hasSubJobs = (job: JobListItem): boolean => job.subJobs.length > 0;
+  protected readonly queuedTime = queuedTime;
+  protected readonly processingTime = processingTime;
 
   setStatuses(values: RenderingJobStatus[]): void {
     this.selectedStatuses.set(values);

@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import tools.jackson.databind.ObjectMapper
+import java.time.Instant
 
 @Service
 class DdbApiService(
@@ -47,6 +48,7 @@ class DdbApiService(
         var subJob = renderingJob.subJobs.first()
         try {
             subJob.status = SubJobStatus.PROCESSING
+            subJob.processingStartedDate = Instant.now()
             subJob.message = "Calling DDB API"
             subJob = subJobRepository.save(subJob)
             subJob.additionalData = callApis(
@@ -54,10 +56,12 @@ class DdbApiService(
                 renderingJob = renderingJob
             )
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
             log.error("Error while processing DDB communication: ${exception.message}", exception)
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
         } finally {
             subJobRepository.save(subJob)
         }

@@ -137,6 +137,7 @@ class AdminJobController(
             esObjectType = job.esObjectType,
             mimeType = job.mimeType,
             creationTimestamp = job.creationTimestamp,
+            processingStartedTimestamp = job.processingStartedTimestamp,
             finishedTimestamp = job.finishedTimestamp,
             errorMessage = job.errorMessage,
             subJobs = subJobs.map {
@@ -146,7 +147,10 @@ class AdminJobController(
                     status = it.status,
                     quality = it.quality,
                     progress = it.progress,
-                    errorMessage = it.errorMessage
+                    errorMessage = it.errorMessage,
+                    createdDate = it.createdDate?.time,
+                    processingStartedDate = it.processingStartedDate?.toEpochMilli(),
+                    finishedDate = it.finishedDate?.toEpochMilli()
                 )
             }
         )
