@@ -77,4 +77,11 @@ class CustomSubJobRepositoryImpl(
             log.info("Timed out ${subJobIds.size} stale sub-job(s) (unacknowledged write)")
         }
     }
+
+    override fun touchLastModifiedDate(subJobId: ObjectId) {
+        val query = Query(Criteria.where("_id").`is`(subJobId))
+        val update = Update().set("lastModifiedDate", Instant.now())
+        val updateResult = mongoTemplate.updateFirst(query, update, SubJob::class.java)
+        log.debug("Heartbeat touch for sub-job $subJobId: acknowledged=${updateResult.wasAcknowledged()}")
+    }
 }

@@ -61,6 +61,7 @@ import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
 import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
 import org.edu_sharing.rendering.renderingJob.queue.RemoteListenerContainerFactorySupport
@@ -209,6 +210,7 @@ abstract class SharedBeans {
             SpringConfig::class,
             SpringDocConfig::class,
             StorageManagerRegistry::class,
+            SubJobHeartbeat::class,
             TracePropagatingInterceptor::class,
             TrackingService::class,
             VideoConverterConfig::class,

@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -23,7 +24,8 @@ class MoodleReceiver (
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val mainJobLogic: MainJobLogic,
-    private val moduleRegistry: ModuleRegistry
+    private val moduleRegistry: ModuleRegistry,
+    private val subJobHeartbeat: SubJobHeartbeat
 ) {
     private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
 
@@ -63,11 +65,16 @@ class MoodleReceiver (
         subJob = subJobRepository.save(subJob)
         log.debug("Processing Moodle job ${message.id}, calling upload service for nodeId ${message.nodeId}")
         try {
-            val url = moodleService.getUrl(
-                moodleJobMessage = message,
-                module = moduleRegistry.getRenderModule(jobEntry.module),
-                repoId = jobEntry.repoId,
-            )
+            // The restore-poll loop inside getUrl can legitimately take up to 10 minutes with no
+            // interim persistence, well inside the reaper's PT30M default but a heartbeat is what
+            // keeps that true if either value ever changes.
+            val url = subJobHeartbeat.run(subJob.id) {
+                moodleService.getUrl(
+                    moodleJobMessage = message,
+                    module = moduleRegistry.getRenderModule(jobEntry.module),
+                    repoId = jobEntry.repoId,
+                )
+            }
             log.debug("Moodle URL obtained for job ${message.id}, marking sub-job as FINISHED")
             subJob.message = url.first
             subJob.additionalData = mapOf("linkUrl" to url.second)

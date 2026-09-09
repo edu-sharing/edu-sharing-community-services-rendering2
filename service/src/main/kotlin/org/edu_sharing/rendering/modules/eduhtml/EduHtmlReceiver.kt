@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
@@ -26,6 +27,7 @@ class EduHtmlReceiver(
     private val mainJobLogic: MainJobLogic,
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
+    private val subJobHeartbeat: SubJobHeartbeat,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -61,7 +63,11 @@ class EduHtmlReceiver(
         try {
             val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
             val candidates = eduHtmlService.entryCandidates(subJob.additionalData?.get(EduHtmlService.MAIN_ENTITY_KEY))
-            eduHtmlConversionService.cacheData(cacheObject, candidates)
+            // A large archive's unzip-and-upload loop has no explicit timeout and no interim persistence.
+            // The sub-job stays QUEUED (not PROCESSING, see the comment above) while this runs, so it's
+            // actually the reaper's more generous default-max-queued-time (PT6H) that bounds it - but the
+            // heartbeat keeps that assumption robust the same way it does for the PROCESSING-based modules.
+            subJobHeartbeat.run(subJob.id) { eduHtmlConversionService.cacheData(cacheObject, candidates) }
             subJob.message = eduHtmlService.getObjectLink(cacheObject, candidates).link
         } catch (exception: Exception) {
             log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)

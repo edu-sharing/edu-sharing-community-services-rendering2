@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
@@ -33,7 +34,8 @@ class H5pImportReceiver(
     private val subJobRepository: SubJobRepository,
     private val h5pUploadService: H5pUploadService,
     private val mapper: Mapper,
-    private val appInfo: AppInfo
+    private val appInfo: AppInfo,
+    private val subJobHeartbeat: SubJobHeartbeat
 ){
     private val log = LoggerFactory.getLogger(H5pImportReceiver::class.java)
 
@@ -87,7 +89,10 @@ class H5pImportReceiver(
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         log.debug("H5P calling upload service for nodeId={}", cacheObject.nodeId)
         try {
-            val contentId = h5pUploadService.getContentId(cacheObject)
+            // The upload call can legitimately run up to the per-repo H5P timeout (5 min default),
+            // well inside the reaper's PT30M default but a heartbeat is what keeps that true if
+            // either value ever changes.
+            val contentId = subJobHeartbeat.run(subJob.id) { h5pUploadService.getContentId(cacheObject) }
             log.info("H5P retrieval or upload successful. Content id: {}", contentId)
             subJob.status = SubJobStatus.FINISHED
             subJob.finishedDate = Instant.now()
