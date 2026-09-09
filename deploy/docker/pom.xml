@@ -55,7 +55,7 @@
     </docker.edu_sharing.community.common.redis-cluster.name>
 
     <docker.edu_sharing.community.common.redis-cluster.tag>
-      8.2.0
+      8.2.9
     </docker.edu_sharing.community.common.redis-cluster.tag>
 
     <docker.edu_sharing.community.common.minio.name>
