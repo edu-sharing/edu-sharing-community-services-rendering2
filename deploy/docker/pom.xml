@@ -19,11 +19,11 @@
   <properties>
 
     <docker.from.openjdk.21>
-      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jre-alpine-3.23
+      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jre-alpine-3.24
     </docker.from.openjdk.21>
 
     <docker.from.eclipse-temurin.21>
-      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jre-alpine-3.23
+      dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jre-alpine-3.24
     </docker.from.eclipse-temurin.21>
 
     <docker.from.node.21>
