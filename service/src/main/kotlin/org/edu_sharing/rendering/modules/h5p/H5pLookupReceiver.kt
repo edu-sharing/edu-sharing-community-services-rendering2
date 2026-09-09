@@ -55,7 +55,7 @@ class H5pLookupReceiver(
             QueueBinding(
                 // No x-single-active-consumer here (unlike the import queue): lookups are read-only and
                 // must fan out across all consumers and pods.
-                value = Queue(name = "#{h5pLookupQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{h5pLookupQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{h5pLookupQueueProperties.key}"]
             )

@@ -33,7 +33,7 @@ class MoodleReceiver (
             // per pod, so moodle imports run in parallel across the cluster (each import mostly waits on the
             // remote moodle, including a restore poll of up to 10 minutes).
             QueueBinding(
-                value = Queue(name = "#{moodleQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{moodleQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{moodleQueueProperties.key}"]
             )

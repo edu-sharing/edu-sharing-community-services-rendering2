@@ -38,7 +38,7 @@ class OmegaReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{omegaQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{omegaQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{omegaQueueProperties.key}"]
             )

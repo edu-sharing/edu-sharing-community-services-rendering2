@@ -8,6 +8,8 @@ import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
 import org.edu_sharing.rendering.renderingJob.AdminJobController
 import org.edu_sharing.rendering.renderingJob.JobReaperProperties
 import org.edu_sharing.rendering.renderingJob.StaleJobReaper
+import org.edu_sharing.rendering.renderingJob.queue.LegacyQueueCleaner
+import org.edu_sharing.rendering.renderingJob.queue.LegacyQueueCleanupProperties
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncScheduler
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.cors.RegistrationCorsSyncRetrier
@@ -47,7 +49,9 @@ class MasterRoleTest(
             CorsSyncService::class,
             RegistrationCorsSyncRetrier::class,
             JobReaperProperties::class,
-            StaleJobReaper::class
+            StaleJobReaper::class,
+            LegacyQueueCleanupProperties::class,
+            LegacyQueueCleaner::class
         )
     }
 

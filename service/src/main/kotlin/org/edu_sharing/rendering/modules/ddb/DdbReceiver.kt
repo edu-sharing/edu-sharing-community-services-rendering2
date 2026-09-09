@@ -30,7 +30,7 @@ class DdbReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{ddbQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{ddbQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{ddbQueueProperties.key}"]
             )

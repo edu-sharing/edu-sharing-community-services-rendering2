@@ -33,7 +33,7 @@ class BinderPreviewReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{binderPreviewQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{binderPreviewQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{binderPreviewQueueProperties.key}"]
             )

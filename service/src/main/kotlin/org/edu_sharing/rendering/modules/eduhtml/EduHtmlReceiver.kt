@@ -33,7 +33,7 @@ class EduHtmlReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{eduHtmlQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{eduHtmlQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{eduHtmlQueueProperties.key}"]
             )

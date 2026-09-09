@@ -79,6 +79,8 @@ data:
   {{- range $k, $v := .Values.config.jobreaper.maxQueuedTime }}
   "app.jobreaper.max-queued-time.{{ $k }}": {{ $v | quote }}
   {{- end }}
+  "app.queue-migration.enabled": {{ .Values.config.queueMigration.enabled | quote }}
+  "app.queue-migration.schedule": {{ .Values.config.queueMigration.schedule | quote }}
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}

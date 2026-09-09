@@ -38,7 +38,7 @@ class SodixReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{sodixQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{sodixQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{sodixQueueProperties.key}"]
             )

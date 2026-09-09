@@ -31,7 +31,7 @@ class JupyterReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{jupyterQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{jupyterQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{jupyterQueueProperties.key}"]
             )

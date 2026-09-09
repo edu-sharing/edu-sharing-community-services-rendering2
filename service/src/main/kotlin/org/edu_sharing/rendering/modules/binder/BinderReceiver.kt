@@ -29,7 +29,7 @@ class BinderReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{binderQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{binderQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{binderQueueProperties.key}"]
             )

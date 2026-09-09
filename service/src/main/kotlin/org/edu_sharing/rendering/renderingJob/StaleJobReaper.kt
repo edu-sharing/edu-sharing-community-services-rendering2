@@ -29,8 +29,10 @@ import java.time.Instant
  * 1. **PROCESSING sub-jobs** idle beyond their per-type [JobReaperProperties.maxProcessTimeFor] — the
  *    original crash-detection pass.
  * 2. **QUEUED sub-jobs** idle beyond their per-type [JobReaperProperties.maxQueuedTimeFor] — a safety net
- *    for a publish that never reached the broker, or a transient queue wiped by a broker/node restart
- *    (never redelivered, since nothing was ever really enqueued). Deliberately a *much* larger timeout
+ *    for a publish that never reached the broker, or a queue that no longer exists (e.g. the old queue
+ *    from the durability migration's rename, deleted by [LegacyQueueCleaner] before every message in it
+ *    was consumed) — never redelivered, since nothing was ever really enqueued on the surviving queue.
+ *    Deliberately a *much* larger timeout
  *    than PROCESSING and per-type overridable: unlike PROCESSING, QUEUED is also the state of a
  *    legitimate backlog (e.g. HPA scale-up lag under a burst) — the default must clear any realistic
  *    backlog-drain time, or it reaps jobs that were never lost. (sodix/omega/ddb are labelled "import

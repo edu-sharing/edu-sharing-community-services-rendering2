@@ -150,6 +150,10 @@ services:
       # max-queued-time is deliberately much larger than max-process-time: QUEUED is also the state of a
       # legitimate backlog (e.g. HPA scale-up lag under a burst), not just a lost/never-delivered message.
       app.jobreaper.default-max-queued-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_QUEUED_TIME:-PT6H}"
+      # One-time queue-durability migration (master only): deletes each pre-"_v2"-rename queue once no
+      # consumer is attached anymore. See LegacyQueueCleaner. Disable once confirmed complete.
+      app.queue-migration.enabled: "${RENDERING2_QUEUE_MIGRATION_ENABLED:-true}"
+      app.queue-migration.schedule: "${RENDERING2_QUEUE_MIGRATION_SCHEDULE:-PT30M}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing

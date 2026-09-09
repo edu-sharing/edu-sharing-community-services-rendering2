@@ -126,8 +126,10 @@ class QueueConfig {
         factory.setPrefetchCount(queueProperties.prefetch)
         // Track messages currently being processed per queue → `rendering.queue.consumers.active`.
         factory.setAdviceChain(queueConsumerMetrics)
-        // durable=false / anonymous (fanout) queues are re-declared on (re)connect; a transiently
-        // missing queue must not tear the container down.
+        // The business queues on this factory are durable=true (see the queue-durability migration,
+        // LegacyQueueCleaner), but CorsAllowedOriginsReceiver's anonymous fanout queue is still
+        // exclusive+autoDelete - genuinely transient, gone whenever its connection drops and re-declared
+        // on reconnect. Either way, a transiently missing queue must not tear the whole container down.
         factory.setMissingQueuesFatal(false)
         // Shared across every STANDARD/SINGLE_ACTIVE queue, so this must cover the slowest of them: av
         // (ffmpeg, guarded by app.converter.av.conversionTimeout=PT30M) — the Spring AMQP default (5s)

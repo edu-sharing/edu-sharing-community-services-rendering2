@@ -47,7 +47,7 @@ class H5pImportReceiver(
                 // active across all pods; the others stay on standby and take over only on failover.
                 value = Queue(
                     name = "#{h5pQueueProperties.name}",
-                    durable = "false",
+                    durable = "true",
                     arguments = [Argument(
                         name = "x-single-active-consumer",
                         value = "#{h5pQueueProperties.singleActiveConsumer}",

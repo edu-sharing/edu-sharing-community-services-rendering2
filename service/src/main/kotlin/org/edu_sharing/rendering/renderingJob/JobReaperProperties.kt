@@ -35,8 +35,10 @@ class JobReaperProperties {
 
     /**
      * Fallback max time a sub-job (or a main job with no sub-jobs yet) may sit QUEUED before being
-     * reaped as orphaned — e.g. a publish that never reached the broker, or a transient queue wiped by
-     * a broker/node restart. Deliberately much larger than [defaultMaxProcessTime]: unlike PROCESSING,
+     * reaped as orphaned — e.g. a publish that never reached the broker, or a queue that no longer exists
+     * (the durability migration's [org.edu_sharing.rendering.renderingJob.queue.LegacyQueueCleaner]
+     * deletes an old queue once orphaned, even if it still held unconsumed messages). Deliberately much
+     * larger than [defaultMaxProcessTime]: unlike PROCESSING,
      * QUEUED is also the state of a *legitimate* backlog (e.g. HPA scale-up lag under a burst), so this
      * must clear any realistic backlog-drain time before firing, or it reaps jobs that were never lost.
      *
