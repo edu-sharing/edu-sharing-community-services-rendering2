@@ -49,6 +49,12 @@ class MoodleReceiver (
             return
         }
         var subJob = jobEntry.subJobs.first()
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished moodle import was lost), which would re-run the moodle course import.
+        if (subJob.status != SubJobStatus.QUEUED) {
+            log.debug("Moodle job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, subJob.status)
+            return
+        }
         subJob.status = SubJobStatus.PROCESSING
         subJob.processingStartedDate = Instant.now()
         jobEntry.status = RenderingJobStatus.PROCESSING

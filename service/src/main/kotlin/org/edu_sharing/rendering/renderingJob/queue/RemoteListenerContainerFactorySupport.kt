@@ -42,6 +42,12 @@ class RemoteListenerContainerFactorySupport(
         // durable=false / anonymous queues are re-declared on (re)connect; a transiently missing queue
         // must not tear the container down.
         factory.setMissingQueuesFatal(false)
+        // NOT setting shutdownTimeout here (unlike queueListenerContainerFactory): AsyncAckDispatcher.dispatch
+        // submits to the executor and returns immediately, so the listener invocation the container's
+        // graceful-shutdown wait tracks is already long over by the time the offloaded virtual thread does
+        // its actual HTTP call — a longer shutdownTimeout would not extend that call's runway at all. A
+        // channel/connection closed mid-call is already handled: the message stays unacked and the broker
+        // redelivers it (import processing is idempotent, see AsyncAckDispatcher's doc).
         // Continue the trace across the async queue boundary (reads trace context from message headers).
         factory.setObservationEnabled(true)
         return factory

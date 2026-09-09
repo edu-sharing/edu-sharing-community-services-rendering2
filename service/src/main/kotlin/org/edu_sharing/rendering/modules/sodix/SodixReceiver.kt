@@ -63,10 +63,16 @@ class SodixReceiver(
             return
         }
         log.debug("Processing Sodix job ${message.id}, isPaidMedia ${message.isPaidMedia}")
+        var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished lookup was lost), which would re-run the (costly) Sodix API call.
+        if (playoutUrlSubJob.status != SubJobStatus.QUEUED) {
+            log.debug("Sodix job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, playoutUrlSubJob.status)
+            return
+        }
         jobEntry.status = RenderingJobStatus.PROCESSING
         jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         jobEntry = renderingJobRepository.save(jobEntry)
-        var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
         playoutUrlSubJob.status = SubJobStatus.PROCESSING
         playoutUrlSubJob.processingStartedDate = Instant.now()
         playoutUrlSubJob = subJobRepository.save(playoutUrlSubJob)

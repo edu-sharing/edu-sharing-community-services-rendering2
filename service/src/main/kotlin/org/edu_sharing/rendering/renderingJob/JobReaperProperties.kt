@@ -32,4 +32,28 @@ class JobReaperProperties {
      */
     val minMaxProcessTime: Duration
         get() = (maxProcessTime.values + defaultMaxProcessTime).minOrNull() ?: defaultMaxProcessTime
+
+    /**
+     * Fallback max time a sub-job (or a main job with no sub-jobs yet) may sit QUEUED before being
+     * reaped as orphaned — e.g. a publish that never reached the broker, or a transient queue wiped by
+     * a broker/node restart. Deliberately much larger than [defaultMaxProcessTime]: unlike PROCESSING,
+     * QUEUED is also the state of a *legitimate* backlog (e.g. HPA scale-up lag under a burst), so this
+     * must clear any realistic backlog-drain time before firing, or it reaps jobs that were never lost.
+     *
+     * NOT the same "legitimate long backlog" reasoning as [maxProcessTime]'s `av_job`: sodix/omega/ddb
+     * resolve one link/reference per job via 1-2 REST calls (no download/import), so even a large backlog
+     * drains in minutes at their K=50-per-pod concurrency — no override needed for them today.
+     */
+    var defaultMaxQueuedTime: Duration = Duration.ofHours(6)
+
+    /** Per-routing-key overrides for [defaultMaxQueuedTime] — escape hatch for a future queue whose
+     * legitimate backlog-drain time exceeds the default; none needed today. */
+    var maxQueuedTime: MutableMap<String, Duration> = mutableMapOf()
+
+    fun maxQueuedTimeFor(routingKey: String): Duration =
+        maxQueuedTime[routingKey] ?: defaultMaxQueuedTime
+
+    /** Coarse DB pre-filter counterpart of [minMaxProcessTime], for the QUEUED reaping pass. */
+    val minMaxQueuedTime: Duration
+        get() = (maxQueuedTime.values + defaultMaxQueuedTime).minOrNull() ?: defaultMaxQueuedTime
 }

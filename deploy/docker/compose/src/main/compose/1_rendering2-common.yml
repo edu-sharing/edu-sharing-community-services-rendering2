@@ -147,6 +147,9 @@ services:
       app.jobreaper.schedule: "${RENDERING2_JOBREAPER_SCHEDULE:-600000}"
       app.jobreaper.default-max-process-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_PROCESS_TIME:-PT30M}"
       app.jobreaper.max-process-time.av_job: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
+      # max-queued-time is deliberately much larger than max-process-time: QUEUED is also the state of a
+      # legitimate backlog (e.g. HPA scale-up lag under a burst), not just a lost/never-delivered message.
+      app.jobreaper.default-max-queued-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_QUEUED_TIME:-PT6H}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing

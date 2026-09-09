@@ -43,6 +43,12 @@ class BinderPreviewReceiver(
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder preview message received: subJobId={}", message.subJobId)
         var previewJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished preview was lost), which would re-run the preview build.
+        if (previewJob.status != SubJobStatus.QUEUED) {
+            log.debug("Binder preview sub-job {} already past QUEUED ({}); dropping redelivered message", previewJob.id, previewJob.status)
+            return
+        }
         val mainJob = jobRepository.findByIdOrNull(previewJob.parent.id) ?: return
 
         jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)

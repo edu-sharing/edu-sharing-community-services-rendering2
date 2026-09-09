@@ -458,6 +458,10 @@ config:
     maxProcessTime:
       ## @param config.jobreaper.maxProcessTime.av_job Max processing time for av_job (ffmpeg guard is PT30M, so give headroom)
       av_job: "PT45M"
+    ## @param config.jobreaper.defaultMaxQueuedTime Max time (ISO-8601 Duration) a (sub-)job may sit QUEUED before being timed out as orphaned (lost publish, or a transient queue wiped by a broker/node restart), for any routing key without an explicit override. Deliberately much larger than defaultMaxProcessTime: QUEUED is also the state of a legitimate backlog (e.g. HPA scale-up lag under a burst)
+    defaultMaxQueuedTime: "PT6H"
+    ## @param config.jobreaper.maxQueuedTime Per-routing-key overrides (ISO-8601 Duration) for defaultMaxQueuedTime; key = queue routing key (app.queue.<module>.key). Escape hatch for a future queue whose legitimate backlog-drain time exceeds the default - none needed today (sodix/omega/ddb resolve one link/reference per job via 1-2 REST calls, not a bulk import; even a large backlog drains in minutes at their K=50-per-pod concurrency)
+    maxQueuedTime: {}
 
   converter:
     audio:
@@ -792,8 +796,11 @@ securityContext:
 
 ########################################################################################################################
 
-## @param terminationGracePeriod Define grace period for termination
-terminationGracePeriod: 120
+## @param terminationGracePeriod Define grace period for termination. Must be >= the queueListenerContainerFactory
+## shutdownTimeout (35m, covers the longest STANDARD job type: av/ffmpeg) or K8s SIGKILLs the pod before an
+## in-flight conversion can finish gracefully. Only an upper bound - a pod with nothing in flight (or only fast
+## jobs) still stops immediately once the JVM exits.
+terminationGracePeriod: 2160
 
 startupProbe:
   ## @param startupProbe.failureThreshold Failure threshold for startupProbe

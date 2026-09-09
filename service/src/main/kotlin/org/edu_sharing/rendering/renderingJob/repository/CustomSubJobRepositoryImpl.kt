@@ -43,10 +43,16 @@ class CustomSubJobRepositoryImpl(
         }
     }
 
-    override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> {
+    override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> =
+        findByStatusModifiedBefore(SubJobStatus.PROCESSING, cutoff)
+
+    override fun findQueuedSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> =
+        findByStatusModifiedBefore(SubJobStatus.QUEUED, cutoff)
+
+    private fun findByStatusModifiedBefore(status: SubJobStatus, cutoff: Instant): List<StaleSubJobView> {
         // status is persisted as the enum name (see updateStatusWithoutVersion); match the string form.
         val query = Query(
-            Criteria.where("status").`is`(SubJobStatus.PROCESSING.toString())
+            Criteria.where("status").`is`(status.toString())
                 .and("lastModifiedDate").lt(cutoff)
         )
         query.fields().include("routingKey", "lastModifiedDate", "parent")

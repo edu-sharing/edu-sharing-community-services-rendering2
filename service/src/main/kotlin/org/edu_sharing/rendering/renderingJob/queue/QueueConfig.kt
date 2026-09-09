@@ -11,15 +11,19 @@ import org.springframework.amqp.support.converter.JacksonJsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
 import io.micrometer.context.ContextSnapshotFactory
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.core.task.SimpleAsyncTaskExecutor
+import java.time.Duration
 import java.util.concurrent.Executors
 
 @Configuration
 class QueueConfig {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     /**
      * Shared executor for every queue-listener invocation, backed by **virtual threads**. A consumer
@@ -125,6 +129,15 @@ class QueueConfig {
         // durable=false / anonymous (fanout) queues are re-declared on (re)connect; a transiently
         // missing queue must not tear the container down.
         factory.setMissingQueuesFatal(false)
+        // Shared across every STANDARD/SINGLE_ACTIVE queue, so this must cover the slowest of them: av
+        // (ffmpeg, guarded by app.converter.av.conversionTimeout=PT30M) — the Spring AMQP default (5s)
+        // would otherwise abandon an in-flight conversion on every pod stop/rolling deploy instead of
+        // letting it finish. Fast queues (h5p-lookup, image, ...) drain immediately regardless; this is
+        // only an upper bound. K8s' terminationGracePeriod (deploy/.../values.yaml) must be >= this, or
+        // the pod is SIGKILLed before the graceful drain completes.
+        // shutdownTimeout lives on the container, not the factory - setContainerCustomizer is the hook
+        // the factory exposes to configure every container it creates.
+        factory.setContainerCustomizer { container -> container.setShutdownTimeout(Duration.ofMinutes(35).toMillis()) }
         // Continue the trace across the async queue boundary (reads trace context from message headers).
         factory.setObservationEnabled(true)
         return factory
@@ -152,6 +165,27 @@ class QueueConfig {
         template.messageConverter = messageConverter
         // Inject the current trace context into message headers when publishing.
         template.setObservationEnabled(true)
+        // `mandatory` + a ReturnsCallback surface an unroutable publish (no matching queue binding — e.g.
+        // mid rolling-deploy, before any converter pod has (re-)declared the target queue) instead of the
+        // message silently vanishing, leaving its job stuck QUEUED until StaleJobReaper's queued-timeout
+        // safety net eventually catches it. Requires spring.rabbitmq.publisher-returns=true.
+        template.setMandatory(true)
+        template.setReturnsCallback { returned ->
+            log.error(
+                "Unroutable published message (no matching queue binding): exchange={}, routingKey={}, " +
+                    "replyCode={}, replyText={}, body={}",
+                returned.exchange, returned.routingKey, returned.replyCode, returned.replyText,
+                String(returned.message.body, Charsets.UTF_8),
+            )
+        }
+        // Publisher confirms surface a broker-side nack (e.g. the broker itself rejected the publish) that
+        // mandatory/returns cannot catch — that only covers routing, not the publish reaching the broker
+        // at all. Requires spring.rabbitmq.publisher-confirm-type=correlated.
+        template.setConfirmCallback { correlationData, ack, cause ->
+            if (!ack) {
+                log.error("Publish not confirmed by broker (nacked): correlationData={}, cause={}", correlationData, cause)
+            }
+        }
         return template
     }
 }

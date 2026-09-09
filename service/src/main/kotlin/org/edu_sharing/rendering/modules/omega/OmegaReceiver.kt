@@ -63,10 +63,16 @@ class OmegaReceiver(
             return
         }
         log.debug("Processing Omega job ${message.id}")
+        var streamUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished lookup was lost), which would re-run the (costly) Omega API call.
+        if (streamUrlSubJob.status != SubJobStatus.QUEUED) {
+            log.debug("Omega job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, streamUrlSubJob.status)
+            return
+        }
         jobEntry.status = RenderingJobStatus.PROCESSING
         jobEntry.processingStartedTimestamp = System.currentTimeMillis()
         jobEntry = renderingJobRepository.save(jobEntry)
-        var streamUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
         streamUrlSubJob.status = SubJobStatus.PROCESSING
         streamUrlSubJob.processingStartedDate = Instant.now()
         streamUrlSubJob = subJobRepository.save(streamUrlSubJob)

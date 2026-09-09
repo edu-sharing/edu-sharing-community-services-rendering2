@@ -16,6 +16,13 @@ interface CustomSubJobRepository {
     fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView>
 
     /**
+     * Same projection as [findProcessingSubJobsModifiedBefore], but for sub-jobs still in QUEUED — the
+     * candidate set for the reaper's QUEUED safety-net pass (a publish that never reached the broker, or
+     * a transient queue wiped by a broker/node restart never redelivers).
+     */
+    fun findQueuedSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView>
+
+    /**
      * Bulk versionless transition of the given sub-jobs to [SubJobStatus.TIMEOUT] with [errorMessage].
      * Bypasses optimistic locking (like [updateStatusWithoutVersion]) since the reaper races nothing —
      * the owning consumer is gone. No-op on an empty collection.

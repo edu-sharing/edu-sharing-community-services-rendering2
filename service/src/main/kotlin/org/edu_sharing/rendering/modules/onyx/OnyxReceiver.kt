@@ -47,6 +47,12 @@ class OnyxReceiver(
             return
         }
         val subJob = jobEntry.subJobs.first()
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished upload was lost), which would re-run the onyx test upload.
+        if (subJob.status != SubJobStatus.QUEUED) {
+            log.debug("Onyx job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, subJob.status)
+            return
+        }
 
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
