@@ -79,6 +79,7 @@ import org.edu_sharing.rendering.modules.sodix.SodixQueueProperties
 import org.edu_sharing.rendering.renderingJob.queue.JobQueueProperties
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.renderingJob.queue.QueueProperties
+import org.edu_sharing.rendering.renderingJob.queue.QueueTopologyConfig
 import org.edu_sharing.rendering.renderingJob.repository.CustomRenderingJobRepositoryImpl
 import org.edu_sharing.rendering.renderingJob.repository.CustomSubJobRepositoryImpl
 import org.edu_sharing.rendering.security.*
@@ -182,6 +183,7 @@ abstract class SharedBeans {
             QueueConfig::class,
             QueueConsumerMetrics::class,
             QueueProperties::class,
+            QueueTopologyConfig::class,
             RedisConfig::class,
             RedisLettuceMetrics::class,
             RedisStandaloneConfigurationProperties::class,
