@@ -46,7 +46,7 @@ object FluxInputStream {
             }
         }
 
-        val disposable = DataBufferUtils.write(dataStream.publishOn(Schedulers.boundedElastic()), outStream)
+        val disposable = DataBufferUtils.write(dataStream.publishOn(Schedulers.boundedElastic(), 1), outStream)
             // The `OutputStream` overload of `write` returns `Flux<DataBuffer>` and passes the
             // buffers through **unreleased** — releasing is the subscriber's job (contrast the
             // `Path` overload, which returns `Mono<Void>` and consumes them itself, as used in
@@ -55,6 +55,14 @@ object FluxInputStream {
             // buffers, and with the AdaptiveByteBufAllocator each one pins a 2 MiB chunk, so the
             // process ratchets towards `MaxDirectMemorySize` until unrelated allocations start
             // failing with OutOfDirectMemoryError.
+            //
+            // `publishOn` defaults to a prefetch of 256: it requests that many DataBuffers from
+            // the Netty response ahead of what the boundedElastic worker below can actually write
+            // into the pipe, so all 256 get allocated (and pin their Netty chunks) before the slow
+            // consumer — a blocking, synchronous S3 upload at the other end of `toInputStream()` —
+            // drains even the first one. That decoupling, not a missing release, is what lets a
+            // handful of large concurrent transfers alone exhaust MaxDirectMemorySize. Pinning
+            // prefetch to 1 ties buffer production to the pipe's actual (64 KiB) consumption rate.
             .doOnDiscard(DataBuffer::class.java) { DataBufferUtils.release(it) }
             .doOnError { e ->
                 log.error("Error while streaming data from repository", e)
