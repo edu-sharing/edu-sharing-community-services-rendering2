@@ -7,8 +7,11 @@ import io.mockk.junit5.MockKExtension
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
+import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
@@ -55,6 +58,26 @@ class JobInfoServiceTest {
         assertThrows<IllegalArgumentException> { underTest.refreshLinks(job) }
 
         verify(exactly = 0) { renderModule.refreshLinks(any()) }
+    }
+
+    @Test
+    fun getJobInfoMergesAlreadyAvailableLinksWhileJobIsStillQueued() {
+        val job = jobDataProvider.prepareJobForConversionModuleTesting(JobDataProvider.DUMMY_JOB_ID, module = "VIDEO")
+        val renderModule = mockk<RenderModule>()
+        val cachedLink = ObjectLink(link = "cached-480p", height = 480)
+        every { moduleRegistry.getRenderModule<RenderModule>("VIDEO") } returns renderModule
+        every { renderModule.getAvailableObjectLinks(job) } returns listOf(cachedLink)
+
+        val result = underTest.getJobInfo(job)
+
+        assert(result.status == RenderingJobStatus.QUEUED)
+        assert(result.jobs.size == 2)
+        val queuedPlaceholder = result.jobs.first { it.objectLink == null }
+        assert(queuedPlaceholder.status == SubJobStatus.QUEUED)
+        val availableInfo = result.jobs.first { it.objectLink != null }
+        assert(availableInfo.quality == 480)
+        assert(availableInfo.status == SubJobStatus.FINISHED)
+        assert(availableInfo.objectLink == cachedLink)
     }
 
    /* @BeforeEach
