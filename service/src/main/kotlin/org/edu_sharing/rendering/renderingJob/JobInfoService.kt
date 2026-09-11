@@ -79,7 +79,24 @@ class JobInfoService(
                 infoList.add(jobInfo)
             }
         }
-        return JobInfoReply(infoList, status = job.status, module = job.module, userMessage = job.errorMessage)
+        // Sub-jobs only cover qualities that were still missing at job-creation time - a quality
+        // already cached back then never gets one. If some other, newly requested quality's
+        // sub-job just failed above, that must not hide qualities that were already available.
+        val alreadyListedHeights = infoList.mapNotNull { it.objectLink?.height }.toSet()
+        renderModule.getAvailableObjectLinks(job)?.forEach { link ->
+            if (link.height !in alreadyListedHeights) {
+                infoList.add(JobProgressInfo(quality = link.height, status = SubJobStatus.FINISHED, objectLink = link))
+            }
+        }
+        // job.status reflects only whether the qualities requested by *this* job finished; with
+        // qualities merged in above from before this job existed, a FAILED job can still carry a
+        // usable link, which the client must not mistake for a hard failure.
+        val replyStatus = if (job.status == RenderingJobStatus.FAILED && infoList.isNotEmpty()) {
+            RenderingJobStatus.PARTIALLY_FAILED
+        } else {
+            job.status
+        }
+        return JobInfoReply(infoList, status = replyStatus, module = job.module, userMessage = job.errorMessage)
     }
 
     private fun getQueuePosition(subJob: SubJob): Long {

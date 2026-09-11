@@ -11,6 +11,14 @@ interface RenderModule {
     fun handle(node: Node): RenderDataResponse
     fun getObjectLinkFromJobData(subJob: SubJob, renderingJob: RenderingJob): ObjectLink? = null
     fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? = null
+
+    /**
+     * All object links currently cached for this job's node, independent of which sub-jobs this
+     * job tracks. A sub-job is only created for a quality that was still missing at job-creation
+     * time, so a quality that was already cached back then never gets one - if the sub-job for a
+     * different, newly requested quality later fails, that quality must still surface here.
+     */
+    fun getAvailableObjectLinks(renderingJob: RenderingJob): List<ObjectLink>? = null
     fun getNodePermissionExpirationTime(): Long? = null
     fun isOptionalModule(): Boolean = false
     fun getCspHeader(repoId: String): String? = null
