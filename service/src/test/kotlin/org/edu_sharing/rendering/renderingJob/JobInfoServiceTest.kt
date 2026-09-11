@@ -1,11 +1,17 @@
 package org.edu_sharing.rendering.renderingJob
 
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
+import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.modules.ModuleRegistry
+import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
@@ -16,6 +22,27 @@ class JobInfoServiceTest {
     private val jobDataProvider = JobDataProvider()
 
     private lateinit var underTest: JobInfoService
+
+    @Test
+    fun getJobInfoMergesAlreadyAvailableLinksWhileJobIsStillQueued() {
+        underTest = JobInfoService(jobRepository, subJobRepository, moduleRegistry)
+        val job = jobDataProvider.prepareJobForConversionModuleTesting(JobDataProvider.DUMMY_JOB_ID, module = "VIDEO")
+        val renderModule = mockk<RenderModule>()
+        val cachedLink = ObjectLink(link = "cached-480p", height = 480)
+        every { moduleRegistry.getRenderModule<RenderModule>("VIDEO") } returns renderModule
+        every { renderModule.getAvailableObjectLinks(job) } returns listOf(cachedLink)
+
+        val result = underTest.getJobInfo(job)
+
+        assert(result.status == RenderingJobStatus.QUEUED)
+        assert(result.jobs.size == 2)
+        val queuedPlaceholder = result.jobs.first { it.objectLink == null }
+        assert(queuedPlaceholder.status == SubJobStatus.QUEUED)
+        val availableInfo = result.jobs.first { it.objectLink != null }
+        assert(availableInfo.quality == 480)
+        assert(availableInfo.status == SubJobStatus.FINISHED)
+        assert(availableInfo.objectLink == cachedLink)
+    }
 
    /* @BeforeEach
     fun setup() {

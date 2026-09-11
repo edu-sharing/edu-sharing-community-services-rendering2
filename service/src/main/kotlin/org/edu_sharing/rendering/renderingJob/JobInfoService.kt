@@ -37,16 +37,22 @@ class JobInfoService(
     @PreAuthorize("hasPermission(#job.esObjectId, 'ReadAll')")
     fun getJobInfo(job: RenderingJob): JobInfoReply {
         log.debug("Fetching job info for job ${job.id}, status=${job.status}, conversionType=${job.conversionType}, subJobs=${job.subJobs.size}")
+        val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
+
         if (isMainJobQueuedOrCopying(job)) {
             log.debug("Job ${job.id} is still QUEUED or copying (no sub jobs), returning early status")
+            // The job itself hasn't produced anything yet, but qualities cached before this job
+            // was even created must still surface here - the client should not have to wait out
+            // the QUEUED/copying phase to learn about them.
+            val infoList = mutableListOf(JobProgressInfo(status = SubJobStatus.fromRenderingJobStatus(job.status)))
+            mergeAlreadyAvailableLinks(infoList, renderModule, job)
             return JobInfoReply(
-                jobs = mutableListOf(JobProgressInfo(status = SubJobStatus.fromRenderingJobStatus(job.status))),
+                jobs = infoList,
                 status = job.status,
                 module = job.module,
                 userMessage = job.errorMessage
             )
         }
-        val renderModule: RenderModule = moduleRegistry.getRenderModule(job.module)
 
         if (!job.conversionType || job.subJobs.isEmpty()) {
             log.debug("Job ${job.id} has no sub jobs, building job info from main job data")
@@ -82,12 +88,7 @@ class JobInfoService(
         // Sub-jobs only cover qualities that were still missing at job-creation time - a quality
         // already cached back then never gets one. If some other, newly requested quality's
         // sub-job just failed above, that must not hide qualities that were already available.
-        val alreadyListedHeights = infoList.mapNotNull { it.objectLink?.height }.toSet()
-        renderModule.getAvailableObjectLinks(job)?.forEach { link ->
-            if (link.height !in alreadyListedHeights) {
-                infoList.add(JobProgressInfo(quality = link.height, status = SubJobStatus.FINISHED, objectLink = link))
-            }
-        }
+        mergeAlreadyAvailableLinks(infoList, renderModule, job)
         // job.status reflects only whether the qualities requested by *this* job finished; with
         // qualities merged in above from before this job existed, a FAILED job can still carry a
         // usable link, which the client must not mistake for a hard failure.
@@ -97,6 +98,15 @@ class JobInfoService(
             job.status
         }
         return JobInfoReply(infoList, status = replyStatus, module = job.module, userMessage = job.errorMessage)
+    }
+
+    private fun mergeAlreadyAvailableLinks(infoList: MutableList<JobProgressInfo>, renderModule: RenderModule, job: RenderingJob) {
+        val alreadyListedHeights = infoList.mapNotNull { it.objectLink?.height }.toSet()
+        renderModule.getAvailableObjectLinks(job)?.forEach { link ->
+            if (link.height !in alreadyListedHeights) {
+                infoList.add(JobProgressInfo(quality = link.height, status = SubJobStatus.FINISHED, objectLink = link))
+            }
+        }
     }
 
     private fun getQueuePosition(subJob: SubJob): Long {
