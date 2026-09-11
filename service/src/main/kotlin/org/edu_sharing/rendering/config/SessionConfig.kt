@@ -1,14 +1,12 @@
 package org.edu_sharing.rendering.config
 
 import org.springframework.beans.factory.BeanClassLoaderAware
-import org.springframework.boot.session.autoconfigure.DefaultCookieSerializerCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializer
 import org.springframework.security.jackson.SecurityJacksonModules
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisIndexedHttpSession
-import org.springframework.session.web.http.DefaultCookieSerializer
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.cfg.DateTimeFeature
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator
@@ -17,7 +15,7 @@ import tools.jackson.module.kotlin.KotlinModule
 
 @Configuration
 @EnableRedisIndexedHttpSession
-class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
+class SessionConfig: BeanClassLoaderAware {
 
     private lateinit var loader: ClassLoader
 
@@ -66,13 +64,5 @@ class SessionConfig: BeanClassLoaderAware, DefaultCookieSerializerCustomizer {
 
     override fun setBeanClassLoader(classLoader: ClassLoader) {
         this.loader = classLoader
-    }
-
-    override fun customize(cookieSerializer: DefaultCookieSerializer) {
-        cookieSerializer.apply {
-            setDomainNamePattern("^.*?([^.]+\\.[^.]+)$")
-            //setSameSite("None")
-            //setUseSecureCookie(true)
-        }
     }
 }
