@@ -159,6 +159,22 @@ class VideoRenderModuleTest {
     }
 
     @Test
+    fun testGetAvailableObjectLinksReturnsAllCachedQualities() {
+        val renderingJob = mockk<RenderingJob>(relaxed = true)
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+        val objectLinks = listOf(mockk<ObjectLink>(), mockk<ObjectLink>())
+
+        every { mapper.renderingJobToCacheObject(renderingJob) } returns cacheObject
+        every { videoService.getObjectLinks(cacheObject = cacheObject) } returns objectLinks
+
+        val result = underTest.getAvailableObjectLinks(renderingJob)
+
+        verify { mapper.renderingJobToCacheObject(renderingJob) }
+        verify { videoService.getObjectLinks(cacheObject = cacheObject) }
+        assert(result == objectLinks)
+    }
+
+    @Test
     fun testGetNodePermissionExpirationTime() {
         assert(underTest.getNodePermissionExpirationTime() == nodeExpiration)
     }

@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -30,7 +31,7 @@ class OnyxReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{onyxQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{onyxQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{onyxQueueProperties.key}"]
             )
@@ -46,19 +47,30 @@ class OnyxReceiver(
             return
         }
         val subJob = jobEntry.subJobs.first()
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished upload was lost), which would re-run the onyx test upload.
+        if (subJob.status != SubJobStatus.QUEUED) {
+            log.debug("Onyx job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, subJob.status)
+            return
+        }
 
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
         try {
             log.debug("Processing Onyx job ${message.id} for nodeId ${cacheObject.nodeId}")
             subJobRepository.updateStatusWithoutVersion(subJob.id, SubJobStatus.PROCESSING)
             renderingJobRepository.updateStatusWithoutVersion(jobEntry.id, RenderingJobStatus.PROCESSING)
+            // Mirror what the versionless updates above just wrote, so the full save below (of a
+            // subJob instance fetched before those updates) doesn't clobber it back to null.
+            subJob.processingStartedDate = Instant.now()
             subJob.message = onyxUploadService.uploadTest(cacheObject)
             log.debug("Onyx upload finished for job ${message.id}, sub-job marked FINISHED")
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
             subJobRepository.save(subJob)
         } catch (exception: Exception) {
             log.error("Onyx upload failed with exception: ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJobRepository.save(subJob)
         } finally {

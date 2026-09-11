@@ -61,6 +61,7 @@ import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
 import org.edu_sharing.rendering.renderingJob.queue.AsyncAckDispatcher
 import org.edu_sharing.rendering.renderingJob.queue.RemoteListenerContainerFactorySupport
@@ -78,6 +79,7 @@ import org.edu_sharing.rendering.modules.sodix.SodixQueueProperties
 import org.edu_sharing.rendering.renderingJob.queue.JobQueueProperties
 import org.edu_sharing.rendering.renderingJob.queue.QueueConfig
 import org.edu_sharing.rendering.renderingJob.queue.QueueProperties
+import org.edu_sharing.rendering.renderingJob.queue.QueueTopologyConfig
 import org.edu_sharing.rendering.renderingJob.repository.CustomRenderingJobRepositoryImpl
 import org.edu_sharing.rendering.renderingJob.repository.CustomSubJobRepositoryImpl
 import org.edu_sharing.rendering.security.*
@@ -181,6 +183,7 @@ abstract class SharedBeans {
             QueueConfig::class,
             QueueConsumerMetrics::class,
             QueueProperties::class,
+            QueueTopologyConfig::class,
             RedisConfig::class,
             RedisLettuceMetrics::class,
             RedisStandaloneConfigurationProperties::class,
@@ -209,6 +212,7 @@ abstract class SharedBeans {
             SpringConfig::class,
             SpringDocConfig::class,
             StorageManagerRegistry::class,
+            SubJobHeartbeat::class,
             TracePropagatingInterceptor::class,
             TrackingService::class,
             VideoConverterConfig::class,

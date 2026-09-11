@@ -18,4 +18,11 @@ interface StorageManager {
     fun getManagedBuckets(repoId: String): List<String>
 
     fun isBucketOwner(bucketName: String, repoId: String): Boolean
+
+    /**
+     * Bucket name → quota to enforce in bytes, for the buckets this manager manages for this repo.
+     * An empty result (default) means: no bucket quota is known for this manager — the CacheCleaner
+     * then leaves its buckets untouched (see [StorageManagerRegistry]).
+     */
+    fun getManagedBucketQuotas(repoId: String): Map<String, Long> = emptyMap()
 }

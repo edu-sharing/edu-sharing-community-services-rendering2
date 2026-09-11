@@ -147,6 +147,13 @@ services:
       app.jobreaper.schedule: "${RENDERING2_JOBREAPER_SCHEDULE:-600000}"
       app.jobreaper.default-max-process-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_PROCESS_TIME:-PT30M}"
       app.jobreaper.max-process-time.av_job: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
+      # max-queued-time is deliberately much larger than max-process-time: QUEUED is also the state of a
+      # legitimate backlog (e.g. HPA scale-up lag under a burst), not just a lost/never-delivered message.
+      app.jobreaper.default-max-queued-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_QUEUED_TIME:-PT6H}"
+      # One-time queue-durability migration (master only): deletes each pre-"_v2"-rename queue once no
+      # consumer is attached anymore. See LegacyQueueCleaner. Disable once confirmed complete.
+      app.queue-migration.enabled: "${RENDERING2_QUEUE_MIGRATION_ENABLED:-true}"
+      app.queue-migration.schedule: "${RENDERING2_QUEUE_MIGRATION_SCHEDULE:-PT30M}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -155,8 +162,6 @@ services:
       app.repository.registration.id.local.optional-modules: H5P,EDUHTML,SPREADSHEET,HTML
       app.repository.registration.id.local.module.MOODLE.credentials.baseurl: "${RENDERING2_MOODLE_URL:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.publicurl: "${RENDERING2_MOODLE_PUBLIC_URL:-}"
-      #app.repository.registration.id.local.buckets.renderingBucket: "${RENDERING2_S3_STORAGE_BUCKET:-rendering2}"
-      #app.repository.registration.id.local.buckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-temp}"
 #      app.repository.registration.id.local.module.MOODLE.credentials.user: user
       app.repository.registration.id.local.module.MOODLE.credentials.token:  "${RENDERING2_MOODLE_TOKEN:-}"
       app.repository.registration.id.local.module.MOODLE.credentials.timeout: "${RENDERING2_MOODLE_TIMEOUT:-90}"
@@ -165,9 +170,19 @@ services:
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.EDUHTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
-      app.repository.registration.id.local.externalBuckets.renderingBucket: "${RENDERING2_S3_RENDERING_BUCKET:-}"
-      app.repository.registration.id.local.externalBuckets.tempBucket: "${RENDERING2_S3_TEMP_BUCKET:-}"
-      # Storage quota in bytes for this repository (0 = no limit). Only enforced by the cache cleaner
+      app.repository.registration.id.local.externalBuckets.renderingBucket.name: "${RENDERING2_S3_RENDERING_BUCKET:-}"
+      # Storage quota for the rendering bucket (0/empty = no limit; externalBucket mode only). Only
+      # enforced by the cache cleaner, and only takes effect while app.s3.bucket.mode=externalBucket.
+      # Accepts a plain byte count or a human-readable size (e.g. 10GB — Spring's binary units, 1KB = 1024 bytes).
+      app.repository.registration.id.local.externalBuckets.renderingBucket.quota: "${RENDERING2_S3_RENDERING_BUCKET_QUOTA:-0}"
+      app.repository.registration.id.local.externalBuckets.tempBucket.name: "${RENDERING2_S3_TEMP_BUCKET:-}"
+      # Storage quota for the temp bucket (0/empty = no limit; same format as above). Informational
+      # only — the cache cleaner never enforces it; see GET /admin/storage/usage?exact=true to measure it on demand.
+      app.repository.registration.id.local.externalBuckets.tempBucket.quota: "${RENDERING2_S3_TEMP_BUCKET_QUOTA:-0}"
+      # Storage quota for this repository (0/empty = no limit; same format as above). Only enforced by
+      # the cache cleaner, and only as long as none of this repo's buckets (above, or the lumi content
+      # bucket) has its own quota configured — a single bucket quota switches this repo entirely to
+      # per-bucket enforcement.
       app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-0}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
@@ -220,6 +235,11 @@ services:
       MONGODB_PORT: 27017
       MONGODB_URL: "mongodb://${RENDERING2_LUMI_DATABASE_USER:-lumi}:${RENDERING2_LUMI_DATABASE_PASS:-lumi}@mongo-database:27017/${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       CONTENT_AWS_S3_BUCKET: "${RENDERING2_LUMI_CONTENT_BUCKET:-lumi-contentbucket}"
+      # Storage quota for the content bucket (0/empty = no limit; a plain byte count or a
+      # human-readable size like 10GB — binary units, 1KB = 1024 bytes, see lumi's parseDataSize).
+      # Only enforced by rendering2's CacheCleaner; queried live from lumi (GET /edusharing/buckets),
+      # not duplicated in rendering2's own repository registration.
+      CONTENT_AWS_S3_BUCKET_QUOTA: "${RENDERING2_LUMI_CONTENT_BUCKET_QUOTA:-0}"
       CONTENT_MONGO_COLLECTION: h5p
       TEMPORARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_TEMP_BUCKET:-lumi-tempbucket}"
       LIBRARY_MONGO_COLLECTION: h5plibraries

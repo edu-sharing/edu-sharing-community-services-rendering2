@@ -14,6 +14,7 @@ import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @ConditionalOnConverter
 @Component
@@ -28,7 +29,7 @@ class ImageReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{imageQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{imageQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{imageQueueProperties.key}"]
             )
@@ -56,6 +57,7 @@ class ImageReceiver(
             }
             jobEntry.subJobs.forEach {
                 it.status = SubJobStatus.FAILED
+                it.finishedDate = Instant.now()
                 it.errorMessage = ErrorStrings.GENERIC_CONVERSION_ERROR
                 subJobRepository.save(it)
             }
@@ -68,13 +70,16 @@ class ImageReceiver(
             log.debug("Converting image sub-job: quality=${subJob.quality} for nodeId=${cacheObject.nodeId}")
             try {
                 subJob.status = SubJobStatus.PROCESSING
+                subJob.processingStartedDate = Instant.now()
                 subJob = subJobRepository.save(subJob)
                 conversionService.convert(cacheObject, subJob.quality, sourceImage)
                 subJob.status = SubJobStatus.FINISHED
+                subJob.finishedDate = Instant.now()
                 log.debug("Image sub-job FINISHED: quality=${subJob.quality} for nodeId=${cacheObject.nodeId}")
             } catch (exception: Exception) {
                 log.warn(exception.message, exception)
                 subJob.status = SubJobStatus.FAILED
+                subJob.finishedDate = Instant.now()
             }
             subJobRepository.save(subJob)
         }

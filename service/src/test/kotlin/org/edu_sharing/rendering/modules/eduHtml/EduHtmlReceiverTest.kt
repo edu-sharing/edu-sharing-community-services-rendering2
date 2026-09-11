@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.modules.eduhtml.EduHtmlConversionService
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlReceiver
 import org.edu_sharing.rendering.modules.eduhtml.EduHtmlService
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -25,12 +26,16 @@ class EduHtmlReceiverTest {
     private val mainJobLogic: MainJobLogic = mockk()
     private val renderingJobRepository: RenderingJobRepository = mockk()
     private val mapper = mockk<Mapper>()
+    // Real instance (not a mock): run() just executes the block synchronously, and the periodic
+    // touch (every 5 min) never fires within a unit test's lifetime, so no stubbing needed.
+    private val subJobHeartbeat = SubJobHeartbeat(mockk(relaxed = true))
     private val underTest = EduHtmlReceiver(
         eduHtmlService,
         eduHtmlConversionService,
         subJobRepository,mainJobLogic,
         mapper,
-        renderingJobRepository
+        renderingJobRepository,
+        subJobHeartbeat
     )
 
     @Test
@@ -69,6 +74,7 @@ class EduHtmlReceiverTest {
         val subJob = mockk<SubJob>()
         val cacheObject = mockk<CacheObject>()
         val jobId = ObjectId()
+        val subJobId = ObjectId()
 
         val candidates = listOf("index.html", "index.htm", "story.html")
 
@@ -76,7 +82,9 @@ class EduHtmlReceiverTest {
         every { job.subJobs } returns mutableListOf(subJob)
         every { mainJobLogic.getMainJobEntry("id") } returns job
         every { job.id } returns jobId
+        every { subJob.id } returns subJobId
         justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
+        justRun { subJob.processingStartedDate = any() }
         every  { subJobRepository.save(subJob) } returns subJob
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { subJob.additionalData } returns null
@@ -84,12 +92,14 @@ class EduHtmlReceiverTest {
         every { eduHtmlConversionService.cacheData(cacheObject, candidates) } throws Exception("testException")
         justRun { subJob.errorMessage = GENERIC_CONVERSION_ERROR }
         justRun { subJob.status = SubJobStatus.FAILED }
+        justRun { subJob.finishedDate = any() }
         every { mainJobLogic.processMainJob(jobId.toString()) } returns true
 
         excludeRecords {
             message.id
             job.subJobs
             job.id
+            subJob.id
             subJob.additionalData
         }
 
@@ -100,12 +110,14 @@ class EduHtmlReceiverTest {
         verifySequence {
             mainJobLogic.getMainJobEntry("id")
             renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING)
+            subJob.processingStartedDate = any()
             subJobRepository.save(subJob)
             mapper.renderingJobToCacheObject(job)
             eduHtmlService.entryCandidates(null)
             eduHtmlConversionService.cacheData(cacheObject, candidates)
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = any()
             subJobRepository.save(subJob)
             mainJobLogic.processMainJob(jobId.toString())
         }
@@ -119,13 +131,16 @@ class EduHtmlReceiverTest {
         val subJob = mockk<SubJob>()
         val cacheObject = mockk<CacheObject>()
         val jobId = ObjectId()
+        val subJobId = ObjectId()
         val candidates = listOf("player.html")
 
         every { message.id } returns "id"
         every { job.subJobs } returns mutableListOf(subJob)
         every { mainJobLogic.getMainJobEntry("id") } returns job
         every { job.id } returns jobId
+        every { subJob.id } returns subJobId
         justRun { renderingJobRepository.updateStatusWithoutVersion(jobId, RenderingJobStatus.PROCESSING) }
+        justRun { subJob.processingStartedDate = any() }
         every { subJobRepository.save(subJob) } returns subJob
         every { mapper.renderingJobToCacheObject(job) } returns cacheObject
         every { subJob.additionalData } returns mapOf("mainEntity" to "player.html")
@@ -135,12 +150,14 @@ class EduHtmlReceiverTest {
             org.edu_sharing.rendering.core.dto.ObjectLink(link = "ok")
         justRun { subJob.message = "ok" }
         justRun { subJob.status = SubJobStatus.FINISHED }
+        justRun { subJob.finishedDate = any() }
         every { mainJobLogic.processMainJob(jobId.toString()) } returns true
 
         excludeRecords {
             message.id
             job.subJobs
             job.id
+            subJob.id
             subJob.additionalData
         }
 

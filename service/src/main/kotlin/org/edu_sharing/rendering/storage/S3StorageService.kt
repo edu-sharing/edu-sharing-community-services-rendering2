@@ -216,13 +216,38 @@ class S3StorageService(
     override fun getStorageInfo(): List<StorageInfo> {
         val aggregation = trackingService.getBucketAggregation()
 
-        return aggregation.map {
-            StorageInfo(
-                location = it.repoId,
-                size = it.totalSize,
-                maxSize = repoRegistrationStorageService.getRegistrationByRepoId(it.repoId).map { rep -> rep.quota }
-                    .orElse(0),
-            )
+        return aggregation.flatMap { repoAggregation ->
+            val enforcedQuotas = storageManagerRegistry.getManagedBucketQuotas(repoAggregation.repoId)
+
+            if (enforcedQuotas.isNotEmpty()) {
+                val sizeByBucket = repoAggregation.buckets.associate { it.name to it.size }
+                val unassigned = repoAggregation.buckets.map { it.name } - enforcedQuotas.keys
+                if (unassigned.isNotEmpty()) {
+                    log.warn(
+                        "repoId=${repoAggregation.repoId}: no enforced quota known for tracked bucket(s) $unassigned " +
+                            "(they will not be cleaned by the CacheCleaner while any other bucket of this repo has a quota)"
+                    )
+                }
+                enforcedQuotas.map { (bucket, quota) ->
+                    StorageInfo(
+                        repoId = repoAggregation.repoId,
+                        bucket = bucket,
+                        size = sizeByBucket[bucket] ?: 0,
+                        maxSize = quota
+                    )
+                }
+            } else {
+                val quota = repoRegistrationStorageService.getRegistrationByRepoId(repoAggregation.repoId)
+                    .map { it.quota }.orElse(0)
+                listOf(
+                    StorageInfo(
+                        repoId = repoAggregation.repoId,
+                        bucket = null,
+                        size = repoAggregation.totalSize,
+                        maxSize = quota
+                    )
+                )
+            }
         }
     }
 

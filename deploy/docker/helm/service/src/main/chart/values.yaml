@@ -458,6 +458,19 @@ config:
     maxProcessTime:
       ## @param config.jobreaper.maxProcessTime.av_job Max processing time for av_job (ffmpeg guard is PT30M, so give headroom)
       av_job: "PT45M"
+    ## @param config.jobreaper.defaultMaxQueuedTime Max time (ISO-8601 Duration) a (sub-)job may sit QUEUED before being timed out as orphaned (lost publish, or a queue deleted by the queueMigration cleanup job below before every message in it was consumed), for any routing key without an explicit override. Deliberately much larger than defaultMaxProcessTime: QUEUED is also the state of a legitimate backlog (e.g. HPA scale-up lag under a burst)
+    defaultMaxQueuedTime: "PT6H"
+    ## @param config.jobreaper.maxQueuedTime Per-routing-key overrides (ISO-8601 Duration) for defaultMaxQueuedTime; key = queue routing key (app.queue.<module>.key). Escape hatch for a future queue whose legitimate backlog-drain time exceeds the default - none needed today (sodix/omega/ddb resolve one link/reference per job via 1-2 REST calls, not a bulk import; even a large backlog drains in minutes at their K=50-per-pod concurrency)
+    maxQueuedTime: {}
+
+  ## One-time queue-durability migration (master only): all app.queue.<x> queues were renamed with a
+  ## "_v2" suffix and switched to durable=true; this deletes each pre-migration queue automatically once
+  ## no consumer is attached to it anymore. See LegacyQueueCleaner. Disable once confirmed complete.
+  queueMigration:
+    ## @param config.queueMigration.enabled Enable the legacy-queue cleanup job
+    enabled: true
+    ## @param config.queueMigration.schedule Fixed delay (ISO-8601 Duration) between cleanup runs
+    schedule: "PT30M"
 
   converter:
     audio:
@@ -514,7 +527,7 @@ config:
       username: admin
       ## @param config.home.registrations[0].password Set password for repository registration
       password: ""
-      ## @param config.home.registrations[0].quota Set storage quota in bytes for repository registration (0 = no limit; only enforced by the cache cleaner)
+      ## @param config.home.registrations[0].quota Set storage quota for repository registration — a plain byte count or a human-readable size like "10GB" (Spring's binary units, 1KB = 1024 bytes); 0/unset = no limit; only enforced by the cache cleaner, and only as long as none of this repo's buckets below has its own quota configured
       quota: 0
       ## @param config.home.registrations[0].modules Set modules for repository registration
       modules: []
@@ -550,12 +563,14 @@ config:
       #   credentials:
       #   - name: baseurl
       #     value:
-      ## @param config.home.registrations[0].buckets Set buckets for repository registration
+      ## @param config.home.registrations[0].buckets Set buckets for repository registration (externalBucket mode only). Each entry's `value` is the bucket name; optional `quota` (a plain byte count or a human-readable size like "10GB", 0/unset = no limit) is only enforced for renderingBucket, informational-only for tempBucket
       buckets: []
       # - name: renderingBucket
       #   value: rendering2
+      #   quota: 10GB
       # - name: tempBucket
       #   value: temp
+      #   quota: 0
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
@@ -790,8 +805,11 @@ securityContext:
 
 ########################################################################################################################
 
-## @param terminationGracePeriod Define grace period for termination
-terminationGracePeriod: 120
+## @param terminationGracePeriod Define grace period for termination. Must be >= the queueListenerContainerFactory
+## shutdownTimeout (35m, covers the longest STANDARD job type: av/ffmpeg) or K8s SIGKILLs the pod before an
+## in-flight conversion can finish gracefully. Only an upper bound - a pod with nothing in flight (or only fast
+## jobs) still stops immediately once the JVM exits.
+terminationGracePeriod: 2160
 
 startupProbe:
   ## @param startupProbe.failureThreshold Failure threshold for startupProbe

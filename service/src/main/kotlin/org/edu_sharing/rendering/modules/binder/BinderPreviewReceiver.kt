@@ -16,6 +16,7 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -32,7 +33,7 @@ class BinderPreviewReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{binderPreviewQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{binderPreviewQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{binderPreviewQueueProperties.key}"]
             )
@@ -42,11 +43,18 @@ class BinderPreviewReceiver(
     fun receiveMessage(message: BinderSubJobMessage) {
         log.debug("Binder preview message received: subJobId={}", message.subJobId)
         var previewJob = subJobRepository.findByIdOrNull(ObjectId(message.subJobId)) ?: return
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished preview was lost), which would re-run the preview build.
+        if (previewJob.status != SubJobStatus.QUEUED) {
+            log.debug("Binder preview sub-job {} already past QUEUED ({}); dropping redelivered message", previewJob.id, previewJob.status)
+            return
+        }
         val mainJob = jobRepository.findByIdOrNull(previewJob.parent.id) ?: return
 
         jobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.PROCESSING)
 
         previewJob.status = SubJobStatus.PROCESSING
+        previewJob.processingStartedDate = Instant.now()
         previewJob = subJobRepository.save(previewJob)
 
         val cacheObject = mapper.renderingJobToCacheObject(mainJob)
@@ -59,6 +67,7 @@ class BinderPreviewReceiver(
             previewJob.status = SubJobStatus.FAILED
             previewJob.errorMessage = GENERIC_CONVERSION_ERROR
         } finally {
+            previewJob.finishedDate = Instant.now()
             subJobRepository.save(previewJob)
             binderMainJobLogic.processMainJob(mainJob.id.toString())
         }

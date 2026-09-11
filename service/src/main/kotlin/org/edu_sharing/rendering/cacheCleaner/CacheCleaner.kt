@@ -27,27 +27,33 @@ class CacheCleaner(
     @SchedulerLock(name = "cacheCleaner", lockAtMostFor = "30m", lockAtLeastFor = "1m")
     fun cleanCache() {
         log.info("Running cache cleaner...")
-        storageService.getStorageInfo().forEach loop@{
-            if (it.maxSize == 0L) {
-                log.info("No quota set for repoId ${it.location}. Nothing to clean.")
+        storageService.getStorageInfo().forEach loop@{ scope ->
+            val label = if (scope.bucket != null) "${scope.repoId}/${scope.bucket}" else scope.repoId
+            if (scope.maxSize == 0L) {
+                log.info("No quota set for $label. Nothing to clean.")
                 return@loop
             }
-            val usedSpace = it.size.toDouble() / it.maxSize.toDouble()
-            log.info("${it.location}: ${bytesToHumanReadableSize(it.size)} of ${bytesToHumanReadableSize(it.maxSize)} (${(usedSpace * 100).toLong()}%)")
+            val usedSpace = scope.size.toDouble() / scope.maxSize.toDouble()
+            log.info("$label: ${bytesToHumanReadableSize(scope.size)} of ${bytesToHumanReadableSize(scope.maxSize)} (${(usedSpace * 100).toLong()}%)")
 
-            log.debug("Threshold check for ${it.location}: usedRatio=${String.format("%.4f", usedSpace)}, upperThreshold=$upperThreshold, lowerThreshold=$lowerThreshold")
+            log.debug("Threshold check for $label: usedRatio=${String.format("%.4f", usedSpace)}, upperThreshold=$upperThreshold, lowerThreshold=$lowerThreshold")
             if (usedSpace > upperThreshold) {
-                val maxSize = (lowerThreshold * it.maxSize).toLong()
-                log.debug("Cleanup triggered for ${it.location}: target size=${bytesToHumanReadableSize(maxSize)}")
-                val trackingIterator = trackingService.getTrackedObjectsByRepoId(it.location)
+                val targetSize = (lowerThreshold * scope.maxSize).toLong()
+                val bytesToFree = scope.size - targetSize
+                log.debug("Cleanup triggered for $label: target size=${bytesToHumanReadableSize(targetSize)}, freeing ~${bytesToHumanReadableSize(bytesToFree)}")
+                val trackingIterator = if (scope.bucket != null) {
+                    trackingService.getTrackedObjectsByRepoIdAndBucket(scope.repoId, scope.bucket)
+                } else {
+                    trackingService.getTrackedObjectsByRepoId(scope.repoId)
+                }
 
                 val bucketEntryGroups = trackingIterator.asSequence()
-                    .takeUntil(0L, { totalSize, _ -> totalSize >= maxSize }) { totalSize, element ->
-                        totalSize + element.binarySize
+                    .takeUntil(0L, { freed, _ -> freed >= bytesToFree }) { freed, element ->
+                        freed + element.binarySize
                     }
                     .groupBy { entry -> storageManagerRegistry.getBucketManagerByBucketName(entry.bucket, entry.repoId) }
 
-                log.debug("Deletion candidates for ${it.location}: ${bucketEntryGroups.values.sumOf { e -> e.size }} entries across ${bucketEntryGroups.size} bucket manager(s)")
+                log.debug("Deletion candidates for $label: ${bucketEntryGroups.values.sumOf { e -> e.size }} entries across ${bucketEntryGroups.size} bucket manager(s)")
                 bucketEntryGroups.forEach { (bucketManager, entries) ->
                     log.debug("Bulk-deleting ${entries.size} entries via ${bucketManager?.javaClass?.simpleName ?: "no manager"}")
                     bucketManager?.deleteObjectsFromStorage(entries)

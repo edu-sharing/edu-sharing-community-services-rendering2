@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.messaging.handler.annotation.Header
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -37,7 +38,7 @@ class SodixReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{sodixQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{sodixQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{sodixQueueProperties.key}"]
             )
@@ -62,10 +63,18 @@ class SodixReceiver(
             return
         }
         log.debug("Processing Sodix job ${message.id}, isPaidMedia ${message.isPaidMedia}")
-        jobEntry.status = RenderingJobStatus.PROCESSING
-        jobEntry = renderingJobRepository.save(jobEntry)
         var playoutUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished lookup was lost), which would re-run the (costly) Sodix API call.
+        if (playoutUrlSubJob.status != SubJobStatus.QUEUED) {
+            log.debug("Sodix job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, playoutUrlSubJob.status)
+            return
+        }
+        jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
+        jobEntry = renderingJobRepository.save(jobEntry)
         playoutUrlSubJob.status = SubJobStatus.PROCESSING
+        playoutUrlSubJob.processingStartedDate = Instant.now()
         playoutUrlSubJob = subJobRepository.save(playoutUrlSubJob)
         try {
             val (playoutUrl, downloadUrl) = sodixService.getContentUrl(
@@ -75,6 +84,7 @@ class SodixReceiver(
             )
             log.debug("Sodix content URL retrieved for job ${message.id}, marking sub-job as FINISHED")
             playoutUrlSubJob.status = SubJobStatus.FINISHED
+            playoutUrlSubJob.finishedDate = Instant.now()
             playoutUrlSubJob.message = playoutUrl
             if (downloadUrl != null) {
                 playoutUrlSubJob.additionalData = mapOf("downloadUrl" to downloadUrl)
@@ -96,6 +106,7 @@ class SodixReceiver(
             jobEntry.errorMessage = userMessage
             renderingJobRepository.save(jobEntry)
             playoutUrlSubJob.status = SubJobStatus.FAILED
+            playoutUrlSubJob.finishedDate = Instant.now()
             playoutUrlSubJob.errorMessage = userMessage
             subJobRepository.save(playoutUrlSubJob)
         }

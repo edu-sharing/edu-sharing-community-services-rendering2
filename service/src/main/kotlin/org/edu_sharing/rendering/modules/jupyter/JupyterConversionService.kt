@@ -6,12 +6,14 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.ConversionService
 import org.edu_sharing.rendering.modules.ConverterWebServiceArguments
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Instant
 
 @ConditionalOnConverter
 @Service
@@ -19,7 +21,8 @@ class JupyterConversionService(
     private val jupyterConverterWebClient: WebClient,
     private val module: JupyterRenderModule,
     private val subJobRepository: SubJobRepository,
-    private val serviceCaller: ConverterWebServiceCaller
+    private val serviceCaller: ConverterWebServiceCaller,
+    private val subJobHeartbeat: SubJobHeartbeat
 ) : ConversionService {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
@@ -32,12 +35,18 @@ class JupyterConversionService(
         var subJob = renderingJob.subJobs.first()
         try {
             subJob.status = SubJobStatus.PROCESSING
+            subJob.processingStartedDate = Instant.now()
             subJob = subJobRepository.save(subJob)
-            convertAndMoveToCache(cacheObject)
+            // The converter call can legitimately run up to the long-running WebClient budget (10 min
+            // default), well inside the reaper's PT30M default but a heartbeat is what keeps that true
+            // if either value ever changes.
+            subJobHeartbeat.run(subJob.id) { convertAndMoveToCache(cacheObject) }
             subJob.status = SubJobStatus.FINISHED
+            subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
             log.error("Jupyter conversion failed for object ${renderingJob.esObjectId} with exception ${exception.message}", exception)
             subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
         }
         subJobRepository.save(subJob)

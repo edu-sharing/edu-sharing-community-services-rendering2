@@ -81,6 +81,10 @@ dotted Spring keys set as env entries.
 | `app.session.<module>.nodePermissionExpirationTime` | (direct) | empty = not cached |
 | `RENDERING2_LUMI_DATABASE_{NAME,USER}` | lumi Mongo db/user | `lumi` |
 | `RENDERING2_LUMI_S3_MAX_SOCKETS` (Helm `config.s3.maxSockets`) | lumi `AWS_S3_MAX_SOCKETS` — parallel S3 connections; every H5P library/content file is one S3 request, so the AWS SDK default of 50 throttles the player | `256` |
+| `RENDERING2_S3_RENDERING_BUCKET{,_QUOTA}` (Helm `config.home.registrations[0].buckets`, entry `renderingBucket`) | `app.repository.registration.id.<key>.externalBuckets.renderingBucket.{name,quota}` — externalBucket mode only; quota (0/empty = no limit, `@DataSizeUnit(BYTES)`-bound: a plain byte count or a human-readable size like `10GB`, Spring's binary units) enforced by the CacheCleaner | empty / `0` |
+| `RENDERING2_S3_TEMP_BUCKET{,_QUOTA}` (Helm, entry `tempBucket`) | `app.repository.registration.id.<key>.externalBuckets.tempBucket.{name,quota}` — quota (same format as above) is informational only, never enforced (see `GET /admin/storage/usage?exact=true`) | empty / `0` |
+| `RENDERING2_S3_DEFAULT_QUOTA` | `app.repository.registration.id.<key>.quota` — repo-wide fallback quota (same format as above), only in effect while none of the repo's buckets above (or the lumi content bucket) has its own quota | `0` |
+| `RENDERING2_LUMI_CONTENT_BUCKET_QUOTA` (Helm `config.s3.buckets.contentQuota`, lumi chart) | lumi `CONTENT_AWS_S3_BUCKET_QUOTA` — quota for lumi's own content bucket (a plain byte count or a human-readable size like `10GB`, parsed by lumi's own `parseDataSize`, binary units matching the service side), queried live by rendering2 (`GET /edusharing/buckets`) instead of being duplicated into the rendering2 repository registration | `0` |
 | `BASE_HREF` / `ADMIN_API_BASE` (admin-frontend container) | static server, **not** Spring | `/rendering-admin/` / `/rendering` |
 
 (See `1_rendering2-common.yml` for the authoritative, complete list.)

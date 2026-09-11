@@ -13,6 +13,10 @@ interface TrackingEntryRepository: MongoRepository<TrackingEntry, ObjectId>, Cus
     fun deleteByRepoIdAndNodeIdAndHashAndBucket(repoId: String, nodeId: String, hash: String, bucket: String)
     fun findAllByBucket(bucket: String, pageRequest: Pageable): Page<TrackingEntry>
     fun findAllByRepoId(repoId: String, pageRequest: Pageable): Page<TrackingEntry>
+    // CacheCleaner scope for a single bucket (see StorageInfo). Served by the existing
+    // repo_node_hash_bucket_idx / the combination of repo_lastAccessed_idx and bucket_lastAccessed_idx
+    // (repoId is highly selective; bucket is only a residual filter here — no dedicated index needed).
+    fun findAllByRepoIdAndBucket(repoId: String, bucket: String, pageRequest: Pageable): Page<TrackingEntry>
     fun findByRepoIdAndNodeIdAndHash(repoId: String, nodeId: String, hash: String): Optional<TrackingEntry>
     fun findAllByRepoIdAndNodeId(repoId: String, nodeId: String): List<TrackingEntry>
 

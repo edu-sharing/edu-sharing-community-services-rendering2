@@ -69,12 +69,23 @@ class CustomRenderingJobRepositoryImpl(
         val query = Query(Criteria.where("_id").`is`(jobId))
         val update = Update()
         update.set("status", status.toString())
+        if (status == RenderingJobStatus.PROCESSING) {
+            update.set("processingStartedTimestamp", System.currentTimeMillis())
+        }
         if (status >= RenderingJobStatus.FINISHED) {
             update.set("finishedTimestamp", System.currentTimeMillis())
         }
-        val collection = mongoTemplate.getCollectionName(RenderingJob::class.java)
-        val updateResult = mongoTemplate.updateFirst(query, update, collection)
-        log.debug("acknowledged: ${updateResult.wasAcknowledged()} matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+        // Entity-class overload so the WriteConcernResolver maps RenderingJob -> ACKNOWLEDGED via
+        // MongoAction.entityType; the collection-name overload used previously left entityType null,
+        // which the resolver only happened to still map to ACKNOWLEDGED via its collectionName=="renderingJob"
+        // branch - fragile (breaks silently on a rename) and inconsistent with CustomSubJobRepositoryImpl,
+        // which already uses this overload. Guard the count read regardless, in case the concern changes.
+        val updateResult = mongoTemplate.updateFirst(query, update, RenderingJob::class.java)
+        if (updateResult.wasAcknowledged()) {
+            log.debug("acknowledged: true matched: ${updateResult.matchedCount} updated: ${updateResult.modifiedCount}")
+        } else {
+            log.debug("RenderingJob $jobId status update sent (unacknowledged write)")
+        }
     }
 
     /** Zerlegt die Sucheingabe an Kommas/Whitespace in einzelne Begriffe (leere verworfen). */

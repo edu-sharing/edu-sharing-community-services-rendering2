@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.messaging.handler.annotation.Header
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import java.time.Instant
 
 @Component
 @ConditionalOnConverter
@@ -37,7 +38,7 @@ class OmegaReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{omegaQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{omegaQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{omegaQueueProperties.key}"]
             )
@@ -62,10 +63,18 @@ class OmegaReceiver(
             return
         }
         log.debug("Processing Omega job ${message.id}")
-        jobEntry.status = RenderingJobStatus.PROCESSING
-        jobEntry = renderingJobRepository.save(jobEntry)
         var streamUrlSubJob = jobEntry.subJobs.first { it.quality == 0}
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished lookup was lost), which would re-run the (costly) Omega API call.
+        if (streamUrlSubJob.status != SubJobStatus.QUEUED) {
+            log.debug("Omega job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, streamUrlSubJob.status)
+            return
+        }
+        jobEntry.status = RenderingJobStatus.PROCESSING
+        jobEntry.processingStartedTimestamp = System.currentTimeMillis()
+        jobEntry = renderingJobRepository.save(jobEntry)
         streamUrlSubJob.status = SubJobStatus.PROCESSING
+        streamUrlSubJob.processingStartedDate = Instant.now()
         streamUrlSubJob = subJobRepository.save(streamUrlSubJob)
         try {
             val (streamUrl, downloadUrl) = omegaService.getContentUrl(
@@ -75,6 +84,7 @@ class OmegaReceiver(
             )
             log.debug("Omega content URL retrieved for job ${message.id}, marking sub-job as FINISHED")
             streamUrlSubJob.status = SubJobStatus.FINISHED
+            streamUrlSubJob.finishedDate = Instant.now()
             streamUrlSubJob.message = streamUrl
             if (downloadUrl != null) {
                 streamUrlSubJob.additionalData = mapOf("downloadUrl" to downloadUrl)
@@ -96,6 +106,7 @@ class OmegaReceiver(
             jobEntry.errorMessage = userMessage
             renderingJobRepository.save(jobEntry)
             streamUrlSubJob.status = SubJobStatus.FAILED
+            streamUrlSubJob.finishedDate = Instant.now()
             streamUrlSubJob.errorMessage = userMessage
             subJobRepository.save(streamUrlSubJob)
         }

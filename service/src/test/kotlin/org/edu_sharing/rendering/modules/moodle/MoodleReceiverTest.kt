@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.modules.moodle
 import io.mockk.mockk
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
@@ -13,12 +14,16 @@ class MoodleReceiverTest {
     private val subJobRepository: SubJobRepository = mockk()
     private val mainJobLogic: MainJobLogic = mockk()
     private val moduleRegistry: ModuleRegistry = mockk()
+    // Real instance (not a mock): run() just executes the block synchronously, and the periodic
+    // touch (every 5 min) never fires within a unit test's lifetime, so no stubbing needed.
+    private val subJobHeartbeat = SubJobHeartbeat(mockk(relaxed = true))
     private val underTest = MoodleReceiver(
         moodleService = moodleUploadService,
         renderingJobRepository = renderingJobRepository,
         subJobRepository = subJobRepository,
         mainJobLogic = mainJobLogic,
-        moduleRegistry = moduleRegistry
+        moduleRegistry = moduleRegistry,
+        subJobHeartbeat = subJobHeartbeat
     )
     private val jobDataProvider = JobDataProvider()
     private val module: MoodleRenderModule = mockk()

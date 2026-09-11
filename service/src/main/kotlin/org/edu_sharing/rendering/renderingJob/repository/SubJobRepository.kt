@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.repository.Aggregation
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.data.mongodb.repository.Query
 import org.springframework.stereotype.Repository
+import java.time.Instant
 import java.util.*
 
 @Repository
@@ -59,5 +60,8 @@ data class SubJobListItem(
     val status: SubJobStatus,
     val quality: Int,
     val progress: Int,
-    val errorMessage: String?
+    val errorMessage: String?,
+    val createdDate: Date?,
+    val processingStartedDate: Instant?,
+    val finishedDate: Instant?
 )

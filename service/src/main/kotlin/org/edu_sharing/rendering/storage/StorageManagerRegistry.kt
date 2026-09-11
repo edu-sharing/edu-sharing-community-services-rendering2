@@ -30,4 +30,15 @@ class StorageManagerRegistry(
         log.debug("Resolved bucket manager for bucket=$bucketName, repoId=$repoId: ${manager?.javaClass?.simpleName ?: "none"}")
         return manager
     }
+
+    /**
+     * Bucket name → quota to enforce, merged across all registered [StorageManager]s for this repo
+     * (see [StorageManager.getManagedBucketQuotas]). Used by the `CacheCleaner` (which buckets get
+     * their own scope) and by the admin storage endpoint (display per bucket).
+     */
+    fun getManagedBucketQuotas(repoId: String): Map<String, Long> {
+        return storageManagers
+            .flatMap { it.getManagedBucketQuotas(repoId).entries }
+            .associate { it.key to it.value }
+    }
 }
