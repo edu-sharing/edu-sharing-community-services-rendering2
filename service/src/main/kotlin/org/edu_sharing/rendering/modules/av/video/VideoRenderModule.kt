@@ -85,6 +85,11 @@ class VideoRenderModule (
         return links?.get(0)
     }
 
+    override fun getAvailableObjectLinks(renderingJob: RenderingJob): List<ObjectLink>? {
+        val cacheObject = mapper.renderingJobToCacheObject(renderingJob)
+        return videoService.getObjectLinks(cacheObject = cacheObject)
+    }
+
     override fun getNodePermissionExpirationTime() = nodePermissionExpirationTime
 
     override fun createConversionSubJobs(
