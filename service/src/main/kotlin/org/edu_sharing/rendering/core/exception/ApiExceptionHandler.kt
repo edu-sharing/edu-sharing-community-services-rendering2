@@ -69,7 +69,11 @@ class ApiExceptionHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     fun handleObjectTypeNotSupportedException(exception: ObjectTypeNotSupportedException): ResponseEntity<ErrorMessage> {
-        log.warn(exception.message, exception)
+        // Not a fault: the object is simply not rendered by this service. /public/renderdata answers
+        // those with 200 + RenderDataResponse.supportedByBackend = false; this handler only covers
+        // the remaining paths (e.g. /public/renderdata/ondemand). Debug, not warn — this used to
+        // log a full stack trace for every plain-link node.
+        log.debug(exception.message, exception)
         val errorMessage = ErrorMessage(
             status = HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
             message = exception.message,

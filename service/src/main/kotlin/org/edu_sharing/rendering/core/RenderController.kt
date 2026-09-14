@@ -52,11 +52,11 @@ class RenderController (
         val node = objectMapper.readValue(decodedNode.toString(Charsets.UTF_8), Node::class.java)
 
         // Frontend-only remote repositories (pixabay, youtube, …) are rendered client-side and
-        // are intentionally not registered here, so their public keys can't be resolved. Reject
+        // are intentionally not registered here, so their public keys can't be resolved. Answer
         // them before signature verification, which would otherwise fail with a confusing error.
         if (moduleRegistry.isFrontendRemoteRepository(node)) {
             log.debug("Node is from frontend-only remote repository, rendering handled in frontend only")
-            throw ObjectTypeNotSupportedException()
+            return renderedByClient()
         }
 
         if (securityEnabled) {
@@ -70,14 +70,36 @@ class RenderController (
         }
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
 
-        val renderModule = service.getRenderModule(body, node)
+        val renderModule = try {
+            service.getRenderModule(body, node)
+        } catch (e: ObjectTypeNotSupportedException) {
+            // No module claims this node — a normal outcome, not a fault. AuthorizationDeniedException
+            // from @PreAuthorize/@PostAuthorize is a different type and still reaches the 403 handler.
+            log.debug("No render module for nodeId=${body.nodeId}: ${e.message}")
+            return renderedByClient()
+        }
         nodeSessionContextRepository.saveNode(node)
 
         log.debug("Dispatching to render module: ${renderModule::class.simpleName}, nodeId=${node.ref.id}")
-        return ResponseEntity
-            .ok()
-            .body(renderModule.handle(node))
+        return try {
+            ResponseEntity
+                .ok()
+                .body(renderModule.handle(node))
+        } catch (e: ObjectTypeNotSupportedException) {
+            // A module may still decline the concrete object (e.g. the Omega identifier whitelist).
+            log.debug("Module ${renderModule::class.simpleName} declined nodeId=${body.nodeId}: ${e.message}")
+            renderedByClient()
+        }
     }
+
+    /**
+     * Answer for a node this service does not render — a plain link, a youtube embed, an LTI launch,
+     * a type no module claims. The client renders such nodes itself. This used to be a 415, which
+     * was an expected outcome for the client but made every browser log a console error that no
+     * client code can suppress.
+     */
+    private fun renderedByClient(): ResponseEntity<RenderDataResponse> =
+        ResponseEntity.ok(RenderDataResponse(supportedByBackend = false))
 
     // On-demand fetch for modules that deferred their (expiring) links (see RenderDataResponse.deferred).
     // Uses the node cached in the session at initial render time, so no signature is re-verified —
