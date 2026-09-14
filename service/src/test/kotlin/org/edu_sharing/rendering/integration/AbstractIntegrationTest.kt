@@ -25,7 +25,11 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val minioContainer = MinIOContainer("minio/minio")
+        // Docker Hub no longer serves public pulls of minio/minio (any tag) — use MinIO's own quay.io registry instead,
+        // pinned to a fixed release for reproducible builds.
+        private val minioContainer = MinIOContainer(
+            DockerImageName.parse("quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z").asCompatibleSubstituteFor("minio/minio")
+        )
             .withCommand("server /data")
             .withExposedPorts(9000)
             .withEnv("MINIO_ROOT_USER", "minioadmin")
