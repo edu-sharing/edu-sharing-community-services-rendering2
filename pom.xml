@@ -53,8 +53,7 @@
         </property>
       </activation>
       <properties>
-        <edu-sharing.project>enterprise-</edu-sharing.project>
-        <bom.repository.version>${edu-sharing.project}${project.version}</bom.repository.version>
+        <bom.repository.version>${project.version}</bom.repository.version>
       </properties>
     </profile>
   </profiles>
