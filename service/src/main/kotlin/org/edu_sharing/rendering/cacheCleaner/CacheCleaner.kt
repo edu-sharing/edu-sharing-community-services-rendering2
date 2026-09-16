@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.cacheCleaner
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.storage.StorageManagerRegistry
+import org.edu_sharing.rendering.storage.StorageScopeKind
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.takeUntil
 import org.slf4j.LoggerFactory
@@ -28,7 +29,11 @@ class CacheCleaner(
     fun cleanCache() {
         log.info("Running cache cleaner...")
         storageService.getStorageInfo().forEach loop@{ scope ->
-            val label = if (scope.bucket != null) "${scope.repoId}/${scope.bucket}" else scope.repoId
+            val label = when {
+                scope.kind == StorageScopeKind.LIBRARY_CACHE -> "${scope.repoId}/${scope.bucket} (H5P library cache)"
+                scope.bucket != null -> "${scope.repoId}/${scope.bucket}"
+                else -> scope.repoId
+            }
             if (scope.maxSize == 0L) {
                 log.info("No quota set for $label. Nothing to clean.")
                 return@loop
@@ -48,8 +53,12 @@ class CacheCleaner(
                 }
 
                 val bucketEntryGroups = trackingIterator.asSequence()
+                    // Objects that occupy nothing in the resource being freed would be deleted for
+                    // no gain - notably H5P content imported before the per-package library cache,
+                    // which has no library set of its own.
+                    .filter { scope.kind.sizeOf(it) > 0 }
                     .takeUntil(0L, { freed, _ -> freed >= bytesToFree }) { freed, element ->
-                        freed + element.binarySize
+                        freed + scope.kind.sizeOf(element)
                     }
                     .groupBy { entry -> storageManagerRegistry.getBucketManagerByBucketName(entry.bucket, entry.repoId) }
 

@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -23,7 +24,8 @@ class MoodleReceiver (
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val mainJobLogic: MainJobLogic,
-    private val moduleRegistry: ModuleRegistry
+    private val moduleRegistry: ModuleRegistry,
+    private val subJobHeartbeat: SubJobHeartbeat
 ) {
     private val log = LoggerFactory.getLogger(MoodleReceiver::class.java)
 
@@ -33,7 +35,7 @@ class MoodleReceiver (
             // per pod, so moodle imports run in parallel across the cluster (each import mostly waits on the
             // remote moodle, including a restore poll of up to 10 minutes).
             QueueBinding(
-                value = Queue(name = "#{moodleQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{moodleQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{moodleQueueProperties.key}"]
             )
@@ -49,6 +51,12 @@ class MoodleReceiver (
             return
         }
         var subJob = jobEntry.subJobs.first()
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished moodle import was lost), which would re-run the moodle course import.
+        if (subJob.status != SubJobStatus.QUEUED) {
+            log.debug("Moodle job {} already past QUEUED (sub-job {}); dropping redelivered message", message.id, subJob.status)
+            return
+        }
         subJob.status = SubJobStatus.PROCESSING
         subJob.processingStartedDate = Instant.now()
         jobEntry.status = RenderingJobStatus.PROCESSING
@@ -57,11 +65,16 @@ class MoodleReceiver (
         subJob = subJobRepository.save(subJob)
         log.debug("Processing Moodle job ${message.id}, calling upload service for nodeId ${message.nodeId}")
         try {
-            val url = moodleService.getUrl(
-                moodleJobMessage = message,
-                module = moduleRegistry.getRenderModule(jobEntry.module),
-                repoId = jobEntry.repoId,
-            )
+            // The restore-poll loop inside getUrl can legitimately take up to 10 minutes with no
+            // interim persistence, well inside the reaper's PT30M default but a heartbeat is what
+            // keeps that true if either value ever changes.
+            val url = subJobHeartbeat.run(subJob.id) {
+                moodleService.getUrl(
+                    moodleJobMessage = message,
+                    module = moduleRegistry.getRenderModule(jobEntry.module),
+                    repoId = jobEntry.repoId,
+                )
+            }
             log.debug("Moodle URL obtained for job ${message.id}, marking sub-job as FINISHED")
             subJob.message = url.first
             subJob.additionalData = mapOf("linkUrl" to url.second)

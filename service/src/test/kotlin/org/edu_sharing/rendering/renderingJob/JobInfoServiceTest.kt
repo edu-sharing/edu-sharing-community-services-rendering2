@@ -6,8 +6,8 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.verify
 import org.edu_sharing.rendering.core.dto.ObjectLink
+import io.mockk.verify
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
@@ -15,8 +15,8 @@ import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 
@@ -62,6 +62,7 @@ class JobInfoServiceTest {
 
     @Test
     fun getJobInfoMergesAlreadyAvailableLinksWhileJobIsStillQueued() {
+        underTest = JobInfoService(jobRepository, subJobRepository, moduleRegistry)
         val job = jobDataProvider.prepareJobForConversionModuleTesting(JobDataProvider.DUMMY_JOB_ID, module = "VIDEO")
         val renderModule = mockk<RenderModule>()
         val cachedLink = ObjectLink(link = "cached-480p", height = 480)

@@ -69,6 +69,18 @@ abstract class QueueSpec {
      */
     val effectiveRemotePrefetch: Int
         get() = prefetch ?: concurrency
+
+    /**
+     * Broker-side queue arguments beyond the common durable/exclusive/auto-delete flags, keyed by mode/module.
+     * The default covers [singleActiveConsumer] generically (any [SingleActiveQueueProperties] queue); a
+     * subclass with its own argument (e.g. [AvQueueProperties]'s `x-max-priority`) overrides this rather than
+     * being special-cased elsewhere. This is what lets [QueueTopologyConfig] declare every queue purely from a
+     * `List<QueueSpec>` — a new module's queue is picked up automatically, without editing that class — while
+     * each `@RabbitListener`'s own `arguments` (independently SpEL-driven) must still match it exactly, or the
+     * two declarations mismatch with `406 PRECONDITION_FAILED` wherever the same pod runs both.
+     */
+    open val declareArguments: Map<String, Any>
+        get() = if (singleActiveConsumer) mapOf("x-single-active-consumer" to true) else emptyMap()
 }
 
 /** Base for a plain fan-out queue on the shared listener factory. [concurrency] = registered consumers per pod. */

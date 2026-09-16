@@ -3,3 +3,6 @@ h5p
 .idea
 dist
 node
+
+# Per-package H5P library cache (H5P_LIBRARY_CACHE_DIR) when running locally
+library-cache

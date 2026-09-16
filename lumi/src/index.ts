@@ -16,6 +16,12 @@ import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} from "./h5p.settings";
 import eduSharingPlayer from "./eduSharingPlayer";
 import {fileStreamScopeMiddleware} from "./s3Streams";
+import {
+    FsPackageLibraryStore,
+    packageLibraryRouter,
+    PackageLibraryStore,
+    readPackageLibraryConfig
+} from "./packageLibraries";
 
 const log = new Logger("Index")
 
@@ -92,11 +98,25 @@ const start = async () => {
     const mongoDb = await dbImplementations.initMongo()
     log.info("MongoDB successfully initialized")
 
-    const h5pEditor: H5P.H5PEditor = await createH5PEditor(
+    const deps = await createH5PEditor(
         config,
         mongoDb,
         (key, language) => translationFunction(key, { lng: language })
     );
+    const h5pEditor: H5P.H5PEditor = deps.editor;
+
+    // Per-package library isolation. Off unless explicitly enabled, so an existing deployment keeps
+    // serving every package from the shared global library storage exactly as before.
+    const packageLibraryConfig = readPackageLibraryConfig()
+    let packageLibraryStore: PackageLibraryStore | undefined
+    if (packageLibraryConfig.mode === 'package') {
+        packageLibraryStore = await FsPackageLibraryStore.create(packageLibraryConfig.directory, {
+            quotaBytes: packageLibraryConfig.quotaBytes
+        })
+        log.info(`Per-package H5P library cache enabled (${packageLibraryConfig.directory}).`)
+    } else {
+        log.info("Using the shared global H5P library storage.")
+    }
 
     // The H5PPlayer object is used to display H5P content.
     const h5pPlayer = new H5PPlayer(
@@ -149,6 +169,12 @@ const start = async () => {
     // (H5P.adapters.express) to function properly.
     app.use(i18nextHttpMiddleware.handle(i18next));
 
+    // Must be mounted before the ajax router so scoped library files are resolved against the
+    // package's own cache rather than the editor's global storage.
+    if (packageLibraryStore) {
+        app.use(h5pEditor.config.baseUrl, packageLibraryRouter(packageLibraryStore));
+    }
+
     app.use(
         h5pEditor.config.baseUrl,
         h5pAjaxExpressRouter(
@@ -169,7 +195,8 @@ const start = async () => {
 
     app.use(
         h5pEditor.config.baseUrl,
-        router(h5pEditor, h5pPlayer, 'auto', eduCollection),
+        router(h5pEditor, h5pPlayer, 'auto', eduCollection,
+            packageLibraryStore ? {store: packageLibraryStore, deps} : undefined),
     );
 
     const port = process.env.PORT || '3000';

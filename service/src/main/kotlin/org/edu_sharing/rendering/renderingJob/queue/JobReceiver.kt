@@ -34,7 +34,7 @@ class JobReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{jobQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{jobQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{jobQueueProperties.key}"]
             )

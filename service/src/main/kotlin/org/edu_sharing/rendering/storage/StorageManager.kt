@@ -25,4 +25,13 @@ interface StorageManager {
      * then leaves its buckets untouched (see [StorageManagerRegistry]).
      */
     fun getManagedBucketQuotas(repoId: String): Map<String, Long> = emptyMap()
+
+    /**
+     * Quota scopes this manager contributes that are not buckets of their own — currently lumi's
+     * per-package H5P library cache, which is a filesystem inside lumi rather than a bucket, yet is
+     * freed by deleting the very same tracked objects.
+     *
+     * An empty result (default) means this manager has no such scope.
+     */
+    fun getAdditionalStorageInfo(repoId: String): List<StorageInfo> = emptyList()
 }

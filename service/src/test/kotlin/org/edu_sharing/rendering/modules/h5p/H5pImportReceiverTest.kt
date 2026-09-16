@@ -6,6 +6,7 @@ import org.edu_sharing.rendering.config.H5P_BASE_PATH
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -29,6 +30,9 @@ class H5pImportReceiverTest {
     private val jobDataProvider = JobDataProvider()
     private val mapper = Mapper()
     private val appInfo = AppInfo()
+    // Real instance (not a mock): run() just executes the block synchronously, and the periodic
+    // touch (every 5 min) never fires within a unit test's lifetime, so no stubbing needed.
+    private val subJobHeartbeat = SubJobHeartbeat(mockk(relaxed = true))
 
     // The class under test
     private val underTest = H5pImportReceiver(
@@ -37,7 +41,8 @@ class H5pImportReceiverTest {
         subJobRepository,
         h5pUploadService,
         mapper,
-        appInfo
+        appInfo,
+        subJobHeartbeat
     )
 
     @BeforeEach

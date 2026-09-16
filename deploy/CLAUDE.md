@@ -42,7 +42,10 @@ configure the static server at runtime — see [`../admin-frontend/CLAUDE.md`](.
 - **service** & **document-converter**: Amazon Corretto 21-alpine, Spring Boot layered-jar
   extraction, non-root `worker` user, entrypoint sets `-Dspring.profiles.active=docker`.
   The document-converter image additionally installs **LibreOffice + fonts**.
-- **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000.
+- **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000. Creates
+  `/application/library-cache` **owned by `node` before `USER node`** — `/application` is root-owned,
+  so a volume mounted there would be created as root and the node user could not write into it
+  (Docker seeds a fresh named volume from this directory's ownership; K8s uses the pod's `fsGroup`).
 - **jupyter-converter**: `python:3.13` (Poetry install in a builder stage), runs `python -m main`.
 - **admin-frontend**: `node:21-alpine`, serves the static Angular build via a dependency-free
   `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
@@ -85,6 +88,8 @@ dotted Spring keys set as env entries.
 | `RENDERING2_S3_TEMP_BUCKET{,_QUOTA}` (Helm, entry `tempBucket`) | `app.repository.registration.id.<key>.externalBuckets.tempBucket.{name,quota}` — quota (same format as above) is informational only, never enforced (see `GET /admin/storage/usage?exact=true`) | empty / `0` |
 | `RENDERING2_S3_DEFAULT_QUOTA` | `app.repository.registration.id.<key>.quota` — repo-wide fallback quota (same format as above), only in effect while none of the repo's buckets above (or the lumi content bucket) has its own quota | `0` |
 | `RENDERING2_LUMI_CONTENT_BUCKET_QUOTA` (Helm `config.s3.buckets.contentQuota`, lumi chart) | lumi `CONTENT_AWS_S3_BUCKET_QUOTA` — quota for lumi's own content bucket (a plain byte count or a human-readable size like `10GB`, parsed by lumi's own `parseDataSize`, binary units matching the service side), queried live by rendering2 (`GET /edusharing/buckets`) instead of being duplicated into the rendering2 repository registration | `0` |
+| `RENDERING2_LUMI_LIBRARY_CACHE` (Helm `config.libraryCache.mode`, lumi chart) | lumi `H5P_LIBRARY_CACHE` — `global` = one shared H5P library store, `package` = an isolated per-package cache holding each package's exact library versions. In `package` mode the cache directory (`H5P_LIBRARY_CACHE_DIR`, Helm `config.libraryCache.dir`) is authoritative and needs a volume. The chart follows the mode: the `volumeClaimTemplate` and its mount are rendered **only** for `package`, sized by `persistence.data.libraryCache.spec` — there is no separate create flag, so `package` without storage cannot be configured. Compose has no conditionals, so `rendering2-lumi-volume-library-cache` is always declared; in `global` mode it simply stays an empty, unused directory | `global` |
+| `RENDERING2_LUMI_LIBRARY_CACHE_QUOTA` (Helm `config.libraryCache.quota`, lumi chart) | lumi `H5P_LIBRARY_CACHE_QUOTA` — size limit for the per-package library cache (plain byte count or `10GB`-style size, binary units); `0` = no limit. On reaching it imports are rejected with HTTP 507 (the CacheCleaner breathes on the volume below that, see the service guide). Measured in **allocated blocks**, so it matches `du` on a PVC and `df` on a memory-backed volume — keep it below the volume size. Reported via `GET /edusharing/buckets` (`libraryCache`) | `0` |
 | `BASE_HREF` / `ADMIN_API_BASE` (admin-frontend container) | static server, **not** Spring | `/rendering-admin/` / `/rendering` |
 
 (See `1_rendering2-common.yml` for the authoritative, complete list.)

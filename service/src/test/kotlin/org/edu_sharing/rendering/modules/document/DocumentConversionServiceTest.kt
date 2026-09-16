@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.modules.ConverterWebServiceArguments
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
@@ -55,6 +56,9 @@ class DocumentConversionServiceTest {
     private val serviceCaller = mockk<ConverterWebServiceCaller>()
     private val spreadSheetRenderModule: SpreadsheetRenderModule = mockk()
     private val storageService = mockk<StorageService>()
+    // Real instance (not a mock): run() just executes the block synchronously, and the periodic
+    // touch (every 5 min) never fires within a unit test's lifetime, so no stubbing needed.
+    private val subJobHeartbeat = SubJobHeartbeat(mockk(relaxed = true))
 
     // Helper
     private val jobDataProvider = JobDataProvider()
@@ -75,7 +79,8 @@ class DocumentConversionServiceTest {
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
             spreadsheetRenderModule = spreadSheetRenderModule,
-            storageService = storageService
+            storageService = storageService,
+            subJobHeartbeat = subJobHeartbeat
         )
         // Arrange
         val job = mockk<RenderingJob>()
@@ -138,7 +143,8 @@ class DocumentConversionServiceTest {
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
             spreadsheetRenderModule = null,
-            storageService = storageService
+            storageService = storageService,
+            subJobHeartbeat = subJobHeartbeat
         )
         // Arrange
         val job = mockk<RenderingJob>()
@@ -196,7 +202,8 @@ class DocumentConversionServiceTest {
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
             spreadsheetRenderModule = null,
-            storageService = storageService
+            storageService = storageService,
+            subJobHeartbeat = subJobHeartbeat
         )
         // Arrange
         val job = mockk<RenderingJob>()
@@ -254,7 +261,8 @@ class DocumentConversionServiceTest {
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
             spreadsheetRenderModule = spreadSheetRenderModule,
-            storageService = storageService
+            storageService = storageService,
+            subJobHeartbeat = subJobHeartbeat
         )
         // Arrange
         val job = mockk<RenderingJob>()
@@ -314,7 +322,8 @@ class DocumentConversionServiceTest {
             serviceCaller = serviceCaller,
             subJobRepository = subJobRepository,
             spreadsheetRenderModule = spreadSheetRenderModule,
-            storageService = storageService
+            storageService = storageService,
+            subJobHeartbeat = subJobHeartbeat
         )
         // Arrange
         val job = mockk<RenderingJob>()
