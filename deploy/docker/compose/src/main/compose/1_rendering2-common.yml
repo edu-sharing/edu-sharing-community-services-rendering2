@@ -10,6 +10,9 @@ services:
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
       RUSTFS_ACCESS_KEY: "${RENDERING2_S3_STORAGE_USER:-rendering2}"
       RUSTFS_SECRET_KEY: "${RENDERING2_S3_STORAGE_PASSWORD:-rendering2}"
+      # The rustfs image bakes RUSTFS_OBS_LOG_DIRECTORY=/logs by default (hourly-rotated files on disk).
+      # Force it empty so the entrypoint's "-z" check falls back to stdout logging, since we ship logs via log aggregation.
+      RUSTFS_OBS_LOG_DIRECTORY: ""
       RUST_BACKTRACE: full
     command: [ "rustfs" ]
     volumes:

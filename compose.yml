@@ -15,6 +15,8 @@ services:
       - RUSTFS_ACCESS_KEY=rendering2
       - RUSTFS_SECRET_KEY=rendering2
       - RUST_BACKTRACE=full
+      # Image default is RUSTFS_OBS_LOG_DIRECTORY=/logs (hourly-rotated files on disk); empty forces stdout logging.
+      - RUSTFS_OBS_LOG_DIRECTORY=
       #- RUSTFS_TLS_PATH=/opt/tls
       #- RUSTFS_OBS_LOGGER_LEVEL=debug
       #- RUSTFS_CORS_ALLOWED_ORIGINS=*
