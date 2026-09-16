@@ -36,6 +36,11 @@ spec:
         ports:
         - name: api
           containerPort: 3000
+        {{- if eq .Values.config.libraryCache.mode "package" }}
+        volumeMounts:
+        - name: library-cache
+          mountPath: {{ .Values.config.libraryCache.dir | quote }}
+        {{- end }}
         {{- with .Values.startupProbe }}
         startupProbe:
           httpGet:
@@ -107,3 +112,13 @@ spec:
           {{- end }}
         {{- end }}
       {{- end }}
+  {{/* The per-package library cache is the only copy of those packages' libraries, so the volume is
+       not optional for it - it follows the mode rather than a flag of its own, which removes the
+       "package mode without storage" misconfiguration. In "global" mode no claim is created. */}}
+  {{- if eq .Values.config.libraryCache.mode "package" }}
+  volumeClaimTemplates:
+  - metadata:
+      name: library-cache
+      labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
+    spec: {{ merge $.Values.persistence.data.libraryCache.spec $.Values.global.cluster.storage.data.spec | toYaml | nindent 6 }}
+  {{- end }}

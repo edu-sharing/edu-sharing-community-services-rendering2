@@ -1,4 +1,4 @@
-import { AsyncLocalStorage } from 'async_hooks';
+import { AsyncLocalStorage, AsyncResource } from 'async_hooks';
 import { randomBytes } from 'crypto';
 import createDebug from 'debug';
 import { Request, Response, NextFunction } from 'express';
@@ -92,9 +92,29 @@ export function extractClientTraceId(req: Request): string | undefined {
 /**
  * Express middleware: derive the trace id for the request and run the remaining handler chain within
  * the trace context, so every log line emitted while handling the request carries the trace id.
+ *
+ * Binding the request/response emitters is what makes this hold for requests with a body. An
+ * {@link AsyncLocalStorage} only reaches async resources *created inside* its `run()` callback, and a
+ * body-consuming middleware (`express.json()`, `bodyParser.urlencoded()`, the `multer` upload handler,
+ * the parsers inside `h5pAjaxExpressRouter`) does not call `next()` from there: it waits for `data`/
+ * `end` events on the request stream, and those fire in the async context of the socket, which was
+ * created when the connection was accepted - long before this `run()`. The handler chain would resume
+ * outside the context and log without a trace id. That is exactly what `POST /edusharing` did: the
+ * package import, the most valuable thing to correlate, was the one path with no trace id at all,
+ * while every GET had one.
+ *
+ * `AsyncResource.bind` captures the context here and re-enters it for every event emitted on the
+ * request or response, so those listeners - and the `next()` they call - stay inside it. Doing it on
+ * the emitters rather than after each body parser keeps it independent of middleware order and covers
+ * routers we do not control. `enterWith()` is *not* an alternative; it was measured and loses the
+ * context just the same, for the same reason.
  */
 export function traceContextMiddleware(req: Request, res: Response, next: NextFunction): void {
     const traceId = extractTraceId(req);
     const clientTraceId = extractClientTraceId(req);
-    traceStore.run({ traceId, clientTraceId }, () => next());
+    traceStore.run({ traceId, clientTraceId }, () => {
+        req.emit = AsyncResource.bind(req.emit.bind(req));
+        res.emit = AsyncResource.bind(res.emit.bind(res));
+        next();
+    });
 }

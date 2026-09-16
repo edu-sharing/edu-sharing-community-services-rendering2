@@ -91,6 +91,14 @@ config:
     ## @param config.files.maxsize Set files max size
     maxsize: 1000
 
+  libraryCache:
+    ## @param config.libraryCache.mode How H5P libraries of imported packages are stored: "global" = one shared store (default), "package" = an isolated cache per package holding its exact library versions
+    mode: global
+    ## @param config.libraryCache.dir Root directory of the per-package library caches; only used when mode is "package", where it is also the mount point of the volume created for it
+    dir: /application/library-cache
+    ## @param config.libraryCache.quota Size limit for the per-package library cache — a plain byte count or a human-readable size like "10GB" (binary units); 0 = no limit. On reaching it new imports are rejected (HTTP 507); nothing is evicted, as the cache is the only copy of those packages' libraries. Measured in allocated blocks (matches du / df), so keep it below persistence.data.libraryCache.spec.resources.requests.storage
+    quota: 0
+
   log:
     ## @param config.log.level Set log level
     level: info
@@ -163,6 +171,23 @@ config:
       library: lumi-libbucket
       ## @param config.s3.buckets.temporary Set S3 bucket for temporary
       temporary: lumi-tempbucket
+
+########################################################################################################################
+
+persistence:
+
+  data:
+
+    libraryCache:
+      ## The volume is created automatically when config.libraryCache.mode is "package" and omitted
+      ## otherwise — it exists solely for that cache, which is the only copy of those libraries.
+      spec:
+        ## @param persistence.data.libraryCache.spec.accessModes Set access modes for the library cache
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            ## @param persistence.data.libraryCache.spec.resources.requests.storage Set storage request for the library cache
+            storage: 10Gi
 
 ########################################################################################################################
 

@@ -42,6 +42,14 @@ data class TrackingEntry(
     val type: String,
     val bucket: String,
     var binarySize: Long,
+    /**
+     * Bytes this object occupies in lumi's per-package H5P library cache, or `0` when it has none -
+     * anything that is not an H5P package, and H5P content imported while the shared global library
+     * storage was in use. Kept separate from [binarySize] (which is the object's size in its storage
+     * bucket) because the two are freed from different places: the CacheCleaner sizes candidates by
+     * whichever of the two the scope it is cleaning is measured in.
+     */
+    var librarySize: Long = 0,
     var lastAccessed: Date = Date(),
 
     ){
@@ -50,7 +58,7 @@ data class TrackingEntry(
             return trackingEntry.copy(lastAccessed = Date())
         }
 
-        fun of(repoId: String, nodeId: String, hash: String, type: String, bucket: String, binarySize: Long): TrackingEntry{
+        fun of(repoId: String, nodeId: String, hash: String, type: String, bucket: String, binarySize: Long, librarySize: Long = 0): TrackingEntry{
             return TrackingEntry(
                 repoId = repoId,
                 nodeId = nodeId,
@@ -58,6 +66,7 @@ data class TrackingEntry(
                 bucket = bucket,
                 type = type,
                 binarySize = binarySize,
+                librarySize = librarySize,
                 lastAccessed = Date()
             )
         }

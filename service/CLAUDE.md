@@ -22,7 +22,7 @@ Package root: `org.edu_sharing.rendering` under `src/main/kotlin/org/edu_sharing
 | `storage` | S3 (AWS SDK v2) + bucket strategies (per-customer, per-media-type, external bucket — selected by `@ConditionalOn…` annotations). Health indicator. |
 | `security` | JWT (`AuthTokenFilter`, `JwtUtils`), node-permission session repositories, `SecurityConfig` (dual filter chains for `/public/**` and `/admin/**`), CORS. |
 | `asset` | `AssetController` (download/stream, HTTP Range support, CSP headers), `AssetService`; `AdminAssetController` (tracking-driven admin asset listing/deletion). |
-| `cacheCleaner` | Scheduled threshold-based cleanup of cached renderings. |
+| `cacheCleaner` | Scheduled threshold-based cleanup of cached renderings. A scope is a bucket **or** lumi's per-package H5P library cache (`StorageScopeKind`) — either exceeding its upper threshold triggers a cleanup, sized by `binarySize` or `librarySize` respectively. |
 | `config` | `AppInfo`, `RedisConfig` + the two Redis property classes, `MongoConfig`, `SessionConfig`, `SchedulingConfig`, `SpringDocConfig`, `SpringConfig`. |
 
 ## Module plugin architecture

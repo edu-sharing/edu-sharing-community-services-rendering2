@@ -247,9 +247,20 @@ services:
       EDUSHARING_MONGO_COLLECTION: lumiedusharing
       BASE_URL: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}/public/h5p"
       CACHE: in-memory
+      # How libraries of imported H5P packages are stored. "global" (default) keeps the single shared
+      # store in Mongo/S3. "package" gives every imported package its own isolated cache holding the
+      # exact library versions it shipped; that cache is authoritative, hence the volume below.
+      H5P_LIBRARY_CACHE: "${RENDERING2_LUMI_LIBRARY_CACHE:-global}"
+      H5P_LIBRARY_CACHE_DIR: /application/library-cache
+      # Size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
+      # units). 0/empty = no limit. On reaching it, imports are rejected with HTTP 507 rather than
+      # evicting: the cache is the only copy of those packages' libraries.
+      H5P_LIBRARY_CACHE_QUOTA: "${RENDERING2_LUMI_LIBRARY_CACHE_QUOTA:-0}"
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*
+    volumes:
+      - "rendering2-lumi-volume-library-cache:/application/library-cache"
     expose:
       - "3000"
 
@@ -272,4 +283,5 @@ services:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_ADMIN_FRONTEND_PORT_HTTP:-10400}:8080"
 
 volumes:
+  rendering2-lumi-volume-library-cache:
   rendering2-rustfs-storage-volume-data:
