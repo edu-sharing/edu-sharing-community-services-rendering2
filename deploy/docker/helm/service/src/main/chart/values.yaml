@@ -550,7 +550,7 @@ config:
       #     value:
       #   - name: password
       #     value:
-      #   - name:token
+      #   - name: token
       #     value:
       #   - name: timeout
       #     value:
@@ -558,7 +558,10 @@ config:
       #     value:
       #   - name: submitUserDetails
       #     value:
+      #   # publicurl is optional: only needed when a browser cannot reach baseurl (e.g. a
+      #   # docker/cluster-internal address). Omit the entry or leave it blank to use baseurl.
       #   - name: publicurl
+      #     value:
       # - name: SODIX
       #   credentials:
       #   - name: baseurl
