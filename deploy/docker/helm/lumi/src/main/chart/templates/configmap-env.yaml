@@ -29,6 +29,17 @@ data:
   {{- end }}
   CONTENT_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.content | quote }}
   EDUSHARING_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.edusharing | quote }}
+  H5P_LIBRARY_CACHE: {{ .Values.config.libraryCache.mode | quote }}
+  H5P_LIBRARY_CACHE_DIR: {{ .Values.config.libraryCache.dir | quote }}
+  {{- $libraryCacheQuota := .Values.config.libraryCache.quota | default 0 }}
+  {{/* Same number-vs-string handling as CONTENT_AWS_S3_BUCKET_QUOTA above: a human-readable value
+       ("10GB") must pass through untouched, while a plain byte count decodes as float64 and would
+       otherwise render in scientific notation. */}}
+  {{- if kindIs "string" $libraryCacheQuota }}
+  H5P_LIBRARY_CACHE_QUOTA: {{ $libraryCacheQuota | quote }}
+  {{- else }}
+  H5P_LIBRARY_CACHE_QUOTA: {{ $libraryCacheQuota | int64 | quote }}
+  {{- end }}
   LIBRARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.library | quote }}
   LIBRARY_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.library | quote }}
   LOG_LEVEL: {{ .Values.config.log.level | quote }}

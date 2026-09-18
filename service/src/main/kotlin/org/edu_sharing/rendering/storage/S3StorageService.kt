@@ -219,6 +219,9 @@ class S3StorageService(
         return aggregation.flatMap { repoAggregation ->
             val enforcedQuotas = storageManagerRegistry.getManagedBucketQuotas(repoAggregation.repoId)
 
+            val additional = storageManagerRegistry.getStorageManagers()
+                .flatMap { it.getAdditionalStorageInfo(repoAggregation.repoId) }
+
             if (enforcedQuotas.isNotEmpty()) {
                 val sizeByBucket = repoAggregation.buckets.associate { it.name to it.size }
                 val unassigned = repoAggregation.buckets.map { it.name } - enforcedQuotas.keys
@@ -235,7 +238,7 @@ class S3StorageService(
                         size = sizeByBucket[bucket] ?: 0,
                         maxSize = quota
                     )
-                }
+                } + additional
             } else {
                 val quota = repoRegistrationStorageService.getRegistrationByRepoId(repoAggregation.repoId)
                     .map { it.quota }.orElse(0)
@@ -246,7 +249,7 @@ class S3StorageService(
                         size = repoAggregation.totalSize,
                         maxSize = quota
                     )
-                )
+                ) + additional
             }
         }
     }

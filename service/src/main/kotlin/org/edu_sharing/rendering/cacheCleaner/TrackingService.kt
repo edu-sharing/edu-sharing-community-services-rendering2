@@ -82,7 +82,7 @@ class TrackingService(
         return TrackingIterator {trackingEntryRepository.findAllByRepoIdAndBucket(repoId, bucket, it)}
     }
 
-    fun trackCacheObject(cacheObject: CacheObject, bucket: String, size: Long? = null) {
+    fun trackCacheObject(cacheObject: CacheObject, bucket: String, size: Long? = null, librarySize: Long? = null) {
         val trackingEntry = trackingEntryRepository.findByRepoIdAndNodeIdAndHashAndBucket(
             cacheObject.repoId,
             cacheObject.nodeId,
@@ -104,8 +104,11 @@ class TrackingService(
             if (size != null) {
                 trackingEntry.binarySize = size
             }
+            if (librarySize != null) {
+                trackingEntry.librarySize = librarySize
+            }
             trackingEntryRepository.save(trackingEntry)
-            log.debug("Tracked cache object: nodeId=${cacheObject.nodeId}, bucket=$bucket, binarySize=${trackingEntry.binarySize}")
+            log.debug("Tracked cache object: nodeId=${cacheObject.nodeId}, bucket=$bucket, binarySize=${trackingEntry.binarySize}, librarySize=${trackingEntry.librarySize}")
         } catch (_: DuplicateKeyException) {
             log.warn("tracking entry for node id ${cacheObject.nodeId} already exists.")
         } catch (exception: MongoException) {

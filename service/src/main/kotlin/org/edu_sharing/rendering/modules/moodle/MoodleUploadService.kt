@@ -76,8 +76,19 @@ class MoodleUploadService(
     }
 
     private fun buildForwardUrl(userToken: String, config: Map<String, String>): String {
+        // publicurl is optional and falls back to baseurl. Blank credentials are already dropped
+        // when the registration is stored, so the blank checks here only guard registrations
+        // written before that and callers passing credentials in directly - without them a blank
+        // base silently yields a relative link that no browser can open.
+        val baseUrl = config["publicurl"]?.takeIf { it.isNotBlank() }
+            ?: config["baseurl"]?.takeIf { it.isNotBlank() }
+            ?: throw MoodleUploadException(
+                "Neither publicurl nor baseurl is configured for the MOODLE module",
+                "Moodle is not configured correctly."
+            )
+
         return UriComponentsBuilder
-            .fromUriString(config["publicurl"] ?: config["baseurl"] ?: "")
+            .fromUriString(baseUrl)
             .path("/local/edusharing_webservice/forwardUser.php")
             .queryParam("token", userToken)
             .build(false)
