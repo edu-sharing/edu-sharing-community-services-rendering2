@@ -175,6 +175,12 @@ services:
       app.repository.registration.id.local.module.MOODLE.credentials.categoryid: "${RENDERING2_MOODLE_CATEGORY_ID:-1}"
       app.repository.registration.id.local.module.MOODLE.credentials.submitUserDetails: "${RENDERING2_MOODLE_SUBMIT_USER_DETAILS:-true}"
       app.repository.registration.id.local.module.MOODLE.credentials.password: "${RENDERING2_MOODLE_PASSWORD:-}"
+      # Display switch handed to the rendering frontend via the job-info additionalData map - not
+      # sent to Moodle: whether the course is embedded in an iframe, or shown as a preview image.
+      # The "go to course" link is always shown. Defaults to true; only a literal "false" turns it
+      # off. Blank counts as unset (the registration drops blank credential values), hence no
+      # default here.
+      app.repository.registration.id.local.module.MOODLE.credentials.showPreviewIframe: "${RENDERING2_MOODLE_SHOW_PREVIEW_IFRAME:-}"
       app.repository.registration.id.local.module.H5P.cspHeader: "${RENDERING2_H5P_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"
