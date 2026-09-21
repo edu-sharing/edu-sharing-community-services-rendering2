@@ -43,7 +43,7 @@ class AvReceiver(
             QueueBinding(
                 value = Queue(
                     name = "#{avQueueProperties.name}",
-                    durable = "false",
+                    durable = "true",
                     arguments = [Argument(
                         name = "x-max-priority",
                         value = "#{videoConverterConfig.getMaxPriority()}",

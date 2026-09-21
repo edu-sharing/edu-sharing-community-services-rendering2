@@ -10,6 +10,30 @@ import {guardFileStreams} from "./s3Streams";
 const log = new Logger("CreateH5PEditor")
 
 /**
+ * The H5P editor plus the storages and settings it was built from.
+ *
+ * An import into a per-package library cache needs its own `H5PEditor` - one whose library storage
+ * is the package's, not the global one - but it must write content and temporary files into exactly
+ * the same places as the main editor. Handing these pieces out keeps that second editor a mirror of
+ * this one instead of a second, drifting copy of the S3/Mongo wiring.
+ */
+export interface H5PDeps {
+    /** The shared editor over the global library storage. */
+    editor: H5P.H5PEditor
+    config: H5P.IH5PConfig
+    editorCache: H5P.IKeyValueStorage
+    contentStorage: H5P.IContentStorage
+    temporaryStorage: H5P.ITemporaryFileStorage
+    translationCallback?: H5P.ITranslationFunction
+    editorOptions: {
+        enableHubLocalization: boolean
+        enableLibraryNameLocalization: boolean
+        lockProvider: H5P.ILockProvider
+        permissionSystem: H5P.IPermissionSystem
+    }
+}
+
+/**
  * Creates and initializes an H5P Editor instance using the provided configurations
  * and dependencies, such as database connections and caching mechanisms.
  *
@@ -22,14 +46,14 @@ const log = new Logger("CreateH5PEditor")
  * @param {H5P.ITranslationFunction} [translationCallback] - An optional function for
  * handling translations in the editor, enabling localization of the editor's interface.
  *
- * @return {Promise<H5P.H5PEditor>} A promise that resolves with the initialized H5P editor
- * instance, which can be used for creating or editing H5P content.
+ * @return {Promise<H5PDeps>} A promise that resolves with the initialized H5P editor and the
+ * storages and settings it was built from (see {@link H5PDeps}).
  */
 export default async function createH5PEditor(
     config: H5P.IH5PConfig,
     mongoDb: Db,
     translationCallback?: H5P.ITranslationFunction,
-): Promise<H5P.H5PEditor> {
+): Promise<H5PDeps> {
     log.info("Starting H5P editor creation.")
 
     // Alternative: Redis
@@ -200,5 +224,13 @@ export default async function createH5PEditor(
     }
 
     log.info("Initiated H5P editor.")
-    return h5pEditor;
+    return {
+        editor: h5pEditor,
+        config,
+        editorCache,
+        contentStorage,
+        temporaryStorage: tempFileStorage,
+        translationCallback,
+        editorOptions
+    };
 }

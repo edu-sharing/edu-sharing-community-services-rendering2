@@ -65,10 +65,16 @@ class CustomSubJobRepositoryImpl(
         return claimed
     }
 
-    override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> {
+    override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> =
+        findByStatusModifiedBefore(SubJobStatus.PROCESSING, cutoff)
+
+    override fun findQueuedSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> =
+        findByStatusModifiedBefore(SubJobStatus.QUEUED, cutoff)
+
+    private fun findByStatusModifiedBefore(status: SubJobStatus, cutoff: Instant): List<StaleSubJobView> {
         // status is persisted as the enum name (see updateStatusWithoutVersion); match the string form.
         val query = Query(
-            Criteria.where("status").`is`(SubJobStatus.PROCESSING.toString())
+            Criteria.where("status").`is`(status.toString())
                 .and("lastModifiedDate").lt(cutoff)
         )
         query.fields().include("routingKey", "lastModifiedDate", "parent")
@@ -92,5 +98,12 @@ class CustomSubJobRepositoryImpl(
         } else {
             log.info("Timed out ${subJobIds.size} stale sub-job(s) (unacknowledged write)")
         }
+    }
+
+    override fun touchLastModifiedDate(subJobId: ObjectId) {
+        val query = Query(Criteria.where("_id").`is`(subJobId))
+        val update = Update().set("lastModifiedDate", Instant.now())
+        val updateResult = mongoTemplate.updateFirst(query, update, SubJob::class.java)
+        log.debug("Heartbeat touch for sub-job $subJobId: acknowledged=${updateResult.wasAcknowledged()}")
     }
 }

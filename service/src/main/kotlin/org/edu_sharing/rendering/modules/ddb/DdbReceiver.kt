@@ -30,7 +30,7 @@ class DdbReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{ddbQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{ddbQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{ddbQueueProperties.key}"]
             )
@@ -51,6 +51,14 @@ class DdbReceiver(
         val mainJob = mainJobLogic.getMainJobEntry(message.id)
         if (mainJob == null) {
             log.error("${this.javaClass.simpleName} received message with unknown job id ${message.id}")
+            return
+        }
+        // RabbitMQ is at-least-once: guard against re-processing a redelivered message (e.g. the ack for
+        // an already-finished job was lost), which would re-run the DDB API call. No single sub-job to
+        // check here (DdbApiService owns that, and can even run with none) - the main job's own terminal
+        // status is the guard.
+        if (mainJob.status >= RenderingJobStatus.FINISHED) {
+            log.debug("DDB job {} already terminal ({}); dropping redelivered message", message.id, mainJob.status)
             return
         }
         log.debug("Processing DDB job ${message.id}, nodeId ${mainJob.esObjectId}")

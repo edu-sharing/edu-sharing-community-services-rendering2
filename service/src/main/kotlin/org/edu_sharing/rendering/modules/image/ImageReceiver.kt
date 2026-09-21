@@ -29,7 +29,7 @@ class ImageReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{imageQueueProperties.name}", durable = "false"),
+                value = Queue(name = "#{imageQueueProperties.name}", durable = "true"),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{imageQueueProperties.key}"]
             )

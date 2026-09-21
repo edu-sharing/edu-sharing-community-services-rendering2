@@ -51,13 +51,23 @@ class H5pUploadService(
             return cachedLumiId
         }
         log.info("Not yet cached. Uploading H5P-Package.")
-        val lumiId = uploadPackage(cacheObject)
+        val uploaded = uploadPackage(cacheObject)
+        val lumiId = uploaded.contentId
         val size = storageService.getDirectorySize(lumiContentManagementService.getContentBucket(cacheObject.repoId), lumiId)
-        trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(cacheObject.repoId), size)
+        // Tracking libraryBytes is what lets the CacheCleaner free the library volume by deleting
+        // this package again. A current lumi always reports it (0 while it runs the shared global
+        // library storage); a lumi older than the per-package cache omits it, which is passed on as
+        // null so an already-known size is left alone rather than reset to 0.
+        trackingService.trackCacheObject(
+            cacheObject,
+            lumiContentManagementService.getContentBucket(cacheObject.repoId),
+            size,
+            uploaded.libraryBytes
+        )
         return lumiId
     }
 
-    private fun uploadPackage(cacheObject: CacheObject): String {
+    private fun uploadPackage(cacheObject: CacheObject): LumiContentResponse {
         log.debug("Uploading H5P package to Lumi for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
         val originalFile = File.createTempFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_",
@@ -84,9 +94,12 @@ class H5pUploadService(
                 .bodyToMono<String>()
                 .timeout(getTimeout(cacheObject.repoId))
                 .block()
-            val contentId = objectMapper.readValue(response, LumiContentResponse::class.java).contentId
-            log.debug("H5P package upload complete: lumiContentId={} for nodeId={}", contentId, cacheObject.nodeId)
-            return contentId
+            val uploaded = objectMapper.readValue(response, LumiContentResponse::class.java)
+            log.debug(
+                "H5P package upload complete: lumiContentId={} for nodeId={}, libraryBytes={}",
+                uploaded.contentId, cacheObject.nodeId, uploaded.libraryBytes
+            )
+            return uploaded
         } finally {
             originalFile.delete()
         }

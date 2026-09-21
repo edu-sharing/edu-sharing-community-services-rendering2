@@ -11,6 +11,7 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.storage.bucket.BucketStrategy
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import software.amazon.awssdk.services.s3.S3Client
@@ -33,6 +34,13 @@ class S3StorageServiceTest {
     private val underTest = S3StorageService(
         s3Client, trackingService, appInfo, bucketStrategy, repoRegistrationStorageService, storageManagerRegistry
     )
+
+    @BeforeEach
+    fun noAdditionalScopes() {
+        // Managers may contribute non-bucket scopes (see StorageManager.getAdditionalStorageInfo);
+        // these tests cover the bucket scopes only, so none are registered.
+        every { storageManagerRegistry.getStorageManagers() } returns emptyList()
+    }
 
     private fun registration(quota: Long) = Optional.of(
         RepositoryRegistration(repoId = "repo1", url = "https://repo1.example.org", publicKey = "key", quota = quota)

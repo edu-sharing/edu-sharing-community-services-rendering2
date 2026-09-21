@@ -1,7 +1,8 @@
 package org.edu_sharing.rendering.core
 
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.every import io.mockk.verify
+import io.mockk.every
+import io.mockk.verify
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
 import org.edu_sharing.rendering.modules.ModuleRegistry
@@ -13,6 +14,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.Base64
 
@@ -63,18 +65,25 @@ class RenderControllerTest(@param:Autowired val mockMvc: MockMvc) {
     }
 
     @Test
-    fun `rejects frontend-only remote repository nodes before signature verification`() {
+    fun `answers frontend-only remote repository nodes before signature verification`() {
         // Nodes from frontend-only remote repositories (pixabay, youtube, …) have no registered
-        // public key, so signature verification would fail with a confusing error. They must be
-        // rejected as unsupported (415) up front, without touching the public-key service.
+        // public key, so signature verification would fail with a confusing error. They are
+        // answered up front with `supportedByBackend = false` — the client renders them itself —
+        // without touching the public-key service and without being tracked.
         every { moduleRegistry.isFrontendRemoteRepository(any()) } returns true
         mockMvc.perform(
             post("/public/renderdata")
                 .content(requestBody("SHA256withRSA"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-        ).andExpect(status().isUnsupportedMediaType)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.supportedByBackend").value(false))
+            .andExpect(jsonPath("$.deferred").value(false))
+            .andExpect(jsonPath("$.jobId").isEmpty)
+            .andExpect(jsonPath("$.objectLinks").isEmpty)
 
         verify(exactly = 0) { repositoryPublicKeyService.getRepositoryKey(any()) }
+        verify(exactly = 0) { trackingService.trackObject(any(), any(), any()) }
     }
 }

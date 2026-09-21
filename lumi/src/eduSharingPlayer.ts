@@ -1,4 +1,4 @@
-import {IPlayerModel} from "@lumieducation/h5p-server";
+import {IIntegration, IPlayerModel} from "@lumieducation/h5p-server";
 
 /**
  * WORKAROUND — TODO(remove once we run on a @lumieducation/h5p-server release
@@ -66,6 +66,39 @@ const withCoreStyles = (model: IPlayerModel): string[] => {
 };
 
 /**
+ * Sentinel the H5P core understands as "there is no stored state for this content" - see
+ * `H5P.getUserData` in h5p/core/js/h5p.js, which resolves it to `null` without any request.
+ */
+const NO_STORED_USER_STATE = 'RESET';
+
+/**
+ * Stops the pointless `contentUserData` round trip that every render would otherwise make.
+ *
+ * H5P core calls `H5P.getUserData(contentId, 'state', ...)` unconditionally in `H5P.init`, even with
+ * the feature switched off. When the integration carries no preloaded state it falls back to an AJAX
+ * GET on `ajax.contentUserData`, and h5p-express' `ContentUserDataController` answers that with a bare
+ * **403** whenever `contentUserStateSaveInterval` is `false` - which is exactly how lumi is configured
+ * (config.json). The request can never succeed, and the rendering service logs the 403 with a full
+ * stack trace on every single render.
+ *
+ * Seeding a preloaded "no state" entry makes `getUserData` resolve locally, so the request is never
+ * sent. It is deliberately gated on `saveFreq === false`, which `H5PPlayer.getSaveFreq` returns only
+ * for `contentUserStateSaveInterval === false`: turn contentUserData back on (config.json plus a
+ * `contentUserDataStorage`) and this becomes a no-op, restoring the normal preload/AJAX flow - and
+ * keeping the "content has been reset" dialog that a `null` state triggers out of reach.
+ */
+const withoutContentUserData = (integration: IIntegration): IIntegration => {
+    if (integration.saveFreq !== false) {
+        return integration;
+    }
+    for (const content of Object.values(integration.contents ?? {})) {
+        // Index 0 is subContentId 0, the id core asks for on init.
+        content.contentUserData ??= [{state: NO_STORED_USER_STATE}];
+    }
+    return integration;
+};
+
+/**
  * Custom H5P player for Edu-Sharing purposes
  */
 export default (model: IPlayerModel): string => `<!doctype html>
@@ -81,7 +114,7 @@ export default (model: IPlayerModel): string => `<!doctype html>
     .join('\n    ')}
 
     <script>
-        window.H5PIntegration = ${JSON.stringify(model.integration, null, 2)};
+        window.H5PIntegration = ${JSON.stringify(withoutContentUserData(model.integration), null, 2)};
     </script>
 
     <script>
