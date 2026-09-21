@@ -101,4 +101,30 @@ class RepositoryRegistrationServiceCredentialsTest {
         assertEquals(credentials, validated.captured)
         assertEquals(credentials, registration.module["MOODLE"]?.credentials)
     }
+
+    /**
+     * Closes the loop for the Moodle/SCORM display switch: an unset env var reaches the service as an
+     * empty string, must not be stored, and so leaves the module defaulting to "on" in
+     * [org.edu_sharing.rendering.modules.moodle.MoodleRenderModule.getAdditionalData].
+     */
+    @Test
+    fun blankDisplaySwitchIsNotStored() {
+        val validated = slot<Map<String, String>>()
+        justRun { renderModule.validateThirdPartyCredentials(capture(validated), repoId) }
+
+        underTest.activateOptionalModule(
+            ActivateOptionalModuleRequest(
+                repoId = repoId,
+                module = "MOODLE",
+                credentials = mapOf(
+                    "baseurl" to "http://moodle:8080",
+                    "showPreviewIframe" to ""
+                )
+            )
+        )
+
+        val expected = mapOf("baseurl" to "http://moodle:8080")
+        assertEquals(expected, validated.captured)
+        assertEquals(expected, registration.module["MOODLE"]?.credentials)
+    }
 }

@@ -562,6 +562,11 @@ config:
       #   # docker/cluster-internal address). Omit the entry or leave it blank to use baseurl.
       #   - name: publicurl
       #     value:
+      #   # Display switch for the rendering frontend (never sent to Moodle): whether the course is
+      #   # embedded in an iframe, or shown as a preview image with the "go to course" link, which
+      #   # is always shown. Defaults to true when omitted or blank; only a literal "false" is off.
+      #   - name: showPreviewIframe
+      #     value:
       # - name: SODIX
       #   credentials:
       #   - name: baseurl

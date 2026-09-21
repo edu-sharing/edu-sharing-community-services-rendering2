@@ -25,6 +25,10 @@ import java.net.HttpURLConnection
  * stale (e.g. the repository session behind it expired) and guest access is enabled, the repository
  * may still answer `200` but only with the guest's subset of data and `X-Edu-Authenticated: false`
  * instead of failing the request outright; that case is treated the same as a `401` (see below).
+ * This detection is skipped when [isGuestUser] is `true`: there, being served as guest is the
+ * correct outcome, not a sign of a stale ticket. The guest account is per-context configurable in
+ * the repository, so this is derived from the `isGuest` claim in the caller's JWT rather than a
+ * fixed username.
  *
  * The instance is built per client by [RestClientProvider] with the per-call context (url/repo/user/
  * session); the appAuth client is created through [authenticationApiFactory] **without** this
@@ -38,6 +42,7 @@ class EduSharingTicketAuthInterceptor(
     private val ticketRepository: SessionTicketRepository,
     private val authHeaderProvider: AuthHeaderProvider,
     private val authenticationApiFactory: (url: String, headers: Map<String, String>) -> AuthenticationV1Api,
+    private val isGuestUser: Boolean,
 ) : Interceptor {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -52,7 +57,7 @@ class EduSharingTicketAuthInterceptor(
         var ticket = cached ?: authenticateAndStore()
         var response = chain.proceed(withTicket(chain.request(), ticket))
 
-        if (response.code == HttpURLConnection.HTTP_UNAUTHORIZED || response.servedAsGuest()) {
+        if (response.code == HttpURLConnection.HTTP_UNAUTHORIZED || (!isGuestUser && response.servedAsGuest())) {
             log.debug("Tracking request to {} was unauthorized or served as guest for repo {}; re-authenticating", url, repoId)
             response.close()
             sessionId?.let { ticketRepository.invalidate(it, repoId) }
@@ -60,7 +65,7 @@ class EduSharingTicketAuthInterceptor(
             response = chain.proceed(withTicket(chain.request(), ticket))
         }
 
-        if (response.servedAsGuest()) {
+        if (!isGuestUser && response.servedAsGuest()) {
             response.close()
             throw IOException(
                 "Repository request to $url for user $userId (repoId=$repoId) was served as guest " +

@@ -59,7 +59,8 @@ class JwtUtils(private val repositoryPublicKeyService: RepositoryPublicKeyServic
                     firstName = jws.payload.getOrDefault("firstName", "") as String,
                     lastName = jws.payload.getOrDefault("lastName", "") as String,
                     email = jws.payload.getOrDefault("userEmail", "") as String,
-                    primaryAffiliation = jws.payload.getOrDefault("primaryAffiliation", "") as String
+                    primaryAffiliation = jws.payload.getOrDefault("primaryAffiliation", "") as String,
+                    isGuest = jws.payload.getOrDefault("isGuest", false) as Boolean
                 )
             }
             return null;
