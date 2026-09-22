@@ -127,10 +127,17 @@ services:
       app.session.spreadsheet.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SPREADSHEET_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.html.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_HTML_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.h5p.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_H5P_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      # Which document types are converted, by file extension. Unknown entries are skipped with a
+      # warning; empty means all of them.
+      app.converter.document.extensions: "${RENDERING2_SERVICE_CONVERTER_DOCUMENT_EXTENSIONS:-doc,docx,ppt,pptx,xls,xlsx,odt,odp,ods,txt,ott,rtf,csv}"
       app.converter.image.format: "${RENDERING2_SERVICE_CONVERTER_IMAGE_FORMAT:-jpeg}"
       app.converter.image.mimeTypes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MIME_TYPES:-image/vnd.wap.wbmp,image/png,image/x-png,image/jpeg,image/tiff,image/bmp,image/gif,image/x-webp,image/webp}"
       app.converter.image.sizes: "${RENDERING2_SERVICE_CONVERTER_IMAGE_SIZES:-800,1280,1920}"
       app.converter.image.maxPixels: "${RENDERING2_SERVICE_CONVERTER_IMAGE_MAX_PIXELS:-100000000}"
+      # Render spreadsheets (xls/xlsx/ods/csv) as HTML via the document-converter. Switched off,
+      # the SpreadsheetRenderModule is not registered at all and those files fall back to the
+      # regular document rendering (PDF).
+      app.converter.spreadsheetToHtml.enabled: "${RENDERING2_SERVICE_CONVERTER_SPREADSHEET_TO_HTML_ENABLED:-true}"
       app.converter.video.format: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FORMAT:-mp4}"
       app.converter.video.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_THREADS:-4}"
       app.converter.video.ffmpegPreset: "${RENDERING2_SERVICE_CONVERTER_VIDEO_FFMPEG_PRESET:-veryfast}"
@@ -181,6 +188,24 @@ services:
       # off. Blank counts as unset (the registration drops blank credential values), hence no
       # default here.
       app.repository.registration.id.local.module.MOODLE.credentials.showPreviewIframe: "${RENDERING2_MOODLE_SHOW_PREVIEW_IFRAME:-}"
+      app.repository.registration.id.local.module.SCORM.credentials.baseurl: "${RENDERING2_SCORM_URL:-}"
+      # Optional, mainly for local testing and development: the URL a browser uses to reach
+      # Moodle, for setups where that differs from baseurl (e.g. baseurl points into the docker
+      # network). Left blank it counts as unset - forward links and the Host header are then
+      # derived from baseurl alone.
+      app.repository.registration.id.local.module.SCORM.credentials.publicurl: "${RENDERING2_SCORM_PUBLIC_URL:-}"
+      app.repository.registration.id.local.module.SCORM.credentials.user: "${RENDERING2_SCORM_USER:-}"
+      app.repository.registration.id.local.module.SCORM.credentials.token:  "${RENDERING2_SCORM_TOKEN:-}"
+      app.repository.registration.id.local.module.SCORM.credentials.timeout: "${RENDERING2_SCORM_TIMEOUT:-90}"
+      app.repository.registration.id.local.module.SCORM.credentials.categoryid: "${RENDERING2_SCORM_CATEGORY_ID:-1}"
+      app.repository.registration.id.local.module.SCORM.credentials.submitUserDetails: "${RENDERING2_SCORM_SUBMIT_USER_DETAILS:-true}"
+      app.repository.registration.id.local.module.SCORM.credentials.password: "${RENDERING2_SCORM_PASSWORD:-}"
+      # Display switch handed to the rendering frontend via the job-info additionalData map - not
+      # sent to Moodle: whether the SCORM package is embedded in an iframe, or shown as a preview
+      # image. The "go to course" link is always shown. Defaults to true; only a literal "false"
+      # turns it off. Blank counts as unset (the registration drops blank credential values), hence
+      # no default here.
+      app.repository.registration.id.local.module.SCORM.credentials.showPreviewIframe: "${RENDERING2_SCORM_SHOW_PREVIEW_IFRAME:-}"
       app.repository.registration.id.local.module.H5P.cspHeader: "${RENDERING2_H5P_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.SPREADSHEET.cspHeader: "${RENDERING2_SPREADSHEET_CSP_HEADER:-frame-ancestors *}"
       app.repository.registration.id.local.module.HTML.cspHeader: "${RENDERING2_HTML_CSP_HEADER:-frame-ancestors *}"

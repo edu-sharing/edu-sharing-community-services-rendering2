@@ -488,6 +488,8 @@ config:
       host: edusharing-services-rendering2-document-converter
       ## @param config.converter.document.port Set document-converter port
       port: 8080
+      ## @param config.converter.document.extensions Which document types are converted, by file extension; unknown entries are skipped with a warning, empty means all of them
+      extensions: doc,docx,ppt,pptx,xls,xlsx,odt,odp,ods,txt,ott,rtf,csv
     image:
       ## @param config.converter.image.format Set format for immage converter
       format: jpeg
@@ -502,6 +504,9 @@ config:
       host: edusharing-services-rendering2-jupyter-converter
       ## @param config.converter.jupyter.port Set jupyter-converter port
       port: 8000
+    spreadsheet:
+      ## @param config.converter.spreadsheet.enabled Render spreadsheets (xls/xlsx/ods/csv) as HTML; disabled falls back to the PDF document rendering
+      enabled: true
     video:
       ## @param config.converter.video.format Set format for video converter
       format: mp4
@@ -565,6 +570,28 @@ config:
       #   # Display switch for the rendering frontend (never sent to Moodle): whether the course is
       #   # embedded in an iframe, or shown as a preview image with the "go to course" link, which
       #   # is always shown. Defaults to true when omitted or blank; only a literal "false" is off.
+      #   - name: showPreviewIframe
+      #     value:
+      # - name: SCORM
+      #   # Same Moodle webservice credentials as the MOODLE module above, in its own bucket so a
+      #   # SCORM package can be rendered by a different Moodle instance or with its own settings.
+      #   credentials:
+      #   - name: baseurl
+      #     value:
+      #   - name: user
+      #     value:
+      #   - name: password
+      #     value:
+      #   - name: token
+      #     value:
+      #   - name: timeout
+      #     value:
+      #   - name: categoryid
+      #     value:
+      #   - name: submitUserDetails
+      #     value:
+      #   - name: publicurl
+      #     value:
       #   - name: showPreviewIframe
       #     value:
       # - name: SODIX

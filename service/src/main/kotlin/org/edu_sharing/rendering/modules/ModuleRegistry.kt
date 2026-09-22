@@ -8,11 +8,21 @@ import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 
 @Component
-class ModuleRegistry(@Nullable private val moduleTypeMapper: List<ModuleTypeMapper>) {
+class ModuleRegistry(
+    @Nullable private val moduleTypeMapper: List<ModuleTypeMapper>,
+    /**
+     * Every module bean, not only those a mapper currently associates with a mimetype. A module
+     * whose types are switched off by configuration - see `app.converter.document.extensions` -
+     * still has to be resolvable by name: repository registration activates optional modules by
+     * name, and jobs that are already queued are looked up that way. Dispatch stays driven by the
+     * mapper associations alone, so such a module simply never handles a node.
+     */
+    @Nullable renderModules: List<RenderModule> = emptyList()
+) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private final val modulesByName: Map<String, RenderModule> = moduleTypeMapper
-        .flatMap { it.moduleTypeAssociations() }
-        .map { it.second }
+    private final val modulesByName: Map<String, RenderModule> = (
+        renderModules + moduleTypeMapper.flatMap { it.moduleTypeAssociations() }.map { it.second }
+        )
         .distinct()
         .associateBy { it.module() }
 
