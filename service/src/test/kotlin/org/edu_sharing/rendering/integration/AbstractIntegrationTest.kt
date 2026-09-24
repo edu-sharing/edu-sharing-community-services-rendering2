@@ -5,9 +5,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.MinIOContainer
+import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.containers.RabbitMQContainer
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
@@ -25,15 +26,11 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        // Docker Hub no longer serves public pulls of minio/minio (any tag) — use MinIO's own quay.io registry instead,
-        // pinned to a fixed release for reproducible builds.
-        private val minioContainer = MinIOContainer(
-            DockerImageName.parse("quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z").asCompatibleSubstituteFor("minio/minio")
-        )
-            .withCommand("server /data")
-            .withExposedPorts(9000)
-            .withEnv("MINIO_ROOT_USER", "minioadmin")
-            .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
+        // MinIO no longer publishes container images (Docker Hub and quay.io), so use Adobe's S3Mock as the
+        // S3-compatible backend, pinned to a fixed release for reproducible builds. It accepts any credentials.
+        private val s3Container = GenericContainer(DockerImageName.parse("adobe/s3mock:5.2.3"))
+            .withExposedPorts(9090)
+            .waitingFor(Wait.forHttp("/").forPort(9090).forStatusCode(200))
 
         @JvmStatic
         @Container
@@ -50,14 +47,15 @@ abstract class AbstractIntegrationTest() {
             // MongoDB
             registry.add("spring.mongodb.uri", mongoDBContainer::getReplicaSetUrl)
 
-            // MinIO
-            registry.add("app.minio.url") { "http://${minioContainer.host}:${minioContainer.getMappedPort(9000)}" }
+            // S3 (S3Mock)
+            val s3Url = "http://${s3Container.host}:${s3Container.getMappedPort(9090)}"
+            registry.add("app.minio.url") { s3Url }
             registry.add("app.minio.user") { "minioadmin" }
             registry.add("app.minio.password") { "minioadmin" }
 
-            // S3 client (S3Config binds app.s3.*) – point it at the MinIO testcontainer so that
+            // S3 client (S3Config binds app.s3.*) – point it at the S3Mock testcontainer so that
             // storage operations (e.g. admin asset deletion) actually hit a real S3 backend.
-            registry.add("app.s3.url") { "http://${minioContainer.host}:${minioContainer.getMappedPort(9000)}" }
+            registry.add("app.s3.url") { s3Url }
             registry.add("app.s3.accessKeyId") { "minioadmin" }
             registry.add("app.s3.secretAccessKey") { "minioadmin" }
 
