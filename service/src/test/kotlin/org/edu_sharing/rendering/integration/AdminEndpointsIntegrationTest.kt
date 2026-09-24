@@ -39,7 +39,7 @@ import java.util.Base64
  * Läuft in der Master-Rolle (aus den Test-Properties) mit aktivierter Security; alle Aufrufe
  * sind via HTTP-Basic (admin/admin, siehe `application.properties` der Tests) authentifiziert.
  * Daten werden direkt über die Repositories/den StorageService gesät. Die Asset-Löschpfade
- * werden end-to-end gegen den MinIO-Testcontainer geprüft.
+ * werden end-to-end gegen den S3-Testcontainer (S3Mock) geprüft.
  */
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
