@@ -4,12 +4,11 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.model.N
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
 import org.slf4j.LoggerFactory
-import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 
 @Component
 class ModuleRegistry(
-    @Nullable private val moduleTypeMapper: List<ModuleTypeMapper>,
+    private val moduleTypeMapper: List<ModuleTypeMapper> = emptyList(),
     /**
      * Every module bean, not only those a mapper currently associates with a mimetype. A module
      * whose types are switched off by configuration - see `app.converter.document.extensions` -
@@ -17,7 +16,7 @@ class ModuleRegistry(
      * name, and jobs that are already queued are looked up that way. Dispatch stays driven by the
      * mapper associations alone, so such a module simply never handles a node.
      */
-    @Nullable renderModules: List<RenderModule> = emptyList()
+    renderModules: List<RenderModule> = emptyList()
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private final val modulesByName: Map<String, RenderModule> = (

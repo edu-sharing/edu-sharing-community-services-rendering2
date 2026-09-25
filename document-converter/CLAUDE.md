@@ -7,13 +7,20 @@ A small Spring Boot REST service that converts Office documents to HTML/PDF usin
 **jodconverter** (4.4.11) driving a **local LibreOffice** process. The main `service`
 module calls it at `app.documentConverter.host` for its `document` rendering module.
 
-Kotlin 2.3, package root
+Kotlin 2.4, package root
 `org.edu_sharing.edusharingcommunityservicesdocumentconverter`.
 
-## ⚠️ Spring Boot version is pinned to 3.5.14 — do not bump to Boot 4
-`pom.xml` pins `<spring-boot.version>3.5.14</spring-boot.version>` deliberately: jodconverter
-has no Spring Boot 4 release. This is the one module in the repo intentionally off Boot 4.
-Leave it on 3.5.x until jodconverter ships Boot-4 support.
+## Spring Boot version
+On Boot 4.1 (`pom.xml` `<spring-boot.version>4.1.1</spring-boot.version>`), same as `service`.
+`jodconverter-spring-boot-starter` (4.4.11, the latest release) has no official Boot 4 build,
+but its autoconfig only touches 8 stable Boot classes (`AutoConfiguration`, 4x
+`ConditionalOn*`, `ConfigurationProperties`, `EnableConfigurationProperties`,
+`NestedConfigurationProperty`) — all present unchanged in the 4.1.1 jars. Its POMs pull no
+Jackson (jodconverter-core uses gson), so there's no mixed-Jackson concern either. Re-verify
+those 8 classes still exist on any future Boot upgrade. The module runs on Jackson 3
+(`tools.jackson.*`), and the actuator starter no longer carries the tracing autoconfig, so
+tracing needs `org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry` next to
+`micrometer-tracing-bridge-otel` (see `pom.xml`).
 
 ## Layout
 | Path | Responsibility |

@@ -20,8 +20,8 @@ versions are derived from git by the `maven-git-versioning-extension` (the liter
 ## Modules
 | Module | Stack | Local guide | Notes |
 |---|---|---|---|
-| `service` | **Spring Boot 4.0.6**, Kotlin 2.3.0, Java 21 | [`service/CLAUDE.md`](service/CLAUDE.md) | Main rendering service. Primary place you'll work. |
-| `document-converter` | **Spring Boot 3.5.14**, Kotlin 2.3.0 | [`document-converter/CLAUDE.md`](document-converter/CLAUDE.md) | LibreOffice/jodconverter document → HTML/PDF. Deliberately on 3.5.x. |
+| `service` | **Spring Boot 4.1.1**, Kotlin 2.4.20, Java 21 | [`service/CLAUDE.md`](service/CLAUDE.md) | Main rendering service. Primary place you'll work. |
+| `document-converter` | **Spring Boot 4.1.1**, Kotlin 2.4.20 | [`document-converter/CLAUDE.md`](document-converter/CLAUDE.md) | LibreOffice/jodconverter document → HTML/PDF. |
 | `jupyter-converter` | Python (FastAPI) | — | `.ipynb` → HTML via nbconvert. Single-file service; not Spring/JVM. |
 | `lumi` | Node.js / TypeScript | [`lumi/CLAUDE.md`](lumi/CLAUDE.md) | H5P editor/player frontend build artifact. Not Spring/JVM. |
 | `admin-frontend` | **Angular 21** (standalone, Material) | [`admin-frontend/CLAUDE.md`](admin-frontend/CLAUDE.md) | Admin SPA (storage/jobs/repos/assets). Consumes the service's `/admin` API. Own container. Not Spring/JVM. |

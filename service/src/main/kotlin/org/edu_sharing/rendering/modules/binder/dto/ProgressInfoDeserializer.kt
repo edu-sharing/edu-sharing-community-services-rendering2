@@ -15,7 +15,7 @@ class ProgressInfoDeserializer: ValueDeserializer<ProgressInfo>() {
                 ProgressInfo(progressObject = objectValue)
             }
             parser.currentToken().isScalarValue -> {
-                val stringValue = parser.text
+                val stringValue = parser.string
                 ProgressInfo(progressString = stringValue)
             }
             else -> throw IllegalStateException("Unexpected JSON token: ${parser.currentToken()}")

@@ -51,10 +51,10 @@ class CustomHttpSessionIdResolver(
         cookieHttpSessionIdResolver.setCookieSerializer(cookieSerializer)
     }
 
-    override fun resolveSessionIds(request: HttpServletRequest?): List<String?>? {
-        if (request != null) {
-            log.debug("Resolving session id from request ${request.requestURI}")
-        }
+    // Spring Session 4.1's HttpSessionIdResolver is now fully non-null (JSpecify), so the
+    // request/response/sessionId parameters and the returned list are non-null here too.
+    override fun resolveSessionIds(request: HttpServletRequest): MutableList<String> {
+        log.debug("Resolving session id from request ${request.requestURI}")
         val cookieSessionValues = cookieHttpSessionIdResolver.resolveSessionIds(request)
         if (cookieSessionValues.isNotEmpty()) {
             log.debug("Found session id in cookie")
@@ -69,14 +69,14 @@ class CustomHttpSessionIdResolver(
     }
 
     override fun setSessionId(
-        request: HttpServletRequest?, response: HttpServletResponse?, sessionId: String?
+        request: HttpServletRequest, response: HttpServletResponse, sessionId: String
     ) {
         cookieHttpSessionIdResolver.setSessionId(request, response, sessionId)
         headerHttpSessionIdResolver.setSessionId(request, response, sessionId)
     }
 
     override fun expireSession(
-        request: HttpServletRequest?, response: HttpServletResponse?
+        request: HttpServletRequest, response: HttpServletResponse
     ) {
         cookieHttpSessionIdResolver.expireSession(request, response)
         headerHttpSessionIdResolver.expireSession(request, response)
