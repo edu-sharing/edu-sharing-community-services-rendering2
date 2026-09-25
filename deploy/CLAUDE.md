@@ -40,8 +40,10 @@ configure the static server at runtime — see [`../admin-frontend/CLAUDE.md`](.
 
 ## Dockerfiles (`build/<module>/src/main/build/Dockerfile`)
 - **service** & **document-converter**: Amazon Corretto 21-alpine, Spring Boot layered-jar
-  extraction, non-root `worker` user, entrypoint sets `-Dspring.profiles.active=docker`.
-  The document-converter image additionally installs **LibreOffice + fonts**.
+  extraction (`java -Djarmode=tools -jar application.jar extract --layers --launcher`; Boot
+  4.1 removed the old `-Djarmode=layertools` mode), non-root `worker` user, entrypoint sets
+  `-Dspring.profiles.active=docker`. The document-converter image additionally installs
+  **LibreOffice + fonts**.
 - **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000. Creates
   `/application/library-cache` **owned by `node` before `USER node`** — `/application` is root-owned,
   so a volume mounted there would be created as root and the node user could not write into it

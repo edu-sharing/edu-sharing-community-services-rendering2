@@ -7,7 +7,7 @@ import java.io.Serializable
 
 class AllowAllPermissionEvaluator : PermissionEvaluator {
 
-    override fun hasPermission(authentication: Authentication, targetDomainObject: Any, permission: Any): Boolean {
+    override fun hasPermission(authentication: Authentication, targetDomainObject: Any?, permission: Any): Boolean {
         return true
     }
 

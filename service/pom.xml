@@ -23,9 +23,9 @@
         <resource.delimiter>@</resource.delimiter>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>4.0.7</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
-        <shedlock.version>7.7.0</shedlock.version>
+        <shedlock.version>7.10.1</shedlock.version>
     </properties>
 
     <dependencyManagement>
@@ -63,6 +63,16 @@
                 <type>pom</type>
             </dependency>
 
+            <!-- Import the Kotlin BOM before spring-boot-dependencies: Maven resolves a version from
+                 the first dependencyManagement import that mentions it, and spring-boot-dependencies
+                 otherwise pins kotlin-stdlib/kotlin-reflect to an older Kotlin than ${kotlin.version}. -->
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -73,7 +83,7 @@
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-bom</artifactId>
-                <version>5.4.0</version>
+                <version>5.5.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -87,7 +97,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.46.6</version>
+                <version>2.55.5</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -106,7 +116,7 @@
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
-      <version>3.3.1</version>
+      <version>3.3.2</version>
     </dependency>
 
     <dependency>
@@ -124,14 +134,14 @@
     <dependency>
       <groupId>com.twelvemonkeys.imageio</groupId>
       <artifactId>imageio-webp</artifactId>
-      <version>3.13.0</version>
+      <version>3.15.2</version>
       <scope>runtime</scope>
     </dependency>
 
         <dependency>
             <groupId>com.drewnoakes</groupId>
             <artifactId>metadata-extractor</artifactId>
-            <version>2.20.0</version>
+            <version>2.21.0</version>
         </dependency>
 
         <dependency>
@@ -147,7 +157,7 @@
         <dependency>
             <groupId>ws.schild</groupId>
             <artifactId>jave-core</artifactId>
-            <version>3.5.0</version>
+            <version>4.2.0</version>
         </dependency>
 
         <dependency>
@@ -158,7 +168,7 @@
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
-      <version>20251224</version>
+      <version>20260814</version>
     </dependency>
 
         <dependency>
@@ -219,7 +229,7 @@
     <dependency>
       <groupId>org.threeten</groupId>
       <artifactId>threetenbp</artifactId>
-      <version>1.7.2</version>
+      <version>1.7.4</version>
     </dependency>
 
 
@@ -322,17 +332,17 @@
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-      <version>3.0.3</version>
+      <version>3.1.1</version>
     </dependency>
 
     <!-- Jackson 2 Kotlin module for swagger-core's (Jackson 2) ObjectMapper, so springdoc
          detects Kotlin non-null properties and emits them as `required` in the OpenAPI schema
          (see SpringDocConfig.modelResolver). The app itself runs on Jackson 3; this is only for
-         the swagger-core model introspection used to build the spec. -->
+         the swagger-core model introspection used to build the spec. No explicit version: the
+         Boot BOM imports the Jackson 2 BOM, so this stays in step with the rest of Jackson 2. -->
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-kotlin</artifactId>
-      <version>2.21.4</version>
     </dependency>
 
         <!-- TESTS -->
