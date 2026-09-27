@@ -26,7 +26,11 @@ class MoodleRenderModule(
     private val log = LoggerFactory.getLogger(javaClass)
 
     companion object {
+        private const val SHOW_PREVIEW_IFRAME = "showPreviewIframe"
+
         private val requiredCredentialKeys = setOf("baseurl", "timeout", "categoryid", "password")
+
+        /** Optional *connection* credentials for the Moodle webservice - all secrets or internals. */
         private val optionalCredentialKeys = setOf("user", "token", "submitUserDetails", "publicurl")
     }
 
@@ -100,9 +104,36 @@ class MoodleRenderModule(
         return registration.module[module()]?.credentials ?: mapOf()
     }
 
-    override fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String>? {
-        return subJob.additionalData
+    /**
+     * Whether the course is embedded in an iframe. Also decides whether the preview forward link is
+     * built at all - see [MoodleUploadService.getUrl]. The "go to course" link is not switchable:
+     * without the iframe it is the only way into the course, and with it the only way to open the
+     * course full-page.
+     */
+    fun isPreviewIframeEnabled(credentials: Map<String, String>) = !credentials[SHOW_PREVIEW_IFRAME].isSwitchedOff()
+
+    /**
+     * Only the display switch above is ever handed to the browser, as a derived boolean. No
+     * credential value is passed through: unlike SODIX, whose two client-visible keys are harmless,
+     * this module's optional credentials are the Moodle webservice token, user and publicurl.
+     */
+    override fun getAdditionalData(subJob: SubJob, repoId: String): Map<String, String> {
+        val clientSettings = mapOf(
+            SHOW_PREVIEW_IFRAME to isPreviewIframeEnabled(getCredentials(repoId)).toString()
+        )
+        // Config last: no receiver writes that name, so the merge is disjoint by construction - but
+        // should that change, a deployment policy switch must win over per-job data.
+        return (subJob.additionalData ?: emptyMap()) + clientSettings
     }
+
+    /**
+     * The switch defaults to on - today's behaviour. Unset is indistinguishable from absent
+     * (RepositoryRegistrationService drops blank values), so "absent" has to mean "on", and only a
+     * literal `false` (any case, surrounding whitespace ignored) turns it off: an unexpected value
+     * ("1", "yes", a typo) then fails towards the visible default instead of silently hiding the
+     * course.
+     */
+    private fun String?.isSwitchedOff() = this?.trim().equals("false", ignoreCase = true)
 
     fun getWebserviceToken(webClient: WebClient, user: String, password: String): String {
         log.debug("Requesting Moodle webservice token for user $user")

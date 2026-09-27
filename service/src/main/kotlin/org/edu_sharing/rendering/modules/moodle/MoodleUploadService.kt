@@ -56,21 +56,21 @@ class MoodleUploadService(
                 webserviceToken = webserviceToken,
             )
         }
-        val userTokenPreview = getUserToken(
-            courseId = courseId,
-            webClient = webClient,
-            webserviceToken = webserviceToken,
-            message = moodleJobMessage
+        // Every getUserToken call consumes a one-shot Moodle login token, so the preview link - the
+        // iframe src - is only built when the course is actually embedded (module credential
+        // showPreviewIframe). The "go to course" link is always shown and always built.
+        val previewUrl = if (module.isPreviewIframeEnabled(config)) {
+            buildForwardUrl(
+                getUserToken(courseId, webClient, webserviceToken, moodleJobMessage),
+                config
+            )
+        } else {
+            ""
+        }
+        val linkUrl = buildForwardUrl(
+            getUserToken(courseId, webClient, webserviceToken, moodleJobMessage),
+            config
         )
-        val userTokenLink = getUserToken(
-            courseId = courseId,
-            webClient = webClient,
-            webserviceToken = webserviceToken,
-            message = moodleJobMessage
-        )
-
-        val previewUrl = buildForwardUrl(userTokenPreview, config)
-        val linkUrl = buildForwardUrl(userTokenLink, config)
 
         return previewUrl to linkUrl
     }

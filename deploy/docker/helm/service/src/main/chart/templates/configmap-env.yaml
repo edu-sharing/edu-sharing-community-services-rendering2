@@ -53,10 +53,12 @@ data:
   "app.session.spreadsheet.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.spreadsheet | quote }}
   "app.session.html.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.html | quote }}
   "app.session.h5p.nodePermissionExpirationTime": {{ .Values.config.session.nodePermissionExpirationTime.h5p | quote }}
+  "app.converter.document.extensions": {{ .Values.config.converter.document.extensions | quote }}
   "app.converter.image.format": {{ .Values.config.converter.image.format | quote }}
   "app.converter.image.mimeTypes": {{ .Values.config.converter.image.mimetypes | quote }}
   "app.converter.image.sizes": {{ .Values.config.converter.image.sizes | quote }}
   "app.converter.image.maxPixels": {{ .Values.config.converter.image.maxPixels | quote }}
+  "app.converter.spreadsheetToHtml.enabled": {{ .Values.config.converter.spreadsheet.enabled | quote }}
   "app.converter.video.format": {{ .Values.config.converter.video.format | quote }}
   "app.converter.video.ffmpegThreads": {{ .Values.config.converter.video.ffmpegThreads | quote }}
   "app.converter.video.ffmpegPreset": {{ .Values.config.converter.video.ffmpegPreset | quote }}

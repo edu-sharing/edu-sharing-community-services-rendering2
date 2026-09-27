@@ -2,8 +2,8 @@ FROM ${docker.from.openjdk.21} as builder
 WORKDIR application
 ARG JAR_FILE=artifacts/*.jar
 COPY ${JAR_FILE} application.jar
-RUN java -Djarmode=layertools -jar application.jar extract && ls -la
-RUN if [[ -z "$(ls -A ./snapshot-dependencies)" ]] ; then touch ./snapshot-dependencies/.keep; fi
+RUN java -Djarmode=tools -jar application.jar extract --layers --launcher --destination extracted && ls -la extracted
+RUN mkdir -p extracted/snapshot-dependencies && if [[ -z "$(ls -A ./extracted/snapshot-dependencies)" ]] ; then touch ./extracted/snapshot-dependencies/.keep; fi
 
 
 FROM ${docker.from.eclipse-temurin.21}
@@ -26,10 +26,10 @@ RUN set -eux \
     && chown -RL worker:worker /tmp
 
 USER worker
-COPY --from=builder application/dependencies/ ./
-COPY --from=builder application/spring-boot-loader/ ./
-COPY --from=builder application/snapshot-dependencies/ ./
-COPY --from=builder application/application/ ./
+COPY --from=builder application/extracted/dependencies/ ./
+COPY --from=builder application/extracted/spring-boot-loader/ ./
+COPY --from=builder application/extracted/snapshot-dependencies/ ./
+COPY --from=builder application/extracted/application/ ./
 
 ########################################################################################################################
 
