@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
@@ -64,9 +65,7 @@ class OmegaRenderModule(
             }
         }
 
-        val role = "teacher"
-        //val role = if (SecurityContextUtils.currentUser().primaryAffiliation == "teacher") "teacher" else "learner"
-
+        val role = if (SecurityContextUtils.currentUser().primaryAffiliation == "teacher") "teacher" else "student"
         val job = mapper.nodeToRenderingJob(
             node = node,
             module = module(),
