@@ -1,7 +1,6 @@
 package org.edu_sharing.rendering.storage
 
 import org.slf4j.LoggerFactory
-import org.springframework.lang.Nullable
 import org.springframework.stereotype.Component
 
 /**
@@ -12,7 +11,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class StorageManagerRegistry(
-    @param:Nullable private val storageManagers: List<StorageManager>,
+    private val storageManagers: List<StorageManager> = emptyList(),
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 

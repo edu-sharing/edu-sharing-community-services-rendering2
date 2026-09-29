@@ -12,7 +12,7 @@ const val COLLECTION_REFERENCE_ASPECT = "ccm:collection_io_reference"
 fun Node.collectionRefOriginalId(): String? {
     if (aspects?.contains(COLLECTION_REFERENCE_ASPECT) != true) return null
     return (properties?.get("ccm:original") ?: properties?.get("cm:original"))
-        ?.firstOrNull()?.takeIf { it.isNotBlank() && it != ref?.id }
+        ?.firstOrNull()?.takeIf { it.isNotBlank() && it != ref.id }
 }
 
 /**

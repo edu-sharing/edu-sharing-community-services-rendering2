@@ -37,11 +37,11 @@ class RedisConfig {
         // In k8s the cluster nodes are seeded via a single Service DNS name; Lettuce discovers
         // the actual pod IPs once and – without refresh – keeps talking to them directly. When a
         // Redis pod is rescheduled its IP changes, so the cached topology goes stale and
-        // connections intermittently fail even though the cluster itself is healthy. Enable
-        // adaptive + periodic topology refresh so stale nodes are re-discovered.
+        // connections intermittently fail even though the cluster itself is healthy. Since
+        // Lettuce 7, all adaptive refresh triggers are enabled by default; we additionally set
+        // explicit periodic refresh and the adaptive timeout so stale nodes are re-discovered.
         val topologyRefresh = ClusterTopologyRefreshOptions.builder()
             .enablePeriodicRefresh(Duration.ofSeconds(30))
-            .enableAllAdaptiveRefreshTriggers()
             .adaptiveRefreshTriggersTimeout(Duration.ofSeconds(30))
             .dynamicRefreshSources(true)
             .build()

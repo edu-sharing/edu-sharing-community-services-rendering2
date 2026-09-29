@@ -46,6 +46,7 @@ class UserBasedRestClientProvider(
             ticketRepository = sessionTicketRepository,
             authHeaderProvider = authHeaderProvider,
             authenticationApiFactory = ::getAuthenticationApiClient,
+            isGuestUser = SecurityContextUtils.currentUser().isGuest,
         )
         apiClient.httpClient = apiClient.httpClient.newBuilder()
             .addInterceptor(interceptor)

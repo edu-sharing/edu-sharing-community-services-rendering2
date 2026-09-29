@@ -13,7 +13,8 @@ data class JWTBasedUserDetail(
     val firstName: String,
     val lastName : String,
     val email : String,
-    val primaryAffiliation: String
+    val primaryAffiliation: String,
+    val isGuest: Boolean = false
 ) : UserDetails {
 
     override fun getAuthorities(): MutableCollection<out GrantedAuthority> {

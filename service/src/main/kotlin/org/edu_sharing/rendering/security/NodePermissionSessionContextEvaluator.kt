@@ -10,7 +10,7 @@ class NodePermissionSessionContextEvaluator(private val nodePermissionSessionCon
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun hasPermission(authentication: Authentication, targetDomainObject: Any, permission: Any): Boolean {
+    override fun hasPermission(authentication: Authentication, targetDomainObject: Any?, permission: Any): Boolean {
         if(targetDomainObject !is String){
             throw IllegalArgumentException("targetDomainObject must be a String")
         }

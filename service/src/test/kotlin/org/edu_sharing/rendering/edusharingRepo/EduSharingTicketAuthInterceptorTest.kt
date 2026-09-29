@@ -110,6 +110,18 @@ class EduSharingTicketAuthInterceptorTest {
     }
 
     @Test
+    fun `does not re-authenticate or fail when served as guest and the user is the guest account`() {
+        every { ticketRepository.getTicket(SESSION_ID, REPO_ID) } returns CACHED_TICKET
+        server.enqueue(MockResponse().setResponseCode(200).setHeader(AUTHENTICATED_HEADER, "false"))
+
+        execute(interceptor(SESSION_ID, isGuestUser = true), trackingRequest())
+
+        assertEquals("EDU-TICKET $CACHED_TICKET", server.takeRequest().getHeader("Authorization"))
+        verify(exactly = 0) { ticketRepository.invalidate(any(), any()) }
+        verify(exactly = 0) { authApi.authenticate(any(), any()) }
+    }
+
+    @Test
     fun `authenticates without caching when there is no session`() {
         server.enqueue(MockResponse().setResponseCode(200))
 
@@ -121,7 +133,7 @@ class EduSharingTicketAuthInterceptorTest {
         verify(exactly = 0) { ticketRepository.saveTicket(any(), any(), any()) }
     }
 
-    private fun interceptor(sessionId: String?) = EduSharingTicketAuthInterceptor(
+    private fun interceptor(sessionId: String?, isGuestUser: Boolean = false) = EduSharingTicketAuthInterceptor(
         url = server.url("/").toString().removeSuffix("/"),
         repoId = REPO_ID,
         userId = USER_ID,
@@ -129,6 +141,7 @@ class EduSharingTicketAuthInterceptorTest {
         ticketRepository = ticketRepository,
         authHeaderProvider = authHeaderProvider,
         authenticationApiFactory = { _, _ -> authApi },
+        isGuestUser = isGuestUser,
     )
 
     private fun execute(interceptor: EduSharingTicketAuthInterceptor, request: Request) {
