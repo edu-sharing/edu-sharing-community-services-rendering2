@@ -64,20 +64,27 @@ class RegistrationRunner(
             log.debug("Existing key pair present; skipping key generation")
         }
         val newRegistrations = repositoryRegistrationConfig.getAllRegistrations()
-            .map {
+            .mapNotNull {
                 val (registrationRequest, optionalModuleList, moduleSettings) = it
                 log.debug("Processing auto-registration for ${registrationRequest.url} with ${optionalModuleList.size} optional modules")
                 try {
                     val registration = repositoryRegistrationService.registerWithRepository(request = registrationRequest, force = true, useInternal = true)
                     optionalModuleList.forEach { module ->
-                        repositoryRegistrationService.activateOptionalModule(
-                            ActivateOptionalModuleRequest(
-                                repoId = registration.repoId,
-                                module = module,
-                                credentials = moduleSettings[module]?.credentials
+                        // Activating an optional module is best-effort: a broken third-party endpoint
+                        // (e.g. Moodle returning an error payload) must not abort the whole startup
+                        // registration - it only means that one module stays inactive.
+                        try {
+                            repositoryRegistrationService.activateOptionalModule(
+                                ActivateOptionalModuleRequest(
+                                    repoId = registration.repoId,
+                                    module = module,
+                                    credentials = moduleSettings[module]?.credentials
+                                )
                             )
-                        )
-                        log.info("Optional module activated: $module.")
+                            log.info("Optional module activated: $module.")
+                        } catch (e: Exception) {
+                            log.error("Failed to activate optional module $module for ${registrationRequest.url}: ${e.message}", e)
+                        }
                     }
                     moduleSettings.forEach { module ->
                         repositoryRegistrationService.setCspHeader(
@@ -96,10 +103,10 @@ class RegistrationRunner(
                     registration
                 } catch (e: InvalidKeyException) {
                     log.error("Error while registering ${registrationRequest.url}: ${e.message}", e)
-                    throw RuntimeException("Registration failed for ${registrationRequest.url} with\n ${e.message}", e)
+                    null
                 } catch (e: Exception) {
-                    log.error(e.message, e)
-                    throw RuntimeException(e)
+                    log.error("Error while registering ${registrationRequest.url}: ${e.message}", e)
+                    null
                 }
             }
         if (newRegistrations.isNotEmpty()) {

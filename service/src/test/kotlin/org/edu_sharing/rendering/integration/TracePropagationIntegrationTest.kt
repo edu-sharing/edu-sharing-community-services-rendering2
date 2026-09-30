@@ -3,12 +3,22 @@ package org.edu_sharing.rendering.integration
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.tracing.Tracer
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.Callback
+import okhttp3.Call
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
+import org.edu_sharing.rendering.edusharingRepo.UserBasedRestClientProvider
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.springframework.web.reactive.function.client.WebClient
 
 /**
@@ -25,6 +35,7 @@ class TracePropagationIntegrationTest(
     @param:Autowired private val tracer: Tracer,
     @param:Autowired private val observationRegistry: ObservationRegistry,
     @param:Autowired private val webClientBuilder: WebClient.Builder,
+    @param:Autowired private val tracePropagatingInterceptor: TracePropagatingInterceptor,
 ) : AbstractIntegrationTest() {
 
     private lateinit var mockServer: MockWebServer
@@ -72,5 +83,35 @@ class TracePropagationIntegrationTest(
         assert(b3!!.startsWith(traceIdHolder[0]!!)) {
             "b3 header '$b3' should carry the active trace id ${traceIdHolder[0]}"
         }
+    }
+
+    /**
+     * Guards the repository SDK's `*Async` calls (`trackEventAsync`): OkHttp `enqueue` runs the interceptor
+     * chain on a dispatcher thread, so without the context-propagating dispatcher no b3 header is sent.
+     */
+    @Test
+    fun asyncOkHttpCallPropagatesTraceContextAsB3Header() {
+        mockServer.enqueue(MockResponse().setResponseCode(200).setBody("ok"))
+        val client = OkHttpClient.Builder()
+            .dispatcher(UserBasedRestClientProvider.contextPropagatingDispatcher)
+            .addInterceptor(tracePropagatingInterceptor)
+            .build()
+
+        val traceIdHolder = arrayOfNulls<String>(1)
+        val done = CountDownLatch(1)
+        Observation.createNotStarted("test", observationRegistry).observe(Runnable {
+            traceIdHolder[0] = tracer.currentSpan()?.context()?.traceId()
+            client.newCall(Request.Builder().url(mockServer.url("/ping")).build()).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) = done.countDown()
+                override fun onResponse(call: Call, response: Response) {
+                    response.close()
+                    done.countDown()
+                }
+            })
+        })
+        assert(done.await(10, TimeUnit.SECONDS)) { "Async call did not complete" }
+
+        val b3 = mockServer.takeRequest().getHeader("b3")
+        assert(b3 != null && b3.startsWith(traceIdHolder[0]!!)) { "Expected b3 with trace id ${traceIdHolder[0]}, was: $b3" }
     }
 }
