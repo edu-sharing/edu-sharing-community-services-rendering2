@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.edusharingRepo.cors
 
-import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
-import org.edu_sharing.generated.repository.backend.services.rest.client.api.RenderingV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.ApplicationSimple
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMasterOrController
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
@@ -120,10 +118,7 @@ class CorsSyncService(
 
     private fun getApplicationInfo(url: String, repoId: String): List<ApplicationSimple> {
         log.debug("Fetching application list from $url for CORS sync (repoId=$repoId)")
-        val apiClient = ApiClient()
-        apiClient.basePath = "${url}/rest"
-        authHeaderProvider.getAuthHeaders(repoId).forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
-        val renderingClient = RenderingV1Api(apiClient)
+        val renderingClient = restClientProvider.getRenderingApiClient(url, authHeaderProvider.getAuthHeaders(repoId))
         val apps = renderingClient.applications1
         log.debug("Received ${apps.size} applications from $url for CORS sync")
         return apps

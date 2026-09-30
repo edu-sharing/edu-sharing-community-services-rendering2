@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.edusharingRepo
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AboutApi
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
+import org.edu_sharing.generated.repository.backend.services.rest.client.api.RenderingV1Api
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -30,5 +31,14 @@ class RestClientProvider(
         apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(tracePropagatingInterceptor).build()
         val adminV1Api = AdminV1Api(apiClient)
         return adminV1Api
+    }
+
+    fun getRenderingApiClient(url: String, headers: Map<String, String>): RenderingV1Api {
+        log.debug("Creating RenderingV1Api client for base URL: $url")
+        val apiClient = ApiClient()
+        apiClient.basePath = "${url}/rest"
+        headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
+        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(tracePropagatingInterceptor).build()
+        return RenderingV1Api(apiClient)
     }
 }
