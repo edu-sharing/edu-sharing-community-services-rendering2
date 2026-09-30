@@ -11,7 +11,7 @@ import okhttp3.Call
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
-import org.edu_sharing.rendering.edusharingRepo.UserBasedRestClientProvider
+import okhttp3.Dispatcher
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -36,6 +36,7 @@ class TracePropagationIntegrationTest(
     @param:Autowired private val observationRegistry: ObservationRegistry,
     @param:Autowired private val webClientBuilder: WebClient.Builder,
     @param:Autowired private val tracePropagatingInterceptor: TracePropagatingInterceptor,
+    @param:Autowired private val repositoryDispatcher: Dispatcher,
 ) : AbstractIntegrationTest() {
 
     private lateinit var mockServer: MockWebServer
@@ -93,7 +94,7 @@ class TracePropagationIntegrationTest(
     fun asyncOkHttpCallPropagatesTraceContextAsB3Header() {
         mockServer.enqueue(MockResponse().setResponseCode(200).setBody("ok"))
         val client = OkHttpClient.Builder()
-            .dispatcher(UserBasedRestClientProvider.contextPropagatingDispatcher)
+            .dispatcher(repositoryDispatcher)
             .addInterceptor(tracePropagatingInterceptor)
             .build()
 

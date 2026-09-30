@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.edusharingRepo
 
-import io.micrometer.context.ContextExecutorService
-import io.micrometer.context.ContextSnapshotFactory
 import okhttp3.Dispatcher
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AuthenticationV1Api
@@ -10,9 +8,6 @@ import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.util.concurrent.SynchronousQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 
 /**
  * Builds repository clients that act on behalf of the current user via the appAuth `EDU-TICKET` flow
@@ -26,6 +21,7 @@ class UserBasedRestClientProvider(
     private val sessionTicketRepository: SessionTicketRepository,
     private val authHeaderProvider: AuthHeaderProvider,
     private val tracePropagatingInterceptor: TracePropagatingInterceptor,
+    private val repositoryDispatcher: Dispatcher,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -55,7 +51,7 @@ class UserBasedRestClientProvider(
             isGuestUser = SecurityContextUtils.currentUser().isGuest,
         )
         apiClient.httpClient = apiClient.httpClient.newBuilder()
-            .dispatcher(contextPropagatingDispatcher)
+            .dispatcher(repositoryDispatcher)
             .addInterceptor(interceptor)
             .addInterceptor(tracePropagatingInterceptor)
             .build()
@@ -71,25 +67,10 @@ class UserBasedRestClientProvider(
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
-        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(tracePropagatingInterceptor).build()
+        apiClient.httpClient = apiClient.httpClient.newBuilder()
+            .dispatcher(repositoryDispatcher)
+            .addInterceptor(tracePropagatingInterceptor)
+            .build()
         return AuthenticationV1Api(apiClient)
-    }
-
-    companion object {
-        /**
-         * Shared OkHttp [Dispatcher] for the `*Async` SDK calls (e.g. `trackEventAsync`). `enqueue` runs the
-         * whole interceptor chain on a dispatcher thread, where the request thread's trace context is not
-         * available — so [TracePropagatingInterceptor] would find no context and send no b3 header. The
-         * executor captures the context at submission (on the calling request thread) and restores it on
-         * the worker. Mirrors OkHttp's default dispatcher pool (unbounded cached daemon threads); it must be
-         * shared because an [ApiClient] is created per call.
-         */
-        val contextPropagatingDispatcher: Dispatcher by lazy {
-            val pool = ThreadPoolExecutor(
-                0, Int.MAX_VALUE, 60L, TimeUnit.SECONDS, SynchronousQueue(),
-            ) { runnable -> Thread(runnable, "repo-sdk-dispatcher").apply { isDaemon = true } }
-            val snapshotFactory = ContextSnapshotFactory.builder().build()
-            Dispatcher(ContextExecutorService.wrap(pool) { snapshotFactory.captureAll() })
-        }
     }
 }
