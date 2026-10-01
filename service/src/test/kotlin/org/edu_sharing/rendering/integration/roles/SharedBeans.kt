@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
+import org.edu_sharing.rendering.edusharingRepo.RepositoryHttpConfig
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
@@ -192,6 +193,7 @@ abstract class SharedBeans {
             RepositoryRegistrationConfig::class,
             RepositoryRegistrationService::class,
             RepositoryRegistrationStorageService::class,
+            RepositoryHttpConfig::class,
             RestClientProvider::class,
             Rs2StorageManager::class,
             S3Config::class,

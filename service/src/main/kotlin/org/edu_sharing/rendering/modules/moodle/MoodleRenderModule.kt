@@ -1,5 +1,7 @@
 package org.edu_sharing.rendering.modules.moodle
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
@@ -24,6 +26,7 @@ class MoodleRenderModule(
 ) : RenderModule, ThirdPartyModule {
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val objectMapper = ObjectMapper()
 
     companion object {
         private const val SHOW_PREVIEW_IFRAME = "showPreviewIframe"
@@ -76,7 +79,7 @@ class MoodleRenderModule(
         val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
 
         log.debug("Calling Moodle ping endpoint for repoId $repoId at ${credentials.getValue("baseurl")}")
-        val testResult = webClient.get()
+        val rawResponse = webClient.get()
             .uri {
                 it.path("/webservice/rest/server.php")
                     .queryParam("wsfunction", "local_edusharing_ping")
@@ -86,16 +89,44 @@ class MoodleRenderModule(
                     .build()
             }
             .retrieve()
-            .bodyToMono<Int>()
+            .bodyToMono<String>()
             .timeout(Duration.ofSeconds(credentials.getValue("timeout").toLong()))
             .block()
 
+        // Moodle webservice errors (e.g. a revoked token, missing capability) come back as a JSON
+        // object instead of the plain integer the endpoint normally returns - parse leniently instead
+        // of decoding straight to Int, or such an error crashes credential validation with an opaque
+        // Jackson exception instead of a readable one.
+        val response = parseMoodlePingResponse(rawResponse)
+        if (response.has("exception")) {
+            throw IllegalArgumentException(buildMoodleErrorMessage(response))
+        }
+        val testResult = response.takeIf { it.isInt }?.asInt()
+
         if (testResult == null) {
-            log.warn("No test result returned from render Moodle.")
+            log.warn("No test result returned from render Moodle. Raw response: $rawResponse")
         }
         if (testResult != 1) {
             log.warn("Moodle responded but test was not successful. Result: $testResult")
         }
+    }
+
+    private fun parseMoodlePingResponse(rawBody: String?): JsonNode {
+        if (rawBody.isNullOrBlank()) {
+            throw IllegalArgumentException("Empty response from Moodle ping endpoint.")
+        }
+        return try {
+            objectMapper.readTree(rawBody)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Invalid JSON response from Moodle ping endpoint: $rawBody", e)
+        }
+    }
+
+    private fun buildMoodleErrorMessage(response: JsonNode): String {
+        val exception = response.path("exception").asText("unknown exception")
+        val errorCode = response.path("errorcode").asText("unknown error code")
+        val message = response.path("message").asText("no message")
+        return "Moodle ping failed [errorcode=$errorCode, exception=$exception]: $message"
     }
 
     override fun getCredentials(repoId: String): Map<String, String> {
