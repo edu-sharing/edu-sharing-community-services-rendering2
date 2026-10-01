@@ -62,6 +62,7 @@ deploy:
     - ./linux-amd64/helm repo add edu-sharing https://artifacts.edu-sharing.com/repository/helm
     - popd
   script:
+    - if [ "$SKIP_TESTS" = "true" ]; then MAVEN_CLI="$MAVEN_CLI -DskipTests"; fi
     - mvn $MAVEN_CLI -s .mvn/settings.xml deploy
   artifacts:
     paths:
@@ -73,6 +74,10 @@ deploy:
 check-helmreadme:
   stage: verify
   image: node:lts-alpine3.20
+  rules:
+    - if: $SKIP_TESTS == "true"
+      when: never
+    - when: on_success
   before_script:
     - ln -s $CI_PROJECT_DIR/deploy/docker/helm/admin-frontend/src/main/chart      /tmp/admin-frontend     && cp /tmp/admin-frontend/README.md     /tmp/README_admin-frontend.md
     - ln -s $CI_PROJECT_DIR/deploy/docker/helm/bundle/src/main/chart              /tmp/bundle             && cp /tmp/bundle/README.md             /tmp/README_bundle.md
