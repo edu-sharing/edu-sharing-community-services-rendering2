@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo
 
+import okhttp3.Dispatcher
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AuthenticationV1Api
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.TrackingV1Api
@@ -20,6 +21,7 @@ class UserBasedRestClientProvider(
     private val sessionTicketRepository: SessionTicketRepository,
     private val authHeaderProvider: AuthHeaderProvider,
     private val tracePropagatingInterceptor: TracePropagatingInterceptor,
+    private val repositoryDispatcher: Dispatcher,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -49,6 +51,7 @@ class UserBasedRestClientProvider(
             isGuestUser = SecurityContextUtils.currentUser().isGuest,
         )
         apiClient.httpClient = apiClient.httpClient.newBuilder()
+            .dispatcher(repositoryDispatcher)
             .addInterceptor(interceptor)
             .addInterceptor(tracePropagatingInterceptor)
             .build()
@@ -64,7 +67,10 @@ class UserBasedRestClientProvider(
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
-        apiClient.httpClient = apiClient.httpClient.newBuilder().addInterceptor(tracePropagatingInterceptor).build()
+        apiClient.httpClient = apiClient.httpClient.newBuilder()
+            .dispatcher(repositoryDispatcher)
+            .addInterceptor(tracePropagatingInterceptor)
+            .build()
         return AuthenticationV1Api(apiClient)
     }
 }

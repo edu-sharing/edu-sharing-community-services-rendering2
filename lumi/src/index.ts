@@ -16,6 +16,7 @@ import * as dbImplementations from '@lumieducation/h5p-mongos3';
 import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} from "./h5p.settings";
 import eduSharingPlayer from "./eduSharingPlayer";
 import {fileStreamScopeMiddleware} from "./s3Streams";
+import {mathJaxRouter} from "./mathDisplay";
 import {
     FsPackageLibraryStore,
     packageLibraryRouter,
@@ -168,6 +169,9 @@ const start = async () => {
     // object. This function must be there for the Express adapter
     // (H5P.adapters.express) to function properly.
     app.use(i18nextHttpMiddleware.handle(i18next));
+
+    // MathJax for the player's LaTeX rendering - see mathDisplay.ts.
+    app.use(h5pEditor.config.baseUrl, mathJaxRouter());
 
     // Must be mounted before the ajax router so scoped library files are resolved against the
     // package's own cache rather than the editor's global storage.
