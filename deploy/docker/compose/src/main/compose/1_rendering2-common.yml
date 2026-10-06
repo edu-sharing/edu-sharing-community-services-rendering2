@@ -240,9 +240,15 @@ services:
     expose:
       - "8080"
     depends_on:
-      - mongo-database
-      - rendering2-message-queue
-      - redis-cache
+      mongo-database:
+        condition: service_started
+      rendering2-message-queue:
+        condition: service_started
+      redis-cache:
+        condition: service_started
+      # Lumi can need minutes to start; H5P jobs consumed earlier fail with "connection refused".
+      rendering2-lumi:
+        condition: service_healthy
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
@@ -303,6 +309,12 @@ services:
       DEBUG: h5p:*
     volumes:
       - "rendering2-lumi-volume-library-cache:/application/library-cache"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/metrics').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10m
     expose:
       - "3000"
 
