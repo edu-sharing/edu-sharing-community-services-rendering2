@@ -49,4 +49,5 @@ data:
   MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
   MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
   TEMPORARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.temporary | quote }}
+  TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS: {{ .Values.config.s3.buckets.temporaryExpirationDays | quote }}
   DEBUG: {{ .Values.config.log.scope | quote }}
