@@ -282,6 +282,8 @@ services:
       CONTENT_AWS_S3_BUCKET_QUOTA: "${RENDERING2_LUMI_CONTENT_BUCKET_QUOTA:-0}"
       CONTENT_MONGO_COLLECTION: h5p
       TEMPORARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_TEMP_BUCKET:-lumi-tempbucket}"
+      # Days after which objects in the temp bucket expire (S3 lifecycle rule, re-applied on every lumi start).
+      TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS: "${RENDERING2_LUMI_TEMP_BUCKET_EXPIRATION_DAYS:-1}"
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_LIB_BUCKET:-lumi-libbucket}"
       EDUSHARING_MONGO_COLLECTION: lumiedusharing

@@ -171,6 +171,8 @@ config:
       library: lumi-libbucket
       ## @param config.s3.buckets.temporary Set S3 bucket for temporary
       temporary: lumi-tempbucket
+      ## @param config.s3.buckets.temporaryExpirationDays Days after which objects in the temporary bucket expire (S3 lifecycle rule, re-applied on every start)
+      temporaryExpirationDays: 1
 
 ########################################################################################################################
 

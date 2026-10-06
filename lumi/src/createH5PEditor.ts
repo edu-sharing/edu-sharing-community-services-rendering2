@@ -9,6 +9,46 @@ import {guardFileStreams} from "./s3Streams";
 
 const log = new Logger("CreateH5PEditor")
 
+const DEFAULT_TEMP_BUCKET_EXPIRATION_DAYS = 1
+
+/**
+ * Applies an expiration rule (days from `TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS`, default 1) to
+ * the temporary bucket. An existing matching rule is left alone; any other rule set is replaced, so
+ * a changed value takes effect on the next start. Failures are logged, never fatal.
+ */
+async function ensureTempBucketExpiration(
+    s3: ReturnType<typeof dbImplementations.initS3>, bucket: string): Promise<void> {
+    const raw = process.env.TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS
+    const parsed = Number.parseInt(raw ?? '', 10)
+    const days = Number.isFinite(parsed) && parsed >= 1 ? parsed : DEFAULT_TEMP_BUCKET_EXPIRATION_DAYS
+    if (raw && days !== parsed) {
+        log.warn(`Invalid TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS "${raw}", using ${days} day(s).`)
+    }
+    try {
+        const current = await s3.getBucketLifecycleConfiguration({Bucket: bucket}).catch(() => undefined)
+        if (current?.Rules?.some(rule =>
+            rule.Status === 'Enabled' && rule.Expiration?.Days === days
+            && (rule.Filter?.Prefix ?? rule.Prefix ?? '') === '')) {
+            log.info(`Bucket ${bucket} already expires objects after ${days} day(s).`)
+            return
+        }
+        await s3.putBucketLifecycleConfiguration({
+            Bucket: bucket,
+            LifecycleConfiguration: {
+                Rules: [{
+                    ID: 'expire-temporary-files',
+                    Filter: {Prefix: ''},
+                    Status: 'Enabled',
+                    Expiration: {Days: days}
+                }]
+            }
+        })
+        log.info(`Set expiration of bucket ${bucket} to ${days} day(s).`)
+    } catch (error: any) {
+        log.error(`Could not set lifecycle configuration of bucket ${bucket}: ${error.message}`)
+    }
+}
+
 /**
  * The H5P editor plus the storages and settings it was built from.
  *
@@ -217,11 +257,12 @@ export default async function createH5PEditor(
         undefined
     );
 
-    // Set bucket lifecycle configuration for S3 temporary storage to make
-    // sure temporary files expire.
-    if (h5pEditor.temporaryStorage instanceof dbImplementations.S3TemporaryFileStorage) {
-        await h5pEditor.temporaryStorage.setBucketLifecycleConfiguration(h5pEditor.config);
-    }
+    // Make sure temporary files expire. S3TemporaryFileStorage never deletes anything itself (its
+    // listFiles() is empty, so TemporaryFileManager.cleanUp() is a no-op); expiry is the bucket's job.
+    // We set the lifecycle rule ourselves instead of calling its setBucketLifecycleConfiguration:
+    // that one divides temporaryFileLifetime by 1000*60*24 instead of ms-per-day (120 minutes
+    // become 5 days) and cannot be steered in real days.
+    await ensureTempBucketExpiration(s3, process.env.TEMPORARY_AWS_S3_BUCKET)
 
     log.info("Initiated H5P editor.")
     return {

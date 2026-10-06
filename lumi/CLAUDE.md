@@ -48,7 +48,11 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
   `CONTENT_MONGO_COLLECTION`, `LIBRARY_MONGO_COLLECTION`, `EDUSHARING_MONGO_COLLECTION`.
 - **S3 / MinIO**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`,
   `AWS_S3_REGION`, `AWS_S3_TRUST_ALL_CERTIFICATES`; buckets `CONTENT_AWS_S3_BUCKET`,
-  `TEMPORARY_AWS_S3_BUCKET`, `LIBRARY_AWS_S3_BUCKET`.
+  `TEMPORARY_AWS_S3_BUCKET`, `LIBRARY_AWS_S3_BUCKET`. `TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS`
+  (default 1) sets the temp bucket's lifecycle expiration; applied on every start by
+  `ensureTempBucketExpiration`. The bucket rule is the only thing that deletes temp files
+  (h5p-mongos3's `listFiles()` is empty, so `cleanUp()` is a no-op), and `temporaryFileLifetime`
+  has no effect on S3 besides the lib's own, mis-converting lifecycle helper that we do not call.
 - **S3 connection pool** (`createH5PEditor.ts`): `AWS_S3_MAX_SOCKETS` (default 256 — the AWS SDK
   default of 50 is a hard ceiling on parallel file serving, since every library/content file of every
   H5P page is its own S3 `GetObject`). **Both S3 timeouts default to 0 = off, and should stay off**:
