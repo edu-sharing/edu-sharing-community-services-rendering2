@@ -27,8 +27,21 @@ class CacheCleaner(
     )
     @SchedulerLock(name = "cacheCleaner", lockAtMostFor = "30m", lockAtLeastFor = "1m")
     fun cleanCache() {
-        log.info("Running cache cleaner...")
-        storageService.getStorageInfo().forEach loop@{ scope ->
+        cleanCache(repoId = null)
+    }
+
+    /**
+     * Runs one cleanup pass, optionally restricted to the scopes of a single [repoId]. Unlike the
+     * scheduled [cleanCache] this is not guarded by the ShedLock, so a manual trigger is never
+     * silently skipped because a scheduled run happened a moment ago.
+     */
+    fun cleanCache(repoId: String?): CacheCleanupResult {
+        log.info("Running cache cleaner${repoId?.let { " for repo $it" } ?: ""}...")
+        var scopesChecked = 0
+        var scopesCleaned = 0
+        var deletedEntries = 0
+        var freedBytes = 0L
+        storageService.getStorageInfo().filter { repoId == null || it.repoId == repoId }.forEach loop@{ scope ->
             val label = when {
                 scope.kind == StorageScopeKind.LIBRARY_CACHE -> "${scope.repoId}/${scope.bucket} (H5P library cache)"
                 scope.bucket != null -> "${scope.repoId}/${scope.bucket}"
@@ -38,11 +51,13 @@ class CacheCleaner(
                 log.info("No quota set for $label. Nothing to clean.")
                 return@loop
             }
+            scopesChecked++
             val usedSpace = scope.size.toDouble() / scope.maxSize.toDouble()
             log.info("$label: ${bytesToHumanReadableSize(scope.size)} of ${bytesToHumanReadableSize(scope.maxSize)} (${(usedSpace * 100).toLong()}%)")
 
             log.debug("Threshold check for $label: usedRatio=${String.format("%.4f", usedSpace)}, upperThreshold=$upperThreshold, lowerThreshold=$lowerThreshold")
             if (usedSpace > upperThreshold) {
+                scopesCleaned++
                 val targetSize = (lowerThreshold * scope.maxSize).toLong()
                 val bytesToFree = scope.size - targetSize
                 log.debug("Cleanup triggered for $label: target size=${bytesToHumanReadableSize(targetSize)}, freeing ~${bytesToHumanReadableSize(bytesToFree)}")
@@ -64,12 +79,15 @@ class CacheCleaner(
 
                 log.debug("Deletion candidates for $label: ${bucketEntryGroups.values.sumOf { e -> e.size }} entries across ${bucketEntryGroups.size} bucket manager(s)")
                 bucketEntryGroups.forEach { (bucketManager, entries) ->
+                    deletedEntries += entries.size
+                    freedBytes += entries.sumOf { scope.kind.sizeOf(it) }
                     log.debug("Bulk-deleting ${entries.size} entries via ${bucketManager?.javaClass?.simpleName ?: "no manager"}")
                     bucketManager?.deleteObjectsFromStorage(entries)
                     trackingService.deleteAllTrackedObjects(entries)
                 }
             }
         }
+        return CacheCleanupResult(scopesChecked, scopesCleaned, deletedEntries, freedBytes)
     }
 
     private fun bytesToHumanReadableSize(bytes: Long) = when {

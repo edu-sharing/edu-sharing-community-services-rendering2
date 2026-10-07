@@ -167,6 +167,55 @@
         } ]
       }
     },
+    "/admin/storage/cleanup" : {
+      "post" : {
+        "tags" : [ "storage" ],
+        "operationId" : "triggerCleanup",
+        "parameters" : [ {
+          "name" : "repoId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CacheCleanupResult"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "basicAuth" : [ ]
+        } ]
+      }
+    },
     "/admin/repository/register" : {
       "get" : {
         "tags" : [ "repository" ],
@@ -1551,6 +1600,27 @@
           }
         },
         "required" : [ "module", "repoId" ]
+      },
+      "CacheCleanupResult" : {
+        "properties" : {
+          "scopesChecked" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "scopesCleaned" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deletedEntries" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "freedBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "deletedEntries", "freedBytes", "scopesChecked", "scopesCleaned" ]
       },
       "ExternalBucket" : {
         "properties" : {

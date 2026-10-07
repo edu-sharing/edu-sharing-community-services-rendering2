@@ -2,6 +2,8 @@ package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.edu_sharing.rendering.cacheCleaner.CacheCleanupResult
+import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
@@ -16,6 +18,7 @@ import org.edu_sharing.rendering.storage.bucket.BucketStrategy
 import org.edu_sharing.rendering.storage.bucket.ExternalBucketStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -48,7 +51,8 @@ class AdminStorageController(
     private val storageService: StorageService,
     private val bucketStrategy: BucketStrategy,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
-    private val storageManagerRegistry: StorageManagerRegistry
+    private val storageManagerRegistry: StorageManagerRegistry,
+    private val cacheCleaner: CacheCleaner
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -107,6 +111,18 @@ class AdminStorageController(
             exact = exactBucket != null,
             buckets = buckets
         )
+    }
+
+    /**
+     * Triggers the [CacheCleaner] for one repo on demand. Runs synchronously; scopes below their
+     * upper threshold (or without a quota) are left untouched, exactly as in the scheduled run.
+     */
+    @PostMapping("/storage/cleanup")
+    fun triggerCleanup(@RequestParam repoId: String): CacheCleanupResult {
+        log.debug("POST /admin/storage/cleanup for repoId=$repoId")
+        repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { EntryNotFoundException("No repository registration found for repoId $repoId.") }
+        return cacheCleaner.cleanCache(repoId)
     }
 
     /**
