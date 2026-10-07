@@ -438,7 +438,7 @@ config:
   cache:
     cleaner:
       ## @param config.cache.cleaner.schedule Set schedule for cache cleaner
-      schedule: 0 0 1 * * *
+      schedule: 0 */15 * * * *
       threshold:
         ## @param config.cache.cleaner.threshold.lower Set lower threshold for cache cleaner
         lower: 0.7
