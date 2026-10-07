@@ -2,12 +2,16 @@ import express from 'express'
 import * as H5P from '@lumieducation/h5p-server';
 import {IRequestWithUser } from "@lumieducation/h5p-express";
 import multer from "multer";
+import {promises as fsPromises} from "fs";
+import os from "os";
 import {Collection} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import EduSharingModel, {LibraryScope} from "./EduSharingModel";
 import {H5pError, Logger} from "@lumieducation/h5p-server";
 import {parseDataSize} from "./dataSize";
 import {CacheQuotaExceededError, createScopedPlayer, importPackage, mainLibraryUbername, PackageLibraryStore} from "./packageLibraries";
 import {H5PDeps} from "./createH5PEditor";
+import {createImportQueue, getImportQueueStatus, ImportDeadlineError} from "./importQueue";
+import {getS3PoolStatus, resetS3Pool} from "./s3Pool";
 
 /**
  * Everything the per-package library cache needs, or `undefined` when the feature is off.
@@ -78,29 +82,6 @@ const discardStaleMapping = async (
 }
 
 /**
- * Serializes H5P package uploads.
- *
- * `h5pEditor.uploadPackage` extracts each package into its own temp directory and then
- * installs all contained libraries with an unbounded `Promise.all` (both across libraries
- * and across each library's files). Two uploads running at once therefore saturate S3; a
- * single library copy can then exceed the per-library lock's `installLibraryLockMaxOccupationTime`,
- * which rejects the whole `Promise.all`. `PackageImporter` reacts by `rm -rf`-ing the temp
- * directory in its `finally` block while sibling installs are still reading from it, producing
- * `ENOENT ... lstat '/tmp/tmp-...'` errors and — because `updateLibrary` deletes a library on
- * any error — a corrupted library store.
- *
- * Since lumi runs as a single replica with an in-memory `SimpleLockProvider`, serializing
- * uploads in-process removes the cross-upload race entirely and halves the S3 pressure.
- */
-let uploadChain: Promise<unknown> = Promise.resolve()
-const serializeUpload = <T>(task: () => Promise<T>): Promise<T> => {
-    const run = uploadChain.then(task, task)
-    // Keep the chain alive regardless of individual outcomes.
-    uploadChain = run.then(() => undefined, () => undefined)
-    return run
-}
-
-/**
  * Creates and configures an Express router for managing H5P content with EduSharing integration.
  *
  * This router provides endpoints for EduSharing functionality including retrieving and managing
@@ -135,7 +116,19 @@ const router = (
     packageLibraries?: PackageLibraries
 ): express.Router => {
     const router = express.Router()
-    const upload = multer()
+    // Spooled to disk, not held in memory: uploads wait their turn in the import queue, and with a
+    // package of several hundred MB per waiting request a backlog used to fill the container's RAM.
+    // The import works on the file itself - handing it over as a Buffer would cap packages at 2 GiB
+    // (fs.readFile's limit), keep a second copy in memory and make the library write a third to disk.
+    // The file is removed once the request is done.
+    const upload = multer({storage: multer.diskStorage({destination: process.env.H5P_UPLOAD_DIR || os.tmpdir()})})
+    // Imports run one at a time (see importQueue.ts). Only with per-package library caches may the
+    // queue move on from an import that blew its deadline - they do not share state with each other.
+    const importQueue = createImportQueue(
+        packageLibraries !== undefined,
+        // What a stuck import waits on is almost always an S3 socket that will never answer.
+        () => resetS3Pool('import exceeded its deadline')
+    )
 
     router.get('/edusharing/nodeid/:nodeId', async (request: IRequestWithUser, response) => {
         const result = await eduCollection.findOne({nodeId: request.params.nodeId})
@@ -174,47 +167,53 @@ const router = (
 
     router.post(
         '/edusharing', upload.single('file'), async (request: IRequestWithUser, response) => {
-            if (!request.body.nodeId) {
-                log.error(`Missing param: nodeId. File upload aborted.`)
-                response.status(400).send('Malformed request').end();
-                return;
-            }
-            const nodeId = request.body.nodeId
-            log.info(`Starting H5P package upload for nodeId ${request.body.nodeId}.`)
-
+            const uploadedFile = request.file?.path
             try {
+                if (!request.body.nodeId || !uploadedFile) {
+                    log.error(`Missing param: nodeId or file. File upload aborted.`)
+                    response.status(400).send('Malformed request').end();
+                    return;
+                }
+                const nodeId = request.body.nodeId
+                log.info(`Starting H5P package upload for nodeId ${request.body.nodeId}.`)
+
                 let contentId: string
                 // Size of this package's isolated library set; reported so the rendering service can
                 // track it and let its CacheCleaner free the library volume. 0 in global mode, where
                 // the package has no library set of its own.
                 let libraryBytes = 0
                 if (packageLibraries) {
-                    // The whole import is serialized: installing libraries and storing the content
-                    // must both see the same staging area from start to finish.
-                    const imported = await serializeUpload(() => importPackage(
+                    // The whole import runs as one queued task: installing libraries and storing the
+                    // content must both see the same staging area from start to finish.
+                    const imported = await importQueue.run(async () => importPackage(
                         packageLibraries.deps,
                         packageLibraries.store,
-                        request.file.buffer,
+                        uploadedFile,
                         request.user
                     ))
                     contentId = imported.contentId
                     libraryBytes = imported.libraryBytes
                 } else {
-                    const result = await serializeUpload(() => h5pEditor.uploadPackage(
-                        request.file.buffer,
-                        request.user,
-                        {onlyInstallLibraries: false}
-                    ))
+                    // Storing the content belongs to the queued task as well: it copies every content
+                    // file from the temporary to the content storage, which is as much S3 traffic as
+                    // the library installation and must neither overlap another import nor run unbounded.
+                    contentId = await importQueue.run(async () => {
+                        const result = await h5pEditor.uploadPackage(
+                            uploadedFile,
+                            request.user,
+                            {onlyInstallLibraries: false}
+                        )
 
-                    log.info(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
+                        log.info(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
 
-                    contentId = await h5pEditor.saveOrUpdateContent(
-                        undefined,
-                        result.parameters,
-                        result.metadata,
-                        mainLibraryUbername(result.metadata),
-                        request.user
-                    )
+                        return h5pEditor.saveOrUpdateContent(
+                            undefined,
+                            result.parameters,
+                            result.metadata,
+                            mainLibraryUbername(result.metadata),
+                            request.user
+                        )
+                    })
                 }
                 log.info(`Lumi content Id for ES-Node ${request.body.nodeId} successfully created: ${contentId}.`)
                 // Recording the scope is what lets the lookup above tell a package whose libraries
@@ -228,8 +227,19 @@ const router = (
                 log.error(`Lumi upload not successful. Error message: ${error.message}`)
                 // 507: the package is fine, there is simply no room for its libraries. Distinguishing
                 // it from a genuine failure tells an operator to free space or raise the quota.
-                const status = error instanceof CacheQuotaExceededError ? 507 : 500
+                // 504: the import did not finish in time; the package is not necessarily bad, so the
+                // caller may retry.
+                const status = error instanceof CacheQuotaExceededError ? 507
+                    : error instanceof ImportDeadlineError ? 504
+                        : 500
                 response.status(status).end(error.message);
+            } finally {
+                // The spooled upload is only needed for the import. If the request was aborted before
+                // multer finished, there may be no usable path.
+                if (uploadedFile) {
+                    await fsPromises.rm(uploadedFile, {force: true}).catch((error: any) =>
+                        log.warn(`Could not remove spooled upload ${uploadedFile}: ${error.message}`))
+                }
             }
         }
     )
@@ -362,6 +372,18 @@ const router = (
 
     router.get("/edusharing/ping", async (_req, res) => {
         res.status(200).end()
+    })
+
+    // Deeper than ping, which only says the process answers. Reports 503 while imports are stuck or
+    // the S3 pool is: neither is visible from ping, yet both stop every import. Kept separate from
+    // ping so a probe that restarts the pod on failure is an explicit choice of the operator.
+    router.get("/edusharing/health", async (_req, res) => {
+        const imports = getImportQueueStatus()
+        const s3Pool = getS3PoolStatus()
+        const stuck = (imports?.overdue ?? false) || (s3Pool?.stalled ?? false)
+        // Informational: a cache that is still being measured is no reason to take lumi out of rotation.
+        const libraryCache = packageLibraries?.store.usage()
+        res.status(stuck ? 503 : 200).json({status: stuck ? 'degraded' : 'ok', imports, s3Pool, libraryCache})
     })
 
     return router

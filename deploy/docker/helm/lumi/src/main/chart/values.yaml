@@ -90,6 +90,12 @@ config:
   files:
     ## @param config.files.maxsize Set files max size
     maxsize: 1000
+    ## @param config.files.maxPackageSize Set max size of an unpacked H5P package (plain byte count or e.g. 4GB)
+    maxPackageSize: 4GB
+    ## @param config.files.maxPackageFileSize Set max size of a single file in an H5P package (plain byte count or e.g. 2GB)
+    maxPackageFileSize: 2GB
+    ## @param config.files.importTimeoutMs Set deadline of one package import in ms (0 = off)
+    importTimeoutMs: 900000
 
   libraryCache:
     ## @param config.libraryCache.mode How H5P libraries of imported packages are stored: "global" = one shared store (default), "package" = an isolated cache per package holding its exact library versions
@@ -162,6 +168,8 @@ config:
     connectionTimeoutMs: 0
     ## @param config.s3.requestTimeoutMs Set S3 socket idle timeout in ms
     requestTimeoutMs: 0
+    ## @param config.s3.poolStallMs Destroy the S3 pool's sockets when it is full and nothing settles for this long in ms (0 = off)
+    poolStallMs: 120000
     buckets:
       ## @param config.s3.buckets.content Set S3 bucket for content
       content: lumi-contentbucket
@@ -179,6 +187,21 @@ config:
 persistence:
 
   data:
+
+    temp:
+      ## Package uploads are spooled to /tmp until their import is done, and the H5P library unpacks
+      ## every package there too: an import needs the size of the package plus its unpacked size (up to
+      ## 2 GB + 4 GB with the default limits), plus one spooled copy per waiting upload. Without a volume this lands on the
+      ## node's ephemeral disk, like the service's temp files (persistence.data.temp there).
+      ## @param persistence.data.temp.create Create a volume for temporary data (mounted at /tmp)
+      create: false
+      spec:
+        ## @param persistence.data.temp.spec.accessModes Set access modes for temporary data
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            ## @param persistence.data.temp.spec.resources.requests.storage Set storage request for temporary data
+            storage: 20Gi
 
     libraryCache:
       ## The volume is created automatically when config.libraryCache.mode is "package" and omitted

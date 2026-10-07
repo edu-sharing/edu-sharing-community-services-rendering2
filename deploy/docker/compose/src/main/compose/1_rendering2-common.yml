@@ -274,6 +274,9 @@ services:
       AWS_S3_TRUST_ALL_CERTIFICATES: false
       AWS_S3_CHECKSUM_CALCULATION_WHEN_REQUIRED: false
       AWS_S3_MAX_SOCKETS: "${RENDERING2_LUMI_S3_MAX_SOCKETS:-256}"
+      # A pool that is full, has requests waiting and in which not a single request settles for this
+      # long is stuck on sockets that will never come back; lumi then destroys them. 0 = off.
+      AWS_S3_POOL_STALL_MS: "${RENDERING2_LUMI_S3_POOL_STALL_MS:-120000}"
       AWS_S3_ENDPOINT: "${RENDERING2_S3_STORAGE_PROTOCOL:-http}://${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}:${RENDERING2_S3_STORAGE_PORT:-9000}"
       S3_HOST: "${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}"
       S3_PORT: "${RENDERING2_S3_STORAGE_PORT:-9000}"
@@ -304,6 +307,17 @@ services:
       # units). 0/empty = no limit. On reaching it, imports are rejected with HTTP 507 rather than
       # evicting: the cache is the only copy of those packages' libraries.
       H5P_LIBRARY_CACHE_QUOTA: "${RENDERING2_LUMI_LIBRARY_CACHE_QUOTA:-0}"
+      # Deadline of one package import. Imports run one at a time, so an import that never returns used
+      # to block every later one; past the deadline it is answered with 504 and the queue moves on.
+      # Keep it above the rendering service's H5P timeout (repository credential "timeout"). 0 = off.
+      H5P_IMPORT_TIMEOUT_MS: "${RENDERING2_LUMI_IMPORT_TIMEOUT_MS:-900000}"
+      # Largest H5P package lumi accepts: H5P_MAX_TOTAL_SIZE is its size once unpacked, H5P_MAX_FILE_SIZE
+      # that of a single file in it (plain byte count or e.g. "2GB", binary units). The import streams
+      # from disk, so neither is bound by memory - but /tmp needs room for the spooled upload plus the
+      # unpacked package. Requests this big also need the rendering service's H5P timeout (repository
+      # credential "timeout", default 300 s) and H5P_IMPORT_TIMEOUT_MS above to be raised accordingly.
+      H5P_MAX_TOTAL_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_SIZE:-4GB}"
+      H5P_MAX_FILE_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_FILE_SIZE:-2GB}"
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*

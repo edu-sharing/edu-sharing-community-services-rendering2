@@ -17,6 +17,11 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 | `src/createH5PEditor.ts` | Builds the H5P editor with S3 + Mongo storage (incl. the S3 connection pool); returns it as `H5PDeps` together with the shared storages/options. |
 | `src/packageLibraries/` | Per-package isolated H5P library caches (below). Self-contained; off by default. |
 | `src/s3Streams.ts` | Binds S3 body streams to the request; without it aborted downloads leak pool sockets. |
+| `src/importQueue.ts` | Runs package imports one at a time, with a deadline (below). Replaces the former `serializeUpload` promise chain in `router.ts`. |
+| `src/importScope.ts` | `AsyncLocalStorage` marker for "inside a package import"; lets the shared S3 client throttle only the import's requests. |
+| `src/s3Throttle.ts` | S3 client middleware: caps an import's concurrent S3 requests and reports every settled request to the pool watchdog. |
+| `src/s3Pool.ts` | Watchdog for the S3 connection pool (below). |
+| `src/metrics.ts` | Prometheus gauges for the import queue and the S3 pool. |
 | `src/traceContext.ts` | Adopts the incoming b3/W3C trace id and prefixes every `debug` log line with it. Binds `req.emit`/`res.emit` into the `AsyncLocalStorage` context — **do not remove**: without it every request with a body (the package import above all) logs untraced, because body parsers resume the chain from stream events that fire in the socket's async context. |
 | `src/eduSharingPlayer.ts` | Custom H5P player/renderer. Also injects the core styles the bundled `playerAssetList.json` omits, and seeds a preloaded empty `contentUserData` so H5P core skips the `contentUserData` AJAX call that h5p-express answers with 403 while the feature is off (`contentUserStateSaveInterval: false`). |
 | `src/mathDisplay.ts` | LaTeX for every H5P page: serves MathJax 4 (npm `mathjax` + its font) and builds the `<head>` snippet `eduSharingPlayer` injects (config/observer ported from the upstream `H5P.MathDisplay` addon). Only injected when the content parameters contain LaTeX and the package does not ship `H5P.MathDisplay` itself. |
@@ -33,7 +38,8 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 - `GET  /:contentId` — render the H5P player (HTML)
 - `DELETE /edusharing/:nodeHash` — delete content + mapping
 - `GET  /edusharing/buckets` — S3 bucket config
-- `GET  /edusharing/ping` — health check
+- `GET  /edusharing/ping` — liveness only: answers 200 whenever the process does. Unchanged on purpose, because the Helm chart's probes restart the pod on failure.
+- `GET  /edusharing/health` — import queue + S3 pool state as JSON; **503** while an import is past its deadline or the S3 pool is stuck. Not wired to any probe; hooking it up is an operator's decision.
 - `GET  /package-libraries/:packageId/:uberName/:file` — library files of one package (only mounted when the per-package cache is on)
 - `GET  /mathjax/<mathjax>-<font>/...` — MathJax and its font from `node_modules` (`mathDisplay.ts`, mounted in `index.ts`); both versions are in the path, so it is cached as immutable
 
@@ -63,11 +69,57 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
     deleting the libraries it was copying — the whole import then fails (`s3-upload-error`).
   - `AWS_S3_REQUEST_TIMEOUT_MS` is a *socket inactivity* timeout; backpressure from a slow client
     stalls reads on the S3 socket, so enabling it can truncate large downloads.
+- **Package size limits**: `H5P_MAX_TOTAL_SIZE` (max *unpacked* size of a package, default 1000 MB in `config.json`, 4GB in compose/Helm) and `H5P_MAX_FILE_SIZE` (max single file, 1000 MB / 2GB), plain byte count or `2GB`-style size; an unparsable value logs a warning and keeps the default. Larger packages fail with `package-validation-failed:total-size-too-large`. The import works on the spooled **file** (`uploadPackage(path)`), so neither limit is bound by memory and a package may exceed 2 GiB: a 2.3 GB package imports with ~0.7 GB RSS. Handing the library a `Buffer` instead would fail above 2 GiB (`fs.readFile`) and keep the package in RAM plus a second copy in `/tmp` - do not go back to that. Time is the remaining limit: the rendering service's per-repository `timeout` credential (default 300 s) and `H5P_IMPORT_TIMEOUT_MS` have to cover an import of that size on your storage.
 - **Server**: `PORT` (default 3000), `BASE_URL=/public/h5p`, `CACHE=in-memory`.
 - **Per-package library cache**: `H5P_LIBRARY_CACHE` (`global` | `package`, default `global`),
   `H5P_LIBRARY_CACHE_DIR` (default `/application/library-cache`), `H5P_LIBRARY_CACHE_QUOTA`
   (byte count or `10GB`-style size, binary units via `parseDataSize`; empty/`0` = no limit —
   an unparsable value logs a warning and means *no limit*, so check the startup log).
+
+## Package imports (`importQueue.ts`, `s3Pool.ts`, `s3Throttle.ts`)
+
+**What went wrong before.** Imports were chained on one promise with no bound. An S3 request that never
+returned (a socket the pool never got back; there are no S3 timeouts, see above) froze that chain for
+good: every later import logged `Starting H5P package upload` and then nothing, the rendering service
+timed out one retry after the other (roughly every 300 s), and only a restart of lumi helped. The only
+trace was `@smithy/node-http-handler:WARN - socket usage at capacity` - and the SDK emits that only once
+**2 × `AWS_S3_MAX_SOCKETS` requests are queued**, i.e. long after the outage began.
+
+What is in place now:
+
+- **Spooled to disk.** `POST /edusharing` uses `multer.diskStorage` (`H5P_UPLOAD_DIR`, default the OS temp
+  dir); the import reads the file in place (never into a Buffer) and it is always removed afterwards. A
+  backlog of waiting uploads no longer holds a package each in RAM. **It does take disk instead**, and the
+  library unpacks every package into `/tmp` as well (package size + unpacked size per import), so give
+  `/tmp` room: Helm `persistence.data.temp` (opt-in PVC, like the service chart); compose uses the
+  container layer.
+- **Deadline** `H5P_IMPORT_TIMEOUT_MS` (default 900000 = 15 min, `0` = off; keep it above the rendering service's H5P `timeout` credential, default 300 s). Past it the request gets **504**, the
+  S3 pool's sockets are destroyed (what a stuck import waits on is almost always one dead socket - the
+  pool is nowhere near full then, so the watchdog's stall check would never see it) and, **in `package`
+  mode only**, the queue moves on. In `global` mode imports share one library storage and corrupt it when
+  they overlap, so the queue keeps waiting until the task settles; destroying the sockets is what makes
+  that wait finite.
+- **Import throttle** `H5P_IMPORT_S3_CONCURRENCY` (default 64): an import no longer fans out over the whole
+  pool (one package is >1500 requests). Only requests inside the import scope wait; player requests never
+  do. They queue in lumi *before* the SDK creates the request, so the SDK's connection timer (which also
+  covers the wait for a free socket, see above) is not running while they wait.
+- **Pool watchdog** `AWS_S3_POOL_STALL_MS` (default 120000, `0` = off): pool full (per origin, as the SDK
+  judges it), requests waiting and no request settled for that long -> destroy all sockets. In-flight
+  requests fail and are retried by the SDK. Judged per agent: the HTTP and HTTPS agents each have their own
+  limit and only one is used, so summing them would make a full pool look half empty.
+- **Observability**: `/edusharing/health` and the gauges `lumi_import_waiting`, `lumi_import_running_seconds`,
+  `lumi_import_deadline_exceeded`, `lumi_s3_pool_in_use`, `lumi_s3_pool_queued`,
+  `lumi_s3_pool_stalled_seconds`, `lumi_s3_pool_recoveries`. Alert on `lumi_import_running_seconds` and
+  `lumi_s3_pool_stalled_seconds` instead of waiting for the SDK warning.
+
+An import that blew its deadline is abandoned, not cancelled: it may still finish in the background (its
+staging directory is then published without a mapping and counts against the library quota until the
+package is imported again). It cannot be stopped from outside `@lumieducation/h5p-server`.
+
+## Tests
+`npm test` (`node --test` with ts-node, `test/*.test.ts`) covers the queue, the watchdog, the throttle and
+the size parsing. There is no integration test; the paths with real S3 were checked by hand against the
+compose stack with a TCP proxy in front of RustFS that swallows traffic on demand.
 
 ## Per-package library cache (`src/packageLibraries/`)
 
@@ -136,8 +188,27 @@ Accounting: **allocated blocks** (`stat.blocks * 512`), not file sizes. A packag
 sub-block files, so block rounding adds ~45% on a 4K filesystem — sizing by file size would let the
 volume fill long before the quota was reached. This matches `du` on a PVC and `df` on a memory-backed
 volume (`emptyDir: {medium: Memory}` / tmpfs), which is what its `sizeLimit` enforces and what counts
-against the pod's memory. The size is walked once at startup and then maintained incrementally by
-`promote`/`remove` (a re-import of the same package only counts the difference). `GET /edusharing/buckets` reports
+against the pod's memory. The size is maintained incrementally by
+`promote`/`remove` (a re-import of the same package only counts the difference).
+
+**Startup.** Measuring means a `stat` of every file (minutes for tens of GB of small files: ~3.5 min for
+23 GB in production, ~13 s per 200k files locally). That used to run before the server started listening,
+so every restart left lumi unreachable - lookups and players included. Now `FsPackageLibraryStore.create`
+returns as soon as the root is ready (listening after ~2 s) and the walk runs in the background:
+
+- The size of the last run is remembered in `<cache dir>/.usage.json` (written 5 s after a change, and
+  on SIGTERM via `flush()`) and taken over immediately. The measurement then replaces it; imports and
+  removals that happen meanwhile are added on top, so the total can be off by those few packages until
+  the next start. A crash can leave the remembered value stale, which the measurement corrects.
+- Imports `await store.awaitUsage()` before they start: they go ahead on the remembered size, but wait for
+  the measurement on a **first start** (nothing remembered) and when the remembered size is **>= 90 % of
+  the quota** (too uncertain to decide on). They run inside the import queue, so the import deadline
+  applies; the measurement is far shorter than that.
+- `GET /edusharing/buckets` reports the remembered size meanwhile (0 on a first start - the CacheCleaner
+  then sees an empty cache for a few minutes, which only delays cleaning). `GET /edusharing/health` shows
+  `libraryCache.reconciling`; it is informational and never makes the status `degraded`.
+- `.usage.json` and its `.tmp` are excluded from the measurement and, like `.staging`, can never be
+  addressed as a package id. `GET /edusharing/buckets` reports
 `libraryCache: {usedBytes, quota, evictable: false}` when the feature is on, and `POST /edusharing`
 returns `libraryBytes` for the package it just imported.
 

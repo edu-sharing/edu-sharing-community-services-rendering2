@@ -17,6 +17,8 @@ import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} 
 import eduSharingPlayer from "./eduSharingPlayer";
 import {fileStreamScopeMiddleware} from "./s3Streams";
 import {mathJaxRouter} from "./mathDisplay";
+import {registerImportMetrics} from "./metrics";
+import {readDataSize} from "./dataSize";
 import {
     FsPackageLibraryStore,
     packageLibraryRouter,
@@ -92,6 +94,15 @@ const start = async () => {
     config.installLibraryLockTimeout = Number.parseInt(
         process.env.INSTALL_LIBRARY_LOCK_TIMEOUT_MS || '120000', 10)
 
+    // Upload limits of the package validator; config.json holds the defaults (1000 MB each). `maxTotalSize` is
+    // the size of the *unpacked* package. The import streams from the spooled file, so the limits are bound
+    // by /tmp and by how long an import may take, not by memory.
+    config.maxFileSize = readDataSize(process.env.H5P_MAX_FILE_SIZE, config.maxFileSize,
+        error => log.warn(`Ignoring invalid H5P_MAX_FILE_SIZE: ${error.message}`))
+    config.maxTotalSize = readDataSize(process.env.H5P_MAX_TOTAL_SIZE, config.maxTotalSize,
+        error => log.warn(`Ignoring invalid H5P_MAX_TOTAL_SIZE: ${error.message}`))
+    log.info(`Package size limits: ${config.maxFileSize} bytes per file, ${config.maxTotalSize} bytes in total.`)
+
     log.info("Config loaded")
     log.debug(JSON.stringify(config, null, 2))
 
@@ -155,6 +166,7 @@ const start = async () => {
     });
 
     app.use(metricsMiddleware);
+    registerImportMetrics();
 
     app.use(express.json())
     app.use(bodyParser.urlencoded({ extended: true }));
@@ -217,7 +229,10 @@ const start = async () => {
 
         server.close(() => {
             log.info("Server closed.");
-            process.exit(0);
+            // Remember the library cache size so the next start does not begin without one.
+            (packageLibraryStore?.flush() ?? Promise.resolve())
+                .catch(error => log.warn(`Could not flush the library cache size: ${error.message}`))
+                .finally(() => process.exit(0));
         });
 
         setTimeout(() => {

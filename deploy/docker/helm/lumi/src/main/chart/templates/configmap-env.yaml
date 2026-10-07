@@ -12,6 +12,10 @@ data:
   AWS_S3_MAX_SOCKETS: {{ .Values.config.s3.maxSockets | quote }}
   AWS_S3_CONNECTION_TIMEOUT_MS: {{ .Values.config.s3.connectionTimeoutMs | quote }}
   AWS_S3_REQUEST_TIMEOUT_MS: {{ .Values.config.s3.requestTimeoutMs | quote }}
+  AWS_S3_POOL_STALL_MS: {{ .Values.config.s3.poolStallMs | int64 | quote }}
+  H5P_IMPORT_TIMEOUT_MS: {{ .Values.config.files.importTimeoutMs | int64 | quote }}
+  H5P_MAX_TOTAL_SIZE: {{ .Values.config.files.maxPackageSize | quote }}
+  H5P_MAX_FILE_SIZE: {{ .Values.config.files.maxPackageFileSize | quote }}
   BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}

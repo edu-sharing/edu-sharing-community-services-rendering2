@@ -35,9 +35,14 @@ export const mainLibraryUbername = (metadata: H5P.IContentMetadata): string | un
 export const importPackage = async (
     deps: H5PDeps,
     store: PackageLibraryStore,
-    data: Buffer,
+    /** The package: its bytes, or the path of the file holding it (preferred - nothing is copied or buffered). */
+    data: Buffer | string,
     user: H5P.IUser
 ): Promise<{contentId: string; libraryBytes: number}> => {
+    // After a restart the cache size is measured in the background; on a first start, or when the
+    // remembered size says the cache is nearly full, the quota cannot be judged before that is done.
+    await store.awaitUsage()
+
     // Fail before doing any work if the cache is already full. `promote` re-checks with the
     // package's real size - only known once its libraries are installed - and is the authority.
     const {usedBytes, quotaBytes} = store.usage()
