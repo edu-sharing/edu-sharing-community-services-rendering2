@@ -90,6 +90,10 @@ config:
   files:
     ## @param config.files.maxsize Set files max size
     maxsize: 1000
+    ## @param config.files.maxPackageSize Set max size of an unpacked H5P package (plain byte count or e.g. 2GB)
+    maxPackageSize: 1000MB
+    ## @param config.files.importTimeoutMs Set deadline of one package import in ms (0 = off)
+    importTimeoutMs: 600000
 
   libraryCache:
     ## @param config.libraryCache.mode How H5P libraries of imported packages are stored: "global" = one shared store (default), "package" = an isolated cache per package holding its exact library versions
@@ -162,6 +166,8 @@ config:
     connectionTimeoutMs: 0
     ## @param config.s3.requestTimeoutMs Set S3 socket idle timeout in ms
     requestTimeoutMs: 0
+    ## @param config.s3.poolStallMs Destroy the S3 pool's sockets when it is full and nothing settles for this long in ms (0 = off)
+    poolStallMs: 120000
     buckets:
       ## @param config.s3.buckets.content Set S3 bucket for content
       content: lumi-contentbucket
