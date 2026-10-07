@@ -148,8 +148,11 @@ let importQueue: ImportQueue | undefined
 export const createImportQueue = (releaseOnTimeout: boolean, onDeadline?: () => void): ImportQueue => {
     const raw = process.env.H5P_IMPORT_TIMEOUT_MS
     const parsed = Number.parseInt(raw ?? '', 10)
-    // 10 minutes: a 750 MB package imports in well under a minute on a healthy system.
-    const timeoutMs = Number.isFinite(parsed) && parsed >= 0 ? parsed : 600_000
+    // 15 minutes. A healthy import takes seconds to a few minutes (750 MB: under a minute, 2 GB: a few
+    // minutes on slower storage), so this only fires for an import that is stuck. It should stay above
+    // the rendering service's H5P timeout (repository credential "timeout", default 300 s, capped by its
+    // 600 s HTTP response timeout), otherwise lumi gives up on imports the service is still waiting for.
+    const timeoutMs = Number.isFinite(parsed) && parsed >= 0 ? parsed : 900_000
     if (raw && timeoutMs !== parsed) {
         log.warn(`Invalid H5P_IMPORT_TIMEOUT_MS "${raw}", using ${timeoutMs} ms.`)
     }

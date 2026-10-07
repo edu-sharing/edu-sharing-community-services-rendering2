@@ -69,7 +69,7 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
     deleting the libraries it was copying — the whole import then fails (`s3-upload-error`).
   - `AWS_S3_REQUEST_TIMEOUT_MS` is a *socket inactivity* timeout; backpressure from a slow client
     stalls reads on the S3 socket, so enabling it can truncate large downloads.
-- **Package size limits**: `H5P_MAX_TOTAL_SIZE` (max *unpacked* size of a package) and `H5P_MAX_FILE_SIZE` (max single file), plain byte count or `2GB`-style size; unset keeps the 1000 MB of `config.json`, an unparsable value logs a warning and keeps the default. Larger packages fail with `package-validation-failed:total-size-too-large`. The running import holds the whole package in memory and reads it with `fs.readFile` (max 2 GiB per file), so raise the limit together with the container memory.
+- **Package size limits**: `H5P_MAX_TOTAL_SIZE` (max *unpacked* size of a package, default 1000 MB in `config.json`, 4GB in compose/Helm) and `H5P_MAX_FILE_SIZE` (max single file, 1000 MB / 2GB), plain byte count or `2GB`-style size; an unparsable value logs a warning and keeps the default. Larger packages fail with `package-validation-failed:total-size-too-large`. The import works on the spooled **file** (`uploadPackage(path)`), so neither limit is bound by memory and a package may exceed 2 GiB: a 2.3 GB package imports with ~0.7 GB RSS. Handing the library a `Buffer` instead would fail above 2 GiB (`fs.readFile`) and keep the package in RAM plus a second copy in `/tmp` - do not go back to that. Time is the remaining limit: the rendering service's per-repository `timeout` credential (default 300 s) and `H5P_IMPORT_TIMEOUT_MS` have to cover an import of that size on your storage.
 - **Server**: `PORT` (default 3000), `BASE_URL=/public/h5p`, `CACHE=in-memory`.
 - **Per-package library cache**: `H5P_LIBRARY_CACHE` (`global` | `package`, default `global`),
   `H5P_LIBRARY_CACHE_DIR` (default `/application/library-cache`), `H5P_LIBRARY_CACHE_QUOTA`
@@ -88,12 +88,12 @@ trace was `@smithy/node-http-handler:WARN - socket usage at capacity` - and the 
 What is in place now:
 
 - **Spooled to disk.** `POST /edusharing` uses `multer.diskStorage` (`H5P_UPLOAD_DIR`, default the OS temp
-  dir); the file is read into memory only when its import starts and is always removed afterwards. A
+  dir); the import reads the file in place (never into a Buffer) and it is always removed afterwards. A
   backlog of waiting uploads no longer holds a package each in RAM. **It does take disk instead**, and the
-  library unpacks every package into `/tmp` as well (~2.5-3 GB per import of a 1 GB package), so give
+  library unpacks every package into `/tmp` as well (package size + unpacked size per import), so give
   `/tmp` room: Helm `persistence.data.temp` (opt-in PVC, like the service chart); compose uses the
   container layer.
-- **Deadline** `H5P_IMPORT_TIMEOUT_MS` (default 600000, `0` = off). Past it the request gets **504**, the
+- **Deadline** `H5P_IMPORT_TIMEOUT_MS` (default 900000 = 15 min, `0` = off; keep it above the rendering service's H5P `timeout` credential, default 300 s). Past it the request gets **504**, the
   S3 pool's sockets are destroyed (what a stuck import waits on is almost always one dead socket - the
   pool is nowhere near full then, so the watchdog's stall check would never see it) and, **in `package`
   mode only**, the queue moves on. In `global` mode imports share one library storage and corrupt it when

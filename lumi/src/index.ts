@@ -95,9 +95,8 @@ const start = async () => {
         process.env.INSTALL_LIBRARY_LOCK_TIMEOUT_MS || '120000', 10)
 
     // Upload limits of the package validator; config.json holds the defaults (1000 MB each). `maxTotalSize` is
-    // the size of the *unpacked* package. Raising it needs headroom elsewhere: the running import holds the
-    // whole package in memory (one at a time, see importQueue.ts), and a single file is read with
-    // fs.readFile, which cannot exceed 2 GiB.
+    // the size of the *unpacked* package. The import streams from the spooled file, so the limits are bound
+    // by /tmp and by how long an import may take, not by memory.
     config.maxFileSize = readDataSize(process.env.H5P_MAX_FILE_SIZE, config.maxFileSize,
         error => log.warn(`Ignoring invalid H5P_MAX_FILE_SIZE: ${error.message}`))
     config.maxTotalSize = readDataSize(process.env.H5P_MAX_TOTAL_SIZE, config.maxTotalSize,

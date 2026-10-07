@@ -309,11 +309,15 @@ services:
       H5P_LIBRARY_CACHE_QUOTA: "${RENDERING2_LUMI_LIBRARY_CACHE_QUOTA:-0}"
       # Deadline of one package import. Imports run one at a time, so an import that never returns used
       # to block every later one; past the deadline it is answered with 504 and the queue moves on.
-      # 0 = off.
-      H5P_IMPORT_TIMEOUT_MS: "${RENDERING2_LUMI_IMPORT_TIMEOUT_MS:-600000}"
-      # Maximum size of a package once unpacked (plain byte count or e.g. "2GB", binary units). The
-      # running import holds the package in memory, so raise it together with the container memory.
-      H5P_MAX_TOTAL_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_SIZE:-1000MB}"
+      # Keep it above the rendering service's H5P timeout (repository credential "timeout"). 0 = off.
+      H5P_IMPORT_TIMEOUT_MS: "${RENDERING2_LUMI_IMPORT_TIMEOUT_MS:-900000}"
+      # Largest H5P package lumi accepts: H5P_MAX_TOTAL_SIZE is its size once unpacked, H5P_MAX_FILE_SIZE
+      # that of a single file in it (plain byte count or e.g. "2GB", binary units). The import streams
+      # from disk, so neither is bound by memory - but /tmp needs room for the spooled upload plus the
+      # unpacked package. Requests this big also need the rendering service's H5P timeout (repository
+      # credential "timeout", default 300 s) and H5P_IMPORT_TIMEOUT_MS above to be raised accordingly.
+      H5P_MAX_TOTAL_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_SIZE:-4GB}"
+      H5P_MAX_FILE_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_FILE_SIZE:-2GB}"
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*

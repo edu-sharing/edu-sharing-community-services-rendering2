@@ -118,7 +118,9 @@ const router = (
     const router = express.Router()
     // Spooled to disk, not held in memory: uploads wait their turn in the import queue, and with a
     // package of several hundred MB per waiting request a backlog used to fill the container's RAM.
-    // The file is only read into a buffer once its import actually starts, and removed afterwards.
+    // The import works on the file itself - handing it over as a Buffer would cap packages at 2 GiB
+    // (fs.readFile's limit), keep a second copy in memory and make the library write a third to disk.
+    // The file is removed once the request is done.
     const upload = multer({storage: multer.diskStorage({destination: process.env.H5P_UPLOAD_DIR || os.tmpdir()})})
     // Imports run one at a time (see importQueue.ts). Only with per-package library caches may the
     // queue move on from an import that blew its deadline - they do not share state with each other.
@@ -186,7 +188,7 @@ const router = (
                     const imported = await importQueue.run(async () => importPackage(
                         packageLibraries.deps,
                         packageLibraries.store,
-                        await fsPromises.readFile(uploadedFile),
+                        uploadedFile,
                         request.user
                     ))
                     contentId = imported.contentId
@@ -197,7 +199,7 @@ const router = (
                     // the library installation and must neither overlap another import nor run unbounded.
                     contentId = await importQueue.run(async () => {
                         const result = await h5pEditor.uploadPackage(
-                            await fsPromises.readFile(uploadedFile),
+                            uploadedFile,
                             request.user,
                             {onlyInstallLibraries: false}
                         )
