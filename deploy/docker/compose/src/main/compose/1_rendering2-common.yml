@@ -223,7 +223,7 @@ services:
       # the cache cleaner, and only as long as none of this repo's buckets (above, or the lumi content
       # bucket) has its own quota configured — a single bucket quota switches this repo entirely to
       # per-bucket enforcement.
-      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-0}"
+      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-100GB}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
