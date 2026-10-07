@@ -99,6 +99,7 @@ const start = async () => {
     const mongoDb = await dbImplementations.initMongo()
     log.info("MongoDB successfully initialized")
 
+    log.info("Creating H5P editor")
     const deps = await createH5PEditor(
         config,
         mongoDb,
@@ -195,7 +196,10 @@ const start = async () => {
     const eduCollection = mongoDb.collection(process.env.EDUSHARING_MONGO_COLLECTION)
     // Both directions are hot: the rendering service resolves nodeId -> contentId to check whether a
     // package is already rendered, and contentId -> nodeId on every proxied request.
+    log.info("Creating edusharing collection indexes")
+    const indexStart = Date.now()
     await eduCollection.createIndexes([{key: { 'nodeId': 1}}, {key: { 'contentId': 1}}])
+    log.info(`Edusharing collection indexes ready after ${Date.now() - indexStart}ms`)
 
     app.use(
         h5pEditor.config.baseUrl,
@@ -227,4 +231,7 @@ const start = async () => {
     process.on("SIGTERM", shutdown); // Kubernetes/Docker stop
 }
 
-start()
+start().catch((error) => {
+    log.error(`Startup failed: ${error?.stack ?? error}`)
+    process.exit(1)
+})

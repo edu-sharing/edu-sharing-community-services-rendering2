@@ -147,7 +147,7 @@ services:
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
       app.converter.audio.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_AUDIO_FFMPEG_THREADS:-1}"
       app.converter.av.ffmpegPath: "${RENDERING2_SERVICE_CONVERTER_AV_FFMPEG_PATH:-ffmpeg}"
-      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
+      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 */15 * * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
       # Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs (crashed/lost conversions)
@@ -223,7 +223,7 @@ services:
       # the cache cleaner, and only as long as none of this repo's buckets (above, or the lumi content
       # bucket) has its own quota configured — a single bucket quota switches this repo entirely to
       # per-bucket enforcement.
-      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-0}"
+      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-100GB}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
@@ -240,9 +240,15 @@ services:
     expose:
       - "8080"
     depends_on:
-      - mongo-database
-      - rendering2-message-queue
-      - redis-cache
+      mongo-database:
+        condition: service_started
+      rendering2-message-queue:
+        condition: service_started
+      redis-cache:
+        condition: service_started
+      # Lumi can need minutes to start; H5P jobs consumed earlier fail with "connection refused".
+      rendering2-lumi:
+        condition: service_healthy
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
@@ -303,6 +309,12 @@ services:
       DEBUG: h5p:*
     volumes:
       - "rendering2-lumi-volume-library-cache:/application/library-cache"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/metrics').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10m
     expose:
       - "3000"
 

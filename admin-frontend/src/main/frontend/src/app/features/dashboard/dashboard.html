@@ -55,6 +55,16 @@
     <span class="info-icon" tabindex="0" role="img" [attr.aria-label]="storageInfoText" [title]="storageInfoText">
       <mat-icon aria-hidden="true">info</mat-icon>
     </span>
+    <button
+      matButton
+      class="cleanup-btn"
+      [disabled]="cleaning()"
+      title="Run the cache cleaner now for this repository. Only buckets above their upper threshold are cleaned."
+      (click)="runCleanup()"
+    >
+      <mat-icon aria-hidden="true">cleaning_services</mat-icon>
+      {{ cleaning() ? 'Cleaning…' : 'Run cache cleaner' }}
+    </button>
   </div>
 
   @if (storage(); as s) {
