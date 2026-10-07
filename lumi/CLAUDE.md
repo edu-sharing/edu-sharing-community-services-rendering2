@@ -89,7 +89,10 @@ What is in place now:
 
 - **Spooled to disk.** `POST /edusharing` uses `multer.diskStorage` (`H5P_UPLOAD_DIR`, default the OS temp
   dir); the file is read into memory only when its import starts and is always removed afterwards. A
-  backlog of waiting uploads no longer holds a package each in RAM.
+  backlog of waiting uploads no longer holds a package each in RAM. **It does take disk instead**, and the
+  library unpacks every package into `/tmp` as well (~2.5-3 GB per import of a 1 GB package), so give
+  `/tmp` room: Helm `persistence.data.temp` (opt-in PVC, like the service chart); compose uses the
+  container layer.
 - **Deadline** `H5P_IMPORT_TIMEOUT_MS` (default 600000, `0` = off). Past it the request gets **504**, the
   S3 pool's sockets are destroyed (what a stuck import waits on is almost always one dead socket - the
   pool is nowhere near full then, so the watchdog's stall check would never see it) and, **in `package`

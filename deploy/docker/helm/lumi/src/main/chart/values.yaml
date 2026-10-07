@@ -186,6 +186,21 @@ persistence:
 
   data:
 
+    temp:
+      ## Package uploads are spooled to /tmp until their import is done, and the H5P library unpacks
+      ## every package there too (a package of 1 GB needs roughly 2.5-3 GB per import, plus one copy
+      ## per waiting upload). Without a volume this lands on the
+      ## node's ephemeral disk, like the service's temp files (persistence.data.temp there).
+      ## @param persistence.data.temp.create Create a volume for temporary data (mounted at /tmp)
+      create: false
+      spec:
+        ## @param persistence.data.temp.spec.accessModes Set access modes for temporary data
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            ## @param persistence.data.temp.spec.resources.requests.storage Set storage request for temporary data
+            storage: 10Gi
+
     libraryCache:
       ## The volume is created automatically when config.libraryCache.mode is "package" and omitted
       ## otherwise — it exists solely for that cache, which is the only copy of those libraries.
