@@ -185,8 +185,27 @@ Accounting: **allocated blocks** (`stat.blocks * 512`), not file sizes. A packag
 sub-block files, so block rounding adds ~45% on a 4K filesystem — sizing by file size would let the
 volume fill long before the quota was reached. This matches `du` on a PVC and `df` on a memory-backed
 volume (`emptyDir: {medium: Memory}` / tmpfs), which is what its `sizeLimit` enforces and what counts
-against the pod's memory. The size is walked once at startup and then maintained incrementally by
-`promote`/`remove` (a re-import of the same package only counts the difference). `GET /edusharing/buckets` reports
+against the pod's memory. The size is maintained incrementally by
+`promote`/`remove` (a re-import of the same package only counts the difference).
+
+**Startup.** Measuring means a `stat` of every file (minutes for tens of GB of small files: ~3.5 min for
+23 GB in production, ~13 s per 200k files locally). That used to run before the server started listening,
+so every restart left lumi unreachable - lookups and players included. Now `FsPackageLibraryStore.create`
+returns as soon as the root is ready (listening after ~2 s) and the walk runs in the background:
+
+- The size of the last run is remembered in `<cache dir>/.usage.json` (written 5 s after a change, and
+  on SIGTERM via `flush()`) and taken over immediately. The measurement then replaces it; imports and
+  removals that happen meanwhile are added on top, so the total can be off by those few packages until
+  the next start. A crash can leave the remembered value stale, which the measurement corrects.
+- Imports `await store.awaitUsage()` before they start: they go ahead on the remembered size, but wait for
+  the measurement on a **first start** (nothing remembered) and when the remembered size is **>= 90 % of
+  the quota** (too uncertain to decide on). They run inside the import queue, so the import deadline
+  applies; the measurement is far shorter than that.
+- `GET /edusharing/buckets` reports the remembered size meanwhile (0 on a first start - the CacheCleaner
+  then sees an empty cache for a few minutes, which only delays cleaning). `GET /edusharing/health` shows
+  `libraryCache.reconciling`; it is informational and never makes the status `degraded`.
+- `.usage.json` and its `.tmp` are excluded from the measurement and, like `.staging`, can never be
+  addressed as a package id. `GET /edusharing/buckets` reports
 `libraryCache: {usedBytes, quota, evictable: false}` when the feature is on, and `POST /edusharing`
 returns `libraryBytes` for the package it just imported.
 

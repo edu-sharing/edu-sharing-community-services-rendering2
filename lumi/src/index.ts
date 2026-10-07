@@ -230,7 +230,10 @@ const start = async () => {
 
         server.close(() => {
             log.info("Server closed.");
-            process.exit(0);
+            // Remember the library cache size so the next start does not begin without one.
+            (packageLibraryStore?.flush() ?? Promise.resolve())
+                .catch(error => log.warn(`Could not flush the library cache size: ${error.message}`))
+                .finally(() => process.exit(0));
         });
 
         setTimeout(() => {

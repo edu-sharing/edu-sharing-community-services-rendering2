@@ -20,6 +20,11 @@ export interface PackageLibraryCacheUsage {
     usedBytes: number
     /** The configured limit in bytes; `0` means no limit. */
     quotaBytes: number
+    /**
+     * The cache is still being measured. `usedBytes` is then the value remembered from the last run
+     * (or 0 on a first start), adjusted by what has been imported or removed since.
+     */
+    reconciling: boolean
 }
 
 /**
@@ -85,4 +90,14 @@ export interface PackageLibraryStore {
 
     /** Current size of the cache and its limit. */
     usage(): PackageLibraryCacheUsage
+
+    /**
+     * Resolves once `usage()` is trustworthy enough to enforce the quota with. Immediately when the
+     * size is known well and the cache is not close to its limit; otherwise when the measurement of
+     * the cache has finished. An import awaits this before it starts.
+     */
+    awaitUsage(): Promise<void>
+
+    /** Writes the remembered cache size to disk now. Call before the process exits. */
+    flush(): Promise<void>
 }

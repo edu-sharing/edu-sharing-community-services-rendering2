@@ -379,7 +379,9 @@ const router = (
         const imports = getImportQueueStatus()
         const s3Pool = getS3PoolStatus()
         const stuck = (imports?.overdue ?? false) || (s3Pool?.stalled ?? false)
-        res.status(stuck ? 503 : 200).json({status: stuck ? 'degraded' : 'ok', imports, s3Pool})
+        // Informational: a cache that is still being measured is no reason to take lumi out of rotation.
+        const libraryCache = packageLibraries?.store.usage()
+        res.status(stuck ? 503 : 200).json({status: stuck ? 'degraded' : 'ok', imports, s3Pool, libraryCache})
     })
 
     return router

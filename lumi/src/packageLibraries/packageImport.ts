@@ -38,6 +38,10 @@ export const importPackage = async (
     data: Buffer,
     user: H5P.IUser
 ): Promise<{contentId: string; libraryBytes: number}> => {
+    // After a restart the cache size is measured in the background; on a first start, or when the
+    // remembered size says the cache is nearly full, the quota cannot be judged before that is done.
+    await store.awaitUsage()
+
     // Fail before doing any work if the cache is already full. `promote` re-checks with the
     // package's real size - only known once its libraries are installed - and is the authority.
     const {usedBytes, quotaBytes} = store.usage()
