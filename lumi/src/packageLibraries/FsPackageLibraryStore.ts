@@ -201,27 +201,49 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
  * area out of the published total without hiding a package that happens to contain such a name)
  */
 const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<number> => {
-    let entries
-    try {
-        entries = await readdir(dir, {withFileTypes: true})
-    } catch {
-        return 0
-    }
-    let total = 0
-    for (const entry of entries) {
-        if (skipTopLevel.includes(entry.name)) {
-            continue
-        }
-        const full = path.join(dir, entry.name)
+    // The cache holds millions of small files, so awaiting every stat in turn makes the startup walk
+    // take minutes. Stat the entries of a directory concurrently, with a global cap so the libuv
+    // thread pool is kept busy without queueing an unbounded number of operations.
+    const limit = createLimiter(DIRECTORY_SIZE_CONCURRENCY)
+    const walk = async (current: string, skip: string[]): Promise<number> => {
+        let entries
         try {
-            total += (await stat(full)).blocks * 512
+            entries = await limit(() => readdir(current, {withFileTypes: true}))
         } catch {
-            // Raced with a delete - not worth failing a quota check over.
-            continue
+            return 0
         }
-        if (entry.isDirectory()) {
-            total += await directorySize(full)
+        const sizes = await Promise.all(entries.filter(entry => !skip.includes(entry.name)).map(async entry => {
+            const full = path.join(current, entry.name)
+            let size: number
+            try {
+                size = (await limit(() => stat(full))).blocks * 512
+            } catch {
+                // Raced with a delete - not worth failing a quota check over.
+                return 0
+            }
+            return entry.isDirectory() ? size + await walk(full, []) : size
+        }))
+        return sizes.reduce((sum, size) => sum + size, 0)
+    }
+    return walk(dir, skipTopLevel)
+}
+
+const DIRECTORY_SIZE_CONCURRENCY = 64
+
+/** Runs at most `max` of the given async tasks at once; the rest wait their turn in FIFO order. */
+const createLimiter = (max: number) => {
+    let running = 0
+    const waiting: Array<() => void> = []
+    return async <T>(task: () => Promise<T>): Promise<T> => {
+        if (running >= max) {
+            await new Promise<void>(resolve => waiting.push(resolve))
+        }
+        running++
+        try {
+            return await task()
+        } finally {
+            running--
+            waiting.shift()?.()
         }
     }
-    return total
 }
