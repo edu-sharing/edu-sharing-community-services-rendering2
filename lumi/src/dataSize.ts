@@ -28,3 +28,20 @@ export function parseDataSize(value: string): number {
     }
     return Number(amount) * multiplier;
 }
+
+/**
+ * Reads a size setting such as `H5P_MAX_TOTAL_SIZE=2GB` (see {@link parseDataSize}). Unset or empty means
+ * `fallback`; an unparsable value also means `fallback`, reported through `onInvalid`, so a typo can
+ * never silently remove or shrink a limit.
+ */
+export function readDataSize(raw: string | undefined, fallback: number, onInvalid?: (error: Error) => void): number {
+    if (!raw || raw.trim() === '') {
+        return fallback;
+    }
+    try {
+        return parseDataSize(raw);
+    } catch (error) {
+        onInvalid?.(error as Error);
+        return fallback;
+    }
+}
