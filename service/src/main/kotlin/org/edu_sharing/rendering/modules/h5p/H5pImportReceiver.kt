@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
@@ -98,10 +97,20 @@ class H5pImportReceiver(
             subJob.finishedDate = Instant.now()
             subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
-            log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
+            val failure = H5pImportFailure.of(exception)
+            if (failure.packageProblem) {
+                // lumi refused the package itself (too large, not a valid H5P package): not an error of the
+                // system and nothing a stack trace would add to.
+                log.warn(
+                    "H5P package of nodeId={} rejected by lumi (status {}): {}",
+                    cacheObject.nodeId, failure.status, failure.detail
+                )
+            } else {
+                log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
+            }
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
-            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            subJob.errorMessage = failure.userMessage
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

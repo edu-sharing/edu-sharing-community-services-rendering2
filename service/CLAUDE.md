@@ -64,6 +64,22 @@ when you add a role-gated bean, extend the matching role test.
    `@Version`, and a TTL index (8 days); less-critical writes use a weaker write concern
    (`MongoConfig` `WriteConcernResolver`).
 
+### Error messages of a failed sub-job
+`SubJob.errorMessage` is not text for the user but a **translation key of the repository UI**
+(`ErrorStrings`, `RENDERING.ERROR.*`); most modules set `GENERIC_CONVERSION_ERROR`. A new key therefore needs
+its translations in the **repository** - this repo does not contain them, and without them the UI shows the raw
+key. The H5P import is the one module that tells the user more (`H5pImportFailure`): lumi answers a package it
+rejects with a status that says whose fault it is, and the service maps it -
+
+| lumi status | key | meaning |
+|---|---|---|
+| 413 | `H5P_PACKAGE_TOO_LARGE` | the package exceeds a size limit (unpacked size or a single file) |
+| 400, 422 | `H5P_PACKAGE_INVALID` | not a zip, a file type that is not allowed, a broken `h5p.json`, ... |
+| anything else (500/503/504/507, timeout, connection error) | `GENERIC_CONVERSION_ERROR` | operational: the user cannot act on it, the details go to the log |
+
+A rejected package is logged at WARN without a stack trace (it is not an error of the system); everything else
+at ERROR as before. The statuses are lumi's - see its guide, *Why an import is rejected*.
+
 ## Admin API (`/admin/**`)
 Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
 `@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
