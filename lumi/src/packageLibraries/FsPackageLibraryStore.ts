@@ -330,10 +330,17 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
  * @param skipTopLevel names to ignore, but only directly inside `dir` (used to keep the staging
  * area out of the published total without hiding a package that happens to contain such a name)
  */
-const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<number> => {
+export const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<number> => {
     // The cache holds millions of small files, so awaiting every stat in turn makes the startup walk
-    // take minutes. Stat the entries of a directory concurrently, with a global cap so the libuv
-    // thread pool is kept busy without queueing an unbounded number of operations.
+    // take minutes: entries are statted concurrently, with a global cap on the filesystem calls in
+    // flight so the libuv thread pool is kept busy without queueing an unbounded number of them.
+    //
+    // The cap bounds what *runs*, not what *exists*. Creating a task for every entry of a directory up
+    // front (Promise.all over all of them) piles up one pending task per file of everything discovered
+    // so far - the walk then proceeds breadth first and ends up holding the whole tree in memory. At
+    // ~5 million files in production that exhausted the 4 GB heap (and took far longer than it needed
+    // to, because the garbage collector was working on millions of live promises). Handling a
+    // directory's entries in chunks keeps the walk depth first, and memory at a few thousand tasks.
     const limit = createLimiter(DIRECTORY_SIZE_CONCURRENCY)
     const walk = async (current: string, skip: string[]): Promise<number> => {
         let entries
@@ -342,23 +349,37 @@ const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<
         } catch {
             return 0
         }
-        const sizes = await Promise.all(entries.filter(entry => !skip.includes(entry.name)).map(async entry => {
-            const full = path.join(current, entry.name)
-            let size: number
-            try {
-                size = (await limit(() => stat(full))).blocks * 512
-            } catch {
-                // Raced with a delete - not worth failing a quota check over.
-                return 0
+        const wanted = skip.length ? entries.filter(entry => !skip.includes(entry.name)) : entries
+        let total = 0
+        for (let from = 0; from < wanted.length; from += DIRECTORY_SIZE_FANOUT) {
+            const sizes = await Promise.all(wanted.slice(from, from + DIRECTORY_SIZE_FANOUT).map(async entry => {
+                const full = path.join(current, entry.name)
+                let size: number
+                try {
+                    size = (await limit(() => stat(full))).blocks * 512
+                } catch {
+                    // Raced with a delete - not worth failing a quota check over.
+                    return 0
+                }
+                return entry.isDirectory() ? size + await walk(full, []) : size
+            }))
+            for (const size of sizes) {
+                total += size
             }
-            return entry.isDirectory() ? size + await walk(full, []) : size
-        }))
-        return sizes.reduce((sum, size) => sum + size, 0)
+        }
+        return total
     }
     return walk(dir, skipTopLevel)
 }
 
+/** Filesystem calls of the cache walk in flight at once. */
 const DIRECTORY_SIZE_CONCURRENCY = 64
+
+/**
+ * Entries of one directory handled at once. Applies per level, so a package directory, its libraries and
+ * their files can be 16 x 16 x 16 tasks deep - plenty to keep the 64 filesystem calls above busy.
+ */
+const DIRECTORY_SIZE_FANOUT = 16
 
 /** Runs at most `max` of the given async tasks at once; the rest wait their turn in FIFO order. */
 const createLimiter = (max: number) => {

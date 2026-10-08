@@ -207,6 +207,13 @@ returns as soon as the root is ready (listening after ~2 s) and the walk runs in
 - `GET /edusharing/buckets` reports the remembered size meanwhile (0 on a first start - the CacheCleaner
   then sees an empty cache for a few minutes, which only delays cleaning). `GET /edusharing/health` shows
   `libraryCache.reconciling`; it is informational and never makes the status `degraded`.
+- **The walk must stay depth first with a bounded fan-out** (`directorySize`, chunks of 16 entries per
+  directory). The first version created a task for every entry of a directory up front, so it ran breadth
+  first and ended up holding one pending task per file in memory: with ~5 million files in production that
+  exhausted the 4 GB heap (`FATAL ERROR: Reached heap limit`) minutes after the start, while the walk was
+  still running and the server was already serving requests. Measured on 2 million files with the heap capped
+  at 1 GB: the old walk crashed (and needed over 10 minutes with 8 GB), the bounded one finishes in 12 s at
+  ~250 MB. A crash before the walk ends also means no `.usage.json` is written, so the next start repeats it.
 - `.usage.json` and its `.tmp` are excluded from the measurement and, like `.staging`, can never be
   addressed as a package id. `GET /edusharing/buckets` reports
 `libraryCache: {usedBytes, quota, evictable: false}` when the feature is on, and `POST /edusharing`
