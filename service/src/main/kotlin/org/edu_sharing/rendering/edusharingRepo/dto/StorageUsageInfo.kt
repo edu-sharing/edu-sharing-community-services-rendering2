@@ -1,5 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo.dto
 
+import org.edu_sharing.rendering.storage.StorageScopeKind
+
 /**
  * Aggregated storage usage of a single repo for the admin dashboard.
  *
@@ -21,6 +23,12 @@ data class StorageUsageInfo(
 )
 
 /**
+ * One row of the storage overview: a bucket, or - see [kind] - another quota scope.
+ *
+ * @property kind What the row measures. [StorageScopeKind.LIBRARY_CACHE] is lumi's per-package H5P library cache:
+ *   a filesystem volume inside lumi, not a bucket, so it can neither be recounted from S3 (no exact measurement)
+ *   nor is it part of [StorageUsageInfo.totalSize]. It has a quota that the CacheCleaner enforces, and
+ *   [name] is a label, not a bucket name.
  * @property quota Bucket quota in bytes, or `null` if no limit is known for this bucket.
  * @property enforced `true` if the CacheCleaner enforces this quota (e.g. rendering/content bucket);
  *   the temp bucket never has an [org.edu_sharing.rendering.storage.StorageManager] and is therefore always `false`.
@@ -33,5 +41,6 @@ data class BucketUsageInfo(
     val quota: Long? = null,
     val usedPercent: Double? = null,
     val enforced: Boolean = true,
-    val measured: Boolean = true
+    val measured: Boolean = true,
+    val kind: StorageScopeKind = StorageScopeKind.BUCKET
 )

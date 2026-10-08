@@ -123,7 +123,7 @@ swagger `ModelResolver` (Jackson 2 `jackson-module-kotlin`) so non-null Kotlin D
 are emitted as `required` — without it every generated TS field would be optional.
 **Every fachlich endpoint is scoped to one `repoId`** (query param) — the UI shows only one
 repo at a time. Controllers:
-- `AdminStorageController` — `GET /admin/storage/usage` (per-repo bucket usage + quota %), `POST /admin/storage/cleanup` (runs the `CacheCleaner` for one repo on demand, unlocked).
+- `AdminStorageController` — `GET /admin/storage/usage` (per-repo bucket usage + quota %; plus one row of `kind` `LIBRARY_CACHE` for lumi's H5P library cache - a volume, not a bucket, so no exact measurement and not part of `totalSize`; present only while lumi runs the per-package cache with a quota and a known size), `POST /admin/storage/cleanup` (runs the `CacheCleaner` for one repo on demand, unlocked).
 - `AdminJobController` — `GET /admin/jobs(/stats)`, `DELETE /admin/jobs/{id}` (deletes sub-jobs
   too; the queue self-heals as receivers drop messages without a DB entry).
 - `AdminController` — repo registration (existing) + `GET /admin/repository/details`.
