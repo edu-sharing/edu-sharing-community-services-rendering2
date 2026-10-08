@@ -17,6 +17,13 @@ class QueueProperties {
     lateinit var topicExchange: String
     lateinit var controllerBroadcastExchange: String
 
+    /**
+     * Fanout exchange on which the master announces a changed repository registration, so every pod drops its
+     * locally cached copy (see `RegistrationCacheBroadcaster`). Separate from [controllerBroadcastExchange]
+     * because that one is consumed by the CORS receiver, which treats every message as "sync".
+     */
+    var registrationBroadcastExchange: String = "registration_broadcast_exchange"
+
     /** Global prefetch for all STANDARD/SINGLE_ACTIVE queues (the shared factory's prefetch is not per-queue). */
     var prefetch: Int = 1
 }

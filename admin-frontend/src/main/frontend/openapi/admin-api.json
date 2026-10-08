@@ -1716,9 +1716,13 @@
           },
           "measured" : {
             "type" : "boolean"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "BUCKET", "LIBRARY_CACHE" ]
           }
         },
-        "required" : [ "enforced", "measured", "name", "size" ]
+        "required" : [ "enforced", "kind", "measured", "name", "size" ]
       },
       "StorageUsageInfo" : {
         "properties" : {

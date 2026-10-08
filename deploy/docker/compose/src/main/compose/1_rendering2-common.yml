@@ -255,12 +255,22 @@ services:
   rendering2-document-converter:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
-      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
-      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
+      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-1g}
+      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-1g}
       - -Dcom.sun.management.jmxremote
       - -Dcom.sun.management.jmxremote.authenticate=false
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
+    environment:
+      # Comma-separated ports = parallel LibreOffice processes (= parallel conversions per container).
+      # Keep CPU/memory below in line (~1 vCPU + ~1 GiB per process); the heap stays small because
+      # LibreOffice runs as a subprocess outside the JVM heap.
+      LIBREOFFICE_PORT_NUMBERS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PORTS:-2002,2003}"
+      LIBREOFFICE_MAX_TASKS_PER_PROCESS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_MAX_TASKS_PER_PROCESS:-100}"
+      LIBREOFFICE_TASK_EXECUTION_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_EXECUTION_TIMEOUT:-120000}"
+      LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
+    cpus: "${RENDERING2_DOCUMENT_CONVERTER_CPUS:-2}"
+    mem_limit: "${RENDERING2_DOCUMENT_CONVERTER_MEMORY:-4g}"
     expose:
       - "8080"
 
@@ -303,10 +313,15 @@ services:
       # exact library versions it shipped; that cache is authoritative, hence the volume below.
       H5P_LIBRARY_CACHE: "${RENDERING2_LUMI_LIBRARY_CACHE:-global}"
       H5P_LIBRARY_CACHE_DIR: /application/library-cache
-      # Size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
-      # units). 0/empty = no limit. On reaching it, imports are rejected with HTTP 507 rather than
-      # evicting: the cache is the only copy of those packages' libraries.
+      # Soft size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
+      # units). 0/empty = no limit. lumi never rejects an import for it - it reports it, and rendering2's
+      # CacheCleaner frees the cache (least recently used content first) once it is exceeded, as for the
+      # buckets. What really limits the cache is the volume it lives on, so keep the quota below that.
       H5P_LIBRARY_CACHE_QUOTA: "${RENDERING2_LUMI_LIBRARY_CACHE_QUOTA:-0}"
+      # Hours a measurement of the cache stays valid. A start with a younger one does not walk the cache
+      # again (that takes minutes for millions of files), and it is measured again this often while
+      # running. 0 = measure at every start only.
+      H5P_LIBRARY_CACHE_RESCAN_HOURS: "${RENDERING2_LUMI_LIBRARY_CACHE_RESCAN_HOURS:-24}"
       # Deadline of one package import. Imports run one at a time, so an import that never returns used
       # to block every later one; past the deadline it is answered with 504 and the queue moves on.
       # Keep it above the rendering service's H5P timeout (repository credential "timeout"). 0 = off.
@@ -318,6 +333,10 @@ services:
       # credential "timeout", default 300 s) and H5P_IMPORT_TIMEOUT_MS above to be raised accordingly.
       H5P_MAX_TOTAL_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_SIZE:-4GB}"
       H5P_MAX_FILE_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_FILE_SIZE:-2GB}"
+      # Extra file extensions the package validator accepts, on top of its short defaults (content: no svg, webp,
+      # mov, flac). Space or comma separated, e.g. "svg webp". Empty = defaults only.
+      H5P_CONTENT_WHITELIST_EXTRA: "${RENDERING2_LUMI_CONTENT_WHITELIST_EXTRA:-}"
+      H5P_LIBRARY_WHITELIST_EXTRA: "${RENDERING2_LUMI_LIBRARY_WHITELIST_EXTRA:-}"
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*

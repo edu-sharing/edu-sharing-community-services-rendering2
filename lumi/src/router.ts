@@ -8,9 +8,10 @@ import {Collection} from "@lumieducation/h5p-mongos3/node_modules/mongodb"
 import EduSharingModel, {LibraryScope} from "./EduSharingModel";
 import {H5pError, Logger} from "@lumieducation/h5p-server";
 import {parseDataSize} from "./dataSize";
-import {CacheQuotaExceededError, createScopedPlayer, importPackage, mainLibraryUbername, PackageLibraryStore} from "./packageLibraries";
+import {createScopedPlayer, importPackage, mainLibraryUbername, PackageLibraryStore} from "./packageLibraries";
 import {H5PDeps} from "./createH5PEditor";
-import {createImportQueue, getImportQueueStatus, ImportDeadlineError} from "./importQueue";
+import {createImportQueue, getImportQueueStatus} from "./importQueue";
+import {importErrorStatus} from "./importErrors";
 import {getS3PoolStatus, resetS3Pool} from "./s3Pool";
 
 /**
@@ -225,13 +226,8 @@ const router = (
                 response.status(200).end();
             } catch (error) {
                 log.error(`Lumi upload not successful. Error message: ${error.message}`)
-                // 507: the package is fine, there is simply no room for its libraries. Distinguishing
-                // it from a genuine failure tells an operator to free space or raise the quota.
-                // 504: the import did not finish in time; the package is not necessarily bad, so the
-                // caller may retry.
-                const status = error instanceof CacheQuotaExceededError ? 507
-                    : error instanceof ImportDeadlineError ? 504
-                        : 500
+                // The status tells the caller whether another attempt can help (see importErrorStatus).
+                const status = importErrorStatus(error)
                 response.status(status).end(error.message);
             } finally {
                 // The spooled upload is only needed for the import. If the request was aborted before
@@ -355,15 +351,20 @@ const router = (
             contentBucket: process.env.CONTENT_AWS_S3_BUCKET,
             contentBucketQuota
         }
-        // Only reported when the per-package cache is active. Unlike the buckets above this is a
-        // filesystem, and unlike them it must not be trimmed to reclaim space: it is the only copy
-        // of those packages' libraries, so a full cache rejects imports instead of evicting.
+        // Only reported when the per-package cache is active and its size is known. Like the buckets above
+        // it is a soft limit: lumi reports it and never rejects an import for it. The rendering service's
+        // CacheCleaner frees the cache when it is over the limit, by deleting least-recently-used content
+        // (libraries and mapping included, so the package is imported again when needed). Left out - and
+        // the CacheCleaner skips it - on a first start, while the size is still being measured: 0 would
+        // only make the cache look empty.
         if (packageLibraries) {
-            const {usedBytes, quotaBytes} = packageLibraries.store.usage()
-            buckets.libraryCache = {
-                usedBytes,
-                quota: quotaBytes || undefined,
-                evictable: false
+            const {usedBytes, quotaBytes, known} = packageLibraries.store.usage()
+            if (known) {
+                buckets.libraryCache = {
+                    usedBytes,
+                    quota: quotaBytes || undefined,
+                    evictable: false
+                }
             }
         }
         res.send(JSON.stringify(buckets))

@@ -64,6 +64,52 @@ when you add a role-gated bean, extend the matching role test.
    `@Version`, and a TTL index (8 days); less-critical writes use a weaker write concern
    (`MongoConfig` `WriteConcernResolver`).
 
+### Error messages of a failed sub-job
+`SubJob.errorMessage` is not text for the user but a **translation key of the repository UI**
+(`ErrorStrings`, `RENDERING.ERROR.*`); most modules set `GENERIC_CONVERSION_ERROR`. A new key therefore needs
+its translations in the **repository frontend** (`Frontend/src/assets/i18n/common/{de,en}.json`, section
+`RENDERING.ERROR`) - this repo does not contain them. The frontend library
+(`rendering2-frontend`) holds no texts and is deliberately left alone: its error module shows the heading plus
+`translate(<message>)`, so a key without a text appears raw (`RENDERING.ERROR.SOMETHING`), while the plain-text
+messages that Moodle, Sodix and Omega pass through are shown as they are. Do not "fix" that by hiding untranslated
+messages - it would hide those too.
+
+A failure is shown from the **main job's** `errorMessage` (`JobInfoReply.userMessage`): a failed sub-job is left out
+of the job info and `MainJobLogic` only aggregates the status. A module that wants the user to see its message has
+to set `jobEntry.errorMessage` too, as Moodle and the H5P import do. The H5P import is the one module that tells the user more (`H5pImportFailure`): lumi answers a package it
+rejects with a status that says whose fault it is, and the service maps it -
+
+| lumi status | key | meaning |
+|---|---|---|
+| 413 | `H5P_PACKAGE_TOO_LARGE` | the package exceeds a size limit (unpacked size or a single file) |
+| 400, 422 | `H5P_PACKAGE_INVALID` | not a zip, a file type that is not allowed, a broken `h5p.json`, ... |
+| anything else (500/503/504/507, timeout, connection error) | `GENERIC_CONVERSION_ERROR` | operational: the user cannot act on it, the details go to the log |
+
+A rejected package is logged at WARN without a stack trace (it is not an error of the system); everything else
+at ERROR as before. The statuses are lumi's - see its guide, *Why an import is rejected*.
+
+### Quota metrics and alarms
+All quotas are **soft**: nothing refuses a request because a bucket, a repository or lumi's H5P library cache is over
+its quota. The `CacheCleaner` frees them on a schedule - and when it cannot keep up (it does not run, it fails, the
+quota is too small for what is rendered) the only symptom would be a volume that runs full. So exceeding a quota is
+**logged and exported**, and meant to be alarmed on (`StorageQuotaMetrics`, master only):
+
+- **Log** (each cleaner run): `WARN Quota exceeded for <repo>/<bucket>: <size> of <quota> (<n>%)` above 100 %, and
+  `WARN Cleanup of <scope> freed only X of the Y needed ... still over the quota` when a cleanup does not get a scope
+  below the lower threshold. The `INFO` line with the usage of every scope is unchanged.
+- **Gauges** per scope (tags `repo`, `bucket` - `*` for a repo-wide scope - and `kind` = `bucket` | `library_cache`):
+  `rendering_storage_used_bytes`, `rendering_storage_quota_bytes` (0 = none), `rendering_storage_usage_ratio`,
+  `rendering_storage_over_quota` (1 while used > quota) and `rendering_storage_over_threshold` (1 while above the
+  cleaner's upper threshold - staying at 1 across runs means the cleaner does not keep up).
+- **Cleaner**: counters `rendering_cache_cleaner_deleted_entries_total`, `..._freed_bytes_total` and `..._failures_total`
+  (tag `kind`), and the gauge `rendering_cache_cleaner_last_run_timestamp_seconds`.
+
+The values are those of the last run (the only time the sizes are collected); after a cleanup they are estimated from
+what was freed. lumi exports the same for its own library cache (`lumi_library_cache_*`, see its guide). Suggested alarms:
+`rendering_storage_over_quota == 1`, `rendering_storage_over_threshold == 1` for longer than two cleaner intervals,
+`time() - rendering_cache_cleaner_last_run_timestamp_seconds` above a few intervals, `increase(..._failures_total[1h]) > 0`.
+Not covered: the temp bucket's quota is informational only (never part of the cleaner's scopes).
+
 ## Admin API (`/admin/**`)
 Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
 `@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
@@ -77,7 +123,7 @@ swagger `ModelResolver` (Jackson 2 `jackson-module-kotlin`) so non-null Kotlin D
 are emitted as `required` — without it every generated TS field would be optional.
 **Every fachlich endpoint is scoped to one `repoId`** (query param) — the UI shows only one
 repo at a time. Controllers:
-- `AdminStorageController` — `GET /admin/storage/usage` (per-repo bucket usage + quota %), `POST /admin/storage/cleanup` (runs the `CacheCleaner` for one repo on demand, unlocked).
+- `AdminStorageController` — `GET /admin/storage/usage` (per-repo bucket usage + quota %; plus one row of `kind` `LIBRARY_CACHE` for lumi's H5P library cache - a volume, not a bucket, so no exact measurement and not part of `totalSize`; present only while lumi runs the per-package cache with a quota and a known size), `POST /admin/storage/cleanup` (runs the `CacheCleaner` for one repo on demand, unlocked).
 - `AdminJobController` — `GET /admin/jobs(/stats)`, `DELETE /admin/jobs/{id}` (deletes sub-jobs
   too; the queue self-heals as receivers drop messages without a DB entry).
 - `AdminController` — repo registration (existing) + `GET /admin/repository/details`.
@@ -105,6 +151,16 @@ repo at a time. Controllers:
   `AbstractConnectionFactory.setExecutor` directly — is validated with the k6 load test (see
   `../loadtest/README.md`): `rendering_queue_consumers_active` summed across queues, capped at 1 before the
   fix, reaches the sum of each queue's configured `concurrency` after it.
+
+## Registration cache
+`RegistrationCacheConfig` (`edusharingRepo/cache/`) enables `@EnableCaching` with a bounded, expiring Caffeine
+`CacheManager` (`app.registration-cache.*`) for `registrations`, `repositoryKeys` and `privateKey`. It is
+**pod-local**: `RepositoryRegistrationStorageService.storeRegistration/removeRegistration` publish a
+`RegistrationChangedMessage` on the fanout exchange `app.queue.registrationBroadcastExchange`, and
+`RegistrationCacheReceiver` (every role, anonymous queue) evicts the entry on all *other* pods (own `origin` is
+skipped). The TTL only covers a missed broadcast. Read-modify-write paths must use
+`getRegistrationByRepoIdFresh` (never mutate the shared cached instance and save it back). A missing registration
+is deliberately not cached. Keep `RegistrationCacheTest` and `RegistrationCacheBroadcastIntegrationTest` green.
 
 ## Session / Redis serialization
 `SessionConfig` stores Spring Sessions in Redis using a Jackson 3 (`tools.jackson.*`)

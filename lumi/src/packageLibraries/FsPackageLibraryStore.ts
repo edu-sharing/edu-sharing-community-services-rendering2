@@ -2,7 +2,7 @@ import {access, mkdir, readdir, readFile, rename, rm, stat, writeFile} from 'fs/
 import path from 'path'
 import {randomUUID} from 'crypto'
 import {fsImplementations, ILibraryStorage, Logger} from '@lumieducation/h5p-server'
-import {CacheQuotaExceededError, LibraryStagingArea, PackageLibraryCacheUsage, PackageLibraryStore} from './types'
+import {LibraryStagingArea, PackageLibraryCacheUsage, PackageLibraryStore} from './types'
 
 const log = new Logger('FsPackageLibraryStore')
 
@@ -19,15 +19,11 @@ const STAGING_DIR = '.staging'
 const USAGE_FILE = '.usage.json'
 const USAGE_FILE_TMP = `${USAGE_FILE}.tmp`
 
+/** How long to wait before measuring the cache again after a measurement failed. */
+const RETRY_AFTER_FAILURE_MS = 3_600_000
+
 /** How long after a change the remembered size is written; bursts of imports share one write. */
 const SAVE_DELAY_MS = 5_000
-
-/**
- * While the cache is being measured, imports go ahead on the remembered size - unless it says the
- * cache is nearly full. Then the remembered value is too uncertain to decide on (it can be off by
- * whatever happened since the last write, e.g. a crash), so the import waits for the measurement.
- */
-const NEARLY_FULL = 0.9
 
 /**
  * Package ids reach us straight from the request URL, and are turned into a directory name. Anything
@@ -61,12 +57,13 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
     private constructor(
         private readonly root: string,
         private readonly maxCachedStorages: number,
-        private readonly quotaBytes: number
+        private readonly quotaBytes: number,
+        private readonly rescanIntervalMs: number
     ) {}
 
     /**
      * Running total of the published packages' size, kept up to date by {@link promote} and
-     * {@link remove} so the quota check never has to walk the whole cache.
+     * {@link remove} so it never has to be recomputed by walking the whole cache.
      */
     private usedBytes = 0
 
@@ -76,8 +73,15 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
     /** The measurement of the whole cache while it is running. */
     private measuring?: Promise<void>
 
+    /** When the cache was last measured completely (epoch ms); unknown until the first measurement ends. */
+    private measuredAt?: number
+    private rescanTimer?: ReturnType<typeof setTimeout>
+
     /** Net change from imports/removals during the measurement, which it may or may not have seen. */
     private changeDuringMeasurement = 0
+
+    /** Whether the last look at the quota found the cache over it; only used to log the way back under. */
+    private wasOverQuota = false
 
     private dirty = false
     private saveTimer?: ReturnType<typeof setTimeout>
@@ -89,29 +93,40 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
      * Prepares the cache root. Any staging directory found here is a leftover of an import that died
      * mid-flight - it can never be referenced again, so it is swept on startup.
      *
-     * Returns as soon as the root is ready: measuring the cache walks every file in it (minutes for
-     * tens of GB of small files) and used to run before the server started listening, which left lumi
-     * unreachable - lookups and players included - after every restart. The size from the previous run
-     * is taken over right away and the walk runs in the background; see {@link awaitUsage}.
+     * Returns as soon as the root is ready. The size of the cache is only reported (the quota is soft, see
+     * {@link PackageLibraryCacheUsage.quotaBytes}) and nothing waits for it. Measuring it walks every file
+     * - minutes for tens of GB of small files - and used to run before the server started listening, which
+     * left lumi unreachable after every restart. Now the size of the previous run is taken over, and the
+     * cache is only measured again when that measurement is older than `rescanIntervalMs` (in the
+     * background); in between, {@link promote} and {@link remove} keep the figure up to date.
      */
     public static async create(
         root: string,
-        options: {quotaBytes?: number; maxCachedStorages?: number} = {}
+        options: {quotaBytes?: number; maxCachedStorages?: number; rescanIntervalMs?: number} = {}
     ): Promise<FsPackageLibraryStore> {
-        const store = new FsPackageLibraryStore(root, options.maxCachedStorages ?? 256, options.quotaBytes ?? 0)
+        const store = new FsPackageLibraryStore(
+            root, options.maxCachedStorages ?? 256, options.quotaBytes ?? 0, options.rescanIntervalMs ?? 0)
         await mkdir(root, {recursive: true})
         await rm(store.stagingRoot(), {recursive: true, force: true})
         await mkdir(store.stagingRoot(), {recursive: true})
         const remembered = await store.loadRememberedUsage()
-        if (remembered !== undefined) {
-            store.usedBytes = remembered
+        if (remembered) {
+            store.usedBytes = remembered.usedBytes
+            store.measuredAt = remembered.measuredAt
             store.usageKnown = true
         }
-        store.startMeasuring()
+        const age = store.measuredAt === undefined ? undefined : Date.now() - store.measuredAt
+        const fresh = age !== undefined && age >= 0 && store.rescanIntervalMs > 0 && age < store.rescanIntervalMs
+        if (fresh) {
+            store.scheduleRescan(store.rescanIntervalMs - age)
+        } else {
+            store.startMeasuring()
+        }
         log.info(
             `Per-package library cache ready at ${root} ` +
-            `(${remembered === undefined ? 'size unknown' : `${store.usedBytes} bytes remembered`}` +
-            `${store.quotaBytes ? ` of ${store.quotaBytes}` : ', no quota'}; measuring it in the background).`
+            `(${remembered ? `${store.usedBytes} bytes remembered` : 'size unknown'}` +
+            `${store.quotaBytes ? `, soft quota ${store.quotaBytes}` : ', no quota'}; ` +
+            `${fresh ? `measured ${Math.round(age! / 60_000)} min ago, not measuring again now` : 'measuring it in the background'}).`
         )
         return store
     }
@@ -130,13 +145,12 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
         }
         const target = this.packageDir(packageId)
         const incoming = await directorySize(this.stagingDir(staging.id))
-        // A re-import replaces the package's libraries, so only the difference counts against the quota.
+        // A re-import replaces the package's libraries, so only the difference is added to the total.
         const replaced = await directorySize(target)
 
-        if (this.quotaBytes > 0 && this.usedBytes - replaced + incoming > this.quotaBytes) {
-            throw new CacheQuotaExceededError(this.usedBytes, this.quotaBytes, incoming - replaced)
-        }
-
+        // The quota is soft: exceeding it never fails an import. The rendering service's CacheCleaner
+        // notices (it polls the size) and deletes least-recently-used content, libraries included. What
+        // really limits the cache is the volume it lives on.
         // A re-import of the same package must replace its libraries wholesale: `rename` will not
         // overwrite a non-empty directory.
         await rm(target, {recursive: true, force: true})
@@ -145,6 +159,7 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
         // Drop a storage still pointing at the previous directory inode.
         this.storages.delete(packageId)
         log.info(`Published libraries of package ${packageId} (${incoming} bytes, ${this.usedBytes} in use).`)
+        this.checkQuota(`importing package ${packageId}`)
         return incoming
     }
 
@@ -193,21 +208,49 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
         await rm(this.packageDir(packageId), {recursive: true, force: true})
         this.adjustUsage(-freed)
         log.info(`Removed libraries of package ${packageId} (${freed} bytes freed, ${this.usedBytes} in use).`)
+        this.checkQuota(`removing package ${packageId}`)
     }
 
     public usage(): PackageLibraryCacheUsage {
-        return {usedBytes: this.usedBytes, quotaBytes: this.quotaBytes, reconciling: this.measuring !== undefined}
+        return {
+            usedBytes: this.usedBytes,
+            quotaBytes: this.quotaBytes,
+            known: this.usageKnown,
+            reconciling: this.measuring !== undefined,
+            overQuota: this.isOverQuota(),
+            measuredAt: this.measuredAt
+        }
     }
 
-    public async awaitUsage(): Promise<void> {
-        if (!this.measuring) {
+    private isOverQuota(): boolean {
+        return this.usageKnown && this.quotaBytes > 0 && this.usedBytes > this.quotaBytes
+    }
+
+    /**
+     * The quota is soft - lumi accepts the import either way - so exceeding it has to be noticed some other
+     * way: it is logged (every import and measurement that finds the cache over it, and once when it falls
+     * back under) and exported as a metric, see metrics.ts. Whoever watches those has to make sure the
+     * rendering service's CacheCleaner frees the cache before the volume runs full.
+     */
+    private checkQuota(trigger: string): void {
+        if (!this.usageKnown || this.quotaBytes <= 0) {
             return
         }
-        const nearlyFull = this.quotaBytes > 0 && this.usedBytes >= this.quotaBytes * NEARLY_FULL
-        if (this.usageKnown && !nearlyFull) {
-            return
+        const over = this.isOverQuota()
+        const percent = Math.round(this.usedBytes * 100 / this.quotaBytes)
+        if (over) {
+            log.warn(
+                `Library cache is over its soft quota: ${this.usedBytes} of ${this.quotaBytes} bytes (${percent} %) ` +
+                `after ${trigger}. Imports are still accepted; the CacheCleaner of the rendering service has to free ` +
+                `the cache, and the volume it lives on is the hard limit.`
+            )
+        } else if (this.wasOverQuota) {
+            log.info(
+                `Library cache is back under its soft quota: ${this.usedBytes} of ${this.quotaBytes} bytes (${percent} %) ` +
+                `after ${trigger}.`
+            )
         }
-        await this.measuring
+        this.wasOverQuota = over
     }
 
     public async flush(): Promise<void> {
@@ -229,10 +272,12 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
     private startMeasuring(): void {
         const started = Date.now()
         this.changeDuringMeasurement = 0
+        let measured = false
         this.measuring = directorySize(this.root, [STAGING_DIR, USAGE_FILE, USAGE_FILE_TMP])
             .then(total => {
                 const assumed = this.usedBytes
                 this.usedBytes = Math.max(0, total + this.changeDuringMeasurement)
+                measured = true
                 log.info(
                     `Measured the library cache in ${Date.now() - started} ms: ${this.usedBytes} bytes ` +
                     `(${this.usageKnown ? `remembered ${assumed}` : 'nothing remembered'}).`
@@ -242,10 +287,34 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
                 log.error(`Could not measure the library cache, keeping ${this.usedBytes} bytes: ${error.message}`)
             })
             .then(() => {
-                this.usageKnown = true
                 this.measuring = undefined
-                this.markDirty()
+                if (measured) {
+                    this.usageKnown = true
+                    this.measuredAt = Date.now()
+                    this.markDirty()
+                    this.checkQuota('measuring it')
+                }
+                // After a failure the cache counts as not measured: no new `measuredAt`, so the next start
+                // measures again, and the next attempt is not a whole interval away.
+                if (this.rescanIntervalMs > 0) {
+                    this.scheduleRescan(measured ? this.rescanIntervalMs : Math.min(this.rescanIntervalMs, RETRY_AFTER_FAILURE_MS))
+                }
             })
+    }
+
+    /** Measures the cache again after `delayMs`: removals outside lumi, crashes and rounding add up over time. */
+    private scheduleRescan(delayMs: number): void {
+        if (this.rescanTimer) {
+            clearTimeout(this.rescanTimer)
+        }
+        this.rescanTimer = setTimeout(() => {
+            this.rescanTimer = undefined
+            if (!this.measuring) {
+                this.startMeasuring()
+            }
+        }, delayMs)
+        // Never keep the process alive just for this.
+        this.rescanTimer.unref()
     }
 
     private adjustUsage(delta: number): void {
@@ -269,10 +338,20 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
     }
 
     private async saveUsage(): Promise<void> {
+        // Before the first measurement has finished the total is only what imports and removals added since
+        // the start - written down, the next start would take it for the real size. The measurement marks
+        // the total dirty again when it is done.
+        if (!this.usageKnown) {
+            return
+        }
         this.dirty = false
         try {
             const tmp = path.join(this.root, USAGE_FILE_TMP)
-            await writeFile(tmp, JSON.stringify({usedBytes: this.usedBytes, writtenAt: new Date().toISOString()}))
+            await writeFile(tmp, JSON.stringify({
+                usedBytes: this.usedBytes,
+                measuredAt: this.measuredAt === undefined ? undefined : new Date(this.measuredAt).toISOString(),
+                writtenAt: new Date().toISOString()
+            }))
             await rename(tmp, path.join(this.root, USAGE_FILE))
         } catch (error: any) {
             this.dirty = true
@@ -280,10 +359,14 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
         }
     }
 
-    private async loadRememberedUsage(): Promise<number | undefined> {
+    private async loadRememberedUsage(): Promise<{usedBytes: number; measuredAt?: number} | undefined> {
         try {
             const parsed = JSON.parse(await readFile(path.join(this.root, USAGE_FILE), 'utf8'))
-            return Number.isFinite(parsed?.usedBytes) && parsed.usedBytes >= 0 ? parsed.usedBytes : undefined
+            if (!Number.isFinite(parsed?.usedBytes) || parsed.usedBytes < 0) {
+                return undefined
+            }
+            const measuredAt = typeof parsed.measuredAt === 'string' ? Date.parse(parsed.measuredAt) : NaN
+            return {usedBytes: parsed.usedBytes, measuredAt: Number.isFinite(measuredAt) ? measuredAt : undefined}
         } catch {
             // Missing on a first start or after an upgrade, or unreadable: measure instead.
             return undefined
@@ -330,10 +413,17 @@ export default class FsPackageLibraryStore implements PackageLibraryStore {
  * @param skipTopLevel names to ignore, but only directly inside `dir` (used to keep the staging
  * area out of the published total without hiding a package that happens to contain such a name)
  */
-const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<number> => {
+export const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<number> => {
     // The cache holds millions of small files, so awaiting every stat in turn makes the startup walk
-    // take minutes. Stat the entries of a directory concurrently, with a global cap so the libuv
-    // thread pool is kept busy without queueing an unbounded number of operations.
+    // take minutes: entries are statted concurrently, with a global cap on the filesystem calls in
+    // flight so the libuv thread pool is kept busy without queueing an unbounded number of them.
+    //
+    // The cap bounds what *runs*, not what *exists*. Creating a task for every entry of a directory up
+    // front (Promise.all over all of them) piles up one pending task per file of everything discovered
+    // so far - the walk then proceeds breadth first and ends up holding the whole tree in memory. At
+    // ~5 million files in production that exhausted the 4 GB heap (and took far longer than it needed
+    // to, because the garbage collector was working on millions of live promises). Handling a
+    // directory's entries in chunks keeps the walk depth first, and memory at a few thousand tasks.
     const limit = createLimiter(DIRECTORY_SIZE_CONCURRENCY)
     const walk = async (current: string, skip: string[]): Promise<number> => {
         let entries
@@ -342,23 +432,37 @@ const directorySize = async (dir: string, skipTopLevel: string[] = []): Promise<
         } catch {
             return 0
         }
-        const sizes = await Promise.all(entries.filter(entry => !skip.includes(entry.name)).map(async entry => {
-            const full = path.join(current, entry.name)
-            let size: number
-            try {
-                size = (await limit(() => stat(full))).blocks * 512
-            } catch {
-                // Raced with a delete - not worth failing a quota check over.
-                return 0
+        const wanted = skip.length ? entries.filter(entry => !skip.includes(entry.name)) : entries
+        let total = 0
+        for (let from = 0; from < wanted.length; from += DIRECTORY_SIZE_FANOUT) {
+            const sizes = await Promise.all(wanted.slice(from, from + DIRECTORY_SIZE_FANOUT).map(async entry => {
+                const full = path.join(current, entry.name)
+                let size: number
+                try {
+                    size = (await limit(() => stat(full))).blocks * 512
+                } catch {
+                    // Raced with a delete - not worth failing a quota check over.
+                    return 0
+                }
+                return entry.isDirectory() ? size + await walk(full, []) : size
+            }))
+            for (const size of sizes) {
+                total += size
             }
-            return entry.isDirectory() ? size + await walk(full, []) : size
-        }))
-        return sizes.reduce((sum, size) => sum + size, 0)
+        }
+        return total
     }
     return walk(dir, skipTopLevel)
 }
 
+/** Filesystem calls of the cache walk in flight at once. */
 const DIRECTORY_SIZE_CONCURRENCY = 64
+
+/**
+ * Entries of one directory handled at once. Applies per level, so a package directory, its libraries and
+ * their files can be 16 x 16 x 16 tasks deep - plenty to keep the 64 filesystem calls above busy.
+ */
+const DIRECTORY_SIZE_FANOUT = 16
 
 /** Runs at most `max` of the given async tasks at once; the rest wait their turn in FIFO order. */
 const createLimiter = (max: number) => {

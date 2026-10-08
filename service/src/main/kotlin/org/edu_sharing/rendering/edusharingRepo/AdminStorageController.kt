@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.edusharingRepo.dto.StorageUsageInfo
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.storage.StorageManagerRegistry
+import org.edu_sharing.rendering.storage.StorageScopeKind
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.storage.bucket.BucketPerCustomerStrategy
 import org.edu_sharing.rendering.storage.bucket.BucketStrategy
@@ -96,6 +97,11 @@ class AdminStorageController(
             ?.takeIf { temp -> buckets.none { it.name == temp.name } }
             ?.let { buckets += it }
 
+        // lumi's H5P library cache is a volume, not a bucket: it is in none of the tracked buckets above, yet it
+        // has a quota that the CacheCleaner enforces - so without a row of its own the dashboard could never show
+        // that it is filling up.
+        buckets += libraryCacheUsage(repoId)
+
         // The repo-wide size/quota deliberately covers only the tracked/managed buckets, not the
         // temp bucket (which is never enforced and whose size is unknown without exact=true — else
         // the overall figure would jump depending on whether "Measure exact" was just clicked).
@@ -136,6 +142,27 @@ class AdminStorageController(
         bucketStrategy is BucketPerCustomerStrategy || bucketStrategy is ExternalBucketStrategy
 
     /**
+     * The per-package H5P library cache of this repo's lumi, as the CacheCleaner sees it (same source, so the
+     * dashboard shows exactly the figures the cleaner acts on). Empty unless lumi runs the per-package cache with
+     * a quota and has measured its size - see [org.edu_sharing.rendering.storage.StorageManager.getAdditionalStorageInfo].
+     */
+    private fun libraryCacheUsage(repoId: String): List<BucketUsageInfo> =
+        storageManagerRegistry.getStorageManagers()
+            .flatMap { it.getAdditionalStorageInfo(repoId) }
+            .filter { it.kind == StorageScopeKind.LIBRARY_CACHE }
+            .map { scope ->
+                BucketUsageInfo(
+                    name = LIBRARY_CACHE_LABEL,
+                    size = scope.size,
+                    quota = scope.maxSize,
+                    usedPercent = (scope.size.toDouble() / scope.maxSize.toDouble()) * 100.0,
+                    enforced = true,
+                    measured = true,
+                    kind = StorageScopeKind.LIBRARY_CACHE
+                )
+            }
+
+    /**
      * The temp bucket is barely tracked in practice, and a live measurement
      * ([StorageService.getDirectorySize]) is expensive (a full `ListObjectsV2` over the bucket) —
      * hence only when it is itself the explicitly [requestedBucket] of an `exact=true` request (a
@@ -158,5 +185,10 @@ class AdminStorageController(
             enforced = false,
             measured = measureExact
         )
+    }
+
+    private companion object {
+        /** Name of the library cache row; at most one lumi (hence one such row) exists per repo. */
+        const val LIBRARY_CACHE_LABEL = "H5P library cache"
     }
 }

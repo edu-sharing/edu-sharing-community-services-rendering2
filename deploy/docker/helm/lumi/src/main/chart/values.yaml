@@ -94,6 +94,10 @@ config:
     maxPackageSize: 4GB
     ## @param config.files.maxPackageFileSize Set max size of a single file in an H5P package (plain byte count or e.g. 2GB)
     maxPackageFileSize: 2GB
+    ## @param config.files.contentWhitelistExtra Extra file extensions accepted in H5P content on top of the validator defaults (space or comma separated, e.g. "svg webp")
+    contentWhitelistExtra: ""
+    ## @param config.files.libraryWhitelistExtra Extra file extensions accepted in H5P libraries on top of the validator defaults (space or comma separated)
+    libraryWhitelistExtra: ""
     ## @param config.files.importTimeoutMs Set deadline of one package import in ms (0 = off)
     importTimeoutMs: 900000
 
@@ -102,8 +106,10 @@ config:
     mode: global
     ## @param config.libraryCache.dir Root directory of the per-package library caches; only used when mode is "package", where it is also the mount point of the volume created for it
     dir: /application/library-cache
-    ## @param config.libraryCache.quota Size limit for the per-package library cache — a plain byte count or a human-readable size like "10GB" (binary units); 0 = no limit. On reaching it new imports are rejected (HTTP 507); nothing is evicted, as the cache is the only copy of those packages' libraries. Measured in allocated blocks (matches du / df), so keep it below persistence.data.libraryCache.spec.resources.requests.storage
+    ## @param config.libraryCache.quota Soft size limit for the per-package library cache — a plain byte count or a human-readable size like "10GB" (binary units); 0 = no limit. lumi never rejects an import for it: it only reports it, and the rendering service's CacheCleaner frees the cache (least recently used content first) when it is exceeded, as for the content bucket. What really limits the cache is its volume, so keep the quota below persistence.data.libraryCache.spec.resources.requests.storage. Measured in allocated blocks (matches du / df)
     quota: 0
+    ## @param config.libraryCache.rescanHours Hours a measurement of the cache stays valid: a start with a younger one does not walk the cache again, and it is measured again this often while running (0 = measure at every start only). The size is otherwise kept up to date incrementally
+    rescanHours: 24
 
   log:
     ## @param config.log.level Set log level

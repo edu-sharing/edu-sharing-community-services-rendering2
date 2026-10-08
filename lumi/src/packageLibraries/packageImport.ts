@@ -1,7 +1,7 @@
 import * as H5P from '@lumieducation/h5p-server'
 import {Logger} from '@lumieducation/h5p-server'
 import {H5PDeps} from '../createH5PEditor'
-import {CacheQuotaExceededError, PackageLibraryStore} from './types'
+import {PackageLibraryStore} from './types'
 
 const log = new Logger('PackageImport')
 
@@ -39,17 +39,6 @@ export const importPackage = async (
     data: Buffer | string,
     user: H5P.IUser
 ): Promise<{contentId: string; libraryBytes: number}> => {
-    // After a restart the cache size is measured in the background; on a first start, or when the
-    // remembered size says the cache is nearly full, the quota cannot be judged before that is done.
-    await store.awaitUsage()
-
-    // Fail before doing any work if the cache is already full. `promote` re-checks with the
-    // package's real size - only known once its libraries are installed - and is the authority.
-    const {usedBytes, quotaBytes} = store.usage()
-    if (quotaBytes > 0 && usedBytes >= quotaBytes) {
-        throw new CacheQuotaExceededError(usedBytes, quotaBytes, 0)
-    }
-
     const staging = await store.createStaging()
     try {
         const scopedEditor = new H5P.H5PEditor(

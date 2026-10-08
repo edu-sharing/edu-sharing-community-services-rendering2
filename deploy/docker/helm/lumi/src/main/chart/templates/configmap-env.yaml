@@ -16,6 +16,8 @@ data:
   H5P_IMPORT_TIMEOUT_MS: {{ .Values.config.files.importTimeoutMs | int64 | quote }}
   H5P_MAX_TOTAL_SIZE: {{ .Values.config.files.maxPackageSize | quote }}
   H5P_MAX_FILE_SIZE: {{ .Values.config.files.maxPackageFileSize | quote }}
+  H5P_CONTENT_WHITELIST_EXTRA: {{ .Values.config.files.contentWhitelistExtra | quote }}
+  H5P_LIBRARY_WHITELIST_EXTRA: {{ .Values.config.files.libraryWhitelistExtra | quote }}
   BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}
@@ -35,6 +37,7 @@ data:
   EDUSHARING_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.edusharing | quote }}
   H5P_LIBRARY_CACHE: {{ .Values.config.libraryCache.mode | quote }}
   H5P_LIBRARY_CACHE_DIR: {{ .Values.config.libraryCache.dir | quote }}
+  H5P_LIBRARY_CACHE_RESCAN_HOURS: {{ .Values.config.libraryCache.rescanHours | quote }}
   {{- $libraryCacheQuota := .Values.config.libraryCache.quota | default 0 }}
   {{/* Same number-vs-string handling as CONTENT_AWS_S3_BUCKET_QUOTA above: a human-readable value
        ("10GB") must pass through untouched, while a plain byte count decodes as float64 and would

@@ -175,6 +175,35 @@ class LumiContentManagementServiceTest {
     }
 
     @Test
+    fun testDeleteContentTreatsNotFoundAsAlreadyDeleted() {
+        // Arrange
+        enqueueStatus(404)
+
+        // Act — must not throw
+        underTest.deleteContent(
+            TrackingEntry.of(
+                repoId = "repo1", nodeId = "node127", hash = "hash127", type = "h5p", bucket = "bucket1", binarySize = 1L
+            )
+        )
+
+        // Assert
+        assertEquals("/edusharing/node127_hash127", mockServer.takeRequest().path)
+    }
+
+    @Test
+    fun testDeleteContentPropagatesOtherErrors() {
+        enqueueStatus(500)
+
+        assertThrows<WebClientResponseException> {
+            underTest.deleteContent(
+                TrackingEntry.of(
+                    repoId = "repo1", nodeId = "node128", hash = "hash128", type = "h5p", bucket = "bucket1", binarySize = 1L
+                )
+            )
+        }
+    }
+
+    @Test
     fun testGetContentBucketReturnsNameFromLumi() {
         // Arrange
         enqueueJson("""{"contentBucket": "lumi-contentbucket"}""")

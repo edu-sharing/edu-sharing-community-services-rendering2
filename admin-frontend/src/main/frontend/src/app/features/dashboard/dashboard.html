@@ -59,7 +59,7 @@
       matButton
       class="cleanup-btn"
       [disabled]="cleaning()"
-      title="Run the cache cleaner now for this repository. Only buckets above their upper threshold are cleaned."
+      title="Run the cache cleaner now for this repository. Only buckets (and the H5P library cache) above their upper threshold are cleaned."
       (click)="runCleanup()"
     >
       <mat-icon aria-hidden="true">cleaning_services</mat-icon>
@@ -107,26 +107,29 @@
 </div>
 
 <ng-template #bucketActionsTpl let-row>
-  <div class="dt-row-actions">
-    <button
-      matButton
-      [attr.aria-label]="'Measure exact size for bucket ' + row.name"
-      title="Recompute this bucket's exact size live from S3. The value then stays pinned across automatic refreshes until reset."
-      (click)="measureExact(row.name)"
-    >
-      <mat-icon aria-hidden="true">refresh</mat-icon>
-      Measure exact
-    </button>
-    @if (isPinned(row)) {
+  <!-- The library cache is a volume inside lumi: there is nothing to recount from S3 and nothing to pin. -->
+  @if (!isLibraryCache(row)) {
+    <div class="dt-row-actions">
       <button
         matButton
-        [attr.aria-label]="'Unpin exact size for bucket ' + row.name"
-        title="This row is pinned to the measured exact snapshot. Click to resume automatic tracked updates."
-        (click)="resetExact(row.name)"
+        [attr.aria-label]="'Measure exact size for bucket ' + row.name"
+        title="Recompute this bucket's exact size live from S3. The value then stays pinned across automatic refreshes until reset."
+        (click)="measureExact(row.name)"
       >
-        <mat-icon aria-hidden="true">push_pin</mat-icon>
-        Unpin
+        <mat-icon aria-hidden="true">refresh</mat-icon>
+        Measure exact
       </button>
-    }
-  </div>
+      @if (isPinned(row)) {
+        <button
+          matButton
+          [attr.aria-label]="'Unpin exact size for bucket ' + row.name"
+          title="This row is pinned to the measured exact snapshot. Click to resume automatic tracked updates."
+          (click)="resetExact(row.name)"
+        >
+          <mat-icon aria-hidden="true">push_pin</mat-icon>
+          Unpin
+        </button>
+      }
+    </div>
+  }
 </ng-template>

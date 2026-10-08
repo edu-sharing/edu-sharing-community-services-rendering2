@@ -10,6 +10,15 @@ interface CustomRenderingJobRepository {
     fun updateStatusWithoutVersion(jobId: ObjectId, status: RenderingJobStatus)
 
     /**
+     * Sets the message the client shows for a failed job, without a version check.
+     *
+     * A receiver cannot `save()` the job again for this: [RenderingJob.version] is a `val`, so `save()` returns a new
+     * instance and leaves the receiver's own at the old version - saving that one fails with an optimistic locking
+     * error. A targeted `$set`, like [updateStatusWithoutVersion], cannot.
+     */
+    fun updateErrorMessageWithoutVersion(jobId: ObjectId, errorMessage: String)
+
+    /**
      * Admin-Job-Liste eines Repos (paginiert), optional nach einer oder mehreren Statuswerten
      * gefiltert (leer/null ⇒ kein Filter) und per Freitext durchsucht (`search`, komma-/
      * leerzeichengetrennte Begriffe, jeder als Regex über module/esObjectId/errorMessage/status,

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.cacheCleaner
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
@@ -37,7 +38,11 @@ class CacheCleanerTest {
     private val lowerThreshold = 0.5f
     private val upperThreshold = 0.8f
 
-    private val underTest = CacheCleaner(storageService, storageManagerRegistry, lowerThreshold, upperThreshold, trackingService)
+    private val meterRegistry = SimpleMeterRegistry()
+    private val underTest = CacheCleaner(
+        storageService, storageManagerRegistry, lowerThreshold, upperThreshold, trackingService,
+        StorageQuotaMetrics(meterRegistry)
+    )
 
     private fun entry(
         repoId: String,
@@ -239,5 +244,135 @@ class CacheCleanerTest {
 
         // Exactly one cleanup ran - the library one; the bucket scope stayed below its threshold.
         verify(exactly = 1) { manager.deleteObjectsFromStorage(any()) }
+    }
+
+    @Test
+    fun `failing bucket manager keeps its tracking entries and does not stop other buckets`() {
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = null, size = 90, maxSize = 100))
+        val failing = entry("repo1", "n1", "lumi-contentbucket", 25, Date(1000))
+        val healthy = entry("repo1", "n2", "rendering2", 25, Date(2000))
+        every { trackingService.getTrackedObjectsByRepoId("repo1") } returns iteratorOf(listOf(failing, healthy))
+
+        val lumiManager = mockk<StorageManager>()
+        val renderingManager = mockk<StorageManager>(relaxed = true)
+        every { lumiManager.deleteObjectsFromStorage(any()) } throws IllegalStateException("lumi down")
+        every { storageManagerRegistry.getBucketManagerByBucketName("lumi-contentbucket", "repo1") } returns lumiManager
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns renderingManager
+        every { trackingService.deleteAllTrackedObjects(any()) } returns Unit
+
+        val result = underTest.cleanCache("repo1")
+
+        verify(exactly = 0) { trackingService.deleteAllTrackedObjects(listOf(failing)) }
+        verify { trackingService.deleteAllTrackedObjects(listOf(healthy)) }
+        assertEquals(1, result.deletedEntries)
+        assertEquals(25L, result.freedBytes)
+    }
+
+    @Test
+    fun `failing scope does not stop the remaining scopes`() {
+        every { storageService.getStorageInfo() } returns listOf(
+            StorageInfo(repoId = "repo1", bucket = "broken", size = 90, maxSize = 100),
+            StorageInfo(repoId = "repo1", bucket = "rendering2", size = 90, maxSize = 100)
+        )
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "broken") } throws IllegalStateException("boom")
+        val candidate = entry("repo1", "n1", "rendering2", 40, Date(1000))
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "rendering2") } returns iteratorOf(listOf(candidate))
+        val manager = mockk<StorageManager>(relaxed = true)
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns manager
+        every { trackingService.deleteAllTrackedObjects(any()) } returns Unit
+
+        underTest.cleanCache("repo1")
+
+        verify { manager.deleteObjectsFromStorage(listOf(candidate)) }
+    }
+
+    @Test
+    fun `unavailable storage info yields an empty result instead of throwing`() {
+        every { storageService.getStorageInfo() } throws IllegalStateException("s3 down")
+
+        val result = underTest.cleanCache("repo1")
+
+        assertEquals(0, result.scopesChecked)
+        assertEquals(0, result.deletedEntries)
+    }
+
+    private fun gauge(name: String, bucket: String? = null): Double? =
+        meterRegistry.find(name).tag("bucket", bucket ?: "*").gauge()?.value()
+
+    @Test
+    fun `a scope over its quota is reported as such before the cleanup`() {
+        // Nothing tracked to delete, so the scope stays as it is - and that has to show.
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = "rendering2", size = 120, maxSize = 100))
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "rendering2") } returns iteratorOf(emptyList())
+
+        underTest.cleanCache()
+
+        assertEquals(120.0, gauge("rendering.storage.used.bytes", "rendering2"))
+        assertEquals(1.0, gauge("rendering.storage.over.quota", "rendering2"))
+    }
+
+    @Test
+    fun `after a successful cleanup the scope is reported with the size that is left`() {
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = "rendering2", size = 120, maxSize = 100))
+        // bytesToFree = 120 - 50 = 70: both entries are needed (40 + 40).
+        val first = entry("repo1", "n1", "rendering2", 40, Date(1000))
+        val second = entry("repo1", "n2", "rendering2", 40, Date(2000))
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "rendering2") } returns iteratorOf(listOf(first, second))
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns mockk<StorageManager>(relaxed = true)
+        every { trackingService.deleteAllTrackedObjects(any()) } returns Unit
+
+        underTest.cleanCache()
+
+        assertEquals(40.0, gauge("rendering.storage.used.bytes", "rendering2"))
+        assertEquals(0.0, gauge("rendering.storage.over.quota", "rendering2"))
+        assertEquals(2.0, meterRegistry.get("rendering.cache.cleaner.deleted.entries").tag("kind", "bucket").counter().count())
+        assertEquals(80.0, meterRegistry.get("rendering.cache.cleaner.freed.bytes").tag("kind", "bucket").counter().count())
+    }
+
+    @Test
+    fun `a cleanup that cannot free enough leaves the scope over its quota in the metrics`() {
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = "rendering2", size = 150, maxSize = 100))
+        // Only 30 can be freed of the 100 needed.
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "rendering2") } returns
+            iteratorOf(listOf(entry("repo1", "n1", "rendering2", 30, Date(1000))))
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns mockk<StorageManager>(relaxed = true)
+        every { trackingService.deleteAllTrackedObjects(any()) } returns Unit
+
+        underTest.cleanCache()
+
+        assertEquals(120.0, gauge("rendering.storage.used.bytes", "rendering2"))
+        assertEquals(1.0, gauge("rendering.storage.over.quota", "rendering2"))
+        assertEquals(1.0, gauge("rendering.storage.over.threshold", "rendering2"), "the cleaner is not keeping up")
+    }
+
+    @Test
+    fun `a failing deletion is counted and the scope keeps its size`() {
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = "rendering2", size = 120, maxSize = 100))
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "rendering2") } returns
+            iteratorOf(listOf(entry("repo1", "n1", "rendering2", 90, Date(1000))))
+        val manager = mockk<StorageManager>()
+        every { manager.deleteObjectsFromStorage(any()) } throws RuntimeException("storage down")
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns manager
+
+        underTest.cleanCache()
+
+        assertEquals(1.0, meterRegistry.get("rendering.cache.cleaner.failures").tag("kind", "bucket").counter().count())
+        assertEquals(120.0, gauge("rendering.storage.used.bytes", "rendering2"))
+    }
+
+    @Test
+    fun `a run records when it finished, and a run for a single repo keeps the other repos' scopes`() {
+        every { storageService.getStorageInfo() } returns listOf(
+            StorageInfo(repoId = "repo1", bucket = null, size = 10, maxSize = 100),
+            StorageInfo(repoId = "repo2", bucket = null, size = 10, maxSize = 100)
+        )
+        underTest.cleanCache()
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = null, size = 20, maxSize = 100))
+
+        underTest.cleanCache(repoId = "repo1")
+
+        assertEquals(20.0, meterRegistry.find("rendering.storage.used.bytes").tag("repo", "repo1").gauge()?.value())
+        assertEquals(10.0, meterRegistry.find("rendering.storage.used.bytes").tag("repo", "repo2").gauge()?.value())
+        assertTrue(meterRegistry.get("rendering.cache.cleaner.last.run.timestamp.seconds").gauge().value() > 0)
     }
 }

@@ -35,6 +35,12 @@ tracing needs `org.springframework.boot:spring-boot-micrometer-tracing-opentelem
 - Source extensions allowed via `app.supportedExtensions`:
   `doc, docx, ppt, pptx, xls, xlsx, odt, odp, ods, txt, ott, rtf, csv`.
 - `jodconverter.local.enabled=true`.
+- **Parallelism = number of LibreOffice processes.** One `soffice` converts one document at a time;
+  `jodconverter.local.port-numbers` (one port per process) sets the parallel conversions per pod.
+  Driven by `LIBREOFFICE_PORT_NUMBERS` (+ `_MAX_TASKS_PER_PROCESS`, `_TASK_EXECUTION_TIMEOUT`,
+  `_TASK_QUEUE_TIMEOUT`); Helm generates the port list from `config.libreoffice.processes`, compose
+  uses `RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PORTS` (default 2 ports). Size pod resources at
+  ~1 vCPU + ~1 GiB per process, and scale pods horizontally on top.
 - Multipart limit 128 MB (`spring.servlet.multipart.max-file-size/-request-size`).
 - Actuator on **port 8081** (`management.server.port=8081`, exposing `health,metrics,prometheus`).
   The main web server uses the Spring default unless overridden by the deployment.

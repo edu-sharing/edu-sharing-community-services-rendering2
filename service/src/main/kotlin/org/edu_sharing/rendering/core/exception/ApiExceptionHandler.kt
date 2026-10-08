@@ -14,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException
 import org.springframework.web.reactive.function.client.WebClientResponseException.Forbidden
 import java.io.IOException
 
@@ -129,6 +130,16 @@ class ApiExceptionHandler {
             log.error(exception.message, exception)
         }
         return ResponseEntity(exception.message, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+
+    /**
+     * The client aborted the download or was too slow to read it (e.g. SocketTimeoutException while streaming).
+     * The response is no longer writable, so nothing can be sent back; this is not a server error.
+     */
+    @ExceptionHandler
+    fun handleAsyncRequestNotUsableException(exception: AsyncRequestNotUsableException) {
+        log.warn("Client connection no longer usable while writing response: {}", exception.message)
+        log.debug("Details", exception)
     }
 
     @ExceptionHandler

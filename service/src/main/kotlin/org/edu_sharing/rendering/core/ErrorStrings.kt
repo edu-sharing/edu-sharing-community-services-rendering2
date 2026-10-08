@@ -9,4 +9,10 @@ object ErrorStrings {
     const val GENERIC_OBJECT_NOT_SUPPORTED = "RENDERING.ERROR.GENERIC_OBJECT_NOT_SUPPORTED"
     const val GENERIC_ACCESS_DENIED = "RENDERING.ERROR.GENERIC_ACCESS_DENIED"
     const val GENERIC_INTERNAL_SERVER_ERROR = "RENDERING.ERROR.GENERIC_INTERNAL_SERVER_ERROR"
+
+    /** The H5P package exceeds a size limit of lumi (unpacked size or a single file). */
+    const val H5P_PACKAGE_TOO_LARGE = "RENDERING.ERROR.H5P_PACKAGE_TOO_LARGE"
+
+    /** lumi rejected the H5P package as such: not a zip, a file type that is not allowed, a broken h5p.json, ... */
+    const val H5P_PACKAGE_INVALID = "RENDERING.ERROR.H5P_PACKAGE_INVALID"
 }

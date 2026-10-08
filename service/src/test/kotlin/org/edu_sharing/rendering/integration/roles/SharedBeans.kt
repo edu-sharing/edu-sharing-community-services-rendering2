@@ -12,6 +12,10 @@ import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.RepositoryHttpConfig
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
+import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheBroadcaster
+import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheConfig
+import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheProperties
+import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheReceiver
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
@@ -190,6 +194,10 @@ abstract class SharedBeans {
             RedisStandaloneConfigurationProperties::class,
             RemoteListenerContainerFactorySupport::class,
             RenderingMetrics::class,
+            RegistrationCacheBroadcaster::class,
+            RegistrationCacheConfig::class,
+            RegistrationCacheProperties::class,
+            RegistrationCacheReceiver::class,
             RepositoryRegistrationConfig::class,
             RepositoryRegistrationService::class,
             RepositoryRegistrationStorageService::class,
