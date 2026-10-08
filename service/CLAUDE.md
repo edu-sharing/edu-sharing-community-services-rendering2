@@ -80,6 +80,28 @@ rejects with a status that says whose fault it is, and the service maps it -
 A rejected package is logged at WARN without a stack trace (it is not an error of the system); everything else
 at ERROR as before. The statuses are lumi's - see its guide, *Why an import is rejected*.
 
+### Quota metrics and alarms
+All quotas are **soft**: nothing refuses a request because a bucket, a repository or lumi's H5P library cache is over
+its quota. The `CacheCleaner` frees them on a schedule - and when it cannot keep up (it does not run, it fails, the
+quota is too small for what is rendered) the only symptom would be a volume that runs full. So exceeding a quota is
+**logged and exported**, and meant to be alarmed on (`StorageQuotaMetrics`, master only):
+
+- **Log** (each cleaner run): `WARN Quota exceeded for <repo>/<bucket>: <size> of <quota> (<n>%)` above 100 %, and
+  `WARN Cleanup of <scope> freed only X of the Y needed ... still over the quota` when a cleanup does not get a scope
+  below the lower threshold. The `INFO` line with the usage of every scope is unchanged.
+- **Gauges** per scope (tags `repo`, `bucket` - `*` for a repo-wide scope - and `kind` = `bucket` | `library_cache`):
+  `rendering_storage_used_bytes`, `rendering_storage_quota_bytes` (0 = none), `rendering_storage_usage_ratio`,
+  `rendering_storage_over_quota` (1 while used > quota) and `rendering_storage_over_threshold` (1 while above the
+  cleaner's upper threshold - staying at 1 across runs means the cleaner does not keep up).
+- **Cleaner**: counters `rendering_cache_cleaner_deleted_entries_total`, `..._freed_bytes_total` and `..._failures_total`
+  (tag `kind`), and the gauge `rendering_cache_cleaner_last_run_timestamp_seconds`.
+
+The values are those of the last run (the only time the sizes are collected); after a cleanup they are estimated from
+what was freed. lumi exports the same for its own library cache (`lumi_library_cache_*`, see its guide). Suggested alarms:
+`rendering_storage_over_quota == 1`, `rendering_storage_over_threshold == 1` for longer than two cleaner intervals,
+`time() - rendering_cache_cleaner_last_run_timestamp_seconds` above a few intervals, `increase(..._failures_total[1h]) > 0`.
+Not covered: the temp bucket's quota is informational only (never part of the cleaner's scopes).
+
 ## Admin API (`/admin/**`)
 Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
 `@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
