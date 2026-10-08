@@ -45,7 +45,7 @@ class RepositoryRegistrationServiceCredentialsTest {
             publicKey = "key"
         )
 
-        every { repositoryRegistrationStorageService.getRegistrationByRepoId(repoId) } returns Optional.of(registration)
+        every { repositoryRegistrationStorageService.getRegistrationByRepoIdFresh(repoId) } returns Optional.of(registration)
         every { repositoryRegistrationStorageService.storeRegistration(any()) } answers { firstArg() }
         every { moduleRegistry.getRenderModule<RenderModule>("MOODLE") } returns renderModule
         every { renderModule.isOptionalModule() } returns true

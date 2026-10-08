@@ -152,6 +152,16 @@ repo at a time. Controllers:
   `../loadtest/README.md`): `rendering_queue_consumers_active` summed across queues, capped at 1 before the
   fix, reaches the sum of each queue's configured `concurrency` after it.
 
+## Registration cache
+`RegistrationCacheConfig` (`edusharingRepo/cache/`) enables `@EnableCaching` with a bounded, expiring Caffeine
+`CacheManager` (`app.registration-cache.*`) for `registrations`, `repositoryKeys` and `privateKey`. It is
+**pod-local**: `RepositoryRegistrationStorageService.storeRegistration/removeRegistration` publish a
+`RegistrationChangedMessage` on the fanout exchange `app.queue.registrationBroadcastExchange`, and
+`RegistrationCacheReceiver` (every role, anonymous queue) evicts the entry on all *other* pods (own `origin` is
+skipped). The TTL only covers a missed broadcast. Read-modify-write paths must use
+`getRegistrationByRepoIdFresh` (never mutate the shared cached instance and save it back). A missing registration
+is deliberately not cached. Keep `RegistrationCacheTest` and `RegistrationCacheBroadcastIntegrationTest` green.
+
 ## Session / Redis serialization
 `SessionConfig` stores Spring Sessions in Redis using a Jackson 3 (`tools.jackson.*`)
 `GenericJacksonJsonRedisSerializer` with Kotlin + Spring Security modules and unsafe default
