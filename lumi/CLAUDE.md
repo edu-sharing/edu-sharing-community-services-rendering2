@@ -141,9 +141,10 @@ mp4 ogg mp3 m4a wav txt pdf rtf doc docx xls xlsx ppt pptx odt ods odp xml csv d
 webvtt gltf glb` - and for libraries only `js css svg`. **`svg`, `webp`, `mov` and `flac` are not in the
 content list**, so a package with such a file is rejected as a whole (422, `not-in-whitelist`; the log line
 `checking allowed file extension: … - allowed extensions: …` shows the list in force). The lists are the defaults
-of `H5PConfig` (`contentWhitelist`, `libraryWhitelist`); neither `config.json` nor an environment variable sets
-them, so they cannot be changed without code. Not needed so far, hence not made configurable - if packages
-turn out to be rejected for this, an `H5P_CONTENT_WHITELIST` read in `index.ts` next to the size limits would do.
+of `H5PConfig` (`contentWhitelist`, `libraryWhitelist`). They can be **extended** (not replaced) with
+`H5P_CONTENT_WHITELIST_EXTRA` / `H5P_LIBRARY_WHITELIST_EXTRA` (space or comma separated, e.g. `svg webp`; see
+`whitelist.ts`), read in `index.ts` next to the size limits; the effective lists are logged at startup
+(`Allowed content extensions: …`). Additive on purpose: a typo can never reject packages that import today.
 
 Other hard limits that are not ours to configure: a MongoDB document is at most 16 MiB and `content.json` is
 stored as one (`mongo-add-update-error`, 500; derived from the code, not tried). `AWS_S3_MAX_FILE_LENGTH` is

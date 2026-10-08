@@ -323,6 +323,10 @@ services:
       # credential "timeout", default 300 s) and H5P_IMPORT_TIMEOUT_MS above to be raised accordingly.
       H5P_MAX_TOTAL_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_SIZE:-4GB}"
       H5P_MAX_FILE_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_FILE_SIZE:-2GB}"
+      # Extra file extensions the package validator accepts, on top of its short defaults (content: no svg, webp,
+      # mov, flac). Space or comma separated, e.g. "svg webp". Empty = defaults only.
+      H5P_CONTENT_WHITELIST_EXTRA: "${RENDERING2_LUMI_CONTENT_WHITELIST_EXTRA:-}"
+      H5P_LIBRARY_WHITELIST_EXTRA: "${RENDERING2_LUMI_LIBRARY_WHITELIST_EXTRA:-}"
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*

@@ -19,6 +19,7 @@ import {fileStreamScopeMiddleware} from "./s3Streams";
 import {mathJaxRouter} from "./mathDisplay";
 import {registerImportMetrics} from "./metrics";
 import {readDataSize} from "./dataSize";
+import {extendWhitelist} from "./whitelist";
 import {
     FsPackageLibraryStore,
     packageLibraryRouter,
@@ -102,6 +103,12 @@ const start = async () => {
     config.maxTotalSize = readDataSize(process.env.H5P_MAX_TOTAL_SIZE, config.maxTotalSize,
         error => log.warn(`Ignoring invalid H5P_MAX_TOTAL_SIZE: ${error.message}`))
     log.info(`Package size limits: ${config.maxFileSize} bytes per file, ${config.maxTotalSize} bytes in total.`)
+
+    // File extensions the package validator accepts; the defaults of H5PConfig are short (no svg, webp, mov, flac in
+    // content). Only additive, see extendWhitelist.
+    config.contentWhitelist = extendWhitelist(config.contentWhitelist, process.env.H5P_CONTENT_WHITELIST_EXTRA)
+    config.libraryWhitelist = extendWhitelist(config.libraryWhitelist, process.env.H5P_LIBRARY_WHITELIST_EXTRA)
+    log.info(`Allowed content extensions: ${config.contentWhitelist}; library extensions: ${config.libraryWhitelist}`)
 
     log.info("Config loaded")
     log.debug(JSON.stringify(config, null, 2))

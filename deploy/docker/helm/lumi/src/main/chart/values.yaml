@@ -94,6 +94,10 @@ config:
     maxPackageSize: 4GB
     ## @param config.files.maxPackageFileSize Set max size of a single file in an H5P package (plain byte count or e.g. 2GB)
     maxPackageFileSize: 2GB
+    ## @param config.files.contentWhitelistExtra Extra file extensions accepted in H5P content on top of the validator defaults (space or comma separated, e.g. "svg webp")
+    contentWhitelistExtra: ""
+    ## @param config.files.libraryWhitelistExtra Extra file extensions accepted in H5P libraries on top of the validator defaults (space or comma separated)
+    libraryWhitelistExtra: ""
     ## @param config.files.importTimeoutMs Set deadline of one package import in ms (0 = off)
     importTimeoutMs: 900000
 
