@@ -170,15 +170,20 @@ class LumiContentManagementService(
 
     fun deleteContent(trackingEntry: TrackingEntry) {
         log.debug("Deleting Lumi content for nodeId={}, hash={}", trackingEntry.nodeId, trackingEntry.hash)
-        lumiWebClient.delete()
-            .uri {
-                UriComponentsBuilder.fromUri(it.build())
-                    .path("/edusharing/${trackingEntry.nodeId}_${trackingEntry.hash}")
-                    .build(true)
-                    .toUri()
-            }.retrieve()
-            .bodyToMono<Void>()
-            .block()
+        try {
+            lumiWebClient.delete()
+                .uri {
+                    UriComponentsBuilder.fromUri(it.build())
+                        .path("/edusharing/${trackingEntry.nodeId}_${trackingEntry.hash}")
+                        .build(true)
+                        .toUri()
+                }.retrieve()
+                .bodyToMono<Void>()
+                .block()
+        } catch (exception: WebClientResponseException.NotFound) {
+            // Already gone in lumi (e.g. evicted there) - the goal of the deletion is met.
+            log.debug("Lumi content nodeId={}, hash={} already deleted", trackingEntry.nodeId, trackingEntry.hash)
+        }
         nodeInfoCache.values.removeIf { it.nodeId == trackingEntry.nodeId && it.hash == trackingEntry.hash }
     }
 }

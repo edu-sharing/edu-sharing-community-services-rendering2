@@ -41,7 +41,14 @@ class CacheCleaner(
         var scopesCleaned = 0
         var deletedEntries = 0
         var freedBytes = 0L
-        storageService.getStorageInfo().filter { repoId == null || it.repoId == repoId }.forEach loop@{ scope ->
+        val scopes = try {
+            storageService.getStorageInfo().filter { repoId == null || it.repoId == repoId }
+        } catch (exception: Exception) {
+            log.error("Could not determine storage info, skipping cache cleaner run: ${exception.message}")
+            return CacheCleanupResult(0, 0, 0, 0L)
+        }
+        scopes.forEach loop@{ scope ->
+            try {
             val label = when {
                 scope.kind == StorageScopeKind.LIBRARY_CACHE -> "${scope.repoId}/${scope.bucket} (H5P library cache)"
                 scope.bucket != null -> "${scope.repoId}/${scope.bucket}"
@@ -79,12 +86,22 @@ class CacheCleaner(
 
                 log.debug("Deletion candidates for $label: ${bucketEntryGroups.values.sumOf { e -> e.size }} entries across ${bucketEntryGroups.size} bucket manager(s)")
                 bucketEntryGroups.forEach { (bucketManager, entries) ->
-                    deletedEntries += entries.size
-                    freedBytes += entries.sumOf { scope.kind.sizeOf(it) }
                     log.debug("Bulk-deleting ${entries.size} entries via ${bucketManager?.javaClass?.simpleName ?: "no manager"}")
-                    bucketManager?.deleteObjectsFromStorage(entries)
-                    trackingService.deleteAllTrackedObjects(entries)
+                    try {
+                        bucketManager?.deleteObjectsFromStorage(entries)
+                        trackingService.deleteAllTrackedObjects(entries)
+                        deletedEntries += entries.size
+                        freedBytes += entries.sumOf { scope.kind.sizeOf(it) }
+                    } catch (exception: Exception) {
+                        // Keep the tracking entries so the next run retries them, and carry on with
+                        // the remaining buckets/scopes instead of aborting the whole pass.
+                        log.warn("Cleanup of ${entries.size} entries failed for $label, will retry on the next run: ${exception.message}")
+                    }
                 }
+            }
+            } catch (exception: Exception) {
+                // One failing scope must not keep the others from being cleaned.
+                log.error("Cache cleaner failed for ${scope.repoId}/${scope.bucket}: ${exception.message}")
             }
         }
         return CacheCleanupResult(scopesChecked, scopesCleaned, deletedEntries, freedBytes)

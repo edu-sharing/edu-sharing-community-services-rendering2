@@ -240,4 +240,54 @@ class CacheCleanerTest {
         // Exactly one cleanup ran - the library one; the bucket scope stayed below its threshold.
         verify(exactly = 1) { manager.deleteObjectsFromStorage(any()) }
     }
+
+    @Test
+    fun `failing bucket manager keeps its tracking entries and does not stop other buckets`() {
+        every { storageService.getStorageInfo() } returns listOf(StorageInfo(repoId = "repo1", bucket = null, size = 90, maxSize = 100))
+        val failing = entry("repo1", "n1", "lumi-contentbucket", 25, Date(1000))
+        val healthy = entry("repo1", "n2", "rendering2", 25, Date(2000))
+        every { trackingService.getTrackedObjectsByRepoId("repo1") } returns iteratorOf(listOf(failing, healthy))
+
+        val lumiManager = mockk<StorageManager>()
+        val renderingManager = mockk<StorageManager>(relaxed = true)
+        every { lumiManager.deleteObjectsFromStorage(any()) } throws IllegalStateException("lumi down")
+        every { storageManagerRegistry.getBucketManagerByBucketName("lumi-contentbucket", "repo1") } returns lumiManager
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns renderingManager
+        every { trackingService.deleteAllTrackedObjects(any()) } returns Unit
+
+        val result = underTest.cleanCache("repo1")
+
+        verify(exactly = 0) { trackingService.deleteAllTrackedObjects(listOf(failing)) }
+        verify { trackingService.deleteAllTrackedObjects(listOf(healthy)) }
+        assertEquals(1, result.deletedEntries)
+        assertEquals(25L, result.freedBytes)
+    }
+
+    @Test
+    fun `failing scope does not stop the remaining scopes`() {
+        every { storageService.getStorageInfo() } returns listOf(
+            StorageInfo(repoId = "repo1", bucket = "broken", size = 90, maxSize = 100),
+            StorageInfo(repoId = "repo1", bucket = "rendering2", size = 90, maxSize = 100)
+        )
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "broken") } throws IllegalStateException("boom")
+        val candidate = entry("repo1", "n1", "rendering2", 40, Date(1000))
+        every { trackingService.getTrackedObjectsByRepoIdAndBucket("repo1", "rendering2") } returns iteratorOf(listOf(candidate))
+        val manager = mockk<StorageManager>(relaxed = true)
+        every { storageManagerRegistry.getBucketManagerByBucketName("rendering2", "repo1") } returns manager
+        every { trackingService.deleteAllTrackedObjects(any()) } returns Unit
+
+        underTest.cleanCache("repo1")
+
+        verify { manager.deleteObjectsFromStorage(listOf(candidate)) }
+    }
+
+    @Test
+    fun `unavailable storage info yields an empty result instead of throwing`() {
+        every { storageService.getStorageInfo() } throws IllegalStateException("s3 down")
+
+        val result = underTest.cleanCache("repo1")
+
+        assertEquals(0, result.scopesChecked)
+        assertEquals(0, result.deletedEntries)
+    }
 }
