@@ -2,6 +2,8 @@ package org.edu_sharing.rendering.cacheCleaner
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.edu_sharing.rendering.storage.StorageInfo
 import org.edu_sharing.rendering.storage.StorageScopeKind
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -104,4 +106,26 @@ class StorageQuotaMetricsTest {
     }
 
     private fun counter(name: String, kind: String) = (registry as MeterRegistry).get(name).tag("kind", kind).counter().count()
+
+    @Test
+    fun `the metrics are scraped under the names the dashboard and the alarms use`() {
+        val prometheus = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+        val metrics = StorageQuotaMetrics(prometheus)
+        metrics.record(StorageInfo("repo1", "rendering2", size = 120, maxSize = 100), 120, 0.9f)
+        metrics.cleaned(StorageScopeKind.BUCKET, entries = 2, bytes = 80)
+        metrics.failure(StorageScopeKind.LIBRARY_CACHE)
+        metrics.runFinished()
+
+        val scrape = prometheus.scrape()
+
+        for (name in listOf(
+            "rendering_storage_used_bytes", "rendering_storage_quota_bytes", "rendering_storage_usage_ratio",
+            "rendering_storage_over_quota", "rendering_storage_over_threshold",
+            "rendering_cache_cleaner_deleted_entries_total", "rendering_cache_cleaner_freed_bytes_total",
+            "rendering_cache_cleaner_failures_total", "rendering_cache_cleaner_last_run_timestamp_seconds"
+        )) {
+            assertTrue(Regex("^$name[{ ]", RegexOption.MULTILINE).containsMatchIn(scrape), "missing $name in:\n$scrape")
+        }
+        assertTrue(scrape.contains("""rendering_storage_over_quota{bucket="rendering2",kind="bucket",repo="repo1"} 1.0"""), scrape)
+    }
 }
