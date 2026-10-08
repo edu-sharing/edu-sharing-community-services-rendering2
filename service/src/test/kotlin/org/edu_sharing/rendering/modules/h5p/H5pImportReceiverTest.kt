@@ -18,6 +18,10 @@ import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.springframework.web.reactive.function.client.WebClientResponseException
+import org.springframework.http.HttpHeaders
+import org.edu_sharing.rendering.core.ErrorStrings
 
 
 class H5pImportReceiverTest {
@@ -204,12 +208,91 @@ class H5pImportReceiverTest {
         assert(statusList == expectedStatusSequence)
 
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
-        verify(exactly = 1) { renderingJobRepository.save(any()) }
+        // once for PROCESSING, once more to give the main job the message the client will show
+        verify(exactly = 2) { renderingJobRepository.save(any()) }
+        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, job.errorMessage)
+        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, subJob.errorMessage)
 
         verify(exactly = 2) { subJobRepository.save(any()) }
 
         verify(exactly = 1) { h5pUploadService.getContentId(any()) }
         verify(exactly = 1) { mainJobLogic.processMainJob(any()) }
         confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, h5pUploadService)
+    }
+
+    /**
+     * What the user is told when lumi refuses the package. The client shows the *main* job's message - a failed
+     * sub-job is left out of the job info - so it has to be set there, not only on the sub-job.
+     */
+    private fun runImportThatFailsWith(failure: Throwable): Pair<RenderingJob, SubJob> {
+        val message = RenderingJobMessage("messageId")
+        val job = jobDataProvider.getJobWithoutSubJobs("H5P")
+        val subJob = jobDataProvider.getDummySubJob(
+            subId = JobDataProvider.SUB_ID_1, mimeType = "application/zip", module = "H5P", quality = 0,
+            status = SubJobStatus.QUEUED
+        )
+        job.subJobs.add(subJob)
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+        every { renderingJobRepository.save(any()) } answers { firstArg() }
+        every { subJobRepository.save(any()) } answers { firstArg() }
+        every { h5pUploadService.getContentId(any()) } throws failure
+        every { mainJobLogic.processMainJob(message.id) } returns true
+
+        underTest.receiveMessage(message)
+
+        return job to subJob
+    }
+
+    private fun lumiAnswered(status: Int) =
+        WebClientResponseException.create(status, "status $status", HttpHeaders.EMPTY, "lumi says no".toByteArray(), null)
+
+    @Test
+    fun testAPackageThatIsTooLargeReachesTheClientThroughTheMainJob() {
+        val (job, subJob) = runImportThatFailsWith(lumiAnswered(413))
+
+        assertEquals(ErrorStrings.H5P_PACKAGE_TOO_LARGE, job.errorMessage)
+        assertEquals(ErrorStrings.H5P_PACKAGE_TOO_LARGE, subJob.errorMessage)
+        assertEquals(SubJobStatus.FAILED, subJob.status)
+    }
+
+    @Test
+    fun testAnInvalidPackageIsReportedAsInvalid() {
+        for (status in listOf(400, 422)) {
+            val (job, subJob) = runImportThatFailsWith(lumiAnswered(status))
+
+            assertEquals(ErrorStrings.H5P_PACKAGE_INVALID, job.errorMessage, "status $status")
+            assertEquals(ErrorStrings.H5P_PACKAGE_INVALID, subJob.errorMessage, "status $status")
+        }
+    }
+
+    @Test
+    fun testAnOperationalFailureOfLumiGetsTheGenericMessageOnTheMainJobToo() {
+        // Without it the client got no message at all and had to make one up.
+        val (job, subJob) = runImportThatFailsWith(lumiAnswered(503))
+
+        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, job.errorMessage)
+        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, subJob.errorMessage)
+    }
+
+    @Test
+    fun testASuccessfulImportLeavesTheMainJobWithoutAnErrorMessage() {
+        val message = RenderingJobMessage("messageId")
+        val job = jobDataProvider.getJobWithoutSubJobs("H5P")
+        job.subJobs.add(
+            jobDataProvider.getDummySubJob(
+                subId = JobDataProvider.SUB_ID_1, mimeType = "application/zip", module = "H5P", quality = 0,
+                status = SubJobStatus.QUEUED
+            )
+        )
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+        every { renderingJobRepository.save(any()) } answers { firstArg() }
+        every { subJobRepository.save(any()) } answers { firstArg() }
+        every { h5pUploadService.getContentId(any()) } returns "contentId"
+        every { mainJobLogic.processMainJob(message.id) } returns true
+
+        underTest.receiveMessage(message)
+
+        Assertions.assertNull(job.errorMessage)
+        verify(exactly = 1) { renderingJobRepository.save(any()) }
     }
 }

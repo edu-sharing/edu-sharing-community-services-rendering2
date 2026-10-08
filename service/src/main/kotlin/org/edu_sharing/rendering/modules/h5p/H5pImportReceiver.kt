@@ -111,6 +111,10 @@ class H5pImportReceiver(
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
             subJob.errorMessage = failure.userMessage
+            // The client shows the main job's message: a failed sub-job is left out of the job info, so its own
+            // message never reaches it (see JobInfoService), and the aggregation only sets the status.
+            jobEntry.errorMessage = failure.userMessage
+            renderingJobRepository.save(jobEntry)
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)

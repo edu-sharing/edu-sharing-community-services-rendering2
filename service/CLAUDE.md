@@ -67,8 +67,16 @@ when you add a role-gated bean, extend the matching role test.
 ### Error messages of a failed sub-job
 `SubJob.errorMessage` is not text for the user but a **translation key of the repository UI**
 (`ErrorStrings`, `RENDERING.ERROR.*`); most modules set `GENERIC_CONVERSION_ERROR`. A new key therefore needs
-its translations in the **repository** - this repo does not contain them, and without them the UI shows the raw
-key. The H5P import is the one module that tells the user more (`H5pImportFailure`): lumi answers a package it
+its translations in the **repository frontend** (`Frontend/src/assets/i18n/common/{de,en}.json`, section
+`RENDERING.ERROR`) - this repo does not contain them. The frontend library
+(`rendering2-frontend`) holds no texts and is deliberately left alone: its error module shows the heading plus
+`translate(<message>)`, so a key without a text appears raw (`RENDERING.ERROR.SOMETHING`), while the plain-text
+messages that Moodle, Sodix and Omega pass through are shown as they are. Do not "fix" that by hiding untranslated
+messages - it would hide those too.
+
+A failure is shown from the **main job's** `errorMessage` (`JobInfoReply.userMessage`): a failed sub-job is left out
+of the job info and `MainJobLogic` only aggregates the status. A module that wants the user to see its message has
+to set `jobEntry.errorMessage` too, as Moodle and the H5P import do. The H5P import is the one module that tells the user more (`H5pImportFailure`): lumi answers a package it
 rejects with a status that says whose fault it is, and the service maps it -
 
 | lumi status | key | meaning |
