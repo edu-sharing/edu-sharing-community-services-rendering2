@@ -303,10 +303,15 @@ services:
       # exact library versions it shipped; that cache is authoritative, hence the volume below.
       H5P_LIBRARY_CACHE: "${RENDERING2_LUMI_LIBRARY_CACHE:-global}"
       H5P_LIBRARY_CACHE_DIR: /application/library-cache
-      # Size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
-      # units). 0/empty = no limit. On reaching it, imports are rejected with HTTP 507 rather than
-      # evicting: the cache is the only copy of those packages' libraries.
+      # Soft size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
+      # units). 0/empty = no limit. lumi never rejects an import for it - it reports it, and rendering2's
+      # CacheCleaner frees the cache (least recently used content first) once it is exceeded, as for the
+      # buckets. What really limits the cache is the volume it lives on, so keep the quota below that.
       H5P_LIBRARY_CACHE_QUOTA: "${RENDERING2_LUMI_LIBRARY_CACHE_QUOTA:-0}"
+      # Hours a measurement of the cache stays valid. A start with a younger one does not walk the cache
+      # again (that takes minutes for millions of files), and it is measured again this often while
+      # running. 0 = measure at every start only.
+      H5P_LIBRARY_CACHE_RESCAN_HOURS: "${RENDERING2_LUMI_LIBRARY_CACHE_RESCAN_HOURS:-24}"
       # Deadline of one package import. Imports run one at a time, so an import that never returns used
       # to block every later one; past the deadline it is answered with 504 and the queue moves on.
       # Keep it above the rendering service's H5P timeout (repository credential "timeout"). 0 = off.

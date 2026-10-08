@@ -14,39 +14,27 @@ export interface LibraryStagingArea {
     readonly storage: ILibraryStorage
 }
 
-/** How much of the cache is in use, and the limit it is measured against. */
+/** How much of the cache is in use, and the (soft) limit it is measured against. */
 export interface PackageLibraryCacheUsage {
-    /** Sum of the file sizes of all published packages. Staging areas are not counted. */
+    /** Sum of the allocated size of all published packages. Staging areas are not counted. */
     usedBytes: number
-    /** The configured limit in bytes; `0` means no limit. */
+    /**
+     * The configured limit in bytes; `0` means no limit. A soft limit: lumi only reports it, the rendering
+     * service's CacheCleaner frees the cache when it is exceeded (as for the content bucket). It never
+     * makes an import fail.
+     */
     quotaBytes: number
     /**
-     * The cache is still being measured. `usedBytes` is then the value remembered from the last run
-     * (or 0 on a first start), adjusted by what has been imported or removed since.
+     * `usedBytes` is a real figure - remembered from an earlier run or measured - and not just the 0 of a
+     * first start that has not finished measuring yet.
      */
+    known: boolean
+    /** The cache is being measured right now. */
     reconciling: boolean
-}
-
-/**
- * Thrown when publishing a package would push the cache over its quota.
- *
- * The cache is the authoritative store for the libraries of the packages in it - evicting one would
- * silently break the content that uses it - so a full cache rejects new imports rather than making
- * room by deleting somebody else's libraries.
- */
-export class CacheQuotaExceededError extends Error {
-    constructor(
-        public readonly usedBytes: number,
-        public readonly quotaBytes: number,
-        public readonly requiredBytes: number
-    ) {
-        super(
-            `H5P library cache is full: ${usedBytes} bytes used of ${quotaBytes}, ` +
-            `another ${requiredBytes} bytes required. Free space by deleting H5P content, ` +
-            `or raise H5P_LIBRARY_CACHE_QUOTA.`
-        )
-        this.name = 'CacheQuotaExceededError'
-    }
+    /** The size is known and exceeds a configured quota. Only a signal - nothing is refused because of it. */
+    overQuota: boolean
+    /** When the cache was last measured completely (epoch ms); undefined until the first measurement ended. */
+    measuredAt?: number
 }
 
 /**
@@ -70,8 +58,6 @@ export interface PackageLibraryStore {
      * package. After this the staging area no longer exists.
      *
      * @returns the size in bytes of the published package's libraries
-     * @throws CacheQuotaExceededError if publishing would exceed the cache's quota; the staging area
-     * is left for the caller to {@link discard}.
      */
     promote(staging: LibraryStagingArea, packageId: string): Promise<number>
 
@@ -90,13 +76,6 @@ export interface PackageLibraryStore {
 
     /** Current size of the cache and its limit. */
     usage(): PackageLibraryCacheUsage
-
-    /**
-     * Resolves once `usage()` is trustworthy enough to enforce the quota with. Immediately when the
-     * size is known well and the cache is not close to its limit; otherwise when the measurement of
-     * the cache has finished. An import awaits this before it starts.
-     */
-    awaitUsage(): Promise<void>
 
     /** Writes the remembered cache size to disk now. Call before the process exits. */
     flush(): Promise<void>

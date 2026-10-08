@@ -124,7 +124,8 @@ const start = async () => {
     let packageLibraryStore: PackageLibraryStore | undefined
     if (packageLibraryConfig.mode === 'package') {
         packageLibraryStore = await FsPackageLibraryStore.create(packageLibraryConfig.directory, {
-            quotaBytes: packageLibraryConfig.quotaBytes
+            quotaBytes: packageLibraryConfig.quotaBytes,
+            rescanIntervalMs: packageLibraryConfig.rescanIntervalMs
         })
         log.info(`Per-package H5P library cache enabled (${packageLibraryConfig.directory}).`)
     } else {
@@ -166,7 +167,7 @@ const start = async () => {
     });
 
     app.use(metricsMiddleware);
-    registerImportMetrics();
+    registerImportMetrics(packageLibraryStore);
 
     app.use(express.json())
     app.use(bodyParser.urlencoded({ extended: true }));

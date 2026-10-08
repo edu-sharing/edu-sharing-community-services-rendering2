@@ -35,6 +35,7 @@ data:
   EDUSHARING_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.edusharing | quote }}
   H5P_LIBRARY_CACHE: {{ .Values.config.libraryCache.mode | quote }}
   H5P_LIBRARY_CACHE_DIR: {{ .Values.config.libraryCache.dir | quote }}
+  H5P_LIBRARY_CACHE_RESCAN_HOURS: {{ .Values.config.libraryCache.rescanHours | quote }}
   {{- $libraryCacheQuota := .Values.config.libraryCache.quota | default 0 }}
   {{/* Same number-vs-string handling as CONTENT_AWS_S3_BUCKET_QUOTA above: a human-readable value
        ("10GB") must pass through untouched, while a plain byte count decodes as float64 and would
