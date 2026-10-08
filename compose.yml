@@ -60,17 +60,29 @@ services:
     ports:
       - "9106:27017"
 
+  # Resources/parallelism are overridable for the document-converter load test (loadtest/README.md):
+  #   LIBREOFFICE_PORT_NUMBERS = one port per LibreOffice process (= parallel conversions per container)
+  #   DOCUMENT_CONVERTER_CPUS / _MEMORY = container limits (rule of thumb: ~1 vCPU + ~1 GiB per process)
+  # Heap stays small: LibreOffice runs as a subprocess outside the JVM heap.
   rendering2-document-converter:
     image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-document-converter:maven-fixes-10.0-SNAPSHOT"
     command:
-      - -Xms${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMS:-512m}
-      - -Xmx${REPOSITORY_SEARCH_ELASTIC_TRACKER_JAVA_XMX:-512m}
+      - -Xms${DOCUMENT_CONVERTER_JAVA_XMS:-1g}
+      - -Xmx${DOCUMENT_CONVERTER_JAVA_XMX:-1g}
       - -Dcom.sun.management.jmxremote
       - -Dcom.sun.management.jmxremote.authenticate=false
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
+    environment:
+      LIBREOFFICE_PORT_NUMBERS: "${LIBREOFFICE_PORT_NUMBERS:-2002,2003}"
+      LIBREOFFICE_MAX_TASKS_PER_PROCESS: "${LIBREOFFICE_MAX_TASKS_PER_PROCESS:-100}"
+      LIBREOFFICE_TASK_EXECUTION_TIMEOUT: "${LIBREOFFICE_TASK_EXECUTION_TIMEOUT:-120000}"
+      LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
+    cpus: "${DOCUMENT_CONVERTER_CPUS:-2}"
+    mem_limit: "${DOCUMENT_CONVERTER_MEMORY:-4g}"
     ports:
       - "8081:8080"
+      - "8082:8081"   # actuator (health/prometheus)
 
   rendering2-jupyter-converter:
     image: "docker.edu-sharing.com/community/edu_sharing-community-services-rendering2-deploy-docker-build-jupyter-converter:maven-fixes-10.0-SNAPSHOT"

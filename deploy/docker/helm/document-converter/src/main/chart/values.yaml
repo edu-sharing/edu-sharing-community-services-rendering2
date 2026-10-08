@@ -88,9 +88,21 @@ config:
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
-      minPercentage: "90.0"
+      minPercentage: "25.0"
       ## @param config.jvm.ram.maxPercentage Set maximum memory in percentages
-      maxPercentage: "90.0"
+      maxPercentage: "25.0"
+
+  libreoffice:
+    ## @param config.libreoffice.processes Parallel LibreOffice processes (= parallel conversions) per pod. Size resources accordingly (~1 vCPU + ~1 GiB each)
+    processes: 2
+    ## @param config.libreoffice.basePort First local port; each process gets the next one
+    basePort: 2002
+    ## @param config.libreoffice.maxTasksPerProcess Restart a process after this many conversions
+    maxTasksPerProcess: 100
+    ## @param config.libreoffice.taskExecutionTimeout Abort a conversion after this many ms
+    taskExecutionTimeout: 120000
+    ## @param config.libreoffice.taskQueueTimeout Max ms a request waits for a free process
+    taskQueueTimeout: 300000
 
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics
@@ -130,7 +142,6 @@ podAntiAffinity: "soft"
 tolerations: []
 
 ########################################################################################################################
-
 ## @param podAnnotations Set custom pod annotations
 podAnnotations: {}
 
@@ -192,17 +203,19 @@ readinessProbe:
 
 ########################################################################################################################
 
+# Sized for config.libreoffice.processes (~1 vCPU + ~1 GiB per LibreOffice process). The JVM heap is kept
+# small (config.jvm.ram) because LibreOffice runs as a subprocess outside the heap and needs the rest.
 resources:
 
   limits:
     ## @param resources.limits.cpu Set CPU limit on resources
-    cpu: 500m
+    cpu: 2
     ## @param resources.limits.memory Set memory limit on resources
-    memory: 2Gi
+    memory: 4Gi
   requests:
     ## @param resources.requests.cpu Set CPU for requests on resources
-    cpu: 500m
+    cpu: 2
     ## @param resources.requests.memory Set memory for requests on resources
-    memory: 2Gi
+    memory: 4Gi
 
 ########################################################################################################################

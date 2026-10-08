@@ -255,12 +255,22 @@ services:
   rendering2-document-converter:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
-      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
-      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
+      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-1g}
+      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-1g}
       - -Dcom.sun.management.jmxremote
       - -Dcom.sun.management.jmxremote.authenticate=false
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
+    environment:
+      # Comma-separated ports = parallel LibreOffice processes (= parallel conversions per container).
+      # Keep CPU/memory below in line (~1 vCPU + ~1 GiB per process); the heap stays small because
+      # LibreOffice runs as a subprocess outside the JVM heap.
+      LIBREOFFICE_PORT_NUMBERS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PORTS:-2002,2003}"
+      LIBREOFFICE_MAX_TASKS_PER_PROCESS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_MAX_TASKS_PER_PROCESS:-100}"
+      LIBREOFFICE_TASK_EXECUTION_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_EXECUTION_TIMEOUT:-120000}"
+      LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
+    cpus: "${RENDERING2_DOCUMENT_CONVERTER_CPUS:-2}"
+    mem_limit: "${RENDERING2_DOCUMENT_CONVERTER_MEMORY:-4g}"
     expose:
       - "8080"
 

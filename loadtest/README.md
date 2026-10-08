@@ -196,6 +196,44 @@ aber ein Kontrolllauf schadet nicht). Für `document` ist die Ursache bereits se
 (einzelner LibreOffice-Prozess im `document-converter`, siehe `jodconverter.local.port-numbers`) —
 das Pinning-Rezept ist dort nicht der relevante Mechanismus.
 
+## Document-Converter direkt testen (LibreOffice-Parallelität)
+
+`scenarios/document-converter.js` schickt ein ~400-Zeilen-DOCX (`fixtures/document.docx`) direkt an
+`POST /conversion` des document-converters — ohne Service/Queue/S3. Damit lässt sich isoliert messen,
+wie sich die Zahl der LibreOffice-Prozesse pro Container auswirkt.
+
+Stellschrauben im root-`compose.yml` (alle per Env überschreibbar):
+
+| Env | Default | Bedeutung |
+|---|---|---|
+| `LIBREOFFICE_PORT_NUMBERS` | `2002,2003` | ein Port je LibreOffice-Prozess = parallele Konvertierungen |
+| `DOCUMENT_CONVERTER_CPUS` / `_MEMORY` | `2` / `4g` | Container-Limits (Faustregel ~1 vCPU + ~1 GiB je Prozess) |
+| `DOCUMENT_CONVERTER_JAVA_XMS` / `_XMX` | `1g` / `1g` | Heap bewusst klein, LibreOffice läuft außerhalb des Heaps |
+| `LIBREOFFICE_TASK_QUEUE_TIMEOUT` u. a. | siehe `compose.yml` | Wartezeit auf freien Prozess, Task-Timeout, Recycling |
+
+```bash
+# Beispiel: 4 Prozesse, 4 CPUs, 6 GiB
+LIBREOFFICE_PORT_NUMBERS=2002,2003,2004,2005 DOCUMENT_CONVERTER_CPUS=4 DOCUMENT_CONVERTER_MEMORY=6g \
+  docker compose up -d --force-recreate rendering2-document-converter
+# Sättigung: viele VUs, Durchsatz = Iterationen/s
+k6 run -e PROFILE=ramping -e VUS=16 -e RAMP=5s -e DURATION=45s loadtest/k6/scenarios/document-converter.js
+```
+
+Das Image enthält den Build zum Zeitpunkt des Pushs; für lokale Änderungen den frisch gebauten Jar
+per Override als `/app.jar` einhängen (`entrypoint: java -jar /app.jar`).
+
+Messung (24-Kern-Dev-Maschine, `cpus` = Prozesse, sättigende Last, 45 s, 0 Fehler):
+
+| Prozesse | Durchsatz | p95 |
+|---|---|---|
+| 1 | 1,9 /s | 9,1 s |
+| 2 | 3,3 /s | 5,2 s |
+| 4 | 6,0 /s | 3,0 s |
+| 8 | 9,6 /s | 3,5 s |
+
+Skalierung nahezu linear bis 4 Prozesse, danach flacht sie ab (8 Prozesse ≈ 7 Kerne ausgelastet, nur
+~1,5 GiB RSS für dieses Dokument). Reale Office-Dokumente brauchen deutlich mehr Speicher je Prozess.
+
 ## Neue Metriken (Referenz)
 
 | Metrik | Typ | Bedeutung |
