@@ -199,6 +199,7 @@ class H5pImportReceiverTest {
             throw Exception(testMessage)
         }
         every { mainJobLogic.processMainJob(message.id) } returns true
+        justRun { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) }
 
         // Act
         underTest.receiveMessage(message)
@@ -208,9 +209,11 @@ class H5pImportReceiverTest {
         assert(statusList == expectedStatusSequence)
 
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
-        // once for PROCESSING, once more to give the main job the message the client will show
-        verify(exactly = 2) { renderingJobRepository.save(any()) }
-        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, job.errorMessage)
+        // saved once, for PROCESSING; the message the client shows is set without a second save (see below)
+        verify(exactly = 1) { renderingJobRepository.save(any()) }
+        verify(exactly = 1) {
+            renderingJobRepository.updateErrorMessageWithoutVersion(job.id, ErrorStrings.GENERIC_CONVERSION_ERROR)
+        }
         assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, subJob.errorMessage)
 
         verify(exactly = 2) { subJobRepository.save(any()) }
@@ -237,10 +240,18 @@ class H5pImportReceiverTest {
         every { subJobRepository.save(any()) } answers { firstArg() }
         every { h5pUploadService.getContentId(any()) } throws failure
         every { mainJobLogic.processMainJob(message.id) } returns true
+        justRun { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) }
 
         underTest.receiveMessage(message)
 
         return job to subJob
+    }
+
+    /** The message the client is going to see for [job]: what was written to the main job. */
+    private fun messageSetOn(job: RenderingJob): String {
+        val message = slot<String>()
+        verify(exactly = 1) { renderingJobRepository.updateErrorMessageWithoutVersion(job.id, capture(message)) }
+        return message.captured
     }
 
     private fun lumiAnswered(status: Int) =
@@ -250,7 +261,7 @@ class H5pImportReceiverTest {
     fun testAPackageThatIsTooLargeReachesTheClientThroughTheMainJob() {
         val (job, subJob) = runImportThatFailsWith(lumiAnswered(413))
 
-        assertEquals(ErrorStrings.H5P_PACKAGE_TOO_LARGE, job.errorMessage)
+        assertEquals(ErrorStrings.H5P_PACKAGE_TOO_LARGE, messageSetOn(job))
         assertEquals(ErrorStrings.H5P_PACKAGE_TOO_LARGE, subJob.errorMessage)
         assertEquals(SubJobStatus.FAILED, subJob.status)
     }
@@ -260,8 +271,9 @@ class H5pImportReceiverTest {
         for (status in listOf(400, 422)) {
             val (job, subJob) = runImportThatFailsWith(lumiAnswered(status))
 
-            assertEquals(ErrorStrings.H5P_PACKAGE_INVALID, job.errorMessage, "status $status")
             assertEquals(ErrorStrings.H5P_PACKAGE_INVALID, subJob.errorMessage, "status $status")
+            assertEquals(ErrorStrings.H5P_PACKAGE_INVALID, messageSetOn(job), "status $status")
+            clearMocks(renderingJobRepository, answers = false)
         }
     }
 
@@ -270,8 +282,34 @@ class H5pImportReceiverTest {
         // Without it the client got no message at all and had to make one up.
         val (job, subJob) = runImportThatFailsWith(lumiAnswered(503))
 
-        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, job.errorMessage)
+        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, messageSetOn(job))
         assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, subJob.errorMessage)
+    }
+
+    @Test
+    fun testAFailureToSetTheMessageNeverKeepsTheJobFromEnding() {
+        // This is what left the sub-job in PROCESSING for good: an exception here escaped the listener, so the
+        // sub-job was never saved as FAILED and the job never aggregated.
+        val message = RenderingJobMessage("messageId")
+        val job = jobDataProvider.getJobWithoutSubJobs("H5P")
+        val subJob = jobDataProvider.getDummySubJob(
+            subId = JobDataProvider.SUB_ID_1, mimeType = "application/zip", module = "H5P", quality = 0,
+            status = SubJobStatus.QUEUED
+        )
+        job.subJobs.add(subJob)
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+        every { renderingJobRepository.save(any()) } answers { firstArg() }
+        every { subJobRepository.save(any()) } answers { firstArg() }
+        every { h5pUploadService.getContentId(any()) } throws lumiAnswered(413)
+        every { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) } throws
+            RuntimeException("mongo down")
+        every { mainJobLogic.processMainJob(message.id) } returns true
+
+        underTest.receiveMessage(message)
+
+        assertEquals(SubJobStatus.FAILED, subJob.status)
+        verify(exactly = 2) { subJobRepository.save(any()) }
+        verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
     }
 
     @Test
@@ -294,5 +332,6 @@ class H5pImportReceiverTest {
 
         Assertions.assertNull(job.errorMessage)
         verify(exactly = 1) { renderingJobRepository.save(any()) }
+        verify(exactly = 0) { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) }
     }
 }

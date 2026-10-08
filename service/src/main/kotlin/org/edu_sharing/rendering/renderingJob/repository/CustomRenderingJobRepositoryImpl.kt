@@ -88,6 +88,18 @@ class CustomRenderingJobRepositoryImpl(
         }
     }
 
+    override fun updateErrorMessageWithoutVersion(jobId: ObjectId, errorMessage: String) {
+        log.debug("Setting the error message of RenderingJob $jobId to $errorMessage (without version check)")
+        val updateResult = mongoTemplate.updateFirst(
+            Query(Criteria.where("_id").`is`(jobId)),
+            Update().set("errorMessage", errorMessage),
+            RenderingJob::class.java
+        )
+        if (updateResult.wasAcknowledged() && updateResult.matchedCount == 0L) {
+            log.warn("RenderingJob $jobId not found, its error message was not set")
+        }
+    }
+
     /** Zerlegt die Sucheingabe an Kommas/Whitespace in einzelne Begriffe (leere verworfen). */
     private fun searchTerms(search: String?): List<String> =
         search?.split(Regex("[,\\s]+"))?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()

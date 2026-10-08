@@ -113,8 +113,14 @@ class H5pImportReceiver(
             subJob.errorMessage = failure.userMessage
             // The client shows the main job's message: a failed sub-job is left out of the job info, so its own
             // message never reaches it (see JobInfoService), and the aggregation only sets the status.
-            jobEntry.errorMessage = failure.userMessage
-            renderingJobRepository.save(jobEntry)
+            // Set before the status flips, so a client that sees FAILED sees the message too. Not a save() of
+            // jobEntry - see updateErrorMessageWithoutVersion - and never allowed to keep the job from ending:
+            // an exception here once left the sub-job in PROCESSING for good.
+            try {
+                renderingJobRepository.updateErrorMessageWithoutVersion(jobEntry.id, failure.userMessage)
+            } catch (updateException: Exception) {
+                log.error("Could not set the error message of job {}: {}", jobEntry.id, updateException.message, updateException)
+            }
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)
