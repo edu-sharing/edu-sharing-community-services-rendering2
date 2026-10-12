@@ -530,11 +530,18 @@ class S3StorageService(
         }
     }
 
-    private fun createBucketIfMissing(bucket: String) {
+    internal fun createBucketIfMissing(bucket: String) {
         try {
             s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
         } catch (_: NoSuchBucketException) {
-            s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
+            try {
+                s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
+            } catch (_: BucketAlreadyOwnedByYouException) {
+                // Another pod created it between our HEAD and CREATE: that is the desired end state.
+            } catch (e: S3Exception) {
+                // Same race on S3 implementations that answer a plain 409 instead of the typed error.
+                if (e.statusCode() != 409) throw e
+            }
         }
     }
 
