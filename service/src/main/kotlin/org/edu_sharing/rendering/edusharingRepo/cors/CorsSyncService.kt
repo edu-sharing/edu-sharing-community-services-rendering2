@@ -7,6 +7,8 @@ import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.repository.RepositoryRegistrationRepository
 import org.edu_sharing.rendering.security.cors.CorsConfig
+import org.edu_sharing.rendering.utils.LogSanitizer
+import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -19,6 +21,7 @@ class CorsSyncService(
     private val amqpTemplate: AmqpTemplate,
     private val corsConfig: CorsConfig,
     private val authHeaderProvider: AuthHeaderProvider,
+    private val meterRegistry: MeterRegistry,
     @Value($$"${app.queue.controllerBroadcastExchange}")
     private val broadcastExchange: String,
     @Value($$"${app.appId}")
@@ -33,7 +36,19 @@ class CorsSyncService(
     fun syncAllowedOriginsWithAllRepositories() {
         log.info("Syncing allowed origins with all connected repositories")
         val allRegistrations = repositoryRegistrationRepository.findAll()
-        val results = allRegistrations.map { syncAllowedOriginsWithRepository(it) }
+        var failures = 0
+        // One unreachable or misbehaving repository must not stop the sync of the others.
+        val results = allRegistrations.map { registration ->
+            try {
+                syncAllowedOriginsWithRepository(registration)
+            } catch (e: Exception) {
+                failures++
+                meterRegistry.counter("cors.sync.failures").increment()
+                // Sanitized: client exceptions may embed the request URI or response body.
+                log.warn("CORS sync failed for repo ${registration.repoId}; continuing with the remaining repositories: ${LogSanitizer.describe(e)}")
+                false
+            }
+        }
         val changesDetected = results.any { it }
         if (changesDetected) {
             log.info("Changes detected in cors settings from repositories. Triggering controller sync.")
@@ -41,7 +56,7 @@ class CorsSyncService(
         } else {
             log.info("No changes detected in cors settings from repositories. Skipping sync.")
         }
-        log.info("Syncing allowed origins with all connected repositories finished")
+        log.info("Syncing allowed origins with all connected repositories finished (repositories=${allRegistrations.size}, failed=$failures)")
     }
 
     fun triggerSync() {
