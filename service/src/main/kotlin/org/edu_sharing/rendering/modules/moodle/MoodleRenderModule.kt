@@ -1,7 +1,5 @@
 package org.edu_sharing.rendering.modules.moodle
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.RenderDataResponse
@@ -10,15 +8,15 @@ import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.utils.LogSanitizer
+import org.edu_sharing.rendering.utils.RemoteResponseParser
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.WebClientRequestException
-import org.springframework.web.reactive.function.client.WebClientResponseException
-import org.springframework.web.reactive.function.client.bodyToMono
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
 import java.time.Duration
-import java.util.concurrent.TimeoutException
 
 @Component
 class MoodleRenderModule(
@@ -32,7 +30,7 @@ class MoodleRenderModule(
 ) : RenderModule, ThirdPartyModule {
 
     private val log = LoggerFactory.getLogger(javaClass)
-    private val objectMapper = ObjectMapper()
+    private val objectMapper = JsonMapper.builder().build()
 
     companion object {
         private const val SHOW_PREVIEW_IFRAME = "showPreviewIframe"
@@ -88,20 +86,14 @@ class MoodleRenderModule(
         val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"), timeout)
 
         log.debug("Calling Moodle ping endpoint for repoId $repoId at ${credentials.getValue("baseurl")}")
-        val rawResponse = webClient.get()
-            .uri {
-                it.path("/webservice/rest/server.php")
-                    .queryParam("wsfunction", "local_edusharing_ping")
-                    .queryParam("moodlewsrestformat", "json")
-                    .queryParam("wstoken", webserviceToken)
-                    .queryParam("repoId", repoId)
-                    .build()
-            }
-            .retrieve()
-            .bodyToMono<String>()
-            .timeout(timeout)
-            .onErrorMap { transportError("Moodle ping request", it) }
-            .block()
+        // The webservice token goes into the POST body, not the query string.
+        val rawResponse = webClient.postMoodleForm(
+            path = "/webservice/rest/server.php",
+            query = mapOf("wsfunction" to "local_edusharing_ping", "moodlewsrestformat" to "json"),
+            form = mapOf("wstoken" to webserviceToken, "repoId" to repoId),
+            timeout = timeout,
+            what = "Moodle ping request",
+        )
 
         // Moodle webservice errors (e.g. a revoked token, missing capability) come back as a JSON
         // object instead of the plain integer the endpoint normally returns - parse leniently instead
@@ -114,7 +106,7 @@ class MoodleRenderModule(
         val testResult = response.takeIf { it.isInt }?.asInt()
 
         if (testResult == null) {
-            log.warn("No test result returned from render Moodle. Raw response: $rawResponse")
+            log.warn("No test result returned from render Moodle. Response starts with: {}", rawResponse?.let { RemoteResponseParser.excerpt(it) })
         }
         if (testResult != 1) {
             log.warn("Moodle responded but test was not successful. Result: $testResult")
@@ -127,8 +119,10 @@ class MoodleRenderModule(
         }
         return try {
             objectMapper.readTree(rawBody)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid JSON response from Moodle ping endpoint: $rawBody", e)
+        } catch (_: Exception) {
+            throw IllegalArgumentException(
+                "Invalid JSON response from Moodle ping endpoint (body starts with: ${RemoteResponseParser.excerpt(rawBody)})"
+            )
         }
     }
 
@@ -136,7 +130,7 @@ class MoodleRenderModule(
         val exception = response.path("exception").asText("unknown exception")
         val errorCode = response.path("errorcode").asText("unknown error code")
         val message = response.path("message").asText("no message")
-        return "Moodle ping failed [errorcode=$errorCode, exception=$exception]: $message"
+        return LogSanitizer.sanitize("Moodle ping failed [errorcode=$errorCode, exception=$exception]: $message") ?: ""
     }
 
     override fun getCredentials(repoId: String): Map<String, String> {
@@ -182,7 +176,7 @@ class MoodleRenderModule(
      * Moodle answers with HTTP 200 even on failure: either a JSON error object (`{"error": ..., "errorcode": ...}`)
      * or, for a wrong base URL / maintenance page, HTML. Both are parsed leniently so the Moodle message
      * reaches the caller. Exceptions raised here deliberately carry no cause and no URL: the request URL
-     * contains the username and password as query parameters.
+     * carried the username and password (now sent in the POST body).
      */
     fun getWebserviceToken(
         webClient: WebClient,
@@ -191,19 +185,15 @@ class MoodleRenderModule(
         timeout: Duration = DEFAULT_TOKEN_TIMEOUT,
     ): String {
         log.debug("Requesting Moodle webservice token for user $user")
-        val rawResponse = webClient.get()
-            .uri {
-                it.path("/login/token.php")
-                    .queryParam("username", user)
-                    .queryParam("password", password)
-                    .queryParam("service", "es-webservice")
-                    .build()
-            }
-            .retrieve()
-            .bodyToMono<String>()
-            .timeout(timeout)
-            .onErrorMap { transportError("Moodle token request", it) }
-            .block()
+        // Username and password go into the POST body: a query string would be logged by proxies and
+        // embedded in WebClient exception messages.
+        val rawResponse = webClient.postMoodleForm(
+            path = "/login/token.php",
+            query = emptyMap(),
+            form = mapOf("username" to user, "password" to password, "service" to "es-webservice"),
+            timeout = timeout,
+            what = "Moodle token request",
+        )
 
         val token = parseTokenResponse(rawResponse)
         log.debug("Moodle token response received, token present: true")
@@ -228,23 +218,12 @@ class MoodleRenderModule(
         val errorCode = node?.path("errorcode")?.asText("")?.takeIf { it.isNotBlank() }
         if (error != null || errorCode != null) {
             throw IllegalStateException(
-                "Token could not be retrieved from Moodle: ${error ?: "unknown error"}" +
-                    (errorCode?.let { " [errorcode=$it]" } ?: "")
+                LogSanitizer.sanitize(
+                    "Token could not be retrieved from Moodle: ${error ?: "unknown error"}" +
+                        (errorCode?.let { " [errorcode=$it]" } ?: "")
+                )
             )
         }
         throw IllegalStateException("Token could not be retrieved from Moodle: response contains no token.")
-    }
-
-    /**
-     * Replaces transport/HTTP exceptions with a readable one. The originals embed the full request URI
-     * (including query parameters such as password / wstoken) in their message, so they are neither
-     * kept as cause nor printed.
-     */
-    private fun transportError(what: String, e: Throwable): Throwable = when (e) {
-        is WebClientResponseException -> IllegalStateException("$what failed: Moodle answered with HTTP ${e.statusCode.value()}.")
-        is TimeoutException -> IllegalStateException("$what timed out.")
-        is WebClientRequestException -> IllegalStateException("$what failed: Moodle not reachable (${e.cause?.javaClass?.simpleName ?: "I/O error"}).")
-        is IllegalArgumentException, is IllegalStateException -> e
-        else -> IllegalStateException("$what failed (${e.javaClass.simpleName}).")
     }
 }
