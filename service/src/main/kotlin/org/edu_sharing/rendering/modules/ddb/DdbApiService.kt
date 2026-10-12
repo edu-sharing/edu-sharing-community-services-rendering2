@@ -13,7 +13,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.edu_sharing.rendering.utils.LogSanitizer
+import org.springframework.http.HttpHeaders
+import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
+import java.time.Duration
 import java.time.Instant
 
 @Service
@@ -26,6 +30,11 @@ class DdbApiService(
 ) {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
+    private val objectMapper = ObjectMapper()
+
+    private companion object {
+        val CALL_TIMEOUT: Duration = Duration.ofSeconds(60)
+    }
 
     private data class DdbRestData(
         val binaryRef: String,
@@ -58,7 +67,11 @@ class DdbApiService(
             subJob.status = SubJobStatus.FINISHED
             subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
-            log.error("Error while processing DDB communication: ${exception.message}", exception)
+            // The WebClient exception message embeds the request URI, which carries the IIIF consumer key.
+            log.error(
+                "Error while processing DDB communication: ${LogSanitizer.sanitize(exception.message)}",
+                LogSanitizer.sanitize(exception)
+            )
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
@@ -91,13 +104,16 @@ class DdbApiService(
 
         val response = webClient
             .get()
-            .uri {
-                it.path("/items/${remoteId}").queryParam("oauth_consumer_key", apiToken).build()
-            }.retrieve().bodyToMono(String::class.java).block()
+            .uri { it.path("/items/${remoteId}").build() }
+            // DDB accepts the consumer key as an OAuth header, which keeps it out of the URI (and thus out of
+            // WebClientException messages and access logs).
+            .header(HttpHeaders.AUTHORIZATION, "OAuth oauth_consumer_key=\"$apiToken\"")
+            .retrieve().bodyToMono(String::class.java)
+            .timeout(CALL_TIMEOUT)
+            .block()
 
         response?.let {
-            val objectMapper = ObjectMapper()
-            val rootNode = objectMapper.readTree(it)
+            val rootNode = parseJson(it, "REST")
             val ref = rootNode.path("binaries").path("binary").path("@ref").asString("")
             val licenseLink = rootNode.path("binaries").path("binary").path("@kind").asString("")
             val licenseGroup = rootNode.path("binaries").path("binary").path("@license_group").asString("")
@@ -122,11 +138,12 @@ class DdbApiService(
             .get()
             .uri {
                 it.path("/${binaryRef}/info.json").queryParam("oauth_consumer_key", apiToken).build()
-            }.retrieve().bodyToMono(String::class.java).block()
+            }.retrieve().bodyToMono(String::class.java)
+            .timeout(CALL_TIMEOUT)
+            .block()
 
         response?.let {
-            val objectMapper = ObjectMapper()
-            val rootNode = objectMapper.readTree(it)
+            val rootNode = parseJson(it, "IIIF")
             val sizesNode = rootNode.path("sizes")
             val sizes = sizesNode.mapNotNull { sizeNode ->
                 val width = sizeNode.path("width").asInt()
@@ -142,6 +159,17 @@ class DdbApiService(
         throw Exception("Missing DDB IIIF API response")
 
     }
+
+    /** Parses a DDB response; an HTML error page or empty body yields a readable message instead of a parser error. */
+    private fun parseJson(body: String, apiName: String): JsonNode =
+        try {
+            objectMapper.readTree(body)
+        } catch (exception: Exception) {
+            throw IllegalStateException(
+                "DDB $apiName API returned a non-JSON response (starts with: " +
+                    LogSanitizer.sanitize(body.trim().take(80)) + ")"
+            )
+        }
 
     private fun getToken(renderingJob: RenderingJob): String {
         val module = moduleRegistry.getRenderModule<RenderModule>(renderingJob.module)

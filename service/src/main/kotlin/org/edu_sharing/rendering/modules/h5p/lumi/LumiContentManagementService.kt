@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiContentResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeHashResponse
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -102,7 +103,7 @@ class LumiContentManagementService(
             }
             throw exception
         }
-        return objectMapper.readValue(response, LumiContentResponse::class.java).contentId
+        return parseResponse(response, LumiContentResponse::class.java, "content lookup for nodeId=$nodeId").contentId
     }
 
     fun getCspHeader(nodeId: String): String? {
@@ -131,12 +132,31 @@ class LumiContentManagementService(
             }
             throw exception
         }
-        val nodeHash = objectMapper.readValue(response, LumiNodeHashResponse::class.java).nodeId
+        val nodeHash = parseResponse(response, LumiNodeHashResponse::class.java, "node info for contentId=$contentId").nodeId
         return LumiNodeInfo(
             lumiId = contentId,
             nodeId = nodeHash.substringBefore("_"),
             hash = nodeHash.substringAfter("_"),
         )
+    }
+
+    /**
+     * Deserializes a lumi answer. A missing body or a non-JSON body (e.g. an HTML error page of a proxy in
+     * front of lumi) is reported with a readable message instead of an opaque Jackson/NPE failure.
+     */
+    private fun <T> parseResponse(body: String?, type: Class<T>, what: String): T {
+        if (body.isNullOrBlank()) {
+            throw IllegalStateException("Lumi returned an empty response for $what")
+        }
+        return try {
+            objectMapper.readValue(body, type)
+        } catch (exception: Exception) {
+            throw IllegalStateException(
+                "Lumi returned an unexpected response for $what (expected ${type.simpleName}, body starts with: " +
+                    "${LogSanitizer.sanitize(body.trim().take(80))})",
+                exception
+            )
+        }
     }
 
     fun getContentBucket(repoId: String): String = getBucketInfo(repoId).contentBucket
@@ -162,8 +182,9 @@ class LumiContentManagementService(
                 uri
             }.retrieve()
             .bodyToMono<String>()
+            .timeout(LOOKUP_TIMEOUT)
             .block()
-        val info = objectMapper.readValue(response, LumiBucketInfo::class.java)
+        val info = parseResponse(response, LumiBucketInfo::class.java, "bucket info")
         bucketInfoCache[repoId] = info to Instant.now()
         return info
     }
@@ -179,6 +200,7 @@ class LumiContentManagementService(
                         .toUri()
                 }.retrieve()
                 .bodyToMono<Void>()
+                .timeout(LOOKUP_TIMEOUT)
                 .block()
         } catch (exception: WebClientResponseException.NotFound) {
             // Already gone in lumi (e.g. evicted there) - the goal of the deletion is met.

@@ -280,4 +280,35 @@ class LumiContentManagementServiceTest {
         assertEquals("lumi-contentbucket-renamed", result)
         assertEquals(2, mockServer.requestCount)
     }
+
+    @Test
+    fun testGetContentBucketReportsReadableErrorForNonJsonBody() {
+        // Arrange: e.g. an HTML error page of a proxy in front of lumi
+        mockServer.enqueue(MockResponse().setBody("<html><body>Bad Gateway</body></html>").setResponseCode(200))
+
+        // Act
+        val exception = assertThrows<IllegalStateException> { underTest.getContentBucket("repo1") }
+
+        // Assert
+        assert(exception.message!!.contains("bucket info"))
+        assert(exception.message!!.contains("<html>"))
+    }
+
+    @Test
+    fun testGetContentBucketReportsReadableErrorForEmptyBody() {
+        mockServer.enqueue(MockResponse().setResponseCode(200))
+
+        val exception = assertThrows<IllegalStateException> { underTest.getContentBucket("repo1") }
+
+        assert(exception.message!!.contains("empty response"))
+    }
+
+    @Test
+    fun testGetNodeInfoReportsReadableErrorForNonJsonBody() {
+        mockServer.enqueue(MockResponse().setBody("not json").setResponseCode(200))
+
+        val exception = assertThrows<IllegalStateException> { underTest.getNodeInfo("content123") }
+
+        assert(exception.message!!.contains("content123"))
+    }
 }

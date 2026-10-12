@@ -238,7 +238,7 @@ class LumiProxyServiceTest {
             uri = "/h5p/some/path/test",
             headers = mapOf(
                 HttpHeaders.USER_AGENT to "somefakeagent",
-                "X-Foo" to "bar",
+                HttpHeaders.RANGE to "bytes=0-9",
                 HttpHeaders.ACCEPT_ENCODING to "caller-supplied-encoding",
             ),
         )
@@ -256,7 +256,7 @@ class LumiProxyServiceTest {
         // Assert: inbound headers reach Lumi verbatim...
         val forwarded = mockServer.takeRequest()
         assert(forwarded.getHeader(HttpHeaders.USER_AGENT) == "somefakeagent")
-        assert(forwarded.getHeader("X-Foo") == "bar")
+        assert(forwarded.getHeader(HttpHeaders.RANGE) == "bytes=0-9")
         // ...but the caller's Accept-Encoding is stripped, so its value never reaches Lumi.
         // (The reactive client transport negotiates its own Accept-Encoding on the wire; we only
         // guarantee the client-supplied value is dropped, which is what the code controls.)
@@ -264,6 +264,51 @@ class LumiProxyServiceTest {
         // No active span -> no TRACE header on the forwarded request nor on the response.
         assert(forwarded.getHeader("TRACE") == null)
         assert(result.headers.getFirst("TRACE") == null)
+    }
+
+    @Test
+    fun testDoesNotForwardCredentialOrHopHeaders() {
+        // Arrange: the caller's JWT, session cookie and Host must never reach Lumi.
+        val request = mockRequest(
+            uri = "/h5p/some/path/test",
+            headers = mapOf(
+                HttpHeaders.USER_AGENT to "somefakeagent",
+                HttpHeaders.AUTHORIZATION to "Bearer secret.jwt.value",
+                HttpHeaders.COOKIE to "SESSION=abc",
+                HttpHeaders.HOST to "evil.example.org",
+                "X-Foo" to "bar",
+            ),
+        )
+        enqueue()
+
+        // Act
+        underTest.processProxyRequest(
+            pathPrefix = "/h5p",
+            nodeInfo = mockk<LumiNodeInfo>(),
+            body = null,
+            method = HttpMethod.GET,
+            request = request,
+        )
+
+        // Assert
+        val forwarded = mockServer.takeRequest()
+        assert(forwarded.getHeader(HttpHeaders.USER_AGENT) == "somefakeagent")
+        assert(forwarded.getHeader(HttpHeaders.AUTHORIZATION) == null)
+        assert(forwarded.getHeader(HttpHeaders.COOKIE) == null)
+        assert(forwarded.getHeader("X-Foo") == null)
+        assert(forwarded.getHeader(HttpHeaders.HOST) != "evil.example.org")
+    }
+
+    @Test
+    fun testFilterForwardedHeadersIsCaseInsensitive() {
+        val request = mockRequest(
+            uri = "/h5p/x",
+            headers = mapOf("RANGE" to "bytes=1-2", "if-none-match" to "\"etag\"", "Cookie" to "a=b"),
+        )
+        val result = LumiProxyService.filterForwardedHeaders(request)
+        assert(result.getFirst("range") == "bytes=1-2")
+        assert(result.getFirst("If-None-Match") == "\"etag\"")
+        assert(!result.containsHeader("Cookie"))
     }
 
     @Test

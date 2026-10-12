@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import java.io.File
+import java.time.Duration
 
 @Service
 @ConditionalOnConverter
@@ -21,6 +22,11 @@ class OnyxUploadService(
     private val webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    private companion object {
+        /** Hard bound for the whole upload call; the connector's response timeout only covers the wait for headers. */
+        val UPLOAD_TIMEOUT: Duration = Duration.ofMinutes(10)
+    }
 
     fun uploadTest(cacheObject: CacheObject): String {
         log.debug("Downloading content for Onyx upload, nodeId ${cacheObject.nodeId}, hash ${cacheObject.hash}")
@@ -54,15 +60,13 @@ class OnyxUploadService(
                 .contentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
-                .onStatus({ t -> t.isError }, { it.createException() })
                 .bodyToMono(Void::class.java)
+                .timeout(UPLOAD_TIMEOUT)
                 .block()
 
             val runUrl = "${config["onyxrunurl"] ?: ""}?id=${cacheObject.nodeId}_${cacheObject.hash}"
             log.debug("Onyx upload complete, run URL: $runUrl")
             return runUrl
-        } catch (exception: Exception) {
-            throw exception
         } finally {
             originalFile.delete()
         }
