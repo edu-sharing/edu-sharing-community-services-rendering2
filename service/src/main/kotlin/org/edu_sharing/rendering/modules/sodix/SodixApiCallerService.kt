@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.sodix
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
 import org.edu_sharing.rendering.utils.RemoteResponseParser
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
@@ -14,13 +15,15 @@ import java.time.Duration
 @ConditionalOnConverter
 class SodixApiCallerService(
     @param:Qualifier("sodixRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    guardRegistry: RemoteCallGuardRegistry,
 ) {
     private companion object {
         val CALL_TIMEOUT: Duration = Duration.ofSeconds(60)
     }
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val guard = guardRegistry.guard("sodix")
 
     fun getContentUrl(
         sodixJobMessage: SodixJobMessage,
@@ -35,7 +38,8 @@ class SodixApiCallerService(
             .baseUrl(config["baseurl"] ?: "")
             .build()
 
-        val result = webClient.get()
+        val result = guard.block(retryable = true) {
+            webClient.get()
             .uri {
                 val builder = it
                     .path(if (sodixJobMessage.isPaidMedia) "render/paidmedia" else "render/playout")
@@ -48,7 +52,7 @@ class SodixApiCallerService(
             .retrieve()
             .bodyToMono<String>()
             .timeout(CALL_TIMEOUT)
-            .block()
+        }
             .let { RemoteResponseParser.parse(it, SodixApiResponse::class.java, objectMapper, "Sodix API") }
 
         log.debug("Sodix API returned playoutUrl for nodeId ${sodixJobMessage.nodeId}, downloadUrl present: ${result.downloadUrl != null}")

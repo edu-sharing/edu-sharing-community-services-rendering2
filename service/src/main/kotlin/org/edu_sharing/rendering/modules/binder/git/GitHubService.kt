@@ -2,6 +2,8 @@ package org.edu_sharing.rendering.modules.binder.git
 
 import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.modules.binder.dto.GitDetails
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
+import org.edu_sharing.rendering.core.resilience.RemoteModuleUnavailableException
 import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -23,6 +25,7 @@ import java.util.regex.Pattern
 class GitHubService(
     private val gitHubRepoApiWebClient: WebClient,
     private val gitHubBinaryWebClient: WebClient,
+    guardRegistry: RemoteCallGuardRegistry,
     @param:Value($$"${app.module.binder.max-file-size:50MB}")
     private val maxFileSize: DataSize
 ): GitService {
@@ -32,6 +35,7 @@ class GitHubService(
     }
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val guard = guardRegistry.guard("github")
 
     @Throws (Exception::class)
     override fun getFile(
@@ -46,24 +50,25 @@ class GitHubService(
         // shared codec buffer limit (spring.http.codecs.max-in-memory-size) and fails on larger notebooks.
         val maxBytes = maxFileSize.toBytes().toInt()
         val stream = try {
-            DataBufferUtils.join(
-                gitHubBinaryWebClient.get()
-                    .uri("/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}/${gitDetails.filePath}")
-                    .header("Authorization", "Bearer $token")
-                    .retrieve()
-                    .bodyToFlux(DataBuffer::class.java),
-                maxBytes
-            )
-                .map { buffer ->
-                    try {
-                        ByteArray(buffer.readableByteCount()).also { buffer.read(it) }
-                    } finally {
-                        DataBufferUtils.release(buffer)
+            guard.block(retryable = true) {
+                DataBufferUtils.join(
+                    gitHubBinaryWebClient.get()
+                        .uri("/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}/${gitDetails.filePath}")
+                        .header("Authorization", "Bearer $token")
+                        .retrieve()
+                        .bodyToFlux(DataBuffer::class.java),
+                    maxBytes
+                )
+                    .map { buffer ->
+                        try {
+                            ByteArray(buffer.readableByteCount()).also { buffer.read(it) }
+                        } finally {
+                            DataBufferUtils.release(buffer)
+                        }
                     }
-                }
-                .map { it.inputStream() }
-                .timeout(FILE_TIMEOUT)
-                .block()
+                    .map { it.inputStream() }
+                    .timeout(FILE_TIMEOUT)
+            }
         } catch (exception: WebClientResponseException) {
             throw IllegalStateException(describeFailure(exception, "fetching ${gitDetails.filePath}"), exception)
         } catch (exception: DataBufferLimitException) {
@@ -96,20 +101,21 @@ class GitHubService(
     ): Boolean {
         log.debug("Checking GitHub commit freshness: user={}, repo={}, branch={}, filePath={}, lastModifiedInCache={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath, lastModifiedInCache)
         try {
-            val response = gitHubRepoApiWebClient
-                .get()
-                .uri {
-                    it.path("/${gitDetails.user}/${gitDetails.repo}/commits")
-                        .queryParam("path", gitDetails.filePath ?: "")
-                        .queryParam("sha", gitDetails.branch)
-                        // Only the latest commit is inspected; do not transfer the default page of 30.
-                        .queryParam("per_page", 1)
-                        .build()
-                }
-                .header("Authorization", "Bearer $token")
-                .retrieve().bodyToMono(String::class.java)
-                .timeout(FILE_TIMEOUT)
-                .block()
+            val response = guard.block(retryable = true) {
+                gitHubRepoApiWebClient
+                    .get()
+                    .uri {
+                        it.path("/${gitDetails.user}/${gitDetails.repo}/commits")
+                            .queryParam("path", gitDetails.filePath ?: "")
+                            .queryParam("sha", gitDetails.branch)
+                            // Only the latest commit is inspected; do not transfer the default page of 30.
+                            .queryParam("per_page", 1)
+                            .build()
+                    }
+                    .header("Authorization", "Bearer $token")
+                    .retrieve().bodyToMono(String::class.java)
+                    .timeout(FILE_TIMEOUT)
+            }
             response?.let {
                 val objectMapper = ObjectMapper()
                 val rootNode = objectMapper.readTree(it)
@@ -130,6 +136,9 @@ class GitHubService(
                 "GitHub freshness check failed, existing cached preview will be used: {}",
                 describeFailure(exception, "checking commits of ${gitDetails.user}/${gitDetails.repo}")
             )
+            return true
+        } catch (exception: RemoteModuleUnavailableException) {
+            log.warn("GitHub freshness check skipped, existing cached preview will be used: {}", exception.message)
             return true
         } catch (exception: Exception) {
             // ToDo send info to client to inform of potentially deprecated preview from cache

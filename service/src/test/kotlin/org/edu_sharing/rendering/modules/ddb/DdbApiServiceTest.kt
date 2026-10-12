@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.ddb
 
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import io.mockk.every
 import io.mockk.mockk
 import okhttp3.mockwebserver.MockResponse
@@ -26,6 +27,7 @@ class DdbApiServiceTest {
     private val module = mockk<DdbRenderModule>()
     private val registry = mockk<ModuleRegistry>()
     private lateinit var underTest: DdbApiService
+    private lateinit var properties: DdbApiProperties
     private lateinit var job: RenderingJob
     private lateinit var subJob: SubJob
 
@@ -33,7 +35,7 @@ class DdbApiServiceTest {
     fun setup() {
         restServer = MockWebServer().also { it.start() }
         iiifServer = MockWebServer().also { it.start() }
-        val properties = DdbApiProperties().apply {
+        properties = DdbApiProperties().apply {
             restApiBaseUrl = restServer.url("/").toString().removeSuffix("/")
             iiifApiBaseUrl = iiifServer.url("/").toString().removeSuffix("/")
         }
@@ -51,7 +53,8 @@ class DdbApiServiceTest {
             moduleRegistry = registry,
             subJobRepository = subJobRepository,
             webClientBuilder = WebClient.builder(),
-            ddbApiProperties = properties
+            ddbApiProperties = properties,
+            guardRegistry = testGuardRegistry()
         )
     }
 
@@ -61,8 +64,7 @@ class DdbApiServiceTest {
         iiifServer.shutdown()
     }
 
-    @Test
-    fun `REST call sends the consumer key as header and not in the url`() {
+    private fun enqueueHappyPath() {
         restServer.enqueue(
             MockResponse().setBody(
                 """{"binaries":{"binary":{"@ref":"abc","@kind":"k","@license_group":"g"}},
@@ -70,6 +72,25 @@ class DdbApiServiceTest {
             )
         )
         iiifServer.enqueue(MockResponse().setBody("""{"sizes":[{"width":100,"height":50}]}"""))
+    }
+
+    @Test
+    fun `default QUERY mode sends the consumer key as query parameter on REST and IIIF`() {
+        enqueueHappyPath()
+
+        underTest.process("remote1", job)
+
+        assertEquals(SubJobStatus.FINISHED, subJob.status)
+        val rest = restServer.takeRequest()
+        assertEquals("SECRETKEY", rest.requestUrl!!.queryParameter("oauth_consumer_key"))
+        assertNull(rest.getHeader("Authorization"))
+        assertEquals("SECRETKEY", iiifServer.takeRequest().requestUrl!!.queryParameter("oauth_consumer_key"))
+    }
+
+    @Test
+    fun `HEADER mode sends the REST consumer key as header and not in the url, IIIF stays on the query`() {
+        properties.authMode = DdbAuthMode.HEADER
+        enqueueHappyPath()
 
         underTest.process("remote1", job)
 
@@ -78,6 +99,28 @@ class DdbApiServiceTest {
         assertEquals("OAuth oauth_consumer_key=\"SECRETKEY\"", rest.getHeader("Authorization"))
         assertFalse(rest.path!!.contains("SECRETKEY"))
         assertNull(rest.requestUrl!!.queryParameter("oauth_consumer_key"))
+        assertEquals("SECRETKEY", iiifServer.takeRequest().requestUrl!!.queryParameter("oauth_consumer_key"))
+    }
+
+    @Test
+    fun `a transient 503 on the REST API is retried`() {
+        restServer.enqueue(MockResponse().setResponseCode(503))
+        enqueueHappyPath()
+
+        underTest.process("remote1", job)
+
+        assertEquals(SubJobStatus.FINISHED, subJob.status)
+        assertEquals(2, restServer.requestCount)
+    }
+
+    @Test
+    fun `a 403 is not retried`() {
+        restServer.enqueue(MockResponse().setResponseCode(403))
+
+        underTest.process("remote1", job)
+
+        assertEquals(SubJobStatus.FAILED, subJob.status)
+        assertEquals(1, restServer.requestCount)
     }
 
     @Test

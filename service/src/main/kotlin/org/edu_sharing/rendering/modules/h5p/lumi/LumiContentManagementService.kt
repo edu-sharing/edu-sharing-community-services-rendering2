@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.modules.h5p.lumi
 import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiBucketInfo
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiContentResponse
@@ -33,9 +34,11 @@ class LumiContentManagementService(
     @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
     @param:Value($$"${app.lumi.bucketInfo.cacheTtl:PT1M}")
-    private val bucketInfoCacheTtl: Duration
+    private val bucketInfoCacheTtl: Duration,
+    guardRegistry: RemoteCallGuardRegistry,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+    private val guard = guardRegistry.guard("lumi")
 
     companion object {
         /** Both id lookups are a single indexed Mongo query inside Lumi — never wait long for them. */
@@ -86,16 +89,17 @@ class LumiContentManagementService(
     fun getContentId(nodeId: String, hash: String, timeout: Duration = LOOKUP_TIMEOUT): String? {
         log.debug("Looking up Lumi content id for nodeId={}, hash={}", nodeId, hash)
         val response = try {
-            lumiWebClient.get()
-                .uri {
-                    UriComponentsBuilder.fromUri(it.build())
-                        .path("/edusharing/nodeid/${nodeId}_$hash")
-                        .build(true)
-                        .toUri()
-                }.retrieve()
-                .bodyToMono<String>()
-                .timeout(timeout)
-                .block()
+            guard.block(retryable = true) {
+                lumiWebClient.get()
+                    .uri {
+                        UriComponentsBuilder.fromUri(it.build())
+                            .path("/edusharing/nodeid/${nodeId}_$hash")
+                            .build(true)
+                            .toUri()
+                    }.retrieve()
+                    .bodyToMono<String>()
+                    .timeout(timeout)
+            }
         } catch (exception: WebClientResponseException) {
             if (exception.statusCode.isSameCodeAs(HttpStatus.NOT_FOUND)) {
                 log.debug("Lumi holds no rendering for nodeId={}, hash={}", nodeId, hash)
@@ -116,16 +120,17 @@ class LumiContentManagementService(
     private fun retrieveNodeInfo(contentId: String): LumiNodeInfo {
         log.debug("Retrieving Lumi node info for contentId={}", contentId)
         val response = try {
-            lumiWebClient.get()
-                .uri {
-                    UriComponentsBuilder.fromUri(it.build())
-                        .path("/edusharing/contentid/$contentId")
-                        .build(true)
-                        .toUri()
-                }.retrieve()
-                .bodyToMono<String>()
-                .timeout(LOOKUP_TIMEOUT)
-                .block()
+            guard.block(retryable = true) {
+                lumiWebClient.get()
+                    .uri {
+                        UriComponentsBuilder.fromUri(it.build())
+                            .path("/edusharing/contentid/$contentId")
+                            .build(true)
+                            .toUri()
+                    }.retrieve()
+                    .bodyToMono<String>()
+                    .timeout(LOOKUP_TIMEOUT)
+            }
         } catch (exception: WebClientResponseException) {
             if (exception.statusCode.isSameCodeAs(HttpStatus.NOT_FOUND)) {
                 throw ResourceNotFoundException("Lumi holds no content with id $contentId")
@@ -173,17 +178,17 @@ class LumiContentManagementService(
         bucketInfoCache[repoId]?.let { (info, fetchedAt) ->
             if (Duration.between(fetchedAt, Instant.now()) < bucketInfoCacheTtl) return info
         }
-        val response = lumiWebClient.get()
-            .uri {
-                val uri = UriComponentsBuilder.fromUri(it.build())
-                    .path("/edusharing/buckets/")
-                    .build(true)
-                    .toUri()
-                uri
-            }.retrieve()
-            .bodyToMono<String>()
-            .timeout(LOOKUP_TIMEOUT)
-            .block()
+        val response = guard.block(retryable = true) {
+            lumiWebClient.get()
+                .uri {
+                    UriComponentsBuilder.fromUri(it.build())
+                        .path("/edusharing/buckets/")
+                        .build(true)
+                        .toUri()
+                }.retrieve()
+                .bodyToMono<String>()
+                .timeout(LOOKUP_TIMEOUT)
+        }
         val info = parseResponse(response, LumiBucketInfo::class.java, "bucket info")
         bucketInfoCache[repoId] = info to Instant.now()
         return info
@@ -192,16 +197,18 @@ class LumiContentManagementService(
     fun deleteContent(trackingEntry: TrackingEntry) {
         log.debug("Deleting Lumi content for nodeId={}, hash={}", trackingEntry.nodeId, trackingEntry.hash)
         try {
-            lumiWebClient.delete()
-                .uri {
-                    UriComponentsBuilder.fromUri(it.build())
-                        .path("/edusharing/${trackingEntry.nodeId}_${trackingEntry.hash}")
-                        .build(true)
-                        .toUri()
-                }.retrieve()
-                .bodyToMono<Void>()
-                .timeout(LOOKUP_TIMEOUT)
-                .block()
+            // A side-effecting call: guarded by the breaker/bulkhead but never retried.
+            guard.block(retryable = false) {
+                lumiWebClient.delete()
+                    .uri {
+                        UriComponentsBuilder.fromUri(it.build())
+                            .path("/edusharing/${trackingEntry.nodeId}_${trackingEntry.hash}")
+                            .build(true)
+                            .toUri()
+                    }.retrieve()
+                    .bodyToMono<Void>()
+                    .timeout(LOOKUP_TIMEOUT)
+            }
         } catch (exception: WebClientResponseException.NotFound) {
             // Already gone in lumi (e.g. evicted there) - the goal of the deletion is met.
             log.debug("Lumi content nodeId={}, hash={} already deleted", trackingEntry.nodeId, trackingEntry.hash)

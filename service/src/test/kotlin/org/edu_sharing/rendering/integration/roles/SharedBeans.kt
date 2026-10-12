@@ -6,6 +6,8 @@ import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.config.*
 import org.edu_sharing.rendering.core.PingController
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
+import org.edu_sharing.rendering.core.resilience.ResilienceProperties
 import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
@@ -194,7 +196,9 @@ abstract class SharedBeans {
             RedisConfig::class,
             RedisLettuceMetrics::class,
             RedisStandaloneConfigurationProperties::class,
+            RemoteCallGuardRegistry::class,
             RemoteListenerContainerFactorySupport::class,
+            ResilienceProperties::class,
             RenderingMetrics::class,
             RegistrationCacheBroadcaster::class,
             RegistrationCacheConfig::class,

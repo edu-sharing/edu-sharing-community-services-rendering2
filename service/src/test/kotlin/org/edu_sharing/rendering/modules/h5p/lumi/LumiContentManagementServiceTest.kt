@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import io.mockk.clearAllMocks
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
@@ -40,7 +41,8 @@ class LumiContentManagementServiceTest {
             objectMapper = JsonMapper.builder().build(),
             module = module,
             securityEnabled = false,
-            bucketInfoCacheTtl = Duration.ofMinutes(1)
+            bucketInfoCacheTtl = Duration.ofMinutes(1),
+            guardRegistry = testGuardRegistry()
         )
         clearAllMocks()
     }
@@ -100,11 +102,23 @@ class LumiContentManagementServiceTest {
 
     @Test
     fun testGetNodeInfoPropagatesOtherLumiErrors() {
-        // Arrange
-        enqueueStatus(500)
+        // Arrange - a persistent 5xx is retried (idempotent GET) and then propagated
+        repeat(3) { enqueueStatus(500) }
 
         // Act and assert
         assertThrows<WebClientResponseException> { underTest.getNodeInfo("content123") }
+        assertEquals(3, mockServer.requestCount)
+    }
+
+    @Test
+    fun testGetNodeInfoRetriesATransientError() {
+        // Arrange
+        enqueueStatus(503)
+        enqueueJson("""{"nodeId": "node127_hash127"}""")
+
+        // Act and assert
+        assertEquals("node127", underTest.getNodeInfo("content127").nodeId)
+        assertEquals(2, mockServer.requestCount)
     }
 
     @Test
@@ -136,11 +150,12 @@ class LumiContentManagementServiceTest {
 
     @Test
     fun testGetContentIdPropagatesOtherLumiErrors() {
-        // Arrange
-        enqueueStatus(500)
+        // Arrange - a persistent 5xx is retried (idempotent GET) and then propagated
+        repeat(3) { enqueueStatus(500) }
 
         // Act and assert
         assertThrows<WebClientResponseException> { underTest.getContentId("node125", "hash125") }
+        assertEquals(3, mockServer.requestCount)
     }
 
     @Test
@@ -201,6 +216,8 @@ class LumiContentManagementServiceTest {
                 )
             )
         }
+        // a side-effecting DELETE is never retried
+        assertEquals(1, mockServer.requestCount)
     }
 
     @Test
@@ -266,7 +283,8 @@ class LumiContentManagementServiceTest {
             objectMapper = JsonMapper.builder().build(),
             module = module,
             securityEnabled = false,
-            bucketInfoCacheTtl = Duration.ofMillis(20)
+            bucketInfoCacheTtl = Duration.ofMillis(20),
+            guardRegistry = testGuardRegistry()
         )
         enqueueJson("""{"contentBucket": "lumi-contentbucket"}""")
         shortLived.getContentBucket("repo1")
