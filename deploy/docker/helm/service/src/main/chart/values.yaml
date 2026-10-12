@@ -822,6 +822,15 @@ tolerations: []
 ## @param podAnnotations Set custom pod annotations
 podAnnotations: {}
 
+## PodDisruptionBudget, rendered only when global.cluster.pdb.enabled is set AND more than one replica runs
+podDisruptionBudget:
+  ## @param podDisruptionBudget.minAvailable Pods that must stay available during voluntary disruptions
+  minAvailable: 1
+  ## @param podDisruptionBudget.maxUnavailable Pods that may be unavailable; when set it replaces minAvailable (e.g. 1 or "25%")
+  maxUnavailable: ""
+
+########################################################################################################################
+
 podSecurityContext:
   ## @param podSecurityContext.fsGroup Set fs group for access
   fsGroup: 1000
@@ -837,14 +846,20 @@ securityContext:
       - ALL
   ## @param securityContext.runAsUser Set drop capabilities
   runAsUser: 1000
+  ## @param securityContext.runAsNonRoot Refuse to start the container as root (the images run as UID 1000)
+  runAsNonRoot: true
 
 ########################################################################################################################
 
-## @param terminationGracePeriod Define grace period for termination. Must be >= the queueListenerContainerFactory
-## shutdownTimeout (35m, covers the longest STANDARD job type: av/ffmpeg) or K8s SIGKILLs the pod before an
-## in-flight conversion can finish gracefully. Only an upper bound - a pod with nothing in flight (or only fast
-## jobs) still stops immediately once the JVM exits.
-terminationGracePeriod: 2160
+## @param terminationGracePeriod Define grace period for termination. Must be > the queueListenerContainerFactory
+## shutdownTimeout (35m, covers the longest STANDARD job type: av/ffmpeg) plus the HTTP drain that runs *before* it
+## (server.shutdown=graceful), or K8s SIGKILLs the pod before an in-flight conversion can finish gracefully. Keep it
+## above spring.lifecycle.timeout-per-shutdown-phase (36m) too. Only an upper bound - a pod with nothing in flight
+## (or only fast jobs) still stops immediately once the JVM exits.
+terminationGracePeriod: 2400
+
+## @param preStopSleepSeconds Seconds the container sleeps in its preStop hook before SIGTERM, so the endpoint removal reaches Ingress/Service proxies first (0 = no hook). Counts against terminationGracePeriod
+preStopSleepSeconds: 5
 
 startupProbe:
   ## @param startupProbe.failureThreshold Failure threshold for startupProbe
@@ -869,8 +884,9 @@ livenessProbe:
   timeoutSeconds: 10
 
 readinessProbe:
-  ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
-  failureThreshold: 1
+  ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe. The readiness group checks Mongo and
+  ## Redis, so tolerate one slow answer before a pod is taken out of the Service (liveness stays dependency-free).
+  failureThreshold: 3
   ## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
   initialDelaySeconds: 10
   ## @param readinessProbe.periodSeconds Period seconds for readinessProbe

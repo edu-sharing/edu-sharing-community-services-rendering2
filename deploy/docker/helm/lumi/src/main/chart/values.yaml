@@ -111,6 +111,10 @@ config:
     ## @param config.libraryCache.rescanHours Hours a measurement of the cache stays valid: a start with a younger one does not walk the cache again, and it is measured again this often while running (0 = measure at every start only). The size is otherwise kept up to date incrementally
     rescanHours: 24
 
+  shutdown:
+    ## @param config.shutdown.timeoutMs Time in ms a shutdown waits for running requests (an import) before the process exits; empty = derived from terminationGracePeriod minus preStopSleepSeconds minus 10 s
+    timeoutMs: ""
+
   log:
     ## @param config.log.level Set log level
     level: info
@@ -236,6 +240,15 @@ tolerations: []
 ## @param podAnnotations Set custom pod annotations
 podAnnotations: {}
 
+## PodDisruptionBudget, rendered only when global.cluster.pdb.enabled is set AND more than one replica runs
+podDisruptionBudget:
+  ## @param podDisruptionBudget.minAvailable Pods that must stay available during voluntary disruptions
+  minAvailable: 1
+  ## @param podDisruptionBudget.maxUnavailable Pods that may be unavailable; when set it replaces minAvailable (e.g. 1 or "25%")
+  maxUnavailable: ""
+
+########################################################################################################################
+
 podSecurityContext:
   ## @param podSecurityContext.fsGroup Set fs group for access
   fsGroup: 1000
@@ -252,11 +265,16 @@ securityContext:
       - ALL
   ## @param securityContext.runAsUser Define user to run under
   runAsUser: 1000
+  ## @param securityContext.runAsNonRoot Refuse to start the container as root (the images run as UID 1000)
+  runAsNonRoot: true
 
 ########################################################################################################################
 
 ## @param terminationGracePeriod Define grace period for termination
 terminationGracePeriod: 120
+
+## @param preStopSleepSeconds Seconds the container sleeps in its preStop hook before SIGTERM, so the endpoint removal reaches Ingress/Service proxies first (0 = no hook). Counts against terminationGracePeriod
+preStopSleepSeconds: 5
 
 startupProbe:
   ## @param startupProbe.failureThreshold Failure threshold for startupProbe
@@ -270,9 +288,12 @@ startupProbe:
   ## @param startupProbe.timeoutSeconds Timeout seconds for startupProbe
   timeoutSeconds: 10
 
+## Liveness is a plain HTTP ping that answers 200 whenever the process (event loop) does. The threshold is generous on
+## purpose: a restart kills a running import or conversion, so a busy-but-alive pod must not be restarted
+## (periodSeconds x failureThreshold = 3 minutes of consecutive failures).
 livenessProbe:
   ## @param livenessProbe.failureThreshold Failure threshold for livenessProbe
-  failureThreshold: 3
+  failureThreshold: 6
   ## @param livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
   initialDelaySeconds: 30
   ## @param livenessProbe.periodSeconds Period seconds for livenessProbe

@@ -18,6 +18,13 @@ data:
   H5P_MAX_FILE_SIZE: {{ .Values.config.files.maxPackageFileSize | quote }}
   H5P_CONTENT_WHITELIST_EXTRA: {{ .Values.config.files.contentWhitelistExtra | quote }}
   H5P_LIBRARY_WHITELIST_EXTRA: {{ .Values.config.files.libraryWhitelistExtra | quote }}
+  {{/* Time the shutdown waits for a running import before the process gives up. Derived from the pod's grace period
+       (minus the preStop sleep and a 10 s margin for the flush and exit) so the kubelet never SIGKILLs first. */}}
+  {{- $shutdownMs := .Values.config.shutdown.timeoutMs }}
+  {{- if not $shutdownMs }}
+  {{- $shutdownMs = max 10000 (mul (sub (sub (int .Values.terminationGracePeriod) (int .Values.preStopSleepSeconds)) 10) 1000) }}
+  {{- end }}
+  SHUTDOWN_TIMEOUT_MS: {{ $shutdownMs | int64 | quote }}
   BASE_URL: {{ printf "%s/public/h5p" .Values.config.base | quote }}
   CACHE: {{ .Values.config.cache.type | quote }}
   CONTENT_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.content | quote }}

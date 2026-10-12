@@ -29,10 +29,10 @@ ARG virtualEnvPath=/app/.venv
 ENV VIRTUAL_ENV=${virtualEnvPath} \
     PATH="/app/.venv/bin:$PATH"
 
-WORKDIR app
+WORKDIR /app
 
 RUN set -eux \
-    && adduser --uid=1000 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
+    && adduser --uid=1000 --home=/app --disabled-password --gecos "" --shell=/bin/bash worker \
     && chown -RL worker:worker . \
     && chown -RL worker:worker /tmp
 

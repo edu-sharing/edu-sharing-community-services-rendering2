@@ -45,7 +45,8 @@ spec:
         {{- end }}
         {{- with .Values.livenessProbe }}
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /ping
             port: api
           failureThreshold: {{ .failureThreshold }}
           initialDelaySeconds: {{ .initialDelaySeconds }}
@@ -62,6 +63,12 @@ spec:
           periodSeconds: {{ .periodSeconds }}
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
+        {{- end }}
+        {{- if .Values.preStopSleepSeconds }}
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep {{ .Values.preStopSleepSeconds }}"]
         {{- end }}
         {{- with .Values.resources }}
         resources: {{ toYaml . | nindent 10 }}

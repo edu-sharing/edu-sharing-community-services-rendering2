@@ -69,8 +69,10 @@ spec:
         {{- end }}
         {{- with $.Values.startupProbe }}
         startupProbe:
+          {{- /* Liveness group on purpose: the readiness group depends on Mongo/Redis, and a startup probe that
+                 keeps failing kills the pod - a dependency outage during boot must not cause restarts. */}}
           httpGet:
-            path: /actuator/health/readiness
+            path: /actuator/health/liveness
             port: management
           failureThreshold: {{ .failureThreshold }}
           initialDelaySeconds: {{ .initialDelaySeconds }}
@@ -97,6 +99,12 @@ spec:
           periodSeconds: {{ .periodSeconds }}
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
+        {{- end }}
+        {{- if $.Values.preStopSleepSeconds }}
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep {{ $.Values.preStopSleepSeconds }}"]
         {{- end }}
         {{- with $roleCfg.resources | default $.Values.resources }}
         resources: {{ toYaml . | nindent 10 }}

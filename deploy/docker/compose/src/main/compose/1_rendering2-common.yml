@@ -15,6 +15,13 @@ services:
       RUSTFS_OBS_LOG_DIRECTORY: ""
       RUST_BACKTRACE: full
     command: [ "rustfs" ]
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health || wget -q -O /dev/null http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       - "rendering2-rustfs-storage-volume-data:/data"
     expose:
@@ -30,6 +37,13 @@ services:
       RABBITMQ_DEFAULT_PASS: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       RABBITMQ_SECURE_PASSWORD: true
       RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
     expose:
       - "5672"
       - "15672"
@@ -44,9 +58,29 @@ services:
       MONGODB_EXTRA_LUMI_DATABASE: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       MONGODB_EXTRA_LUMI_USERNAME: "${RENDERING2_LUMI_DATABASE_USER:-lumi}"
       MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'quit(db.adminCommand({ping: 1}).ok ? 0 : 1)'"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+
+  redis-cache:
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rendering2-service:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
+    # Graceful shutdown drains in-flight HTTP requests and RabbitMQ consumers (up to 35 min for an ffmpeg job,
+    # see spring.lifecycle.timeout-per-shutdown-phase in application.properties). Docker's default of 10 s would
+    # SIGKILL the container long before. Only an upper bound: an idle service still stops immediately.
+    stop_grace_period: "${RENDERING2_SERVICE_STOP_GRACE_PERIOD:-40m}"
     command:
       - -Xms${RENDERING2_SERVICE_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_JAVA_XMX:-512m}
@@ -237,15 +271,25 @@ services:
       server.servlet.session.cookie.partitioned: "${RENDERING2_SERVICE_COOKIE_PARTITIONED:-false}"
       app.lumi.host: http://rendering2-lumi:3000
       app.documentConverter.host: http://rendering2-document-converter:8080
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    # Readiness on the management port (management.server.port, same endpoint the Helm chart probes). curl ships in the image.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9080/actuator/health/readiness"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 3m
     expose:
       - "8080"
     depends_on:
       mongo-database:
-        condition: service_started
+        condition: service_healthy
       rendering2-message-queue:
-        condition: service_started
+        condition: service_healthy
       redis-cache:
-        condition: service_started
+        condition: service_healthy
+      rendering2-rustfs-storage:
+        condition: service_healthy
       # Lumi can need minutes to start; H5P jobs consumed earlier fail with "connection refused".
       rendering2-lumi:
         condition: service_healthy
@@ -271,6 +315,14 @@ services:
       LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
     cpus: "${RENDERING2_DOCUMENT_CONVERTER_CPUS:-2}"
     mem_limit: "${RENDERING2_DOCUMENT_CONVERTER_MEMORY:-4g}"
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    # Management port of the document-converter (management.server.port); busybox wget ships in the image.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health/readiness"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 2m
     expose:
       - "8080"
 
@@ -340,6 +392,15 @@ services:
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*
+      # How long a shutdown waits for a running import before the process exits; keep it below stop_grace_period.
+      SHUTDOWN_TIMEOUT_MS: "${RENDERING2_LUMI_SHUTDOWN_TIMEOUT_MS:-30000}"
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    stop_grace_period: "${RENDERING2_LUMI_STOP_GRACE_PERIOD:-40s}"
+    depends_on:
+      mongo-database:
+        condition: service_healthy
+      rendering2-rustfs-storage:
+        condition: service_healthy
     volumes:
       - "rendering2-lumi-volume-library-cache:/application/library-cache"
     healthcheck:
@@ -364,6 +425,7 @@ services:
       VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
       VIRTUAL_PATH: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
       VIRTUAL_PORT: 8080
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
     expose:
       - "8080"
     ports:

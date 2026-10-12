@@ -58,6 +58,12 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
+        {{- if .Values.preStopSleepSeconds }}
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep {{ .Values.preStopSleepSeconds }}"]
+        {{- end }}
         {{- with .Values.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
