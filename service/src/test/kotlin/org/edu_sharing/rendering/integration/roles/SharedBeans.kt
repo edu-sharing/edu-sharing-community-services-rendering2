@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.RepositoryHttpConfig
+import org.edu_sharing.rendering.edusharingRepo.RepositoryHttpTimeoutProperties
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
 import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheBroadcaster
@@ -23,6 +24,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.modules.ConverterCallProperties
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.av.AvModuleTypeMapper
@@ -128,6 +130,7 @@ abstract class SharedBeans {
             GitServiceRegistry::class,
             BucketPerMediaTypeStrategy::class,
             ContentTransferService::class,
+            ConverterCallProperties::class,
             ConverterWebServiceCaller::class,
             CorsConfig::class,
             DdbApiProperties::class,
@@ -208,6 +211,7 @@ abstract class SharedBeans {
             RepositoryRegistrationService::class,
             RepositoryRegistrationStorageService::class,
             RepositoryHttpConfig::class,
+            RepositoryHttpTimeoutProperties::class,
             RestClientProvider::class,
             Rs2StorageManager::class,
             S3Config::class,
