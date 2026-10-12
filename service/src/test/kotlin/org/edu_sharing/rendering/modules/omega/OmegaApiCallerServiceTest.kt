@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.omega
 
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import io.mockk.every
 import io.mockk.mockk
 import okhttp3.mockwebserver.MockResponse
@@ -27,7 +28,8 @@ class OmegaApiCallerServiceTest {
         every { module.getCredentials("repo") } returns mapOf("baseurl" to server.url("/api").toString())
         underTest = OmegaApiCallerService(
             WebClient.builder(), WebClient.builder(),
-            JsonMapper.builder().addModule(kotlinModule()).build()
+            JsonMapper.builder().addModule(kotlinModule()).build(),
+            testGuardRegistry()
         )
     }
 

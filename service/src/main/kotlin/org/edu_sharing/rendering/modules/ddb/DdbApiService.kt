@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
@@ -26,11 +27,13 @@ class DdbApiService(
     private val moduleRegistry: ModuleRegistry,
     private val subJobRepository: SubJobRepository,
     @param:Qualifier("ddbRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder,
-    private val ddbApiProperties: DdbApiProperties
+    private val ddbApiProperties: DdbApiProperties,
+    guardRegistry: RemoteCallGuardRegistry,
 ) {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
     private val objectMapper = ObjectMapper()
+    private val guard = guardRegistry.guard("ddb")
 
     private companion object {
         val CALL_TIMEOUT: Duration = Duration.ofSeconds(60)
@@ -102,15 +105,20 @@ class DdbApiService(
         log.debug("Calling DDB REST API for remoteId $remoteId at ${ddbApiProperties.restApiBaseUrl}")
         val webClient = webClientBuilder.clone().baseUrl(ddbApiProperties.restApiBaseUrl).build()
 
-        val response = webClient
-            .get()
-            .uri { it.path("/items/${remoteId}").build() }
-            // DDB accepts the consumer key as an OAuth header, which keeps it out of the URI (and thus out of
-            // WebClientException messages and access logs).
-            .header(HttpHeaders.AUTHORIZATION, "OAuth oauth_consumer_key=\"$apiToken\"")
-            .retrieve().bodyToMono(String::class.java)
-            .timeout(CALL_TIMEOUT)
-            .block()
+        val response = guard.block(retryable = true) {
+            val spec = webClient.get().uri {
+                val builder = it.path("/items/${remoteId}")
+                if (ddbApiProperties.authMode == DdbAuthMode.QUERY) builder.queryParam("oauth_consumer_key", apiToken)
+                builder.build()
+            }
+            // HEADER mode (opt-in, unverified against the live API, see DdbApiProperties) keeps the key out of
+            // the URI and thus out of WebClientException messages and access logs.
+            (if (ddbApiProperties.authMode == DdbAuthMode.HEADER)
+                spec.header(HttpHeaders.AUTHORIZATION, "OAuth oauth_consumer_key=\"$apiToken\"")
+            else spec)
+                .retrieve().bodyToMono(String::class.java)
+                .timeout(CALL_TIMEOUT)
+        }
 
         response?.let {
             val rootNode = parseJson(it, "REST")
@@ -134,13 +142,14 @@ class DdbApiService(
     private fun callIiifApi(binaryRef: String, apiToken: String): List<Pair<Int, Int>> {
         log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${ddbApiProperties.iiifApiBaseUrl}")
         val webClient = webClientBuilder.clone().baseUrl(ddbApiProperties.iiifApiBaseUrl).build()
-        val response = webClient
-            .get()
-            .uri {
-                it.path("/${binaryRef}/info.json").queryParam("oauth_consumer_key", apiToken).build()
-            }.retrieve().bodyToMono(String::class.java)
-            .timeout(CALL_TIMEOUT)
-            .block()
+        val response = guard.block(retryable = true) {
+            webClient
+                .get()
+                .uri {
+                    it.path("/${binaryRef}/info.json").queryParam("oauth_consumer_key", apiToken).build()
+                }.retrieve().bodyToMono(String::class.java)
+                .timeout(CALL_TIMEOUT)
+        }
 
         response?.let {
             val rootNode = parseJson(it, "IIIF")

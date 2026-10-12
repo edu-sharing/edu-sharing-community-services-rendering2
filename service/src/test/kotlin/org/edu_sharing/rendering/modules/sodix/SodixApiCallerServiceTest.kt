@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.sodix
 
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import io.mockk.every
 import io.mockk.mockk
 import okhttp3.mockwebserver.MockResponse
@@ -25,7 +26,7 @@ class SodixApiCallerServiceTest {
         server = MockWebServer()
         server.start()
         every { module.getCredentials("repo") } returns mapOf("baseurl" to server.url("/").toString())
-        underTest = SodixApiCallerService(WebClient.builder(), JsonMapper.builder().addModule(kotlinModule()).build())
+        underTest = SodixApiCallerService(WebClient.builder(), JsonMapper.builder().addModule(kotlinModule()).build(), testGuardRegistry())
     }
 
     @AfterEach

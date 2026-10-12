@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.binder.git
 
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.modules.binder.dto.GitDetails
@@ -34,7 +35,7 @@ class GitHubServiceTest {
             .baseUrl(server.url("/").toString())
             .codecs { it.defaultCodecs().maxInMemorySize(1024) }
             .build()
-        return GitHubService(client, client, maxFileSize)
+        return GitHubService(client, client, testGuardRegistry(), maxFileSize)
     }
 
     @Test
