@@ -14,8 +14,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientRequestException
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
+import java.util.concurrent.TimeoutException
 
 @Component
 class MoodleRenderModule(
@@ -23,6 +26,9 @@ class MoodleRenderModule(
     private val nodePermissionExpirationTime: Long?,
     private val moodleJobService: MoodleJobService,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
+    // The central builder from WebClientConfig carries the connect/response timeouts; a bare
+    // WebClient.builder() has none and would let a hanging Moodle block the calling thread forever.
+    private val webClientBuilder: WebClient.Builder = WebClient.builder(),
 ) : RenderModule, ThirdPartyModule {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -30,6 +36,8 @@ class MoodleRenderModule(
 
     companion object {
         private const val SHOW_PREVIEW_IFRAME = "showPreviewIframe"
+
+        private val DEFAULT_TOKEN_TIMEOUT: Duration = Duration.ofSeconds(60)
 
         private val requiredCredentialKeys = setOf("baseurl", "timeout", "categoryid", "password")
 
@@ -71,12 +79,13 @@ class MoodleRenderModule(
             throw IllegalArgumentException("User and password or token must be provided.")
         }
 
-        val webClient = WebClient
-            .builder()
+        val timeout = Duration.ofSeconds(credentials.getValue("timeout").toLong())
+        val webClient = webClientBuilder
+            .clone()
             .baseUrl(credentials.getValue("baseurl"))
             .build()
 
-        val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
+        val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"), timeout)
 
         log.debug("Calling Moodle ping endpoint for repoId $repoId at ${credentials.getValue("baseurl")}")
         val rawResponse = webClient.get()
@@ -90,7 +99,8 @@ class MoodleRenderModule(
             }
             .retrieve()
             .bodyToMono<String>()
-            .timeout(Duration.ofSeconds(credentials.getValue("timeout").toLong()))
+            .timeout(timeout)
+            .onErrorMap { transportError("Moodle ping request", it) }
             .block()
 
         // Moodle webservice errors (e.g. a revoked token, missing capability) come back as a JSON
@@ -166,9 +176,22 @@ class MoodleRenderModule(
      */
     private fun String?.isSwitchedOff() = this?.trim().equals("false", ignoreCase = true)
 
-    fun getWebserviceToken(webClient: WebClient, user: String, password: String): String {
+    /**
+     * Requests a webservice token via `login/token.php`.
+     *
+     * Moodle answers with HTTP 200 even on failure: either a JSON error object (`{"error": ..., "errorcode": ...}`)
+     * or, for a wrong base URL / maintenance page, HTML. Both are parsed leniently so the Moodle message
+     * reaches the caller. Exceptions raised here deliberately carry no cause and no URL: the request URL
+     * contains the username and password as query parameters.
+     */
+    fun getWebserviceToken(
+        webClient: WebClient,
+        user: String,
+        password: String,
+        timeout: Duration = DEFAULT_TOKEN_TIMEOUT,
+    ): String {
         log.debug("Requesting Moodle webservice token for user $user")
-        val tokenResponse = webClient.get()
+        val rawResponse = webClient.get()
             .uri {
                 it.path("/login/token.php")
                     .queryParam("username", user)
@@ -177,10 +200,51 @@ class MoodleRenderModule(
                     .build()
             }
             .retrieve()
-            .bodyToMono<MoodleTokenReply>()
+            .bodyToMono<String>()
+            .timeout(timeout)
+            .onErrorMap { transportError("Moodle token request", it) }
             .block()
 
-        log.debug("Moodle token response received, token present: ${tokenResponse?.token != null}")
-        return tokenResponse?.token ?: throw Exception("Token could not be retrieved from Moodle.")
+        val token = parseTokenResponse(rawResponse)
+        log.debug("Moodle token response received, token present: true")
+        return token
+    }
+
+    private fun parseTokenResponse(rawBody: String?): String {
+        if (rawBody.isNullOrBlank()) {
+            throw IllegalStateException("Token could not be retrieved from Moodle: empty response.")
+        }
+        val node = try {
+            objectMapper.readTree(rawBody)
+        } catch (_: Exception) {
+            // HTML or plain text - never echo the body, it may be a large page.
+            throw IllegalStateException("Token could not be retrieved from Moodle: unexpected non-JSON response (is the base URL correct?).")
+        }
+        val token = node?.path("token")?.takeIf { it.isTextual }?.asText()
+        if (!token.isNullOrBlank()) {
+            return token
+        }
+        val error = node?.path("error")?.asText("")?.takeIf { it.isNotBlank() }
+        val errorCode = node?.path("errorcode")?.asText("")?.takeIf { it.isNotBlank() }
+        if (error != null || errorCode != null) {
+            throw IllegalStateException(
+                "Token could not be retrieved from Moodle: ${error ?: "unknown error"}" +
+                    (errorCode?.let { " [errorcode=$it]" } ?: "")
+            )
+        }
+        throw IllegalStateException("Token could not be retrieved from Moodle: response contains no token.")
+    }
+
+    /**
+     * Replaces transport/HTTP exceptions with a readable one. The originals embed the full request URI
+     * (including query parameters such as password / wstoken) in their message, so they are neither
+     * kept as cause nor printed.
+     */
+    private fun transportError(what: String, e: Throwable): Throwable = when (e) {
+        is WebClientResponseException -> IllegalStateException("$what failed: Moodle answered with HTTP ${e.statusCode.value()}.")
+        is TimeoutException -> IllegalStateException("$what timed out.")
+        is WebClientRequestException -> IllegalStateException("$what failed: Moodle not reachable (${e.cause?.javaClass?.simpleName ?: "I/O error"}).")
+        is IllegalArgumentException, is IllegalStateException -> e
+        else -> IllegalStateException("$what failed (${e.javaClass.simpleName}).")
     }
 }
