@@ -198,6 +198,53 @@ services:
       # consumer is attached anymore. See LegacyQueueCleaner. Disable once confirmed complete.
       app.queue-migration.enabled: "${RENDERING2_QUEUE_MIGRATION_ENABLED:-true}"
       app.queue-migration.schedule: "${RENDERING2_QUEUE_MIGRATION_SCHEDULE:-PT30M}"
+      # Max time a main job may sit PROCESSING without sub-jobs (payload download); must exceed the longest source download.
+      app.jobreaper.max-main-job-setup-time: "${RENDERING2_JOBREAPER_MAX_MAIN_JOB_SETUP_TIME:-PT1H}"
+      # Entrypoint waits (entrypoint.sh, not Spring): max seconds per infrastructure service before the container
+      # exits 1, and the best-effort wait for the registered repositories (0 = do not wait).
+      INFRA_WAIT_TIMEOUT: "${RENDERING2_SERVICE_INFRA_WAIT_TIMEOUT:-300}"
+      REPOSITORY_WAIT_TIMEOUT: "${RENDERING2_SERVICE_REPOSITORY_WAIT_TIMEOUT:-60}"
+      # Repository registration retry loop (master only), see application.properties.
+      app.repository.registration.repo-timeout-seconds: "${RENDERING2_SERVICE_REGISTRATION_REPO_TIMEOUT_SECONDS:-240}"
+      app.repository.registration.retry-interval-millis: "${RENDERING2_SERVICE_REGISTRATION_RETRY_INTERVAL_MILLIS:-30000}"
+      app.repository.registration.retry-initial-delay-seconds: "${RENDERING2_SERVICE_REGISTRATION_RETRY_INITIAL_DELAY_SECONDS:-30}"
+      app.repository.registration.retry-max-delay-seconds: "${RENDERING2_SERVICE_REGISTRATION_RETRY_MAX_DELAY_SECONDS:-600}"
+      app.module.binder.sse-idle-timeout: "${RENDERING2_SERVICE_BINDER_SSE_IDLE_TIMEOUT:-PT15M}"
+      app.module.binder.max-file-size: "${RENDERING2_SERVICE_BINDER_MAX_FILE_SIZE:-50MB}"
+      # Timeouts of the repository SDK's OkHttp clients; call = hard bound per request (0 = none).
+      app.repository-http.timeout.connect: "${RENDERING2_SERVICE_REPOSITORY_HTTP_CONNECT_TIMEOUT:-10s}"
+      app.repository-http.timeout.read: "${RENDERING2_SERVICE_REPOSITORY_HTTP_READ_TIMEOUT:-30s}"
+      app.repository-http.timeout.write: "${RENDERING2_SERVICE_REPOSITORY_HTTP_WRITE_TIMEOUT:-30s}"
+      app.repository-http.timeout.call: "${RENDERING2_SERVICE_REPOSITORY_HTTP_CALL_TIMEOUT:-60s}"
+      app.scheduling.pool-size: "${RENDERING2_SERVICE_SCHEDULING_POOL_SIZE:-4}"
+      # MongoDB driver timeouts (socket-timeout stays above the slowest cache-cleaner aggregation).
+      app.mongodb.timeout.connect-timeout: "${RENDERING2_SERVICE_MONGODB_CONNECT_TIMEOUT:-10s}"
+      app.mongodb.timeout.socket-timeout: "${RENDERING2_SERVICE_MONGODB_SOCKET_TIMEOUT:-5m}"
+      app.mongodb.timeout.server-selection-timeout: "${RENDERING2_SERVICE_MONGODB_SERVER_SELECTION_TIMEOUT:-30s}"
+      # RabbitMQ timeouts. cache.channel.size is a HARD limit: raise it together with any app.queue.<x>.concurrency
+      # (it must cover all consumer channels of the container plus concurrent publishers).
+      spring.rabbitmq.connection-timeout: "${RENDERING2_SERVICE_RABBITMQ_CONNECTION_TIMEOUT:-10s}"
+      spring.rabbitmq.channel-rpc-timeout: "${RENDERING2_SERVICE_RABBITMQ_CHANNEL_RPC_TIMEOUT:-30s}"
+      spring.rabbitmq.requested-heartbeat: "${RENDERING2_SERVICE_RABBITMQ_HEARTBEAT:-30s}"
+      spring.rabbitmq.cache.channel.size: "${RENDERING2_SERVICE_RABBITMQ_CACHE_CHANNEL_SIZE:-400}"
+      spring.rabbitmq.cache.channel.checkout-timeout: "${RENDERING2_SERVICE_RABBITMQ_CHECKOUT_TIMEOUT:-30s}"
+      # Lettuce (Redis) resilience and Spring Session bootstrap; NO_OP for managed Redis that forbids CONFIG.
+      app.redis.client.command-timeout: "${RENDERING2_SERVICE_REDIS_COMMAND_TIMEOUT:-5s}"
+      app.redis.client.connect-timeout: "${RENDERING2_SERVICE_REDIS_CONNECT_TIMEOUT:-10s}"
+      app.redis.client.keep-alive: "${RENDERING2_SERVICE_REDIS_KEEP_ALIVE:-true}"
+      app.redis.client.request-queue-size: "${RENDERING2_SERVICE_REDIS_REQUEST_QUEUE_SIZE:-2000}"
+      app.redis.client.disconnected-behavior: "${RENDERING2_SERVICE_REDIS_DISCONNECTED_BEHAVIOR:-DEFAULT}"
+      app.redis.session.configure-action: "${RENDERING2_SERVICE_REDIS_SESSION_CONFIGURE_ACTION:-DEFAULT}"
+      # S3 client pool/timeouts and the health probe (HEAD on a bucket that need not exist).
+      app.s3.client.max-connections: "${RENDERING2_SERVICE_S3_MAX_CONNECTIONS:-200}"
+      app.s3.client.connection-timeout: "${RENDERING2_SERVICE_S3_CONNECTION_TIMEOUT:-10s}"
+      app.s3.client.socket-timeout: "${RENDERING2_SERVICE_S3_SOCKET_TIMEOUT:-2m}"
+      app.s3.client.connection-acquisition-timeout: "${RENDERING2_SERVICE_S3_CONNECTION_ACQUISITION_TIMEOUT:-30s}"
+      app.s3.client.connection-max-idle-time: "${RENDERING2_SERVICE_S3_CONNECTION_MAX_IDLE_TIME:-1m}"
+      app.s3.client.api-call-attempt-timeout: "${RENDERING2_SERVICE_S3_API_CALL_ATTEMPT_TIMEOUT:-30m}"
+      app.s3.client.api-call-timeout: "${RENDERING2_SERVICE_S3_API_CALL_TIMEOUT:-1h}"
+      app.s3.health.bucket: "${RENDERING2_SERVICE_S3_HEALTH_BUCKET:-rendering-health-probe}"
+      app.s3.health.timeout: "${RENDERING2_SERVICE_S3_HEALTH_TIMEOUT:-5s}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -313,6 +360,20 @@ services:
       LIBREOFFICE_MAX_TASKS_PER_PROCESS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_MAX_TASKS_PER_PROCESS:-100}"
       LIBREOFFICE_TASK_EXECUTION_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_EXECUTION_TIMEOUT:-120000}"
       LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
+      # Time to start/connect/terminate one office process (ms) and the pause between attempts (ms).
+      LIBREOFFICE_PROCESS_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PROCESS_TIMEOUT:-120000}"
+      LIBREOFFICE_PROCESS_RETRY_INTERVAL: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PROCESS_RETRY_INTERVAL:-250}"
+      # LibreOffice readiness probe (txt->pdf, cached); readiness only, liveness stays independent.
+      LIBREOFFICE_HEALTH_PROBE_ENABLED: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_PROBE_ENABLED:-true}"
+      LIBREOFFICE_HEALTH_PROBE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_PROBE_TIMEOUT:-10s}"
+      LIBREOFFICE_HEALTH_CACHE_TTL: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_CACHE_TTL:-30s}"
+      LIBREOFFICE_HEALTH_FAILURE_THRESHOLD: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_FAILURE_THRESHOLD:-3}"
+      # Temp files of the conversion pipeline (empty = <java.io.tmpdir>/doc-converter), the startup sweep age of stale
+      # temp files, the scan window for HTML styles and the max HTML size parsed into a DOM.
+      CONVERTER_WORK_DIR: "${RENDERING2_DOCUMENT_CONVERTER_WORK_DIR:-}"
+      CONVERTER_STALE_FILE_AGE: "${RENDERING2_DOCUMENT_CONVERTER_STALE_FILE_AGE:-6h}"
+      CONVERTER_HTML_STYLE_SCAN_WINDOW: "${RENDERING2_DOCUMENT_CONVERTER_HTML_STYLE_SCAN_WINDOW:-256KB}"
+      CONVERTER_MAX_HTML_DOM_SIZE: "${RENDERING2_DOCUMENT_CONVERTER_MAX_HTML_DOM_SIZE:-32MB}"
     cpus: "${RENDERING2_DOCUMENT_CONVERTER_CPUS:-2}"
     mem_limit: "${RENDERING2_DOCUMENT_CONVERTER_MEMORY:-4g}"
     restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
@@ -426,6 +487,13 @@ services:
       VIRTUAL_PATH: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
       VIRTUAL_PORT: 8080
     restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    # server.mjs answers /ping at the root regardless of BASE_HREF (also under the prefix); node ships in the image.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     expose:
       - "8080"
     ports:

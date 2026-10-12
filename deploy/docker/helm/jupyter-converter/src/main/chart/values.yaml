@@ -77,6 +77,23 @@ service:
 
 config:
 
+  jupyter:
+    ## @param config.jupyter.conversionTimeout Wall-clock budget in seconds per conversion (504 beyond); keep it below the caller's client timeout
+    conversionTimeout: 300
+    ## @param config.jupyter.maxConcurrentConversions Max conversions running at once per pod
+    maxConcurrentConversions: 4
+    ## @param config.jupyter.slotWaitTimeout Seconds a request waits for a free conversion slot before it gets 503
+    slotWaitTimeout: 30
+    ## @param config.jupyter.maxUploadBytes Upload size limit in bytes (413 beyond)
+    maxUploadBytes: 52428800
+    uvicorn:
+      ## @param config.jupyter.uvicorn.workers Number of uvicorn worker processes (note: /metrics is then per worker; prefer more pods)
+      workers: 1
+      ## @param config.jupyter.uvicorn.limitConcurrency Max concurrent connections before uvicorn answers 503 (0 = unlimited)
+      limitConcurrency: 0
+      ## @param config.jupyter.uvicorn.timeoutKeepAlive Keep-alive timeout in seconds
+      timeoutKeepAlive: 5
+
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics
     relabelings: []

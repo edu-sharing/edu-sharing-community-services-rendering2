@@ -47,7 +47,7 @@ COPY --chown=worker:worker assets/profiler profiler/
 ########################################################################################################################
 
 EXPOSE 8080
-ENTRYPOINT ["sh" ,"-c", "exec java ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["sh" ,"-c", "exec java -XX:+ExitOnOutOfMemoryError ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
 
 ########################################################################################################################
 

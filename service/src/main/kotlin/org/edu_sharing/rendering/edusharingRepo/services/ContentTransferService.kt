@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.edusharingRepo.services
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.utils.FluxInputStream
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
@@ -64,6 +65,9 @@ class ContentTransferService(
             }
             .retrieve()
             .bodyToFlux<org.springframework.core.io.buffer.DataBuffer>()
+            // The request URI (with the signed authToken) is embedded in WebClient exception messages;
+            // sanitize it before the error reaches logs or callers.
+            .onErrorMap { LogSanitizer.sanitize(it) }
             .handle { buffer, sink ->
                 if (buffer.readableByteCount() == 0) {
                     // `handle` transfers ownership of the buffer: one we neither emit nor release

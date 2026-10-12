@@ -462,6 +462,48 @@ config:
     defaultMaxQueuedTime: "PT6H"
     ## @param config.jobreaper.maxQueuedTime Per-routing-key overrides (ISO-8601 Duration) for defaultMaxQueuedTime; key = queue routing key (app.queue.<module>.key). Escape hatch for a future queue whose legitimate backlog-drain time exceeds the default - none needed today (sodix/omega/ddb resolve one link/reference per job via 1-2 REST calls, not a bulk import; even a large backlog drains in minutes at their K=50-per-pod concurrency)
     maxQueuedTime: {}
+    ## @param config.jobreaper.maxMainJobSetupTime Max time (ISO-8601 Duration) a main job may sit PROCESSING without any sub-jobs (the receiver downloads the payload and creates the sub-jobs in that state). Must exceed the longest realistic source-file download
+    maxMainJobSetupTime: "PT1H"
+
+  ## Repository registration at startup (master only): registers asynchronously per repository with retry; the
+  ## retry loop also re-registers repositories that were not reachable at startup. Defaults match the code.
+  registration:
+    ## @param config.registration.repoTimeoutSeconds Time budget in seconds for registering one repository per attempt
+    repoTimeoutSeconds: "240"
+    ## @param config.registration.retryIntervalMillis Fixed delay in milliseconds between runs of the registration retry loop
+    retryIntervalMillis: "30000"
+    ## @param config.registration.retryInitialDelaySeconds Initial backoff in seconds before a failed repository is retried
+    retryInitialDelaySeconds: "30"
+    ## @param config.registration.retryMaxDelaySeconds Upper bound in seconds of the per-repository retry backoff
+    retryMaxDelaySeconds: "600"
+
+  ## Binder module (git upload)
+  binder:
+    ## @param config.binder.sseIdleTimeout Max idle time (ISO-8601 Duration) of the binder SSE stream before the upload is aborted
+    sseIdleTimeout: "PT15M"
+    ## @param config.binder.maxFileSize Max size of a single file pushed to git (plain byte count or a size like 50MB)
+    maxFileSize: "50MB"
+
+  ## HTTP clients of the edu-sharing repository SDK (OkHttp). Defaults match the code.
+  repositoryHttp:
+    ## @param config.repositoryHttp.maxRequests Max concurrent async SDK calls across all repository hosts
+    maxRequests: "256"
+    ## @param config.repositoryHttp.maxRequestsPerHost Max concurrent async SDK calls per repository host
+    maxRequestsPerHost: "128"
+    timeout:
+      ## @param config.repositoryHttp.timeout.connect TCP connect timeout (Spring Duration, e.g. 10s)
+      connect: "10s"
+      ## @param config.repositoryHttp.timeout.read Max wait for data on an established connection
+      read: "30s"
+      ## @param config.repositoryHttp.timeout.write Max wait for a write to the repository to make progress
+      write: "30s"
+      ## @param config.repositoryHttp.timeout.call Hard upper bound for one SDK call including redirects (0 = none)
+      call: "60s"
+
+  ## Size of the shared @Scheduled pool (minimum 4); cache cleaner, reaper, CORS sync etc. share it
+  scheduling:
+    ## @param config.scheduling.poolSize Number of threads of the shared scheduler
+    poolSize: "4"
 
   ## One-time queue-durability migration (master only): all app.queue.<x> queues were renamed with a
   ## "_v2" suffix and switched to durable=true; this deletes each pre-migration queue automatically once
@@ -606,6 +648,13 @@ config:
       # - name: tempBucket
       #   value: temp
       #   quota: 0
+  ## Container entrypoint waits (read by entrypoint.sh, not by Spring)
+  entrypoint:
+    ## @param config.entrypoint.infraWaitTimeout Max seconds to wait for each of MongoDB/S3/RabbitMQ/Redis before the container exits with 1
+    infraWaitTimeout: "300"
+    ## @param config.entrypoint.repositoryWaitTimeout Best-effort total seconds to wait for the registered repositories before starting anyway (0 = do not wait)
+    repositoryWaitTimeout: "60"
+
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
@@ -648,6 +697,13 @@ config:
     password: ""
     ## @param config.mongodb.database Set mongodb database
     database: rendering2
+    timeout:
+      ## @param config.mongodb.timeout.connectTimeout MongoDB driver TCP connect timeout
+      connectTimeout: "10s"
+      ## @param config.mongodb.timeout.socketTimeout Max wait for one command reply (0 = infinite); keep it above the slowest aggregation of the cache cleaner
+      socketTimeout: "5m"
+      ## @param config.mongodb.timeout.serverSelectionTimeout Max wait for a suitable MongoDB server, e.g. during a primary election
+      serverSelectionTimeout: "30s"
 
   ## @param config.override Configure overrides
   override: ""
@@ -661,6 +717,16 @@ config:
     username: rendering2
     ## @param config.rabbitmq.password Set mongodb username
     password: ""
+    ## @param config.rabbitmq.connectionTimeout TCP connect + AMQP handshake timeout
+    connectionTimeout: "10s"
+    ## @param config.rabbitmq.channelRpcTimeout Max wait for the reply of a channel RPC (declare, bind, cancel); not message processing
+    channelRpcTimeout: "30s"
+    ## @param config.rabbitmq.requestedHeartbeat AMQP heartbeat interval; detects a half-open connection within about two intervals
+    requestedHeartbeat: "30s"
+    ## @param config.rabbitmq.cacheChannelSize Channel cache size, a HARD limit together with checkoutTimeout. Must cover every consumer channel of a pod (sum of the STANDARD queue concurrencies + one per remote queue) plus concurrent publishers - raise it whenever config.queue.concurrency is raised
+    cacheChannelSize: "400"
+    ## @param config.rabbitmq.checkoutTimeout How long a publisher waits for a free channel when the cache is exhausted before failing
+    checkoutTimeout: "30s"
 
   queue:
     ## The one per-queue scaling knob: max messages processed in parallel per pod. Its meaning per queue
@@ -725,6 +791,20 @@ config:
     host: edusharing-services-rendering2-rediscluster
     ## @param config.redis.port Set redis port
     port: 6379
+    client:
+      ## @param config.redis.client.commandTimeout Upper bound for one Redis command
+      commandTimeout: "5s"
+      ## @param config.redis.client.connectTimeout TCP connect timeout of a (re)connect attempt
+      connectTimeout: "10s"
+      ## @param config.redis.client.keepAlive TCP keep-alive, makes a silently reaped connection detectable
+      keepAlive: "true"
+      ## @param config.redis.client.requestQueueSize Max commands buffered while disconnected; the excess fails immediately
+      requestQueueSize: "2000"
+      ## @param config.redis.client.disconnectedBehavior Commands while disconnected [DEFAULT|ACCEPT_COMMANDS|REJECT_COMMANDS]
+      disconnectedBehavior: "DEFAULT"
+    session:
+      ## @param config.redis.session.configureAction DEFAULT lets Spring Session run CONFIG SET notify-keyspace-events Egx at startup; NO_OP for managed Redis that forbids CONFIG (then configure notify-keyspace-events Egx on the server)
+      configureAction: "DEFAULT"
 
   s3:
     ## @param config.s3.host Set S3 host
@@ -745,6 +825,26 @@ config:
     trustAllCertificates: false
     ## @param config.s3.checksumCalculationWhenRequired Set S3 checksum calculation when required
     checksumCalculationWhenRequired: false
+    client:
+      ## @param config.s3.client.maxConnections Size of the S3 HTTP connection pool; size it to the pod's peak S3 parallelism (sum of the queue concurrencies plus concurrent asset downloads)
+      maxConnections: "200"
+      ## @param config.s3.client.connectionTimeout TCP connect timeout
+      connectionTimeout: "10s"
+      ## @param config.s3.client.socketTimeout Max wait for data on an established connection (per read, not per object)
+      socketTimeout: "2m"
+      ## @param config.s3.client.connectionAcquisitionTimeout Max wait for a free pooled connection
+      connectionAcquisitionTimeout: "30s"
+      ## @param config.s3.client.connectionMaxIdleTime Idle connections older than this are closed
+      connectionMaxIdleTime: "1m"
+      ## @param config.s3.client.apiCallAttemptTimeout Deadline of one HTTP attempt; also bounds big uploads/downloads
+      apiCallAttemptTimeout: "30m"
+      ## @param config.s3.client.apiCallTimeout Deadline of a whole call including SDK retries (at least apiCallAttemptTimeout)
+      apiCallTimeout: "1h"
+    health:
+      ## @param config.s3.health.bucket Bucket the S3 health probe sends a HEAD request to; it does not have to exist (a 404 proves reachability and accepted credentials)
+      bucket: "rendering-health-probe"
+      ## @param config.s3.health.timeout Deadline of the S3 health probe
+      timeout: "5s"
 
   webclient:
     codec:

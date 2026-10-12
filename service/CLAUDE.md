@@ -162,6 +162,15 @@ repo at a time. Controllers:
   `QueueConfig`'s 35 min container `shutdownTimeout` and below Helm's `terminationGracePeriod` (2400 s). With
   `spring.rabbitmq.cache.channel.checkout-timeout` set, `cache.channel.size` is a hard cap - keep it above the sum of
   the queue concurrencies. All `MongoTemplate` writes are ACKNOWLEDGED.
+- **Repository SDK (OkHttp) timeouts:** `app.repository-http.timeout.{connect,read,write,call}` (`RepositoryHttpTimeoutProperties`,
+  defaults 10 s / 30 s / 30 s / 60 s; `0` = none) are applied by `RestClientProvider` and `UserBasedRestClientProvider`
+  to every `ApiClient`; the generated client otherwise has no call timeout. A new SDK client factory must call
+  `timeouts.applyTo(builder)` too. `CorsSyncService.syncAllowedOriginsWithAllRepositories` isolates failures per
+  repository (sanitized WARN log, counter `cors.sync.failures`) so one unreachable repository no longer stalls the
+  sync of the others. `ContentTransferService` maps fetch errors through `LogSanitizer` (the signed `authToken` is in
+  the request URI that WebClient exceptions embed) - that wrapper drops the original exception type and cause chain.
+- The Welle-1 properties above are all mirrored (with their defaults) in `application.properties`, Helm
+  (`configmap-env.yaml` / `values.yaml`) and compose; the mapping is in `../deploy/CLAUDE.md`.
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.
 - **RabbitMQ listener concurrency is not just `app.queue.<x>.concurrency`.** `DirectMessageListenerContainer`
   only uses `QueueConfig.rabbitConsumerExecutor` to bootstrap consumer registration; each consumer's message

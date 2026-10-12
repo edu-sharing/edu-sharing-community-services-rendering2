@@ -103,6 +103,29 @@ config:
     taskExecutionTimeout: 120000
     ## @param config.libreoffice.taskQueueTimeout Max ms a request waits for a free process
     taskQueueTimeout: 300000
+    ## @param config.libreoffice.processTimeout Max ms to start/connect/terminate one office process
+    processTimeout: 120000
+    ## @param config.libreoffice.processRetryInterval Pause in ms between attempts to connect to a starting office process
+    processRetryInterval: 250
+    healthProbe:
+      ## @param config.libreoffice.healthProbe.enabled Probe LibreOffice with a small txt->pdf conversion for the readiness check (liveness stays independent)
+      enabled: true
+      ## @param config.libreoffice.healthProbe.timeout Deadline of one probe (Spring Duration)
+      timeout: "10s"
+      ## @param config.libreoffice.healthProbe.cacheTtl How long a probe result is reused (Spring Duration)
+      cacheTtl: "30s"
+      ## @param config.libreoffice.healthProbe.failureThreshold Consecutive probe failures before readiness goes DOWN
+      failureThreshold: 3
+
+  converter:
+    ## @param config.converter.workDir Directory for temp files of the conversion pipeline (empty = java.io.tmpdir/doc-converter)
+    workDir: ""
+    ## @param config.converter.staleFileAge Age after which the startup sweep deletes stale temp files and LibreOffice profile directories (Spring Duration)
+    staleFileAge: "6h"
+    ## @param config.converter.htmlStyleScanWindow Size of the leading window scanned for HTML styles (Spring DataSize)
+    htmlStyleScanWindow: "256KB"
+    ## @param config.converter.maxHtmlDomSize Max HTML size parsed into a DOM; larger results are streamed unparsed (Spring DataSize)
+    maxHtmlDomSize: "32MB"
 
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics
