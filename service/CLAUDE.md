@@ -169,6 +169,18 @@ repo at a time. Controllers:
   repository (sanitized WARN log, counter `cors.sync.failures`) so one unreachable repository no longer stalls the
   sync of the others. `ContentTransferService` maps fetch errors through `LogSanitizer` (the signed `authToken` is in
   the request URI that WebClient exceptions embed) - that wrapper drops the original exception type and cause chain.
+- **Resilience layer (`core/resilience`, `app.resilience.*`, `ResilienceProperties`):** guards calls to sodix, omega,
+  omega-validation, ddb, github and lumi. Retry with jittered backoff only for idempotent GET/HEAD (a 429 with a
+  `Retry-After` above `retry.max-retry-after` is not retried; `retry.total-budget` caps one call incl. all attempts and
+  must stay below the queue/reaper timeouts). The circuit breaker counts **consecutive** infrastructure failures (5xx,
+  connect/reset, timeout - not 4xx) per remote **and pod** (state is not shared across pods); the bulkhead caps in-flight
+  calls per remote and pod (keep >= the queue concurrency). Metrics are named `rendering.remote.*`. `enabled=false` makes
+  the layer a pass-through; per-remote overrides via `app.resilience.modules.<name>.*`. `app.module.ddb.auth-mode=HEADER`
+  keeps the DDB key out of URIs but is unverified against the live API (default `QUERY`).
+- **Converter calls (`ConverterWebServiceCaller`, `app.converter.call.*`, `ConverterCallProperties`):** only transient
+  status classes are retried (502/503/504, connection errors, timeouts; a 503 honours `Retry-After` up to
+  `max-retry-after`); other 4xx/5xx fail at once. One attempt is bounded by `attempt-timeout` (330 s, above the
+  converters' own limits), all attempts plus pauses by `total-budget` (15 min, far below the reaper's 30 min).
 - The Welle-1 properties above are all mirrored (with their defaults) in `application.properties`, Helm
   (`configmap-env.yaml` / `values.yaml`) and compose; the mapping is in `../deploy/CLAUDE.md`.
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.

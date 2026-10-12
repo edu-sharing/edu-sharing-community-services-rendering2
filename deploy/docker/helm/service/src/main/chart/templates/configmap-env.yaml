@@ -96,6 +96,27 @@ data:
   "app.repository-http.timeout.read": {{ .Values.config.repositoryHttp.timeout.read | quote }}
   "app.repository-http.timeout.write": {{ .Values.config.repositoryHttp.timeout.write | quote }}
   "app.repository-http.timeout.call": {{ .Values.config.repositoryHttp.timeout.call | quote }}
+  "app.resilience.enabled": {{ .Values.config.resilience.enabled | quote }}
+  "app.resilience.retry.max-attempts": {{ .Values.config.resilience.retry.maxAttempts | quote }}
+  "app.resilience.retry.initial-backoff": {{ .Values.config.resilience.retry.initialBackoff | quote }}
+  "app.resilience.retry.max-backoff": {{ .Values.config.resilience.retry.maxBackoff | quote }}
+  "app.resilience.retry.jitter": {{ .Values.config.resilience.retry.jitter | quote }}
+  "app.resilience.retry.max-retry-after": {{ .Values.config.resilience.retry.maxRetryAfter | quote }}
+  "app.resilience.retry.total-budget": {{ .Values.config.resilience.retry.totalBudget | quote }}
+  "app.resilience.circuit-breaker.enabled": {{ .Values.config.resilience.circuitBreaker.enabled | quote }}
+  "app.resilience.circuit-breaker.failure-threshold": {{ .Values.config.resilience.circuitBreaker.failureThreshold | quote }}
+  "app.resilience.circuit-breaker.open-duration": {{ .Values.config.resilience.circuitBreaker.openDuration | quote }}
+  "app.resilience.circuit-breaker.half-open-max-calls": {{ .Values.config.resilience.circuitBreaker.halfOpenMaxCalls | quote }}
+  "app.resilience.bulkhead.enabled": {{ .Values.config.resilience.bulkhead.enabled | quote }}
+  "app.resilience.bulkhead.max-concurrent-calls": {{ .Values.config.resilience.bulkhead.maxConcurrentCalls | quote }}
+  "app.resilience.bulkhead.max-wait": {{ .Values.config.resilience.bulkhead.maxWait | quote }}
+  "app.module.ddb.auth-mode": {{ .Values.config.ddb.authMode | quote }}
+  "app.converter.call.max-attempts": {{ .Values.config.converter.call.maxAttempts | quote }}
+  "app.converter.call.initial-backoff": {{ .Values.config.converter.call.initialBackoff | quote }}
+  "app.converter.call.max-backoff": {{ .Values.config.converter.call.maxBackoff | quote }}
+  "app.converter.call.attempt-timeout": {{ .Values.config.converter.call.attemptTimeout | quote }}
+  "app.converter.call.total-budget": {{ .Values.config.converter.call.totalBudget | quote }}
+  "app.converter.call.max-retry-after": {{ .Values.config.converter.call.maxRetryAfter | quote }}
   "app.scheduling.pool-size": {{ .Values.config.scheduling.poolSize | quote }}
   "app.mongodb.timeout.connect-timeout": {{ .Values.config.mongodb.timeout.connectTimeout | quote }}
   "app.mongodb.timeout.socket-timeout": {{ .Values.config.mongodb.timeout.socketTimeout | quote }}

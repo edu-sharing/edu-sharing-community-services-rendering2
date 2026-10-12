@@ -500,6 +500,48 @@ config:
       ## @param config.repositoryHttp.timeout.call Hard upper bound for one SDK call including redirects (0 = none)
       call: "60s"
 
+  ## Resilience layer for calls to external systems (sodix, omega, omega-validation, ddb, github, lumi). Defaults match
+  ## the code. Retry only for idempotent GET/HEAD; the breaker counts consecutive infrastructure failures per remote and
+  ## pod; metrics rendering.remote.*. Per-remote overrides (app.resilience.modules.<name>.{max-attempts,failure-threshold,
+  ## open-duration,max-concurrent-calls}) can be set via config.override (SPRING_APPLICATION_JSON), e.g.
+  ## {"app":{"resilience":{"modules":{"sodix":{"max-attempts":2}}}}}
+  resilience:
+    ## @param config.resilience.enabled Enable the resilience layer (false = pass-through)
+    enabled: "true"
+    retry:
+      ## @param config.resilience.retry.maxAttempts Total attempts including the first (1 = no retry)
+      maxAttempts: "3"
+      ## @param config.resilience.retry.initialBackoff Backoff before the first retry (Spring Duration)
+      initialBackoff: "200ms"
+      ## @param config.resilience.retry.maxBackoff Upper bound of the retry backoff
+      maxBackoff: "2s"
+      ## @param config.resilience.retry.jitter Fraction (0..1) of each backoff that is randomised downwards
+      jitter: "0.5"
+      ## @param config.resilience.retry.maxRetryAfter A 429 whose Retry-After exceeds this is not retried
+      maxRetryAfter: "5s"
+      ## @param config.resilience.retry.totalBudget Upper bound of one guarded call including all attempts; keep it below the queue/reaper timeouts
+      totalBudget: "75s"
+    circuitBreaker:
+      ## @param config.resilience.circuitBreaker.enabled Enable the circuit breaker
+      enabled: "true"
+      ## @param config.resilience.circuitBreaker.failureThreshold Consecutive infrastructure failures that open the breaker
+      failureThreshold: "5"
+      ## @param config.resilience.circuitBreaker.openDuration How long an open breaker rejects calls
+      openDuration: "30s"
+      ## @param config.resilience.circuitBreaker.halfOpenMaxCalls Concurrent probe calls in HALF_OPEN
+      halfOpenMaxCalls: "1"
+    bulkhead:
+      ## @param config.resilience.bulkhead.enabled Enable the bulkhead
+      enabled: "true"
+      ## @param config.resilience.bulkhead.maxConcurrentCalls Concurrent in-flight calls per remote and pod (keep at least the queue concurrency)
+      maxConcurrentCalls: "64"
+      ## @param config.resilience.bulkhead.maxWait How long a call waits for a free slot (0s = reject at once)
+      maxWait: "0s"
+
+  ddb:
+    ## @param config.ddb.authMode How the DDB consumer key is sent [QUERY|HEADER]; HEADER is unverified against the live API, opt-in only
+    authMode: "QUERY"
+
   ## Size of the shared @Scheduled pool (minimum 4); cache cleaner, reaper, CORS sync etc. share it
   scheduling:
     ## @param config.scheduling.poolSize Number of threads of the shared scheduler
@@ -515,6 +557,19 @@ config:
     schedule: "PT30M"
 
   converter:
+    call:
+      ## @param config.converter.call.maxAttempts Total attempts per converter call including the first (1 = no retry)
+      maxAttempts: "3"
+      ## @param config.converter.call.initialBackoff Backoff before the first retry (doubles per retry)
+      initialBackoff: "2s"
+      ## @param config.converter.call.maxBackoff Upper bound of the retry backoff
+      maxBackoff: "20s"
+      ## @param config.converter.call.attemptTimeout Upper bound of a single attempt; keep it above the converters' own limits
+      attemptTimeout: "330s"
+      ## @param config.converter.call.totalBudget Upper bound of all attempts and pauses; keep it far below the reaper's max process time
+      totalBudget: "15m"
+      ## @param config.converter.call.maxRetryAfter Cap for the delay requested by a 503 Retry-After header
+      maxRetryAfter: "30s"
     audio:
       ## @param config.converter.audio.mimetypes Set mimetypes for audio converter
       mimetypes: audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma

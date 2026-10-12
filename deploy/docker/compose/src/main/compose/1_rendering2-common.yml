@@ -216,6 +216,31 @@ services:
       app.repository-http.timeout.read: "${RENDERING2_SERVICE_REPOSITORY_HTTP_READ_TIMEOUT:-30s}"
       app.repository-http.timeout.write: "${RENDERING2_SERVICE_REPOSITORY_HTTP_WRITE_TIMEOUT:-30s}"
       app.repository-http.timeout.call: "${RENDERING2_SERVICE_REPOSITORY_HTTP_CALL_TIMEOUT:-60s}"
+      # Resilience layer for calls to sodix/omega/omega-validation/ddb/github/lumi (retry only for idempotent GET/HEAD,
+      # breaker per remote and pod, metrics rendering.remote.*). Per-remote overrides: app.resilience.modules.<name>.*.
+      app.resilience.enabled: "${RENDERING2_SERVICE_RESILIENCE_ENABLED:-true}"
+      app.resilience.retry.max-attempts: "${RENDERING2_SERVICE_RESILIENCE_RETRY_MAX_ATTEMPTS:-3}"
+      app.resilience.retry.initial-backoff: "${RENDERING2_SERVICE_RESILIENCE_RETRY_INITIAL_BACKOFF:-200ms}"
+      app.resilience.retry.max-backoff: "${RENDERING2_SERVICE_RESILIENCE_RETRY_MAX_BACKOFF:-2s}"
+      app.resilience.retry.jitter: "${RENDERING2_SERVICE_RESILIENCE_RETRY_JITTER:-0.5}"
+      app.resilience.retry.max-retry-after: "${RENDERING2_SERVICE_RESILIENCE_RETRY_MAX_RETRY_AFTER:-5s}"
+      app.resilience.retry.total-budget: "${RENDERING2_SERVICE_RESILIENCE_RETRY_TOTAL_BUDGET:-75s}"
+      app.resilience.circuit-breaker.enabled: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_ENABLED:-true}"
+      app.resilience.circuit-breaker.failure-threshold: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_FAILURE_THRESHOLD:-5}"
+      app.resilience.circuit-breaker.open-duration: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_OPEN_DURATION:-30s}"
+      app.resilience.circuit-breaker.half-open-max-calls: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS:-1}"
+      app.resilience.bulkhead.enabled: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_ENABLED:-true}"
+      app.resilience.bulkhead.max-concurrent-calls: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_MAX_CONCURRENT_CALLS:-64}"
+      app.resilience.bulkhead.max-wait: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_MAX_WAIT:-0s}"
+      # DDB consumer key transport: QUERY (default) or HEADER (unverified against the live API, opt-in only).
+      app.module.ddb.auth-mode: "${RENDERING2_SERVICE_DDB_AUTH_MODE:-QUERY}"
+      # Retry/timeout budget of the document/jupyter converter calls (transient 502/503/504, connection errors, timeouts).
+      app.converter.call.max-attempts: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_ATTEMPTS:-3}"
+      app.converter.call.initial-backoff: "${RENDERING2_SERVICE_CONVERTER_CALL_INITIAL_BACKOFF:-2s}"
+      app.converter.call.max-backoff: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_BACKOFF:-20s}"
+      app.converter.call.attempt-timeout: "${RENDERING2_SERVICE_CONVERTER_CALL_ATTEMPT_TIMEOUT:-330s}"
+      app.converter.call.total-budget: "${RENDERING2_SERVICE_CONVERTER_CALL_TOTAL_BUDGET:-15m}"
+      app.converter.call.max-retry-after: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_RETRY_AFTER:-30s}"
       app.scheduling.pool-size: "${RENDERING2_SERVICE_SCHEDULING_POOL_SIZE:-4}"
       # MongoDB driver timeouts (socket-timeout stays above the slowest cache-cleaner aggregation).
       app.mongodb.timeout.connect-timeout: "${RENDERING2_SERVICE_MONGODB_CONNECT_TIMEOUT:-10s}"

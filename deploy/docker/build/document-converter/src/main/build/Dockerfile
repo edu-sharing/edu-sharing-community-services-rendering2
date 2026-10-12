@@ -47,7 +47,9 @@ COPY --chown=worker:worker assets/profiler profiler/
 ########################################################################################################################
 
 EXPOSE 8080
-ENTRYPOINT ["sh" ,"-c", "exec java -XX:+ExitOnOutOfMemoryError ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
+# Container args (compose `command:` with heap/JMX flags) are JVM options: with `sh -c <script>` they would otherwise
+# become $0/$1.. of the script and be silently ignored, so the script forwards them via "$@" (the trailing `sh` is $0).
+ENTRYPOINT ["sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError ${JAVA_OPTS} \"$@\" --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher", "sh"]
 
 ########################################################################################################################
 
