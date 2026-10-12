@@ -67,8 +67,11 @@ when you add a role-gated bean, extend the matching role test.
 ### Robustness of the job flow (RENDER-178)
 - **Publish failures** — `MainJobCreationService` publishes through `JobMessagePublisher.publishForJob`: a publish
   exception, a broker nack or an unroutable return (mapped back via `JobCorrelationData` in `QueueConfig`'s confirm
-  callback) sets the job FAILED (version-free update), freeing the `activeJobPerNodeHash` dedup entry. Other modules
-  still call `amqpTemplate.convertAndSend` directly and can adopt `publishForJob` incrementally.
+  callback) sets the job FAILED (version-free update), freeing the `activeJobPerNodeHash` dedup entry. `BinderService`
+  publishes its upload message the same way (its jobs are not deduplicated, so the benefit there is that the client
+  sees FAILED immediately instead of QUEUED until the reaper's timeout); its optional preview message stays best effort
+  - a lost message only fails the preview sub-job, as `BinderMainJobLogic` finishes the job when only that one fails.
+  Other modules still call `amqpTemplate.convertAndSend` directly and can adopt `publishForJob` incrementally.
 - **`JobReceiver` failure path** never throws out of the listener: FAILED is saved, retried once via targeted updates;
   if that also fails the job stays PROCESSING without sub-jobs and `StaleJobReaper` pass 4 resolves it after
   `app.jobreaper.max-main-job-setup-time` (default PT1H, must exceed the longest source download).
