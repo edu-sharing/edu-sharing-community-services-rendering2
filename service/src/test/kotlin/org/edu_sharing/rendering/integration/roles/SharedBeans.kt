@@ -65,6 +65,7 @@ import org.edu_sharing.rendering.modules.sodix.SodixRemoteConfig
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
@@ -164,6 +165,7 @@ abstract class SharedBeans {
             LumiStorageManager::class,
             MainJobLogic::class,
             MainJobCreationService::class,
+            JobMessagePublisher::class,
             Mapper::class,
             MetadataService::class,
             ModulePermissionService::class,
@@ -244,6 +246,14 @@ abstract class SharedBeans {
             // into the role tests' package filter like the other functional beans here.
             "rabbitConnectionFactoryExecutorPostProcessor",
             "writeConcernResolver",
+            // Typed config objects registered through @EnableConfigurationProperties (bean name =
+            // "<prefix>-<fully qualified class name>") and the lambda-based Mongo timeout customizer.
+            "app.mongodb.timeout-org.edu_sharing.rendering.config.MongoTimeoutProperties",
+            "app.redis.client-org.edu_sharing.rendering.config.RedisClientProperties",
+            "app.redis.session-org.edu_sharing.rendering.config.SessionRedisProperties",
+            "app.s3.client-org.edu_sharing.rendering.storage.S3ClientProperties",
+            "app.s3.health-org.edu_sharing.rendering.storage.S3HealthProperties",
+            "mongoTimeoutCustomizer",
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans

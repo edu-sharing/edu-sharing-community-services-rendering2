@@ -58,4 +58,13 @@ class JobReaperProperties {
     /** Coarse DB pre-filter counterpart of [minMaxProcessTime], for the QUEUED reaping pass. */
     val minMaxQueuedTime: Duration
         get() = (maxQueuedTime.values + defaultMaxQueuedTime).minOrNull() ?: defaultMaxQueuedTime
+
+    /**
+     * Max time a main job may sit PROCESSING with **no sub-jobs** before being reaped as orphaned. That state
+     * is only legitimate while [org.edu_sharing.rendering.renderingJob.queue.JobReceiver] downloads the
+     * payload and creates the sub-jobs; it becomes permanent if the receiver fails and cannot even persist
+     * FAILED (e.g. a Mongo outage), which would block the node via `activeJobPerNodeHash`. Must exceed the
+     * longest realistic download of the largest supported source file.
+     */
+    var maxMainJobSetupTime: Duration = Duration.ofHours(1)
 }

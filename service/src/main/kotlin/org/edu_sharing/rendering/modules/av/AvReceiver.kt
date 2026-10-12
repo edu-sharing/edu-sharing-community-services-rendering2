@@ -71,6 +71,16 @@ class AvReceiver(
             return
         }
         val cacheObject = mapper.renderingJobToCacheObject(jobEntry)
+        // RabbitMQ is at-least-once: a redelivery for an already terminal sub-job must not convert again. A
+        // sub-job left PROCESSING by the dead delivery is deliberately restarted below.
+        if (subJob.status >= SubJobStatus.FINISHED) {
+            log.debug("AV sub-job ${subJob.id} already terminal (${subJob.status}); dropping redelivered message")
+            // Idempotent: resolves a main job whose previous delivery died before aggregating.
+            if (mainJobLogic.processMainJob(message.id)) {
+                storageImplementation.removeTempObject(cacheObject)
+            }
+            return
+        }
         log.debug("Dispatching AV conversion: nodeId=${cacheObject.nodeId}, module=${jobEntry.module}, quality=${subJob.quality}")
         subJob.status = SubJobStatus.PROCESSING
         subJob.processingStartedDate = Instant.now()

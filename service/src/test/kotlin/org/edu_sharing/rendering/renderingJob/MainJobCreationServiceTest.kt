@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.renderingJob
 
 import io.mockk.clearAllMocks
 import io.mockk.every
+import io.mockk.justRun
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.verify
@@ -14,12 +15,12 @@ import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.springframework.dao.DuplicateKeyException
 
 @ExtendWith(MockKExtension::class)
 class MainJobCreationServiceTest {
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
     private val renderingJobRepository = mockk<RenderingJobRepository>()
     private val mapper = mockk<Mapper>()
     private val jobDataProvider = JobDataProvider()
@@ -29,7 +30,7 @@ class MainJobCreationServiceTest {
     @BeforeEach
     fun setup() {
         underTest = MainJobCreationService(
-            amqpTemplate, renderingJobRepository, mapper
+            jobMessagePublisher, renderingJobRepository, mapper
         )
         underTest.topicExchangeName = "topicExchangeName"
         underTest.jobRoutingKey = "jobRoutingKey"
@@ -60,7 +61,37 @@ class MainJobCreationServiceTest {
         assert(result == JobDataProvider.DUMMY_JOB_ID)
         verify(exactly = 2) { renderingJobRepository.findAllByEsObjectId("node123") }
         verify(exactly = 1) { renderingJobRepository.save(newJob) }
-        verify(exactly = 0) { amqpTemplate.convertAndSend(any<String>(), any<String>(), any<Any>()) }
+        verify(exactly = 0) { jobMessagePublisher.publishForJob(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun createMainJobPublishesThroughTheCentralPublisherAndMarksJobForDeduplication() {
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+        val job = jobDataProvider.getJobWithoutSubJobs()
+        every { mapper.cacheObjectToRenderingJob(cacheObject, "IMAGE", true) } returns job
+        every { renderingJobRepository.save(job) } returns job
+        justRun { jobMessagePublisher.publishForJob("topicExchangeName", "jobRoutingKey", any(), job.id) }
+
+        val result = underTest.createMainJob(cacheObject, "IMAGE", isConversionType = true)
+
+        assert(result == job.id.toString())
+        assert(job.deduplicated)
+        verify(exactly = 1) { jobMessagePublisher.publishForJob("topicExchangeName", "jobRoutingKey", any(), job.id) }
+    }
+
+    @Test
+    fun createMainJobPropagatesPublishFailureSoCallerSeesTheError() {
+        // The publisher itself compensates (marks the job FAILED, see JobMessagePublisherTest); the
+        // service must not swallow the failure and hand out an id for a job whose message was lost.
+        val cacheObject = mockk<CacheObject>(relaxed = true)
+        val job = jobDataProvider.getJobWithoutSubJobs()
+        every { mapper.cacheObjectToRenderingJob(cacheObject, "IMAGE", true) } returns job
+        every { renderingJobRepository.save(job) } returns job
+        every { jobMessagePublisher.publishForJob(any(), any(), any(), any()) } throws RuntimeException("broker down")
+
+        val thrown = runCatching { underTest.createMainJob(cacheObject, "IMAGE", isConversionType = true) }.exceptionOrNull()
+
+        assert(thrown?.message == "broker down")
     }
 
     /*@Test

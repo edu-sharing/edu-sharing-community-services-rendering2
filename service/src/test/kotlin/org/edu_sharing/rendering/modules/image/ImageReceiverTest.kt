@@ -112,6 +112,47 @@ class ImageReceiverTest {
         confirmVerified(mainJobLogic, subJobRepository, conversionService)
     }
 
+    @Test
+    fun testRedeliveryOnlyConvertsNonTerminalSubJobsAndRestartsProcessingOnes() {
+        val id = "507f191e810c19729de860ea"
+        val job = prepareJobForTesting(id, "507f191e810c19729de860eb", "507f191e810c19729de860ec")
+        job.subJobs[0].status = SubJobStatus.FINISHED   // quality 100: done by the previous delivery
+        job.subJobs[1].status = SubJobStatus.PROCESSING // quality 200: left behind by the dead delivery
+        val bufferedImage = BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB)
+
+        every { mainJobLogic.getMainJobEntry(id) } returns job
+        // Only the pending sub-job's quality drives the source fetch.
+        every { conversionService.fetchSourceImage(any(), 200) } returns bufferedImage
+        every { subJobRepository.save(any()) } answers { firstArg() }
+        justRun { conversionService.convert(any(), 200, bufferedImage) }
+        every { mainJobLogic.processMainJob(id) } returns true
+        justRun { conversionService.deleteTempFile(any()) }
+
+        underTest.receiveMessage(SubJobMessage(id = id))
+
+        verify(exactly = 0) { conversionService.convert(any(), 100, any()) }
+        verify(exactly = 1) { conversionService.convert(any(), 200, bufferedImage) }
+        assert(job.subJobs[0].status == SubJobStatus.FINISHED)
+        assert(job.subJobs[1].status == SubJobStatus.FINISHED)
+        verify(exactly = 1) { mainJobLogic.processMainJob(id) }
+    }
+
+    @Test
+    fun testRedeliveryWithOnlyTerminalSubJobsSkipsConversionButResolvesMainJob() {
+        val id = "507f191e810c19729de860ea"
+        val job = prepareJobForTesting(id, "507f191e810c19729de860eb", "507f191e810c19729de860ec")
+        job.subJobs[0].status = SubJobStatus.FINISHED
+        job.subJobs[1].status = SubJobStatus.FAILED
+        every { mainJobLogic.getMainJobEntry(id) } returns job
+        every { mainJobLogic.processMainJob(id) } returns true
+
+        underTest.receiveMessage(SubJobMessage(id = id))
+
+        verify(exactly = 0) { conversionService.fetchSourceImage(any(), any()) }
+        verify(exactly = 0) { subJobRepository.save(any()) }
+        verify(exactly = 1) { mainJobLogic.processMainJob(id) }
+    }
+
     fun prepareJobForTesting(id: String, subId1: String, subId2: String): RenderingJob {
         val job = RenderingJob(
             id = ObjectId(id),

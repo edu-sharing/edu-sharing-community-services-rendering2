@@ -64,6 +64,18 @@ when you add a role-gated bean, extend the matching role test.
    `@Version`, and a TTL index (8 days); less-critical writes use a weaker write concern
    (`MongoConfig` `WriteConcernResolver`).
 
+### Robustness of the job flow (RENDER-178)
+- **Publish failures** — `MainJobCreationService` publishes through `JobMessagePublisher.publishForJob`: a publish
+  exception, a broker nack or an unroutable return (mapped back via `JobCorrelationData` in `QueueConfig`'s confirm
+  callback) sets the job FAILED (version-free update), freeing the `activeJobPerNodeHash` dedup entry. Other modules
+  still call `amqpTemplate.convertAndSend` directly and can adopt `publishForJob` incrementally.
+- **`JobReceiver` failure path** never throws out of the listener: FAILED is saved, retried once via targeted updates;
+  if that also fails the job stays PROCESSING without sub-jobs and `StaleJobReaper` pass 4 resolves it after
+  `app.jobreaper.max-main-job-setup-time` (default PT1H, must exceed the longest source download).
+- **Redelivery idempotency** — the standard receivers (image/av/document/jupyter via `AbstractReceiver`) skip terminal
+  sub-jobs (and only re-resolve the main job via the idempotent `processMainJob`); a sub-job left PROCESSING by a dead
+  delivery is deliberately restarted.
+
 ### Error messages of a failed sub-job
 `SubJob.errorMessage` is not text for the user but a **translation key of the repository UI**
 (`ErrorStrings`, `RENDERING.ERROR.*`); most modules set `GENERIC_CONVERSION_ERROR`. A new key therefore needs
@@ -139,6 +151,17 @@ repo at a time. Controllers:
 - `app.*` binds to `AppInfo` (`@ConfigurationProperties("app")`).
 - MongoDB uses Boot 4 `spring.mongodb.*`. Outbound converter hosts:
   `app.lumi.host` (3000), `app.documentConverter.host` (8081), `app.jupyterConverter.host` (9120).
+- **Resilience config (typed, defaults in code, all overridable):** `app.mongodb.timeout.*` (`MongoTimeoutProperties`),
+  `app.redis.client.*` (`RedisClientProperties`, shared by the standalone and cluster Lettuce client),
+  `app.redis.session.configure-action=NO_OP` (managed Redis without `CONFIG`), `app.s3.client.*` / `app.s3.health.*`
+  (`S3ClientProperties`/`S3HealthProperties`), `app.scheduling.pool-size` (min 4), and in `application.properties` the
+  Rabbit timeouts, the health groups and graceful shutdown. **Health groups:** `liveness` = `livenessState` only (must
+  never depend on a subsystem - a restart does not fix Mongo/Redis); `readiness` = `readinessState,mongo,redis`
+  (override `management.endpoint.health.group.readiness.include` to drop one). Helm's startup probe therefore also uses
+  the liveness path. **Shutdown:** `spring.lifecycle.timeout-per-shutdown-phase` (36m) must stay above
+  `QueueConfig`'s 35 min container `shutdownTimeout` and below Helm's `terminationGracePeriod` (2400 s). With
+  `spring.rabbitmq.cache.channel.checkout-timeout` set, `cache.channel.size` is a hard cap - keep it above the sum of
+  the queue concurrencies. All `MongoTemplate` writes are ACKNOWLEDGED.
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.
 - **RabbitMQ listener concurrency is not just `app.queue.<x>.concurrency`.** `DirectMessageListenerContainer`
   only uses `QueueConfig.rabbitConsumerExecutor` to bootstrap consumer registration; each consumer's message
