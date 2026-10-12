@@ -1,4 +1,5 @@
 import {IIntegration, IPlayerModel} from "@lumieducation/h5p-server";
+import {mathDisplayHead} from "./mathDisplay";
 
 /**
  * WORKAROUND — TODO(remove once we run on a @lumieducation/h5p-server release
@@ -116,6 +117,7 @@ export default (model: IPlayerModel): string => `<!doctype html>
     <script>
         window.H5PIntegration = ${JSON.stringify(withoutContentUserData(model.integration), null, 2)};
     </script>
+    ${mathDisplayHead(model)}
 
     <script>
       (function () {

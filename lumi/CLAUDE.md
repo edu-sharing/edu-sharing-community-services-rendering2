@@ -19,6 +19,7 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 | `src/s3Streams.ts` | Binds S3 body streams to the request; without it aborted downloads leak pool sockets. |
 | `src/traceContext.ts` | Adopts the incoming b3/W3C trace id and prefixes every `debug` log line with it. Binds `req.emit`/`res.emit` into the `AsyncLocalStorage` context — **do not remove**: without it every request with a body (the package import above all) logs untraced, because body parsers resume the chain from stream events that fire in the socket's async context. |
 | `src/eduSharingPlayer.ts` | Custom H5P player/renderer. Also injects the core styles the bundled `playerAssetList.json` omits, and seeds a preloaded empty `contentUserData` so H5P core skips the `contentUserData` AJAX call that h5p-express answers with 403 while the feature is off (`contentUserStateSaveInterval: false`). |
+| `src/mathDisplay.ts` | LaTeX for every H5P page: serves MathJax 4 (npm `mathjax` + its font) and builds the `<head>` snippet `eduSharingPlayer` injects (config/observer ported from the upstream `H5P.MathDisplay` addon). Only injected when the content parameters contain LaTeX and the package does not ship `H5P.MathDisplay` itself. |
 | `src/EduSharingModel.ts` | Mongo node↔content mapping model. |
 | `src/User.ts` | Dummy user for H5P context. |
 | `src/h5p.settings.ts` | H5P version constants. |
@@ -34,6 +35,7 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 - `GET  /edusharing/buckets` — S3 bucket config
 - `GET  /edusharing/ping` — health check
 - `GET  /package-libraries/:packageId/:uberName/:file` — library files of one package (only mounted when the per-package cache is on)
+- `GET  /mathjax/<mathjax>-<font>/...` — MathJax and its font from `node_modules` (`mathDisplay.ts`, mounted in `index.ts`); both versions are in the path, so it is cached as immutable
 
 ## npm scripts (`package.json`)
 - `npm run setup` → `rm -rf ./h5p && ./download-core.sh 1.28.0 1.25` — downloads H5P core
@@ -108,7 +110,8 @@ The cache directory is still authoritative and needs its volume (the chart creat
 `package` mode; a named volume in compose).
 
 **Behaviour change to be aware of**: `listAddons()` scans *installed* libraries, so an addon such as
-`H5P.MathDisplay` now only applies to a package that actually ships it.
+`H5P.MathDisplay` now only applies to a package that actually ships it. LaTeX does not depend on that:
+`mathDisplay.ts` injects lumi's own MathJax into every page with formulas that lacks the addon.
 
 ### Quota
 
