@@ -180,6 +180,38 @@ repo at a time. Controllers:
   calls per remote and pod (keep >= the queue concurrency). Metrics are named `rendering.remote.*`. `enabled=false` makes
   the layer a pass-through; per-remote overrides via `app.resilience.modules.<name>.*`. `app.module.ddb.auth-mode=HEADER`
   keeps the DDB key out of URIs but is unverified against the live API (default `QUERY`).
+  - **Breaker semantics and known limits (by design):** it counts **consecutive whole calls after retries** (one
+    success resets the streak); there is deliberately no rate window - retry already smooths partial failures, so it
+    opens only when several calls in a row fail even after their retries. The state is **per pod and per remote**
+    (pod-local trouble should open only there); briefly inconsistent answers between pods during learning and
+    recovery are known and bounded by `open-duration`. `HALF_OPEN` admits a single probe call (`half-open-max-calls`),
+    so a slow probe prolongs the block. Long timeouts delay learning (a call counts only once it has timed out).
+  - **Failure classification (`failure-classification`, per guard):** `DEFAULT` counts 5xx (not 501), connect/reset,
+    timeouts and pool wait timeouts; a 4xx is a success. `REACHABILITY_ONLY` counts only connect/reset/timeout and
+    HTTP 502/503/504 - a 500/507 is an answer of a reachable remote and resets the streak. Set globally via
+    `app.resilience.circuit-breaker.failure-classification` or per guard via `app.resilience.modules.<name>.*`.
+  - **Lumi guards:** `lumi` (lookups in `LumiContentManagementService`, retry for GET) is separate from `lumi-proxy`
+    (reverse proxy `LumiProxyService`: no retry, bulkhead 256, `open-duration` 10 s, `REACHABILITY_ONLY`, so one broken
+    H5P content reloaded by a user cannot open the breaker for all contents; header wait capped by the typed
+    `app.lumi.proxy.response-headers-timeout`, default 20 s, `LumiProxyProperties`) and `lumi-upload` (`H5pUploadService`
+    POST: no retry, default classification, 15 min budget above the credential `timeout`). The guards only wrap the
+    wait for status + headers (`toEntityFlux ... block()`); the body streaming afterwards (`FluxInputStream`) is **not**
+    covered - accepted. The built-in profile of a guard lives in `ResilienceProperties.BUILT_IN_MODULE_DEFAULTS`
+    (precedence: configured module value, built-in default, global section).
+  - **HTTP mapping (`ApiExceptionHandler`, global):** `RemoteModuleUnavailableException` (open breaker, full bulkhead,
+    saturated pool) -> 503 with `Retry-After` (remaining breaker time, when known); proxy connection errors -> 502,
+    header timeout -> 504 (`ModuleGatewayException`); all with `userMessage` `GENERIC_MODULE_NOT_AVAILABLE`, logged as
+    one WARN line without stack trace.
+  - **Alerting (Prometheus; Micrometer dots become underscores, counters get `_total`; all with label `module`):**
+    - Breaker open for more than a minute: `max by (module) (rendering_remote_circuit_state) == 2` for `1m`
+      (`for: 1m`; 0 closed, 1 half-open, 2 open; per pod, so use `max`/`count` over pods as needed).
+    - Rejections without contacting the remote: `sum by (module, reason) (rate(rendering_remote_calls_rejected_total[5m])) > 0`
+      with `reason` = `circuit_open` (breaker) or `bulkhead_full` (limit too low or remote slow); alert on
+      `bulkhead_full` more sharply, it can also signal an undersized bulkhead.
+    - Remote in trouble although the breaker is still closed: `sum by (module) (rate(rendering_remote_retries_total[5m])) > 0.5`
+      (tune the threshold; only idempotent GET/HEAD calls retry).
+    - Optional saturation view: `max by (module) (rendering_remote_calls_inflight)` against the module's
+      `max-concurrent-calls`.
 - **Converter calls (`ConverterWebServiceCaller`, `app.converter.call.*`, `ConverterCallProperties`):** only transient
   status classes are retried (502/503/504, connection errors, timeouts; a 503 honours `Retry-After` up to
   `max-retry-after`); other 4xx/5xx fail at once. One attempt is bounded by `attempt-timeout` (330 s, above the
