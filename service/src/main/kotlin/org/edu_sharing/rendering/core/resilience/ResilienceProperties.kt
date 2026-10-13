@@ -7,7 +7,7 @@ import java.time.Duration
 /**
  * Resilience settings for calls to external systems (Sodix, Omega, DDB, GitHub, lumi), bound from
  * `app.resilience.*`. The top-level sections are the defaults for every guarded remote; [modules] overrides
- * single values per remote name (`sodix`, `omega`, `omega-validation`, `ddb`, `github`, `lumi`).
+ * single values per remote name (`sodix`, `omega`, `omega-validation`, `ddb`, `github`, `lumi`, `lumi-proxy`, `lumi-upload`).
  *
  * All values have code defaults, so nothing has to be configured. `app.resilience.enabled=false` turns the
  * whole layer (retry, circuit breaker, bulkhead) into a pass-through.
@@ -22,6 +22,35 @@ class ResilienceProperties {
 
     /** Per-remote overrides keyed by the guard name; unset fields fall back to the sections above. */
     var modules: Map<String, ModuleOverride> = emptyMap()
+
+    companion object {
+        /** Guard name of the lumi reverse proxy (user-facing, high fan-out per page). */
+        const val LUMI_PROXY_GUARD = "lumi-proxy"
+
+        /** Guard name of the lumi package upload (a side-effecting POST, never retried). */
+        const val LUMI_UPLOAD_GUARD = "lumi-upload"
+
+        /**
+         * Code defaults of remotes whose profile differs from the generic sections: the lumi proxy loads many files
+         * in parallel per H5P page (high bulkhead), recovers quickly (short open duration limits the mixed phase of
+         * pod-local breakers) and only counts reachability failures. Overridable via `modules.lumi-proxy.*`.
+         */
+        internal val BUILT_IN_MODULE_DEFAULTS: Map<String, ModuleOverride> = mapOf(
+            LUMI_PROXY_GUARD to ModuleOverride().apply {
+                maxConcurrentCalls = 256
+                openDuration = Duration.ofSeconds(10)
+                failureClassification = FailureClassification.REACHABILITY_ONLY
+                // The header timeout (app.lumi.proxy.response-headers-timeout) is the real bound; this is a backstop.
+                totalBudget = Duration.ofMinutes(5)
+            },
+            // The upload runs for minutes (repository credential `timeout`, default 300 s, capped at 600 s by the
+            // WebClient), so the generic 75 s budget would cut it. Never retried (POST), default classification.
+            LUMI_UPLOAD_GUARD to ModuleOverride().apply {
+                maxAttempts = 1
+                totalBudget = Duration.ofMinutes(15)
+            },
+        )
+    }
 
     class RetryProperties {
         /** Total attempts including the first one; 1 disables retries. Only idempotent GET/HEAD calls are retried. */
@@ -53,6 +82,9 @@ class ResilienceProperties {
 
         /** Concurrent probe calls in HALF_OPEN; one success closes the breaker, one failure re-opens it. */
         var halfOpenMaxCalls: Int = 1
+
+        /** Which failures count against the breaker; see [FailureClassification]. */
+        var failureClassification: FailureClassification = FailureClassification.DEFAULT
     }
 
     class BulkheadProperties {
@@ -70,28 +102,50 @@ class ResilienceProperties {
         var failureThreshold: Int? = null
         var openDuration: Duration? = null
         var maxConcurrentCalls: Int? = null
+        var failureClassification: FailureClassification? = null
+
+        /** Upper bound of one call incl. retries (see [RetryProperties.totalBudget]). */
+        var totalBudget: Duration? = null
     }
 
-    /** Effective, immutable settings of one remote. */
+    /**
+     * Effective, immutable settings of one remote. Precedence per value: configured `modules.<name>`, then the
+     * built-in defaults of that remote ([BUILT_IN_MODULE_DEFAULTS], `lumi-proxy` and `lumi-upload`), then the sections above.
+     */
     fun settingsFor(name: String): RemoteCallSettings {
-        val override = modules[name]
+        val configured = modules[name]
+        val builtIn = BUILT_IN_MODULE_DEFAULTS[name]
         return RemoteCallSettings(
             enabled = enabled,
-            maxAttempts = (override?.maxAttempts ?: retry.maxAttempts).coerceAtLeast(1),
+            maxAttempts = (configured?.maxAttempts ?: builtIn?.maxAttempts ?: retry.maxAttempts).coerceAtLeast(1),
             initialBackoff = retry.initialBackoff,
             maxBackoff = retry.maxBackoff,
             jitter = retry.jitter.coerceIn(0.0, 1.0),
             maxRetryAfter = retry.maxRetryAfter,
-            totalBudget = retry.totalBudget,
+            totalBudget = configured?.totalBudget ?: builtIn?.totalBudget ?: retry.totalBudget,
             breakerEnabled = circuitBreaker.enabled,
-            failureThreshold = (override?.failureThreshold ?: circuitBreaker.failureThreshold).coerceAtLeast(1),
-            openDuration = override?.openDuration ?: circuitBreaker.openDuration,
+            failureThreshold = (configured?.failureThreshold ?: builtIn?.failureThreshold ?: circuitBreaker.failureThreshold).coerceAtLeast(1),
+            openDuration = configured?.openDuration ?: builtIn?.openDuration ?: circuitBreaker.openDuration,
             halfOpenMaxCalls = circuitBreaker.halfOpenMaxCalls.coerceAtLeast(1),
+            failureClassification = configured?.failureClassification ?: builtIn?.failureClassification
+                ?: circuitBreaker.failureClassification,
             bulkheadEnabled = bulkhead.enabled,
-            maxConcurrentCalls = (override?.maxConcurrentCalls ?: bulkhead.maxConcurrentCalls).coerceAtLeast(1),
+            maxConcurrentCalls = (configured?.maxConcurrentCalls ?: builtIn?.maxConcurrentCalls ?: bulkhead.maxConcurrentCalls).coerceAtLeast(1),
             bulkheadMaxWait = bulkhead.maxWait,
         )
     }
+}
+
+/** Which failures count against a circuit breaker. */
+enum class FailureClassification {
+    /** 5xx (not 501), connect/reset, timeouts, pool wait timeout; a 4xx proves the remote is alive. */
+    DEFAULT,
+
+    /**
+     * Only reachability problems: connect/reset/timeout failures and HTTP 502/503/504. A 500/507 (e.g. one
+     * broken piece of content that users keep reloading) does not count and resets the failure streak.
+     */
+    REACHABILITY_ONLY,
 }
 
 /** Resolved settings of one remote (see [ResilienceProperties.settingsFor]). */
@@ -107,6 +161,7 @@ data class RemoteCallSettings(
     val failureThreshold: Int = 5,
     val openDuration: Duration = Duration.ofSeconds(30),
     val halfOpenMaxCalls: Int = 1,
+    val failureClassification: FailureClassification = FailureClassification.DEFAULT,
     val bulkheadEnabled: Boolean = true,
     val maxConcurrentCalls: Int = 64,
     val bulkheadMaxWait: Duration = Duration.ZERO,

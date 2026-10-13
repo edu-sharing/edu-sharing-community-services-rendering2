@@ -107,6 +107,7 @@ data:
   "app.resilience.circuit-breaker.failure-threshold": {{ .Values.config.resilience.circuitBreaker.failureThreshold | quote }}
   "app.resilience.circuit-breaker.open-duration": {{ .Values.config.resilience.circuitBreaker.openDuration | quote }}
   "app.resilience.circuit-breaker.half-open-max-calls": {{ .Values.config.resilience.circuitBreaker.halfOpenMaxCalls | quote }}
+  "app.resilience.circuit-breaker.failure-classification": {{ .Values.config.resilience.circuitBreaker.failureClassification | quote }}
   "app.resilience.bulkhead.enabled": {{ .Values.config.resilience.bulkhead.enabled | quote }}
   "app.resilience.bulkhead.max-concurrent-calls": {{ .Values.config.resilience.bulkhead.maxConcurrentCalls | quote }}
   "app.resilience.bulkhead.max-wait": {{ .Values.config.resilience.bulkhead.maxWait | quote }}
@@ -144,6 +145,7 @@ data:
   "app.queue-migration.enabled": {{ .Values.config.queueMigration.enabled | quote }}
   "app.queue-migration.schedule": {{ .Values.config.queueMigration.schedule | quote }}
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
+  "app.lumi.proxy.response-headers-timeout": {{ .Values.config.lumi.proxy.responseHeadersTimeout | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}
   "spring.http.codecs.max-in-memory-size": {{ .Values.config.webclient.codec.maxInMemorySize | quote }}

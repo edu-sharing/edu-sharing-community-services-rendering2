@@ -229,6 +229,7 @@ services:
       app.resilience.circuit-breaker.failure-threshold: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_FAILURE_THRESHOLD:-5}"
       app.resilience.circuit-breaker.open-duration: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_OPEN_DURATION:-30s}"
       app.resilience.circuit-breaker.half-open-max-calls: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS:-1}"
+      app.resilience.circuit-breaker.failure-classification: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_FAILURE_CLASSIFICATION:-DEFAULT}"
       app.resilience.bulkhead.enabled: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_ENABLED:-true}"
       app.resilience.bulkhead.max-concurrent-calls: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_MAX_CONCURRENT_CALLS:-64}"
       app.resilience.bulkhead.max-wait: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_MAX_WAIT:-0s}"
@@ -342,6 +343,9 @@ services:
       server.servlet.session.cookie.secure: "${RENDERING2_SERVICE_COOKIE_SECURE:-false}"
       server.servlet.session.cookie.partitioned: "${RENDERING2_SERVICE_COOKIE_PARTITIONED:-false}"
       app.lumi.host: http://rendering2-lumi:3000
+      # Upper bound for lumi to deliver status + headers of a proxied H5P response (each proxied request holds a
+      # Tomcat thread this long at most; a timeout is answered with 504).
+      app.lumi.proxy.response-headers-timeout: "${RENDERING2_SERVICE_LUMI_PROXY_RESPONSE_HEADERS_TIMEOUT:-20s}"
       app.documentConverter.host: http://rendering2-document-converter:8080
     restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
     # Readiness on the management port (management.server.port, same endpoint the Helm chart probes). curl ships in the image.

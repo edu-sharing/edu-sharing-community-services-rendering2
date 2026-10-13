@@ -530,6 +530,8 @@ config:
       openDuration: "30s"
       ## @param config.resilience.circuitBreaker.halfOpenMaxCalls Concurrent probe calls in HALF_OPEN
       halfOpenMaxCalls: "1"
+      ## @param config.resilience.circuitBreaker.failureClassification Which failures count against the breaker [DEFAULT|REACHABILITY_ONLY]; the lumi proxy guard (lumi-proxy) always defaults to REACHABILITY_ONLY
+      failureClassification: "DEFAULT"
     bulkhead:
       ## @param config.resilience.bulkhead.enabled Enable the bulkhead
       enabled: "true"
@@ -722,6 +724,9 @@ config:
     host: edusharing-services-rendering2-lumi
     ## @param config.lumi.port Set lumi port
     port: 3000
+    proxy:
+      ## @param config.lumi.proxy.responseHeadersTimeout Upper bound for lumi to deliver status and headers of a proxied H5P response (each proxied request holds a Tomcat thread this long at most; a timeout is answered with 504)
+      responseHeadersTimeout: "20s"
 
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics

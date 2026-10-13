@@ -10,7 +10,15 @@ import io.mockk.mockk
 import jakarta.servlet.http.HttpServletRequest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.edu_sharing.rendering.core.exception.ModuleGatewayException
+import org.edu_sharing.rendering.core.resilience.RemoteModuleUnavailableException
+import org.edu_sharing.rendering.core.resilience.ResilienceProperties
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
+import okhttp3.mockwebserver.SocketPolicy
+import org.junit.jupiter.api.assertThrows
+import org.springframework.web.reactive.function.client.WebClientResponseException
+import java.time.Duration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -37,7 +45,7 @@ class LumiProxyServiceTest {
             .baseUrl(mockServer.url("/").toString())
             .build()
         tracer = mockk(relaxed = true)
-        underTest = LumiProxyService(lumiWebClient, tracer)
+        underTest = LumiProxyService(lumiWebClient, tracer, testGuardRegistry(), LumiProxyProperties())
         clearAllMocks()
         // No active span by default -> traceId is null and no TRACE header is added.
         every { tracer.currentSpan() } returns null
@@ -71,7 +79,7 @@ class LumiProxyServiceTest {
         every { tracerWithSpan.currentSpan() } returns span
         every { span.context() } returns context
         every { context.traceId() } returns traceId
-        return LumiProxyService(lumiWebClient, tracerWithSpan)
+        return LumiProxyService(lumiWebClient, tracerWithSpan, testGuardRegistry(), LumiProxyProperties())
     }
 
     private fun enqueue(body: String = "testresponse", vararg headers: Pair<String, String>) {
@@ -394,5 +402,87 @@ class LumiProxyServiceTest {
 
         // Assert: additionalHeaders are set (not added), overriding the colliding upstream value.
         assert(result.headers["X-Override"] == listOf("overridden"))
+    }
+
+    // ── failure mapping and guard ─────────────────────────────────────────────────────────────────
+
+    private fun proxy(service: LumiProxyService, request: HttpServletRequest = mockRequest("/h5p/some/path/test")) =
+        service.processProxyRequest("/h5p", null, HttpMethod.GET, request)
+
+    private fun serviceWith(
+        headersTimeout: Duration = Duration.ofSeconds(20),
+        configure: ResilienceProperties.() -> Unit = {},
+    ) = LumiProxyService(
+        lumiWebClient, tracer, testGuardRegistry(configure = configure),
+        LumiProxyProperties().apply { responseHeadersTimeout = headersTimeout }
+    )
+
+    @Test
+    fun testConnectionErrorIsMappedTo502() {
+        // Arrange: nothing listens any more
+        mockServer.shutdown()
+
+        // Act
+        val thrown = assertThrows<ModuleGatewayException> { proxy(underTest) }
+
+        // Assert
+        assert(thrown.status == HttpStatus.BAD_GATEWAY)
+    }
+
+    @Test
+    fun testHeaderTimeoutIsMappedTo504() {
+        // Arrange: lumi accepts the request but never answers
+        mockServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+
+        // Act
+        val thrown = assertThrows<ModuleGatewayException> { proxy(serviceWith(Duration.ofMillis(300))) }
+
+        // Assert
+        assert(thrown.status == HttpStatus.GATEWAY_TIMEOUT)
+    }
+
+    @Test
+    fun testOpenBreakerAnswersWithRemoteModuleUnavailableAndRetryAfter() {
+        // Arrange: one connection failure opens the breaker of the proxy guard
+        val service = serviceWith {
+            modules = mapOf("lumi-proxy" to ResilienceProperties.ModuleOverride().apply { failureThreshold = 1 })
+        }
+        mockServer.enqueue(MockResponse().setResponseCode(503))
+        mockServer.enqueue(MockResponse().setResponseCode(200).setBody("never"))
+
+        // Act
+        val first = assertThrows<ModuleGatewayException> { proxy(service) }
+        val second = assertThrows<RemoteModuleUnavailableException> { proxy(service) }
+
+        // Assert: a 503 of lumi is passed on as 503; then the breaker rejects without contacting lumi
+        assert(first.status == HttpStatus.SERVICE_UNAVAILABLE)
+        assert(second.retryAfter != null && second.retryAfter!! > Duration.ZERO && second.retryAfter!! <= Duration.ofSeconds(10))
+        assert(mockServer.requestCount == 1)
+    }
+
+    @Test
+    fun testRepeatedHttp500DoesNotOpenTheProxyBreaker() {
+        // Arrange: a single broken content reloaded again and again
+        val service = serviceWith {
+            modules = mapOf("lumi-proxy" to ResilienceProperties.ModuleOverride().apply { failureThreshold = 2 })
+        }
+        repeat(5) { mockServer.enqueue(MockResponse().setResponseCode(500)) }
+
+        // Act and assert: every call reaches lumi and fails with lumi's own 500 (not a breaker rejection)
+        repeat(5) { assertThrows<WebClientResponseException> { proxy(service) } }
+        assert(mockServer.requestCount == 5)
+    }
+
+    @Test
+    fun testProxyRequestsAreNotRetried() {
+        // Arrange
+        mockServer.enqueue(MockResponse().setResponseCode(503))
+        mockServer.enqueue(MockResponse().setResponseCode(200).setBody("late"))
+
+        // Act
+        assertThrows<ModuleGatewayException> { proxy(underTest) }
+
+        // Assert
+        assert(mockServer.requestCount == 1)
     }
 }
