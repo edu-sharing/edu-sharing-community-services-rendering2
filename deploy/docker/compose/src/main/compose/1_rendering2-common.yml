@@ -148,7 +148,7 @@ services:
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
       app.converter.audio.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_AUDIO_FFMPEG_THREADS:-1}"
       app.converter.av.ffmpegPath: "${RENDERING2_SERVICE_CONVERTER_AV_FFMPEG_PATH:-ffmpeg}"
-      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 0 1 * * *}"
+      app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 */15 * * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
       # Stale-job reaper (master only): times out orphaned PROCESSING sub-jobs (crashed/lost conversions)
@@ -229,7 +229,7 @@ services:
       # the cache cleaner, and only as long as none of this repo's buckets (above, or the lumi content
       # bucket) has its own quota configured — a single bucket quota switches this repo entirely to
       # per-bucket enforcement.
-      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-0}"
+      app.repository.registration.id.local.quota: "${RENDERING2_S3_DEFAULT_QUOTA:-100GB}"
       app.security.adminPassword: "${RENDERING2_SERVICE_ADMIN_PASSWORD:-admin}"
       spring.http.codecs.max-in-memory-size: "${RENDERING2_SERVICE_MAX_IN_MEMORY_SIZE:-20MB}"
       # The dedicated import HTTP pools (sodix/omega/ddb) are sized per queue via
@@ -246,21 +246,37 @@ services:
     expose:
       - "8080"
     depends_on:
-      - mongo-database
-      - rendering2-message-queue
-      - redis-cache
+      mongo-database:
+        condition: service_started
+      rendering2-message-queue:
+        condition: service_started
+      redis-cache:
+        condition: service_started
+      # Lumi can need minutes to start; H5P jobs consumed earlier fail with "connection refused".
+      rendering2-lumi:
+        condition: service_healthy
     ports:
       - "${COMMON_BIND_HOST:-127.0.0.1}:${RENDERING2_SERVICE_PORT_HTTP:-10100}:8080"
 
   rendering2-document-converter:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-document-converter:${docker.tag}"
     command:
-      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-512m}
-      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-512m}
+      - -Xms${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMS:-1g}
+      - -Xmx${RENDERING2_SERVICE_DOCUMENT_CONVERTER_JAVA_XMX:-1g}
       - -Dcom.sun.management.jmxremote
       - -Dcom.sun.management.jmxremote.authenticate=false
       - -Dcom.sun.management.jmxremote.port=7199
       - -Dcom.sun.management.jmxremote.ssl=false
+    environment:
+      # Comma-separated ports = parallel LibreOffice processes (= parallel conversions per container).
+      # Keep CPU/memory below in line (~1 vCPU + ~1 GiB per process); the heap stays small because
+      # LibreOffice runs as a subprocess outside the JVM heap.
+      LIBREOFFICE_PORT_NUMBERS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PORTS:-2002,2003}"
+      LIBREOFFICE_MAX_TASKS_PER_PROCESS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_MAX_TASKS_PER_PROCESS:-100}"
+      LIBREOFFICE_TASK_EXECUTION_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_EXECUTION_TIMEOUT:-120000}"
+      LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
+    cpus: "${RENDERING2_DOCUMENT_CONVERTER_CPUS:-2}"
+    mem_limit: "${RENDERING2_DOCUMENT_CONVERTER_MEMORY:-4g}"
     expose:
       - "8080"
 
@@ -274,6 +290,9 @@ services:
       AWS_S3_TRUST_ALL_CERTIFICATES: false
       AWS_S3_CHECKSUM_CALCULATION_WHEN_REQUIRED: false
       AWS_S3_MAX_SOCKETS: "${RENDERING2_LUMI_S3_MAX_SOCKETS:-256}"
+      # A pool that is full, has requests waiting and in which not a single request settles for this
+      # long is stuck on sockets that will never come back; lumi then destroys them. 0 = off.
+      AWS_S3_POOL_STALL_MS: "${RENDERING2_LUMI_S3_POOL_STALL_MS:-120000}"
       AWS_S3_ENDPOINT: "${RENDERING2_S3_STORAGE_PROTOCOL:-http}://${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}:${RENDERING2_S3_STORAGE_PORT:-9000}"
       S3_HOST: "${RENDERING2_S3_STORAGE_HOST:-rendering2-rustfs-storage}"
       S3_PORT: "${RENDERING2_S3_STORAGE_PORT:-9000}"
@@ -288,6 +307,8 @@ services:
       CONTENT_AWS_S3_BUCKET_QUOTA: "${RENDERING2_LUMI_CONTENT_BUCKET_QUOTA:-0}"
       CONTENT_MONGO_COLLECTION: h5p
       TEMPORARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_TEMP_BUCKET:-lumi-tempbucket}"
+      # Days after which objects in the temp bucket expire (S3 lifecycle rule, re-applied on every lumi start).
+      TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS: "${RENDERING2_LUMI_TEMP_BUCKET_EXPIRATION_DAYS:-1}"
       LIBRARY_MONGO_COLLECTION: h5plibraries
       LIBRARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_LIB_BUCKET:-lumi-libbucket}"
       EDUSHARING_MONGO_COLLECTION: lumiedusharing
@@ -298,15 +319,41 @@ services:
       # exact library versions it shipped; that cache is authoritative, hence the volume below.
       H5P_LIBRARY_CACHE: "${RENDERING2_LUMI_LIBRARY_CACHE:-global}"
       H5P_LIBRARY_CACHE_DIR: /application/library-cache
-      # Size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
-      # units). 0/empty = no limit. On reaching it, imports are rejected with HTTP 507 rather than
-      # evicting: the cache is the only copy of those packages' libraries.
+      # Soft size limit for that cache; a plain byte count or a human-readable size like "10GB" (binary
+      # units). 0/empty = no limit. lumi never rejects an import for it - it reports it, and rendering2's
+      # CacheCleaner frees the cache (least recently used content first) once it is exceeded, as for the
+      # buckets. What really limits the cache is the volume it lives on, so keep the quota below that.
       H5P_LIBRARY_CACHE_QUOTA: "${RENDERING2_LUMI_LIBRARY_CACHE_QUOTA:-0}"
+      # Hours a measurement of the cache stays valid. A start with a younger one does not walk the cache
+      # again (that takes minutes for millions of files), and it is measured again this often while
+      # running. 0 = measure at every start only.
+      H5P_LIBRARY_CACHE_RESCAN_HOURS: "${RENDERING2_LUMI_LIBRARY_CACHE_RESCAN_HOURS:-24}"
+      # Deadline of one package import. Imports run one at a time, so an import that never returns used
+      # to block every later one; past the deadline it is answered with 504 and the queue moves on.
+      # Keep it above the rendering service's H5P timeout (repository credential "timeout"). 0 = off.
+      H5P_IMPORT_TIMEOUT_MS: "${RENDERING2_LUMI_IMPORT_TIMEOUT_MS:-900000}"
+      # Largest H5P package lumi accepts: H5P_MAX_TOTAL_SIZE is its size once unpacked, H5P_MAX_FILE_SIZE
+      # that of a single file in it (plain byte count or e.g. "2GB", binary units). The import streams
+      # from disk, so neither is bound by memory - but /tmp needs room for the spooled upload plus the
+      # unpacked package. Requests this big also need the rendering service's H5P timeout (repository
+      # credential "timeout", default 300 s) and H5P_IMPORT_TIMEOUT_MS above to be raised accordingly.
+      H5P_MAX_TOTAL_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_SIZE:-4GB}"
+      H5P_MAX_FILE_SIZE: "${RENDERING2_LUMI_MAX_PACKAGE_FILE_SIZE:-2GB}"
+      # Extra file extensions the package validator accepts, on top of its short defaults (content: no svg, webp,
+      # mov, flac). Space or comma separated, e.g. "svg webp". Empty = defaults only.
+      H5P_CONTENT_WHITELIST_EXTRA: "${RENDERING2_LUMI_CONTENT_WHITELIST_EXTRA:-}"
+      H5P_LIBRARY_WHITELIST_EXTRA: "${RENDERING2_LUMI_LIBRARY_WHITELIST_EXTRA:-}"
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*
     volumes:
       - "rendering2-lumi-volume-library-cache:/application/library-cache"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/metrics').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10m
     expose:
       - "3000"
 

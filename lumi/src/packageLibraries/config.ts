@@ -15,8 +15,14 @@ export interface PackageLibraryConfig {
     mode: LibraryCacheMode
     /** Root directory of the per-package caches; only meaningful in `package` mode. */
     directory: string
-    /** Size limit of the cache in bytes; `0` means no limit. */
+    /** Soft size limit of the cache in bytes, reported to the rendering service; `0` means no limit. */
     quotaBytes: number
+    /**
+     * How long a measurement of the cache stays valid. A start with a younger one does not measure again,
+     * and the cache is measured again this often while running. `0` = measure at every start, never while
+     * running.
+     */
+    rescanIntervalMs: number
 }
 
 const DEFAULT_DIRECTORY = '/application/library-cache'
@@ -29,8 +35,22 @@ const DEFAULT_DIRECTORY = '/application/library-cache'
 export const readPackageLibraryConfig = (env: NodeJS.ProcessEnv = process.env): PackageLibraryConfig => ({
     mode: env.H5P_LIBRARY_CACHE === 'package' ? 'package' : 'global',
     directory: path.resolve(env.H5P_LIBRARY_CACHE_DIR || DEFAULT_DIRECTORY),
-    quotaBytes: readQuota(env.H5P_LIBRARY_CACHE_QUOTA)
+    quotaBytes: readQuota(env.H5P_LIBRARY_CACHE_QUOTA),
+    rescanIntervalMs: readRescanHours(env.H5P_LIBRARY_CACHE_RESCAN_HOURS) * 3_600_000
 })
+
+/** Hours between two full measurements of the cache; 24 unless configured, 0 = at every start only. */
+const readRescanHours = (raw?: string): number => {
+    const hours = Number(raw)
+    if (raw === undefined || raw.trim() === '') {
+        return 24
+    }
+    if (!Number.isFinite(hours) || hours < 0) {
+        log.warn(`Ignoring invalid H5P_LIBRARY_CACHE_RESCAN_HOURS "${raw}", using 24.`)
+        return 24
+    }
+    return hours
+}
 
 /**
  * A plain byte count or a human-readable size (e.g. "10GB"), in the same binary units as the bucket

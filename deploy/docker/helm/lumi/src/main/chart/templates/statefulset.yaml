@@ -36,10 +36,16 @@ spec:
         ports:
         - name: api
           containerPort: 3000
-        {{- if eq .Values.config.libraryCache.mode "package" }}
+        {{- if or (eq .Values.config.libraryCache.mode "package") .Values.persistence.data.temp.create }}
         volumeMounts:
+        {{- if eq .Values.config.libraryCache.mode "package" }}
         - name: library-cache
           mountPath: {{ .Values.config.libraryCache.dir | quote }}
+        {{- end }}
+        {{- if .Values.persistence.data.temp.create }}
+        - name: temp
+          mountPath: /tmp
+        {{- end }}
         {{- end }}
         {{- with .Values.startupProbe }}
         startupProbe:
@@ -114,11 +120,21 @@ spec:
       {{- end }}
   {{/* The per-package library cache is the only copy of those packages' libraries, so the volume is
        not optional for it - it follows the mode rather than a flag of its own, which removes the
-       "package mode without storage" misconfiguration. In "global" mode no claim is created. */}}
-  {{- if eq .Values.config.libraryCache.mode "package" }}
+       "package mode without storage" misconfiguration. In "global" mode no claim is created. The temp
+       volume is the opposite: opt-in, like the service's, because without it /tmp simply lives on the
+       node's ephemeral disk. */}}
+  {{- if or (eq .Values.config.libraryCache.mode "package") .Values.persistence.data.temp.create }}
   volumeClaimTemplates:
+  {{- if eq .Values.config.libraryCache.mode "package" }}
   - metadata:
       name: library-cache
       labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
     spec: {{ merge $.Values.persistence.data.libraryCache.spec $.Values.global.cluster.storage.data.spec | toYaml | nindent 6 }}
+  {{- end }}
+  {{- if .Values.persistence.data.temp.create }}
+  - metadata:
+      name: temp
+      labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 8 }}
+    spec: {{ merge $.Values.persistence.data.temp.spec $.Values.global.cluster.storage.data.spec | toYaml | nindent 6 }}
+  {{- end }}
   {{- end }}

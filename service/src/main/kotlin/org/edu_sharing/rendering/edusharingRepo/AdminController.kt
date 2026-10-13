@@ -141,7 +141,7 @@ class AdminController(
     @GetMapping("/repository/details")
     fun repositoryDetails(@RequestParam repoId: String): RepositoryDetailInfo {
         log.debug("GET /admin/repository/details for repoId=$repoId")
-        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId).orElseThrow {
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoIdFresh(repoId).orElseThrow {
             EntryNotFoundException("No repository registration found for repoId $repoId.")
         }
         return toRepositoryDetailInfo(registration)

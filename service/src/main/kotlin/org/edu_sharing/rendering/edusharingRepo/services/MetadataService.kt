@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
 import org.edu_sharing.rendering.config.AppInfo
+import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheConfig
 import org.edu_sharing.rendering.edusharingRepo.dom.MetadataFile
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.edusharingRepo.repository.RendererKeyConfigRepository
@@ -40,7 +41,7 @@ class MetadataService(
     }
 
 
-    @CacheEvict("privateKey")
+    @CacheEvict(RegistrationCacheConfig.PRIVATE_KEY)
     override fun generateApplicationKeyPair() {
         log.debug("Generating new RSA 2048-bit key pair for appId=${appInfo.appId}")
         val generator = KeyPairGenerator.getInstance("RSA")
@@ -55,7 +56,7 @@ class MetadataService(
         storeConfig(appConfig)
     }
 
-    @Cacheable("privateKey")
+    @Cacheable(RegistrationCacheConfig.PRIVATE_KEY)
     override fun getPrivateKey(): PrivateKey {
         log.debug("Cache miss for private key, loading from storage")
         val config = getConfig()

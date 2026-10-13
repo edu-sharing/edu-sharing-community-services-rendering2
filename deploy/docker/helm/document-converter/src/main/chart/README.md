@@ -22,48 +22,53 @@
 
 ### Local parameters
 
-| Name                                                 | Description                                  | Value                                                     |
-| ---------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
-| `nameOverride`                                       | Override name                                | `edusharing-services-rendering2-document-converter`       |
-| `image.name`                                         | Set image name                               | `${docker.prefix}-deploy-docker-build-document-converter` |
-| `image.tag`                                          | Set image tag                                | `${docker.tag}`                                           |
-| `replicaCount`                                       | Define amount of parallel replicas to run    | `1`                                                       |
-| `service.port.api`                                   | Set port for service API                     | `8080`                                                    |
-| `service.port.management`                            | Set port for service management              | `8081`                                                    |
-| `config.jvm.ram.minPercentage`                       | Set minimum memory in percentages            | `90.0`                                                    |
-| `config.jvm.ram.maxPercentage`                       | Set maximum memory in percentages            | `90.0`                                                    |
-| `config.metrics.relabelings`                         | Define relabelings for metrics               | `[]`                                                      |
-| `config.metrics.rules.jvmHighGCRate.enabled`         | Enable metric rule jvmHighGCRate             | `true`                                                    |
-| `config.metrics.rules.jvmHighGCRate.config.max`      | Set metric rule jvmHighGCRate max gc rate    | `0.3`                                                     |
-| `config.metrics.rules.jvmHighGCRate.for`             | Set metric rule jvmHighGCRate wait interval  | `5m`                                                      |
-| `config.metrics.rules.jvmHighGCRate.labels.severity` | Set metric rule jvmHighGCRate severity level | `critical`                                                |
-| `config.override`                                    | Configure overrides                          | `""`                                                      |
-| `debug`                                              | Enable debugging                             | `false`                                                   |
-| `nodeAffinity`                                       | Set node affinity                            | `{}`                                                      |
-| `podAntiAffinity`                                    | Set pod antiaffinity                         | `soft`                                                    |
-| `tolerations`                                        | Set tolerations                              | `[]`                                                      |
-| `podAnnotations`                                     | Set custom pod annotations                   | `{}`                                                      |
-| `podSecurityContext.fsGroup`                         | Set fs group for access                      | `1000`                                                    |
-| `podSecurityContext.fsGroupChangePolicy`             | Set change policy for fs group               | `OnRootMismatch`                                          |
-| `securityContext.allowPrivilegeEscalation`           | Allow privilege escalation                   | `false`                                                   |
-| `securityContext.capabilities.drop`                  | Set drop capabilities                        | `["ALL"]`                                                 |
-| `securityContext.runAsUser`                          | Define user to run under                     | `1000`                                                    |
-| `terminationGracePeriod`                             | Define grace period for termination          | `120`                                                     |
-| `startupProbe.failureThreshold`                      | Failure threshold for startupProbe           | `30`                                                      |
-| `startupProbe.initialDelaySeconds`                   | Initial delay seconds for startupProbe       | `0`                                                       |
-| `startupProbe.periodSeconds`                         | Period seconds for startupProbe              | `20`                                                      |
-| `startupProbe.successThreshold`                      | Success threshold for startupProbe           | `1`                                                       |
-| `startupProbe.timeoutSeconds`                        | Timeout seconds for startupProbe             | `10`                                                      |
-| `livenessProbe.failureThreshold`                     | Failure threshold for livenessProbe          | `3`                                                       |
-| `livenessProbe.initialDelaySeconds`                  | Initial delay seconds for livenessProbe      | `30`                                                      |
-| `livenessProbe.periodSeconds`                        | Period seconds for livenessProbe             | `30`                                                      |
-| `livenessProbe.timeoutSeconds`                       | Timeout seconds for livenessProbe            | `10`                                                      |
-| `readinessProbe.failureThreshold`                    | Failure threshold for readinessProbe         | `1`                                                       |
-| `readinessProbe.initialDelaySeconds`                 | Initial delay seconds for readinessProbe     | `10`                                                      |
-| `readinessProbe.periodSeconds`                       | Period seconds for readinessProbe            | `10`                                                      |
-| `readinessProbe.successThreshold`                    | Set threshold for success on readiness probe | `1`                                                       |
-| `readinessProbe.timeoutSeconds`                      | Timeout seconds for readinessProbe           | `10`                                                      |
-| `resources.limits.cpu`                               | Set CPU limit on resources                   | `500m`                                                    |
-| `resources.limits.memory`                            | Set memory limit on resources                | `2Gi`                                                     |
-| `resources.requests.cpu`                             | Set CPU for requests on resources            | `500m`                                                    |
-| `resources.requests.memory`                          | Set memory for requests on resources         | `2Gi`                                                     |
+| Name                                                 | Description                                                                                                         | Value                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `nameOverride`                                       | Override name                                                                                                       | `edusharing-services-rendering2-document-converter`       |
+| `image.name`                                         | Set image name                                                                                                      | `${docker.prefix}-deploy-docker-build-document-converter` |
+| `image.tag`                                          | Set image tag                                                                                                       | `${docker.tag}`                                           |
+| `replicaCount`                                       | Define amount of parallel replicas to run                                                                           | `1`                                                       |
+| `service.port.api`                                   | Set port for service API                                                                                            | `8080`                                                    |
+| `service.port.management`                            | Set port for service management                                                                                     | `8081`                                                    |
+| `config.jvm.ram.minPercentage`                       | Set minimum memory in percentages                                                                                   | `25.0`                                                    |
+| `config.jvm.ram.maxPercentage`                       | Set maximum memory in percentages                                                                                   | `25.0`                                                    |
+| `config.libreoffice.processes`                       | Parallel LibreOffice processes (= parallel conversions) per pod. Size resources accordingly (~1 vCPU + ~1 GiB each) | `2`                                                       |
+| `config.libreoffice.basePort`                        | First local port; each process gets the next one                                                                    | `2002`                                                    |
+| `config.libreoffice.maxTasksPerProcess`              | Restart a process after this many conversions                                                                       | `100`                                                     |
+| `config.libreoffice.taskExecutionTimeout`            | Abort a conversion after this many ms                                                                               | `120000`                                                  |
+| `config.libreoffice.taskQueueTimeout`                | Max ms a request waits for a free process                                                                           | `300000`                                                  |
+| `config.metrics.relabelings`                         | Define relabelings for metrics                                                                                      | `[]`                                                      |
+| `config.metrics.rules.jvmHighGCRate.enabled`         | Enable metric rule jvmHighGCRate                                                                                    | `true`                                                    |
+| `config.metrics.rules.jvmHighGCRate.config.max`      | Set metric rule jvmHighGCRate max gc rate                                                                           | `0.3`                                                     |
+| `config.metrics.rules.jvmHighGCRate.for`             | Set metric rule jvmHighGCRate wait interval                                                                         | `5m`                                                      |
+| `config.metrics.rules.jvmHighGCRate.labels.severity` | Set metric rule jvmHighGCRate severity level                                                                        | `critical`                                                |
+| `config.override`                                    | Configure overrides                                                                                                 | `""`                                                      |
+| `debug`                                              | Enable debugging                                                                                                    | `false`                                                   |
+| `nodeAffinity`                                       | Set node affinity                                                                                                   | `{}`                                                      |
+| `podAntiAffinity`                                    | Set pod antiaffinity                                                                                                | `soft`                                                    |
+| `tolerations`                                        | Set tolerations                                                                                                     | `[]`                                                      |
+| `podAnnotations`                                     | Set custom pod annotations                                                                                          | `{}`                                                      |
+| `podSecurityContext.fsGroup`                         | Set fs group for access                                                                                             | `1000`                                                    |
+| `podSecurityContext.fsGroupChangePolicy`             | Set change policy for fs group                                                                                      | `OnRootMismatch`                                          |
+| `securityContext.allowPrivilegeEscalation`           | Allow privilege escalation                                                                                          | `false`                                                   |
+| `securityContext.capabilities.drop`                  | Set drop capabilities                                                                                               | `["ALL"]`                                                 |
+| `securityContext.runAsUser`                          | Define user to run under                                                                                            | `1000`                                                    |
+| `terminationGracePeriod`                             | Define grace period for termination                                                                                 | `120`                                                     |
+| `startupProbe.failureThreshold`                      | Failure threshold for startupProbe                                                                                  | `30`                                                      |
+| `startupProbe.initialDelaySeconds`                   | Initial delay seconds for startupProbe                                                                              | `0`                                                       |
+| `startupProbe.periodSeconds`                         | Period seconds for startupProbe                                                                                     | `20`                                                      |
+| `startupProbe.successThreshold`                      | Success threshold for startupProbe                                                                                  | `1`                                                       |
+| `startupProbe.timeoutSeconds`                        | Timeout seconds for startupProbe                                                                                    | `10`                                                      |
+| `livenessProbe.failureThreshold`                     | Failure threshold for livenessProbe                                                                                 | `3`                                                       |
+| `livenessProbe.initialDelaySeconds`                  | Initial delay seconds for livenessProbe                                                                             | `30`                                                      |
+| `livenessProbe.periodSeconds`                        | Period seconds for livenessProbe                                                                                    | `30`                                                      |
+| `livenessProbe.timeoutSeconds`                       | Timeout seconds for livenessProbe                                                                                   | `10`                                                      |
+| `readinessProbe.failureThreshold`                    | Failure threshold for readinessProbe                                                                                | `1`                                                       |
+| `readinessProbe.initialDelaySeconds`                 | Initial delay seconds for readinessProbe                                                                            | `10`                                                      |
+| `readinessProbe.periodSeconds`                       | Period seconds for readinessProbe                                                                                   | `10`                                                      |
+| `readinessProbe.successThreshold`                    | Set threshold for success on readiness probe                                                                        | `1`                                                       |
+| `readinessProbe.timeoutSeconds`                      | Timeout seconds for readinessProbe                                                                                  | `10`                                                      |
+| `resources.limits.cpu`                               | Set CPU limit on resources                                                                                          | `2`                                                       |
+| `resources.limits.memory`                            | Set memory limit on resources                                                                                       | `4Gi`                                                     |
+| `resources.requests.cpu`                             | Set CPU for requests on resources                                                                                   | `2`                                                       |
+| `resources.requests.memory`                          | Set memory for requests on resources                                                                                | `4Gi`                                                     |

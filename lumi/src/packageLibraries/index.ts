@@ -1,4 +1,4 @@
-export {PackageLibraryStore, LibraryStagingArea, PackageLibraryCacheUsage, CacheQuotaExceededError} from './types'
+export {PackageLibraryStore, LibraryStagingArea, PackageLibraryCacheUsage} from './types'
 export {LibraryCacheMode, PackageLibraryConfig, readPackageLibraryConfig} from './config'
 export {default as FsPackageLibraryStore, isValidPackageId} from './FsPackageLibraryStore'
 export {default as PackageUrlGenerator} from './PackageUrlGenerator'

@@ -2,7 +2,6 @@ package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
-import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
@@ -98,10 +97,30 @@ class H5pImportReceiver(
             subJob.finishedDate = Instant.now()
             subJob.message = appInfo.public.url.combinePath(H5P_BASE_PATH, contentId)
         } catch (exception: Exception) {
-            log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
+            val failure = H5pImportFailure.of(exception)
+            if (failure.packageProblem) {
+                // lumi refused the package itself (too large, not a valid H5P package): not an error of the
+                // system and nothing a stack trace would add to.
+                log.warn(
+                    "H5P package of nodeId={} rejected by lumi (status {}): {}",
+                    cacheObject.nodeId, failure.status, failure.detail
+                )
+            } else {
+                log.error("H5P retrieval or upload failed with error: {}", exception.message, exception)
+            }
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
-            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            subJob.errorMessage = failure.userMessage
+            // The client shows the main job's message: a failed sub-job is left out of the job info, so its own
+            // message never reaches it (see JobInfoService), and the aggregation only sets the status.
+            // Set before the status flips, so a client that sees FAILED sees the message too. Not a save() of
+            // jobEntry - see updateErrorMessageWithoutVersion - and never allowed to keep the job from ending:
+            // an exception here once left the sub-job in PROCESSING for good.
+            try {
+                renderingJobRepository.updateErrorMessageWithoutVersion(jobEntry.id, failure.userMessage)
+            } catch (updateException: Exception) {
+                log.error("Could not set the error message of job {}: {}", jobEntry.id, updateException.message, updateException)
+            }
         }
         subJobRepository.save(subJob)
         mainJobLogic.processMainJob(message.id)
