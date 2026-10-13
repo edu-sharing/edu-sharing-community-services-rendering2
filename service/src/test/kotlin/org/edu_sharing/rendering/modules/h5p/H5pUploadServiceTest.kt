@@ -256,6 +256,33 @@ class H5pUploadServiceTest {
         )
     }
 
+    private fun enqueueBody(body: String, contentType: String) = mockServer.enqueue(
+        MockResponse().addHeader("Content-Type", contentType).setBody(body).setResponseCode(200)
+    )
+
+    @Test
+    fun testUnreadableSuccessBodiesGiveAReadableErrorAndTrackNothing() {
+        val bodies = listOf(
+            "" to "empty response",
+            "<html><body>Bad gateway</body></html>" to "<html><body>Bad gateway</body></html>",
+            """{"error":"boom"}""" to "boom",
+            "null" to "unexpected response",
+        )
+        for ((body, expected) in bodies) {
+            stubLookup(null)
+            every { contentTransferService.getAsInputStream(cacheObject) } answers { TrackingInputStream("payload") }
+            enqueueBody(body, MediaType.TEXT_HTML_VALUE)
+
+            val exception = assertThrows<IllegalStateException> { underTest.getContentId(cacheObject) }
+
+            assertTrue(exception.message!!.contains("lumi upload"), exception.message)
+            assertTrue(exception.message!!.contains(expected), exception.message)
+            // no HTTP status in the cause chain -> H5pImportFailure treats it as operational
+            assertTrue(generateSequence<Throwable>(exception) { it.cause }.none { it is org.springframework.web.reactive.function.client.WebClientResponseException })
+        }
+        verify(exactly = 0) { trackingService.trackCacheObject(any(), any(), any()) }
+    }
+
     @Test
     fun testUploadIsNeverRetriedAndAFailureDoesNotOpenTheLookupGuard() {
         // A POST must not be repeated: a 503 is one attempt, one request.

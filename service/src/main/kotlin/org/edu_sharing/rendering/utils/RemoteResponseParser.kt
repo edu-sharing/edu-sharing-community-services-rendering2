@@ -19,7 +19,8 @@ object RemoteResponseParser {
             throw IllegalStateException("$apiName returned an empty response")
         }
         return try {
-            objectMapper.readValue(body, type)
+            // a literal JSON `null` body deserializes to null - treat it like any other unusable body
+            objectMapper.readValue(body, type) ?: throw IllegalStateException("null body")
         } catch (exception: Exception) {
             throw IllegalStateException(
                 "$apiName returned an unexpected response (expected ${type.simpleName}, body starts with: " +

@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiContentResponse
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.utils.RemoteResponseParser
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType
@@ -106,7 +107,10 @@ class H5pUploadService(
                     .bodyToMono<String>()
                     .timeout(timeout)
             }
-            val uploaded = objectMapper.readValue(response, LumiContentResponse::class.java)
+            // An unreadable 2xx body (empty, HTML, error object) is an operational failure: a readable
+            // IllegalStateException, not an opaque Jackson one. It carries no HTTP status, so H5pImportFailure
+            // maps it to GENERIC_CONVERSION_ERROR as before.
+            val uploaded = RemoteResponseParser.parse(response, LumiContentResponse::class.java, objectMapper, "lumi upload")
             log.debug(
                 "H5P package upload complete: lumiContentId={} for nodeId={}, libraryBytes={}",
                 uploaded.contentId, cacheObject.nodeId, uploaded.libraryBytes
