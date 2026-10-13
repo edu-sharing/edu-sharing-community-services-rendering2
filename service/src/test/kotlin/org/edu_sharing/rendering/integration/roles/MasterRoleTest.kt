@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.integration.roles
 
 import org.edu_sharing.rendering.asset.AdminAssetController
 import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
+import org.edu_sharing.rendering.cacheCleaner.StorageQuotaMetrics
 import org.edu_sharing.rendering.edusharingRepo.AdminController
 import org.edu_sharing.rendering.edusharingRepo.AdminStorageController
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
@@ -43,6 +44,7 @@ class MasterRoleTest(
             AdminJobController::class,
             AdminAssetController::class,
             CacheCleaner::class,
+            StorageQuotaMetrics::class,
             ExternalBucketMigrationRunner::class,
             CorsAllowedOriginsReceiver::class,
             CorsSyncScheduler::class,

@@ -6,8 +6,63 @@ import {LaissezFairePermissionSystem, Logger} from "@lumieducation/h5p-server";
 import * as http from "http";
 import * as https from "https";
 import {guardFileStreams} from "./s3Streams";
+import {registerS3PoolWatchdog, S3PoolWatchdog} from "./s3Pool";
+import {installS3Middleware} from "./s3Throttle";
 
 const log = new Logger("CreateH5PEditor")
+
+/** Reads an integer >= 0 from the environment; anything else (unset, negative, not a number) is `fallback`. */
+function readNonNegativeInt(name: string, fallback: number): number {
+    const raw = process.env[name]
+    const parsed = Number.parseInt(raw ?? '', 10)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+        return parsed
+    }
+    if (raw) {
+        log.warn(`Invalid ${name} "${raw}", using ${fallback}.`)
+    }
+    return fallback
+}
+
+const DEFAULT_TEMP_BUCKET_EXPIRATION_DAYS = 1
+
+/**
+ * Applies an expiration rule (days from `TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS`, default 1) to
+ * the temporary bucket. An existing matching rule is left alone; any other rule set is replaced, so
+ * a changed value takes effect on the next start. Failures are logged, never fatal.
+ */
+async function ensureTempBucketExpiration(
+    s3: ReturnType<typeof dbImplementations.initS3>, bucket: string): Promise<void> {
+    const raw = process.env.TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS
+    const parsed = Number.parseInt(raw ?? '', 10)
+    const days = Number.isFinite(parsed) && parsed >= 1 ? parsed : DEFAULT_TEMP_BUCKET_EXPIRATION_DAYS
+    if (raw && days !== parsed) {
+        log.warn(`Invalid TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS "${raw}", using ${days} day(s).`)
+    }
+    try {
+        const current = await s3.getBucketLifecycleConfiguration({Bucket: bucket}).catch(() => undefined)
+        if (current?.Rules?.some(rule =>
+            rule.Status === 'Enabled' && rule.Expiration?.Days === days
+            && (rule.Filter?.Prefix ?? rule.Prefix ?? '') === '')) {
+            log.info(`Bucket ${bucket} already expires objects after ${days} day(s).`)
+            return
+        }
+        await s3.putBucketLifecycleConfiguration({
+            Bucket: bucket,
+            LifecycleConfiguration: {
+                Rules: [{
+                    ID: 'expire-temporary-files',
+                    Filter: {Prefix: ''},
+                    Status: 'Enabled',
+                    Expiration: {Days: days}
+                }]
+            }
+        })
+        log.info(`Set expiration of bucket ${bucket} to ${days} day(s).`)
+    } catch (error: any) {
+        log.error(`Could not set lifecycle configuration of bucket ${bucket}: ${error.message}`)
+    }
+}
 
 /**
  * The H5P editor plus the storages and settings it was built from.
@@ -95,6 +150,11 @@ export default async function createH5PEditor(
     const requestTimeout = Number.parseInt(process.env.AWS_S3_REQUEST_TIMEOUT_MS || '0', 10);
 
     const agentOptions = {keepAlive: true, maxSockets: maxSockets};
+    const httpAgent = new http.Agent(agentOptions)
+    const httpsAgent = new https.Agent({
+        ...agentOptions,
+        ...(trustAllCertificates ? {rejectUnauthorized: false} : {})
+    })
 
     const s3 = dbImplementations.initS3({
         forcePathStyle: true,
@@ -110,14 +170,29 @@ export default async function createH5PEditor(
         requestHandler: {
             connectionTimeout: connectionTimeout,
             requestTimeout: requestTimeout,
-            httpAgent: new http.Agent(agentOptions),
-            httpsAgent: new https.Agent({
-                ...agentOptions,
-                ...(trustAllCertificates ? {rejectUnauthorized: false} : {})
-            })
+            httpAgent,
+            httpsAgent
         }
     })
     log.info(`Initiated S3 client (maxSockets=${maxSockets}, connectionTimeout=${connectionTimeout}ms, requestTimeout=${requestTimeout}ms).`)
+
+    // Both timeouts above stay off, so a socket that is never given back (a body nobody reads, a peer
+    // that stops answering) would hold its pool slot forever, and once all of them are gone every S3
+    // request - player and import alike - queues for good. The watchdog notices a full pool in which
+    // nothing settles any more and destroys its sockets; see s3Pool.ts. 0 disables it.
+    const poolStallMs = readNonNegativeInt('AWS_S3_POOL_STALL_MS', 120_000)
+    // How many S3 requests one package import may have in flight, so the rest of the pool stays
+    // available to players; see s3Throttle.ts.
+    const importConcurrency = Math.max(1, readNonNegativeInt('H5P_IMPORT_S3_CONCURRENCY', 64))
+    const poolWatchdog = new S3PoolWatchdog([httpAgent, httpsAgent], {
+        stallMs: poolStallMs,
+        checkIntervalMs: Math.max(1_000, Math.min(15_000, Math.floor(poolStallMs / 4)))
+    })
+    installS3Middleware(s3, importConcurrency, poolWatchdog)
+    registerS3PoolWatchdog(poolWatchdog)
+    poolWatchdog.start()
+    log.info(`S3 pool watchdog ${poolStallMs ? `armed (stall after ${poolStallMs}ms)` : 'disabled'}, ` +
+        `${importConcurrency} concurrent S3 requests per import.`)
 
     const ensureBucketExists = async (bucketName: string): Promise<void> => {
         try {
@@ -217,11 +292,12 @@ export default async function createH5PEditor(
         undefined
     );
 
-    // Set bucket lifecycle configuration for S3 temporary storage to make
-    // sure temporary files expire.
-    if (h5pEditor.temporaryStorage instanceof dbImplementations.S3TemporaryFileStorage) {
-        await h5pEditor.temporaryStorage.setBucketLifecycleConfiguration(h5pEditor.config);
-    }
+    // Make sure temporary files expire. S3TemporaryFileStorage never deletes anything itself (its
+    // listFiles() is empty, so TemporaryFileManager.cleanUp() is a no-op); expiry is the bucket's job.
+    // We set the lifecycle rule ourselves instead of calling its setBucketLifecycleConfiguration:
+    // that one divides temporaryFileLifetime by 1000*60*24 instead of ms-per-day (120 minutes
+    // become 5 days) and cannot be steered in real days.
+    await ensureTempBucketExpiration(s3, process.env.TEMPORARY_AWS_S3_BUCKET)
 
     log.info("Initiated H5P editor.")
     return {

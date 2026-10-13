@@ -18,4 +18,14 @@ data:
     {{- if default .Values.global.debug .Values.debug }}
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005
     {{- end }}
+  {{- with .Values.config.libreoffice }}
+  {{- $ports := list }}
+  {{- range $i := until (int .processes) }}
+  {{- $ports = append $ports (add (int $.Values.config.libreoffice.basePort) $i | toString) }}
+  {{- end }}
+  LIBREOFFICE_PORT_NUMBERS: {{ join "," $ports | quote }}
+  LIBREOFFICE_MAX_TASKS_PER_PROCESS: {{ .maxTasksPerProcess | quote }}
+  LIBREOFFICE_TASK_EXECUTION_TIMEOUT: {{ .taskExecutionTimeout | quote }}
+  LIBREOFFICE_TASK_QUEUE_TIMEOUT: {{ .taskQueueTimeout | quote }}
+  {{- end }}
   SPRING_APPLICATION_JSON: {{ .Values.config.override | quote }}

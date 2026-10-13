@@ -17,6 +17,9 @@ import {h5p_core_version_major, h5p_core_version_minor, h5p_core_version_patch} 
 import eduSharingPlayer from "./eduSharingPlayer";
 import {fileStreamScopeMiddleware} from "./s3Streams";
 import {mathJaxRouter} from "./mathDisplay";
+import {registerImportMetrics} from "./metrics";
+import {readDataSize} from "./dataSize";
+import {extendWhitelist} from "./whitelist";
 import {
     FsPackageLibraryStore,
     packageLibraryRouter,
@@ -92,6 +95,21 @@ const start = async () => {
     config.installLibraryLockTimeout = Number.parseInt(
         process.env.INSTALL_LIBRARY_LOCK_TIMEOUT_MS || '120000', 10)
 
+    // Upload limits of the package validator; config.json holds the defaults (1000 MB each). `maxTotalSize` is
+    // the size of the *unpacked* package. The import streams from the spooled file, so the limits are bound
+    // by /tmp and by how long an import may take, not by memory.
+    config.maxFileSize = readDataSize(process.env.H5P_MAX_FILE_SIZE, config.maxFileSize,
+        error => log.warn(`Ignoring invalid H5P_MAX_FILE_SIZE: ${error.message}`))
+    config.maxTotalSize = readDataSize(process.env.H5P_MAX_TOTAL_SIZE, config.maxTotalSize,
+        error => log.warn(`Ignoring invalid H5P_MAX_TOTAL_SIZE: ${error.message}`))
+    log.info(`Package size limits: ${config.maxFileSize} bytes per file, ${config.maxTotalSize} bytes in total.`)
+
+    // File extensions the package validator accepts; the defaults of H5PConfig are short (no svg, webp, mov, flac in
+    // content). Only additive, see extendWhitelist.
+    config.contentWhitelist = extendWhitelist(config.contentWhitelist, process.env.H5P_CONTENT_WHITELIST_EXTRA)
+    config.libraryWhitelist = extendWhitelist(config.libraryWhitelist, process.env.H5P_LIBRARY_WHITELIST_EXTRA)
+    log.info(`Allowed content extensions: ${config.contentWhitelist}; library extensions: ${config.libraryWhitelist}`)
+
     log.info("Config loaded")
     log.debug(JSON.stringify(config, null, 2))
 
@@ -99,6 +117,7 @@ const start = async () => {
     const mongoDb = await dbImplementations.initMongo()
     log.info("MongoDB successfully initialized")
 
+    log.info("Creating H5P editor")
     const deps = await createH5PEditor(
         config,
         mongoDb,
@@ -112,7 +131,8 @@ const start = async () => {
     let packageLibraryStore: PackageLibraryStore | undefined
     if (packageLibraryConfig.mode === 'package') {
         packageLibraryStore = await FsPackageLibraryStore.create(packageLibraryConfig.directory, {
-            quotaBytes: packageLibraryConfig.quotaBytes
+            quotaBytes: packageLibraryConfig.quotaBytes,
+            rescanIntervalMs: packageLibraryConfig.rescanIntervalMs
         })
         log.info(`Per-package H5P library cache enabled (${packageLibraryConfig.directory}).`)
     } else {
@@ -154,6 +174,7 @@ const start = async () => {
     });
 
     app.use(metricsMiddleware);
+    registerImportMetrics(packageLibraryStore);
 
     app.use(express.json())
     app.use(bodyParser.urlencoded({ extended: true }));
@@ -195,7 +216,10 @@ const start = async () => {
     const eduCollection = mongoDb.collection(process.env.EDUSHARING_MONGO_COLLECTION)
     // Both directions are hot: the rendering service resolves nodeId -> contentId to check whether a
     // package is already rendered, and contentId -> nodeId on every proxied request.
+    log.info("Creating edusharing collection indexes")
+    const indexStart = Date.now()
     await eduCollection.createIndexes([{key: { 'nodeId': 1}}, {key: { 'contentId': 1}}])
+    log.info(`Edusharing collection indexes ready after ${Date.now() - indexStart}ms`)
 
     app.use(
         h5pEditor.config.baseUrl,
@@ -213,7 +237,10 @@ const start = async () => {
 
         server.close(() => {
             log.info("Server closed.");
-            process.exit(0);
+            // Remember the library cache size so the next start does not begin without one.
+            (packageLibraryStore?.flush() ?? Promise.resolve())
+                .catch(error => log.warn(`Could not flush the library cache size: ${error.message}`))
+                .finally(() => process.exit(0));
         });
 
         setTimeout(() => {
@@ -227,4 +254,7 @@ const start = async () => {
     process.on("SIGTERM", shutdown); // Kubernetes/Docker stop
 }
 
-start()
+start().catch((error) => {
+    log.error(`Startup failed: ${error?.stack ?? error}`)
+    process.exit(1)
+})

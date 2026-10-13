@@ -37,6 +37,10 @@ edusharing_services_rendering2_rabbitmq:
       detailed:
         ## @param edusharing_services_rendering2_rabbitmq.config.metrics.detailed.enabled Enable per-queue detailed RabbitMQ metrics (queue depth ready/unacked) for the RS2 Grafana dashboards
         enabled: true
+        ## @param edusharing_services_rendering2_rabbitmq.config.metrics.detailed.families Metric families requested from the detailed endpoint; queue_consumer_count adds rabbitmq_detailed_queue_consumers (per-queue consumers panel)
+        families:
+          - queue_coarse_metrics
+          - queue_consumer_count
 
   init:
 

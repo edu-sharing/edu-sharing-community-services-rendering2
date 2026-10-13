@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.edusharingRepo.services
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.core.exception.ModuleNotRegisteredException
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
+import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheConfig
 import org.edu_sharing.rendering.edusharingRepo.dto.ActivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.DeactivateOptionalModuleRequest
 import org.edu_sharing.rendering.edusharingRepo.dto.RegisterRepositoryRequest
@@ -16,7 +17,6 @@ import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.utils.cleanUrl
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
-import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
@@ -125,7 +125,8 @@ class RepositoryRegistrationService(
     }
 
     @Transactional
-    @CachePut("repositoryKeys", key = "#result.id")
+    // Evict, not put: the cache holds the parsed PublicKey (see getRepositoryKey), not the registration.
+    @CacheEvict(RegistrationCacheConfig.REPOSITORY_KEYS, key = "#result.repoId")
     fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false, useInternal: Boolean = false): RepositoryRegistration {
         log.debug("Registering with repository at ${request.url} (force=$force, useInternal=$useInternal)")
         val registrationEntity = createRegistration(request, force)
@@ -139,7 +140,7 @@ class RepositoryRegistrationService(
     }
 
     @Transactional
-    @CacheEvict("repositoryKeys", key = "#request.repoId")
+    @CacheEvict(RegistrationCacheConfig.REPOSITORY_KEYS, key = "#request.repoId")
     fun deleteRepository(request: RemoveRepositoryRequest) : RepositoryRegistration {
         log.debug("Deleting registration for repoId=${request.repoId}")
         val entry = repositoryRegistrationStorageService.removeRegistration(request.repoId)
@@ -150,7 +151,7 @@ class RepositoryRegistrationService(
         return entry
     }
 
-    @Cacheable("repositoryKeys", key = "#repoId")
+    @Cacheable(RegistrationCacheConfig.REPOSITORY_KEYS, key = "#repoId")
     override fun getRepositoryKey(repoId: String): PublicKey {
         log.debug("Cache miss for repository public key, loading from storage for repoId: $repoId")
         val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
@@ -173,7 +174,7 @@ class RepositoryRegistrationService(
 
     fun activateOptionalModule(request: ActivateOptionalModuleRequest) {
         log.debug("Activating optional module '${request.module}' for repoId=${request.repoId}")
-        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoIdFresh(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
 
         try {
@@ -195,7 +196,7 @@ class RepositoryRegistrationService(
     }
 
     fun setCspHeader(repoId: String, module: String, cspHeader: String?) {
-        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoIdFresh(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: $repoId") }
         val moduleSettings = registration.module[module] ?: ModuleSettings()
         moduleSettings.cspHeader = cspHeader
@@ -205,7 +206,7 @@ class RepositoryRegistrationService(
 
     fun deactivateOptionalModule(request: DeactivateOptionalModuleRequest) {
         log.debug("Deactivating modules ${request.modules} for repoId=${request.repoId}")
-        val registration = repositoryRegistrationStorageService.getRegistrationByRepoId(request.repoId)
+        val registration = repositoryRegistrationStorageService.getRegistrationByRepoIdFresh(request.repoId)
             .orElseThrow { IllegalArgumentException("Repository not found for id: ${request.repoId}") }
         registration.optionalModules.removeAll(request.modules)
         repositoryRegistrationStorageService.storeRegistration(registration)

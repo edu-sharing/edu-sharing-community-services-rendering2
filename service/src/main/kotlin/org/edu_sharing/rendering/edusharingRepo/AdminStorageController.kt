@@ -2,6 +2,8 @@ package org.edu_sharing.rendering.edusharingRepo
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.edu_sharing.rendering.cacheCleaner.CacheCleanupResult
+import org.edu_sharing.rendering.cacheCleaner.CacheCleaner
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
@@ -10,12 +12,14 @@ import org.edu_sharing.rendering.edusharingRepo.dto.StorageUsageInfo
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.storage.StorageManagerRegistry
+import org.edu_sharing.rendering.storage.StorageScopeKind
 import org.edu_sharing.rendering.storage.StorageService
 import org.edu_sharing.rendering.storage.bucket.BucketPerCustomerStrategy
 import org.edu_sharing.rendering.storage.bucket.BucketStrategy
 import org.edu_sharing.rendering.storage.bucket.ExternalBucketStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -48,7 +52,8 @@ class AdminStorageController(
     private val storageService: StorageService,
     private val bucketStrategy: BucketStrategy,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
-    private val storageManagerRegistry: StorageManagerRegistry
+    private val storageManagerRegistry: StorageManagerRegistry,
+    private val cacheCleaner: CacheCleaner
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -92,6 +97,11 @@ class AdminStorageController(
             ?.takeIf { temp -> buckets.none { it.name == temp.name } }
             ?.let { buckets += it }
 
+        // lumi's H5P library cache is a volume, not a bucket: it is in none of the tracked buckets above, yet it
+        // has a quota that the CacheCleaner enforces - so without a row of its own the dashboard could never show
+        // that it is filling up.
+        buckets += libraryCacheUsage(repoId)
+
         // The repo-wide size/quota deliberately covers only the tracked/managed buckets, not the
         // temp bucket (which is never enforced and whose size is unknown without exact=true — else
         // the overall figure would jump depending on whether "Measure exact" was just clicked).
@@ -110,6 +120,18 @@ class AdminStorageController(
     }
 
     /**
+     * Triggers the [CacheCleaner] for one repo on demand. Runs synchronously; scopes below their
+     * upper threshold (or without a quota) are left untouched, exactly as in the scheduled run.
+     */
+    @PostMapping("/storage/cleanup")
+    fun triggerCleanup(@RequestParam repoId: String): CacheCleanupResult {
+        log.debug("POST /admin/storage/cleanup for repoId=$repoId")
+        repositoryRegistrationStorageService.getRegistrationByRepoId(repoId)
+            .orElseThrow { EntryNotFoundException("No repository registration found for repoId $repoId.") }
+        return cacheCleaner.cleanCache(repoId)
+    }
+
+    /**
      * Whether a live S3 recount of a bucket in [bucketStrategy] can be attributed to exactly one
      * repo: true for per-customer buckets (`rs2-<repoId>`, one bucket per repo) and external buckets
      * (each repo owns its own dedicated bucket(s), configured on the registration). False for
@@ -118,6 +140,27 @@ class AdminStorageController(
      */
     private fun isRepoAccurate(): Boolean =
         bucketStrategy is BucketPerCustomerStrategy || bucketStrategy is ExternalBucketStrategy
+
+    /**
+     * The per-package H5P library cache of this repo's lumi, as the CacheCleaner sees it (same source, so the
+     * dashboard shows exactly the figures the cleaner acts on). Empty unless lumi runs the per-package cache with
+     * a quota and has measured its size - see [org.edu_sharing.rendering.storage.StorageManager.getAdditionalStorageInfo].
+     */
+    private fun libraryCacheUsage(repoId: String): List<BucketUsageInfo> =
+        storageManagerRegistry.getStorageManagers()
+            .flatMap { it.getAdditionalStorageInfo(repoId) }
+            .filter { it.kind == StorageScopeKind.LIBRARY_CACHE }
+            .map { scope ->
+                BucketUsageInfo(
+                    name = LIBRARY_CACHE_LABEL,
+                    size = scope.size,
+                    quota = scope.maxSize,
+                    usedPercent = (scope.size.toDouble() / scope.maxSize.toDouble()) * 100.0,
+                    enforced = true,
+                    measured = true,
+                    kind = StorageScopeKind.LIBRARY_CACHE
+                )
+            }
 
     /**
      * The temp bucket is barely tracked in practice, and a live measurement
@@ -142,5 +185,10 @@ class AdminStorageController(
             enforced = false,
             measured = measureExact
         )
+    }
+
+    private companion object {
+        /** Name of the library cache row; at most one lumi (hence one such row) exists per repo. */
+        const val LIBRARY_CACHE_LABEL = "H5P library cache"
     }
 }
