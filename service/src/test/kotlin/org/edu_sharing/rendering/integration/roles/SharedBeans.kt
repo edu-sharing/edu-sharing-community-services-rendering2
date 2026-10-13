@@ -98,6 +98,7 @@ import org.edu_sharing.rendering.security.cors.CorsConfig
 import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.edu_sharing.rendering.storage.*
 import org.edu_sharing.rendering.storage.bucket.BucketPerMediaTypeStrategy
+import org.edu_sharing.rendering.utils.TempFileSweeper
 import org.springframework.security.access.PermissionEvaluator
 import org.springframework.util.ClassUtils
 
@@ -235,6 +236,7 @@ abstract class SharedBeans {
             SpringDocConfig::class,
             StorageManagerRegistry::class,
             SubJobHeartbeat::class,
+            TempFileSweeper::class,
             TracePropagatingInterceptor::class,
             TrackingService::class,
             VideoConverterConfig::class,
@@ -262,6 +264,7 @@ abstract class SharedBeans {
             "app.redis.client-org.edu_sharing.rendering.config.RedisClientProperties",
             "app.redis.session-org.edu_sharing.rendering.config.SessionRedisProperties",
             "app.s3.client-org.edu_sharing.rendering.storage.S3ClientProperties",
+            "app.temp.cleanup-org.edu_sharing.rendering.utils.TempCleanupProperties",
             "app.s3.health-org.edu_sharing.rendering.storage.S3HealthProperties",
             "mongoTimeoutCustomizer",
         )

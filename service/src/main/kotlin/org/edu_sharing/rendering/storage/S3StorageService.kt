@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.storage
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
 import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PATH
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
@@ -517,7 +518,7 @@ class S3StorageService(
         // AWS SDK v2 sync client needs a known content-length for InputStream.
         // Fallback: spool to a temp file to determine the length without buffering on the heap.
         log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
-        val tempFile = Files.createTempFile("s3-spool-", ".tmp")
+        val tempFile = JobTempFiles.createPath("s3-spool-", ".tmp")
         try {
             streamProvider().use { stream -> Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING) }
             s3Client.putObject(request, RequestBody.fromFile(tempFile))

@@ -119,6 +119,8 @@ data:
   "app.converter.call.total-budget": {{ .Values.config.converter.call.totalBudget | quote }}
   "app.converter.call.max-retry-after": {{ .Values.config.converter.call.maxRetryAfter | quote }}
   "app.scheduling.pool-size": {{ .Values.config.scheduling.poolSize | quote }}
+  "app.temp.cleanup.enabled": {{ .Values.config.temp.cleanup.enabled | quote }}
+  "app.temp.cleanup.stale-file-age": {{ .Values.config.temp.cleanup.staleFileAge | quote }}
   "app.mongodb.timeout.connect-timeout": {{ .Values.config.mongodb.timeout.connectTimeout | quote }}
   "app.mongodb.timeout.socket-timeout": {{ .Values.config.mongodb.timeout.socketTimeout | quote }}
   "app.mongodb.timeout.server-selection-timeout": {{ .Values.config.mongodb.timeout.serverSelectionTimeout | quote }}

@@ -69,7 +69,7 @@ class ConverterWebServiceCallerTest {
         maxRetryAfter = Duration.ofSeconds(2)
     }
 
-    private val tempPrefix = "test_node_id_test_hash"
+    private val tempPrefix = "rendering-test_node_id_test_hash"
 
     private fun leftoverTempFiles(): List<String> =
         File(System.getProperty("java.io.tmpdir")).list { _, name -> name.startsWith(tempPrefix) }!!.toList()

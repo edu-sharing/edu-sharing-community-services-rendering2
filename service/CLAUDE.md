@@ -90,6 +90,14 @@ when you add a role-gated bean, extend the matching role test.
 - **Redelivery idempotency** — the standard receivers (image/av/document/jupyter via `AbstractReceiver`) skip terminal
   sub-jobs (and only re-resolve the main job via the idempotent `processMainJob`); a sub-job left PROCESSING by a dead
   delivery is deliberately restarted.
+- **Orphaned temp files** - every job-bound temp file is created through `utils/JobTempFiles` (prefix `rendering-`).
+  `TempFileSweeper` (all roles, `ApplicationRunner`) removes, once at startup only, REGULAR files with that prefix
+  directly in `java.io.tmpdir` older than `app.temp.cleanup.stale-file-age` (default PT6H; must exceed the longest job,
+  e.g. `app.converter.av.conversionTimeout`); directories (`hsperfdata_*`, `tomcat.*`) and foreign names are never
+  touched. Needed because the Helm `/tmp` emptyDir survives a container restart. Files of earlier versions (no prefix)
+  are not recognised. Create new temp files only through `JobTempFiles`.
+- **H5P upload answer** - parsed via `RemoteResponseParser`; an empty/HTML/null/error-object 2xx body yields a readable
+  `IllegalStateException` (no HTTP status in the cause chain, so `H5pImportFailure` maps it to `GENERIC_CONVERSION_ERROR`).
 
 ### Error messages of a failed sub-job
 `SubJob.errorMessage` is not text for the user but a **translation key of the repository UI**

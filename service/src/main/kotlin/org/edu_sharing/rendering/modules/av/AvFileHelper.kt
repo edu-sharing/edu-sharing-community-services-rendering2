@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.av
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
@@ -15,12 +16,12 @@ class AvFileHelper(
     lateinit var originalFile: File
 
     fun initOutputTempFile(extension: String) {
-        outputFile = File.createTempFile(UUID.randomUUID().toString(), ".$extension")
+        outputFile = JobTempFiles.createFile(UUID.randomUUID().toString(), ".$extension")
     }
 
     fun fetchOriginalTempFile(cacheObject: CacheObject) {
         log.debug("Fetching original AV file from storage: nodeId=${cacheObject.nodeId}, mimeType=${cacheObject.mimeType}")
-        originalFile = File.createTempFile(UUID.randomUUID().toString(), ".${cacheObject.mimeType.substringAfter('/')}")
+        originalFile = JobTempFiles.createFile(UUID.randomUUID().toString(), ".${cacheObject.mimeType.substringAfter('/')}")
         val fileInputStream = storageImplementation.getObjectStream(cacheObject, true)
         fileInputStream.use {
             originalFile.outputStream().use { fileOutputStream -> fileInputStream.copyTo(fileOutputStream) }

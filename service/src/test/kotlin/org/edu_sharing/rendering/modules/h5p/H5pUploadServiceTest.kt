@@ -111,7 +111,7 @@ class H5pUploadServiceTest {
      */
     private fun spoolFiles(): Set<String> =
         File(System.getProperty("java.io.tmpdir"))
-            .list { _, name -> name.startsWith("${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_") }
+            .list { _, name -> name.startsWith("rendering-${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_") }
             ?.toSet()
             ?: emptySet()
 
@@ -180,7 +180,7 @@ class H5pUploadServiceTest {
 
         val body = request.body.readUtf8()
         // the file part is named after the node revision, with the nodeId truncated at the first dot
-        assertTrue(body.contains("""name="file"; filename="node_testHash_"""), body)
+        assertTrue(body.contains("""name="file"; filename="rendering-node_testHash_"""), body)
         assertTrue(body.contains(fileContent), "uploaded body does not carry the source content")
         // lumi keys its own mapping on nodeId_hash — this is what the lookup later resolves against
         assertTrue(body.contains("""name="nodeId""""), body)

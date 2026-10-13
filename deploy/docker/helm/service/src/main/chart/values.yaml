@@ -549,6 +549,14 @@ config:
     ## @param config.scheduling.poolSize Number of threads of the shared scheduler
     poolSize: "4"
 
+  ## Startup sweep of orphaned job temp files in /tmp (an emptyDir that survives a container restart). TempFileSweeper
+  temp:
+    cleanup:
+      ## @param config.temp.cleanup.enabled Remove stale rendering-* temp files once at startup
+      enabled: "true"
+      ## @param config.temp.cleanup.staleFileAge Only files older than this are removed; must exceed the longest job (e.g. the AV conversion timeout)
+      staleFileAge: "PT6H"
+
   ## One-time queue-durability migration (master only): all app.queue.<x> queues were renamed with a
   ## "_v2" suffix and switched to durable=true; this deletes each pre-migration queue automatically once
   ## no consumer is attached to it anymore. See LegacyQueueCleaner. Disable once confirmed complete.

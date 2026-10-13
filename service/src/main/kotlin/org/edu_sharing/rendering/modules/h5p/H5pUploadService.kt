@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
@@ -80,7 +81,7 @@ class H5pUploadService(
 
     private fun uploadPackage(cacheObject: CacheObject): LumiContentResponse {
         log.debug("Uploading H5P package to Lumi for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
-        val originalFile = File.createTempFile(
+        val originalFile = JobTempFiles.createFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_",
             ".h5p"
         )

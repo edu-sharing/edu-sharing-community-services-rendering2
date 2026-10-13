@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.storage.StorageService
 import org.slf4j.LoggerFactory
@@ -108,7 +109,7 @@ class ConverterWebServiceCaller(
             ?.takeIf { it >= 0 }?.times(1000)
 
     fun callConverterService(arguments: ConverterWebServiceArguments) {
-        val originalFile = File.createTempFile(
+        val originalFile = JobTempFiles.createFile(
             "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}",
             arguments.originalFileExtension
         )
@@ -124,7 +125,7 @@ class ConverterWebServiceCaller(
                 arguments.externalServiceMethodPath, arguments.originalFileExtension, originalFile.length()
             )
 
-            val convertedFile = File.createTempFile(
+            val convertedFile = JobTempFiles.createFile(
                 "${arguments.cacheObject.nodeId.substringBefore(".")}_${arguments.cacheObject.hash}_converted",
                 null
             )

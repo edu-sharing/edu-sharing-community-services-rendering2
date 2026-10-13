@@ -243,6 +243,9 @@ services:
       app.converter.call.total-budget: "${RENDERING2_SERVICE_CONVERTER_CALL_TOTAL_BUDGET:-15m}"
       app.converter.call.max-retry-after: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_RETRY_AFTER:-30s}"
       app.scheduling.pool-size: "${RENDERING2_SERVICE_SCHEDULING_POOL_SIZE:-4}"
+      # Startup sweep of orphaned job temp files (stale-file-age must exceed the longest job).
+      app.temp.cleanup.enabled: "${RENDERING2_SERVICE_TEMP_CLEANUP_ENABLED:-true}"
+      app.temp.cleanup.stale-file-age: "${RENDERING2_SERVICE_TEMP_CLEANUP_STALE_FILE_AGE:-PT6H}"
       # MongoDB driver timeouts (socket-timeout stays above the slowest cache-cleaner aggregation).
       app.mongodb.timeout.connect-timeout: "${RENDERING2_SERVICE_MONGODB_CONNECT_TIMEOUT:-10s}"
       app.mongodb.timeout.socket-timeout: "${RENDERING2_SERVICE_MONGODB_SOCKET_TIMEOUT:-5m}"

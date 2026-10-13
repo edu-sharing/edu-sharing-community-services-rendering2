@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.onyx
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
@@ -31,7 +32,7 @@ class OnyxUploadService(
     fun uploadTest(cacheObject: CacheObject): String {
         log.debug("Downloading content for Onyx upload, nodeId ${cacheObject.nodeId}, hash ${cacheObject.hash}")
         val config = module.getCredentials(cacheObject.repoId)
-        val originalFile = File.createTempFile(
+        val originalFile = JobTempFiles.createFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}",
             "zip"
         )
