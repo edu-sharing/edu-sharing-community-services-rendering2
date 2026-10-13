@@ -66,3 +66,29 @@ Liveness hängt an keinem Subsystem; DMLC mit `missingQueuesFatal=false` und Rec
 3. **Datenkonsistenz:** H1, H2, H9.
 4. **Konfiguration:** H3, H4, H5, Redis-Standalone-Timeouts, S3-Client, WriteConcern, Scheduler-Pool.
 5. **Resilienz-Schicht:** GET-Retries mit Backoff, Circuit-Breaker/Bulkhead pro Modul, Converter-Retry.
+
+## 8. Entscheidungsprotokoll zu den offenen Punkten (Stand 2026-10-13)
+
+| Fall | Thema | Entscheidung | Stand |
+|---|---|---|---|
+| 1 | Lumi-Proxy liefert 500 statt 503 | Alle „Lumi nicht erreichbar“-Fälle im Proxy konsistent abbilden: offener Breaker/Bulkhead/Pool 503 mit `Retry-After`, Verbindungsfehler 502, Timeout 504; Nutzertext `GENERIC_MODULE_NOT_AVAILABLE`, WARN statt ERROR-Stacktrace | in Umsetzung (Branch `..._lumi-paths`) |
+| 2 | Binder-Token im Klartext in MongoDB | Verschlüsseln (AES-256-GCM, generisch): Privatschlüssel, Modul-Credentials und `SubJob.secretData` (intern, nie an den Client). Einstufiger Rollout, keine Rotation, Schlüssel = eigenes Secret mit Default Admin-Passwort | umgesetzt (Branch `maven/feature/10.0_secret-encryption`) |
+| 3 | Lumi-Upload-POST und Streaming-Proxy hinter den Breaker | Eigene Guards `lumi-upload` und `lumi-proxy`. Proxy: Breaker **und** Bulkhead (der Breaker nimmt Druck von Lumi, ein Bulkhead allein täte das nicht), Header-Timeout 20 s statt 120 s, kein Retry, nur Erreichbarkeitsfehler zählen (kein 500), 10 s offen | in Umsetzung (Branch `..._lumi-paths`) |
+| 4 | Breaker pro Pod, nur aufeinanderfolgende Fehler | Unverändert lassen, Grenzen dokumentieren, Alarmregeln vorschlagen | in Umsetzung (Doku im selben Branch) |
+| 5 | `readOnlyRootFilesystem` | Vorbereiten, im Default aus. Schreibpfade gemessen (`docker diff`, `--read-only`): alle fünf Images laufen mit beschreibbarem `/tmp` (document-converter zusätzlich `HOME=/tmp`, jupyter-converter `PYTHONDONTWRITEBYTECODE=1`, lumi mit Library-Cache-Volume). Aktivierung erst nach Staging-Test unter Last | in Umsetzung (Branch `..._readonly-fs`) |
+| 6 | `--enable-preview` im Entrypoint | Entfernt: keine der rund 59 000 Klassen trägt das Preview-Flag, kein Preview-API im Quelltext, Tests laufen ohne das Flag, document-converter ohne Flag geprüft | umgesetzt |
+
+## 9. Eigene Themen und Folgevorhaben
+
+### Virtuelle Threads für den Webserver (Tomcat)
+- **Heute:** Nur der RabbitMQ-Listener-Executor läuft auf virtuellen Threads (`QueueConfig.rabbitConsumerExecutor`). `spring.threads.virtual.enabled` ist bewusst **nicht** global gesetzt, Tomcat nutzt Plattform-Threads (Standard etwa 200, nirgends konfiguriert).
+- **Motivation:** Der Lumi-Proxy blockiert pro Anfrage einen Tomcat-Thread (`.block()` bis zu den Antwort-Headern). Mit virtuellen Threads wäre diese Blockade billig, das Argument „Tomcat-Threads gehen aus“ entfiele weitgehend.
+- **Wichtig für die Resilienz-Schicht:** Der Tomcat-Thread-Pool ist heute eine stille, implizite Obergrenze für alle gleichzeitigen Anfragen. Mit virtuellen Threads entfällt sie. Der **Bulkhead wird dann wichtiger, nicht unwichtiger**, weil er die einzige Begrenzung gegenüber Lumi (ein Node-Prozess), Connection-Pools und Speicher ist. Der Breaker bleibt nötig, um Druck von einer kranken Gegenseite zu nehmen. Die Bulkhead-Grenzen müssten vor einer Aktivierung neu bewertet werden.
+- **Risiken (allgemeines Wissen, am Stack zu prüfen):** Pinning unter Java 21 (`synchronized` mit blockierender I/O hält den Träger-Thread fest, behoben erst mit JEP 491 in Java 24; `-Djdk.tracePinnedThreads` zum Aufspüren), ThreadLocal-Kontext (Tracing, MDC, Spring Security; für die Listener gibt es schon einen `TaskDecorator`), Speicherbedarf vieler gleichzeitig blockierter Anfragen, andere Thread-Dumps. Ersetzt keine kurzen Timeouts.
+- **Vorgehen:** Eigenes Vorhaben mit Lasttest (k6-Setup unter `loadtest/` vorhanden), zunächst nur für die Controller-Rolle. Nicht Teil von RENDER-178.
+
+### Weitere Folgethemen
+- **Dead-Letter-Queue** (M1 des Audits): Aufwand etwa 1 bis 2 Tage. Queue-Argumente sind in RabbitMQ unveränderlich, die risikoärmere Variante ist eine Policy statt Argumenten; bringt vor allem Sichtbarkeit und Replay, der Reaper heilt die meisten Fälle schon.
+- **Breaker-Zustand pod-übergreifend oder Ratenfenster:** nur bei einem realen Fall, in dem eine Gegenseite teilweise kaputt war und der Breaker nicht öffnete.
+- **Compose:** Es fehlt ein `rendering2-jupyter-converter`-Service, obwohl `deploy/CLAUDE.md` ihn nennt.
+- **Vor dem Release real zu prüfen:** DDB-Header (Default bleibt `QUERY`), Moodle-POST gegen eine echte Instanz, Entrypoint und SIGTERM im Alpine-Image, UID-Wechsel auf 1000 mit bestehenden PVCs, Helm gegen einen Cluster, Rabbit-Nack/Unroutable gegen einen echten Broker, Rolling Update mit verschlüsselten Secrets, `readOnlyRootFilesystem` unter Last.
