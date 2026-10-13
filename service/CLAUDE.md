@@ -96,6 +96,8 @@ when you add a role-gated bean, extend the matching role test.
   e.g. `app.converter.av.conversionTimeout`); directories (`hsperfdata_*`, `tomcat.*`) and foreign names are never
   touched. Needed because the Helm `/tmp` emptyDir survives a container restart. Files of earlier versions (no prefix)
   are not recognised. Create new temp files only through `JobTempFiles`.
+- **Ack locks** - `AsyncAckDispatcher` keeps its per-channel ack lock in a synchronized `WeakHashMap`: a channel dropped
+  after a reconnect takes its entry with it (no growth); the per-channel serialization is unchanged.
 - **H5P upload answer** - parsed via `RemoteResponseParser`; an empty/HTML/null/error-object 2xx body yields a readable
   `IllegalStateException` (no HTTP status in the cause chain, so `H5pImportFailure` maps it to `GENERIC_CONVERSION_ERROR`).
 
