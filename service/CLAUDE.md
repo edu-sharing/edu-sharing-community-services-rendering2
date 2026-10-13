@@ -65,13 +65,25 @@ when you add a role-gated bean, extend the matching role test.
    (`MongoConfig` `WriteConcernResolver`).
 
 ### Robustness of the job flow (RENDER-178)
-- **Publish failures** — `MainJobCreationService` publishes through `JobMessagePublisher.publishForJob`: a publish
+- **Publish failures** — every module publishes its job-bound messages through `JobMessagePublisher`; a publish
   exception, a broker nack or an unroutable return (mapped back via `JobCorrelationData` in `QueueConfig`'s confirm
-  callback) sets the job FAILED (version-free update), freeing the `activeJobPerNodeHash` dedup entry. `BinderService`
-  publishes its upload message the same way (its jobs are not deduplicated, so the benefit there is that the client
-  sees FAILED immediately instead of QUEUED until the reaper's timeout); its optional preview message stays best effort
-  - a lost message only fails the preview sub-job, as `BinderMainJobLogic` finishes the job when only that one fails.
-  Other modules still call `amqpTemplate.convertAndSend` directly and can adopt `publishForJob` incrementally.
+  callback) is compensated instead of leaving a QUEUED job nobody will pick up. Two variants:
+  - `publishForJob` - the message starts a whole main job (MainJobCreationService, Binder upload, Sodix, Omega, DDB,
+    Onyx, Moodle, EduHtml, H5P lookup). The main job is set FAILED (atomic `failIfActive`: only while QUEUED or
+    PROCESSING, so an already terminal job is never overwritten), which also frees the `activeJobPerNodeHash` entry.
+  - `publishForSubJobs` - the message only stands for some sub-jobs of a main job (image/document/jupyter/video/audio;
+    several messages per main job, the image module sends one message for all its quality sub-jobs; H5P lookup ->
+    import hand-over). Failing the whole main job would be too coarse, so only those sub-jobs are set FAILED
+    (`failIfQueued`, `GENERIC_CONVERSION_ERROR`, only while still QUEUED) and the main job is resolved by the
+    module's `processMainJob` (`MainJobLogic`; may yield FAILED, PARTIALLY_FAILED or keep waiting). It takes an
+    optional `MessagePostProcessor` (AV priority).
+  A synchronous exception is rethrown to the caller after compensation (inside `JobReceiver` it ends in its failure
+  path; `H5pLookupReceiver` catches it, because the publisher has already resolved the job). Nack/unroutable run
+  asynchronously on a virtual thread and never throw.
+  Deliberately NOT routed through the publisher: `CorsSyncService` / `RegistrationCacheBroadcaster` (broadcasts
+  without a persisted job - nothing to fail) and the optional Binder preview message in
+  `BinderService.createPreviewSubJob` (best effort: a lost message only fails the preview sub-job, as
+  `BinderMainJobLogic` finishes the job when only that one fails, and must not fail the already enqueued upload).
 - **`JobReceiver` failure path** never throws out of the listener: FAILED is saved, retried once via targeted updates;
   if that also fails the job stays PROCESSING without sub-jobs and `StaleJobReaper` pass 4 resolves it after
   `app.jobreaper.max-main-job-setup-time` (default PT1H, must exceed the longest source download).
