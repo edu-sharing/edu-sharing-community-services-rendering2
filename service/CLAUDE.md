@@ -98,6 +98,12 @@ when you add a role-gated bean, extend the matching role test.
   are not recognised. Create new temp files only through `JobTempFiles`.
 - **Ack locks** - `AsyncAckDispatcher` keeps its per-channel ack lock in a synchronized `WeakHashMap`: a channel dropped
   after a reconnect takes its entry with it (no growth); the per-channel serialization is unchanged.
+- **ShedLock keep-alive** - `ShedLockConfig` wraps the `MongoLockProvider` in ShedLock's `KeepAliveLockProvider`
+  (`net.javacrumbs.shedlock.support`): a running task's lock is extended every `lockAtMostFor / 2` on a dedicated 2-thread
+  daemon executor (not the shared `taskScheduler`), so a long CacheCleaner/StaleJobReaper run keeps its lock;
+  a dead JVM stops extending, so `lockAtMostFor` stays the crash protection. Constraint: every `lockAtMostFor` must be
+  >= 30 s (the wrapper throws otherwise) - keep that in mind for new `@SchedulerLock`s. A pod shutdown cancels the
+  extension of a still running task.
 - **H5P upload answer** - parsed via `RemoteResponseParser`; an empty/HTML/null/error-object 2xx body yields a readable
   `IllegalStateException` (no HTTP status in the cause chain, so `H5pImportFailure` maps it to `GENERIC_CONVERSION_ERROR`).
 
