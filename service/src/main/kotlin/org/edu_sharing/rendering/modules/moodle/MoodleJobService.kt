@@ -2,13 +2,13 @@ package org.edu_sharing.rendering.modules.moodle
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.*
@@ -18,7 +18,7 @@ class MoodleJobService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
-    private val amqpTemplate: AmqpTemplate
+    private val jobMessagePublisher: JobMessagePublisher
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -58,7 +58,7 @@ class MoodleJobService(
             job.esObjectId,
             jobRoutingKey
         )
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
+        jobMessagePublisher.publishForJob(topicExchangeName, jobRoutingKey, message, job.id)
         return job.id.toString()
     }
 

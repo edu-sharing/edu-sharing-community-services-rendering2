@@ -6,14 +6,15 @@ import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.ConversionModule
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.PriorityPostProcessor
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -22,7 +23,8 @@ class VideoRenderModule (
     private val mapper: Mapper,
     private val videoService: VideoService,
     private val subJobRepository: SubJobRepository,
-    private val amqpTemplate: AmqpTemplate,
+    private val jobMessagePublisher: JobMessagePublisher,
+    private val mainJobLogic: MainJobLogic,
     private val configuredResolutions: VideoConverterConfig,
 
     @param:Value($$"${app.session.video.nodePermissionExpirationTime}")
@@ -109,10 +111,13 @@ class VideoRenderModule (
                 )
                 renderingJob.subJobs.add(avJob)
                 subJobRepository.save(avJob)
-                amqpTemplate.convertAndSend(
+                jobMessagePublisher.publishForSubJobs(
                     topicExchangeName,
                     avRoutingKey,
                     SubJobMessage(renderingJob.id.toString(), resolution),
+                    renderingJob.id,
+                    listOf(avJob.id),
+                    mainJobLogic::processMainJob,
                     PriorityPostProcessor(priority)
                 )
         }
