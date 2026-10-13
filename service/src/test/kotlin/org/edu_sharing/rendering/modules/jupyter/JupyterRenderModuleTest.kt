@@ -5,7 +5,8 @@ import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 
 @ExtendWith(MockKExtension::class)
 class JupyterRenderModuleTest {
@@ -13,7 +14,8 @@ class JupyterRenderModuleTest {
     private val mapper = mockk<Mapper>()
     private val jupyterJobService = mockk<JupyterJobService>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
+    private val mainJobLogic = mockk<MainJobLogic>(relaxed = true)
 
     lateinit var underTest: JupyterRenderModule
 
@@ -24,7 +26,8 @@ class JupyterRenderModuleTest {
             mapper = mapper,
             jupyterJobService = jupyterJobService,
             subJobRepository = subJobRepository,
-            amqpTemplate = amqpTemplate
+            jobMessagePublisher = jobMessagePublisher,
+            mainJobLogic = mainJobLogic
         )
         underTest.jupyterKey = "jupKey"
         underTest.topicExchangeName = "topicExchangeName"
@@ -110,7 +113,9 @@ class JupyterRenderModuleTest {
         every { subJobRepository.save(capture(savedSubJobSlot)) } returns mockk<SubJob>()
         every { renderingJob.subJobs.add(capture(addedSubJobSlot)) } returns true
         every { renderingJob.id } returns jobId
-        justRun { amqpTemplate.convertAndSend("topicExchangeName", "jupKey", capture(subJobMessageSlot)) }
+        justRun {
+            jobMessagePublisher.publishForSubJobs("topicExchangeName", "jupKey", capture(subJobMessageSlot), jobId, any(), any())
+        }
 
         // Act
         underTest.createConversionSubJobs(renderingJob, message)

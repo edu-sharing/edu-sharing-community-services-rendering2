@@ -7,14 +7,14 @@ import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 
 @ExtendWith(MockKExtension::class)
 class MoodleJobServiceTest {
     private val mapperMock = mockk<Mapper>()
     private val jobRepository = mockk<RenderingJobRepository>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
     private val jobDataProvider = JobDataProvider()
 
     private lateinit var underTest: MoodleJobService
@@ -25,7 +25,7 @@ class MoodleJobServiceTest {
             mapper = mapperMock,
             jobRepository = jobRepository,
             subJobRepository = subJobRepository,
-            amqpTemplate = amqpTemplate,
+            jobMessagePublisher = jobMessagePublisher,
         )
         underTest.topicExchangeName = "topicExchange1"
         underTest.jobRoutingKey = "jobRoutingKey1"
@@ -94,7 +94,7 @@ class MoodleJobServiceTest {
         every { jobRepository.save(expectedJob) } returns expectedJob
         every { subJobRepository.save(capture(subJobSlot)) } returns expectedSubJob
         every { request.title } returns "titletest"
-        justRun { amqpTemplate.convertAndSend("topicExchange1", "jobRoutingKey1", expectedMessage) }
+        justRun { jobMessagePublisher.publishForJob("topicExchange1", "jobRoutingKey1", expectedMessage, any()) }
 
         // Act
         val result = underTest.createJob(request, "MOODLE")
@@ -115,7 +115,7 @@ class MoodleJobServiceTest {
             request.userData
             request.userData
             request.userData
-            amqpTemplate.convertAndSend("topicExchange1", "jobRoutingKey1", expectedMessage)
+            jobMessagePublisher.publishForJob("topicExchange1", "jobRoutingKey1", expectedMessage, any())
         }
     }
 
@@ -151,7 +151,7 @@ class MoodleJobServiceTest {
         every { jobRepository.save(expectedJob) } returns expectedJob
         every { subJobRepository.save(capture(subJobSlot)) } returns expectedSubJob
         every { request.title } returns null
-        justRun { amqpTemplate.convertAndSend("topicExchange1", "jobRoutingKey1", expectedMessage) }
+        justRun { jobMessagePublisher.publishForJob("topicExchange1", "jobRoutingKey1", expectedMessage, any()) }
 
         // Act
         val result = underTest.createJob(request, "MOODLE")

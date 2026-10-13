@@ -21,7 +21,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.springframework.dao.DuplicateKeyException
 
 
@@ -30,7 +30,7 @@ class EduHtmlServiceTest {
     private val jobRepoMock = mockk<RenderingJobRepository>()
     private val subJobRepoMock = mockk<SubJobRepository>()
     private val mapperMock = mockk<Mapper>()
-    private val amqpTemplateMock = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
     private val storageMock = mockk< StaticStorageService>()
     private val jobDataProvider = JobDataProvider()
 
@@ -42,7 +42,7 @@ class EduHtmlServiceTest {
     fun setup() {
         underTest = EduHtmlService(
             mapper = mapperMock,
-            amqpTemplate = amqpTemplateMock,
+            jobMessagePublisher = jobMessagePublisher,
             jobRepository = jobRepoMock,
             subJobRepository = subJobRepoMock,
             storageImplementation = storageMock,
@@ -79,7 +79,7 @@ class EduHtmlServiceTest {
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
+        justRun { jobMessagePublisher.publishForJob("exchange", "routingkey", message, any()) }
         every { node.ref.id } returns "dummyNodeId"
 
         // Act
@@ -96,7 +96,7 @@ class EduHtmlServiceTest {
             mapperMock.nodeToRenderingJob(node, "EDUHTML", true)
             jobRepoMock.save(dummyJob)
             subJobRepoMock.save(any())
-            amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
+            jobMessagePublisher.publishForJob("exchange", "routingkey", message, any())
         }
     }
 
@@ -120,7 +120,7 @@ class EduHtmlServiceTest {
         verify(exactly = 2) { jobRepoMock.findAllByEsObjectId("dummyNodeId") }
         verify(exactly = 1) { jobRepoMock.save(newJob) }
         verify(exactly = 0) { subJobRepoMock.save(any()) }
-        verify(exactly = 0) { amqpTemplateMock.convertAndSend(any<String>(), any<String>(), any<RenderingJobMessage>()) }
+        verify(exactly = 0) { jobMessagePublisher.publishForJob(any<String>(), any<String>(), any<RenderingJobMessage>(), any()) }
     }
 
     @Test
@@ -261,7 +261,7 @@ class EduHtmlServiceTest {
         every { jobRepoMock.save(dummyJob) } returns dummyJob
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
-        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", any<RenderingJobMessage>()) }
+        justRun { jobMessagePublisher.publishForJob("exchange", "routingkey", any<RenderingJobMessage>(), any()) }
         every { node.ref.id } returns "dummyNodeId"
         every { node.properties } returns mapOf("ccm:ccressourcemainentity" to listOf("/player.html"))
 
@@ -284,7 +284,7 @@ class EduHtmlServiceTest {
         val subJobSlot = slot<SubJob>()
         every { subJobRepoMock.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplateMock.convertAndSend("exchange", "routingkey", message) }
+        justRun { jobMessagePublisher.publishForJob("exchange", "routingkey", message, any()) }
         every { node.ref.id } returns "dummyNodeId"
 
         excludeRecords {
@@ -305,7 +305,7 @@ class EduHtmlServiceTest {
             mapperMock.nodeToRenderingJob(node, "EDUHTML", true)
             jobRepoMock.save(dummyJob)
             subJobRepoMock.save(any())
-            amqpTemplateMock.convertAndSend("exchange", "routingkey", message)
+            jobMessagePublisher.publishForJob("exchange", "routingkey", message, any())
         }
     }
 }

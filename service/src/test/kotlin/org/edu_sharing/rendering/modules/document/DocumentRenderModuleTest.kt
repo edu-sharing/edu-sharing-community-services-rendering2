@@ -12,7 +12,8 @@ import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.springframework.http.MediaType
 
 class DocumentRenderModuleTest {
@@ -20,14 +21,16 @@ class DocumentRenderModuleTest {
     private val mockDocumentService = mockk<DocumentService>()
     private val mockMapper = mockk<Mapper>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
+    private val mainJobLogic = mockk<MainJobLogic>(relaxed = true)
 
     private val underTest = DocumentRenderModule(
         nodePermissionExpirationTime = 45L,
         mapper = mockMapper,
         documentService = mockDocumentService,
         subJobRepository = subJobRepository,
-        amqpTemplate = amqpTemplate
+        jobMessagePublisher = jobMessagePublisher,
+            mainJobLogic = mainJobLogic
     )
 
     private val cacheObject = CacheObject(
@@ -152,7 +155,9 @@ class DocumentRenderModuleTest {
         every { mockRenderingJob.subJobs } returns mutableListOf()
         every { subJobRepository.save(capture(documentSubJobSlot)) } returns mockk<SubJob>()
         every { mockRenderingJob.id } returns jobId
-        justRun { amqpTemplate.convertAndSend("topicExchangeName", "documentRoutingKey", capture(messageSlot)) }
+        justRun {
+            jobMessagePublisher.publishForSubJobs("topicExchangeName", "documentRoutingKey", capture(messageSlot), jobId, any(), any())
+        }
         every { mockRenderingJobMessage.id } returns "jobId123"
 
         // Act
@@ -161,7 +166,7 @@ class DocumentRenderModuleTest {
         // Assert
         verifySequence {
             subJobRepository.save(capture(documentSubJobSlot))
-            amqpTemplate.convertAndSend("topicExchangeName", "documentRoutingKey", capture(messageSlot))
+            jobMessagePublisher.publishForSubJobs("topicExchangeName", "documentRoutingKey", capture(messageSlot), jobId, any(), any())
         }
 
         assert(documentSubJobSlot.captured.parent == mockRenderingJob)
