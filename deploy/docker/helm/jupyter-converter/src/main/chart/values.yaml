@@ -141,6 +141,21 @@ securityContext:
   runAsUser: 1000
   ## @param securityContext.runAsNonRoot Refuse to start the container as root (the images run as UID 1000)
   runAsNonRoot: true
+  ## @param securityContext.readOnlyRootFilesystem Mount the root filesystem read-only (only rendered when true). Prepared but off by default: test the functional paths under load in staging before enabling, see deploy/CLAUDE.md. /tmp is a writable volume in any case
+  readOnlyRootFilesystem: false
+
+########################################################################################################################
+
+persistence:
+
+  data:
+
+    temp:
+      ## Temp files (conversion work files, spooled uploads) live on the node's ephemeral disk, not in the
+      ## container layer: /tmp is an emptyDir. That keeps them out of the writable layer and makes /tmp writable
+      ## when securityContext.readOnlyRootFilesystem is enabled. No memory-backed emptyDir on purpose.
+      ## @param persistence.data.temp.sizeLimit Size limit of the node-local emptyDir mounted at /tmp (empty = unlimited)
+      sizeLimit: ""
 
 ########################################################################################################################
 

@@ -34,6 +34,10 @@ data:
   LIBREOFFICE_HEALTH_CACHE_TTL: {{ .healthProbe.cacheTtl | quote }}
   LIBREOFFICE_HEALTH_FAILURE_THRESHOLD: {{ .healthProbe.failureThreshold | quote }}
   {{- end }}
+  {{- if .Values.securityContext.readOnlyRootFilesystem }}
+  {{- /* LibreOffice/fontconfig write their cache and config below $HOME, which is /application (read-only) in the image */}}
+  HOME: /tmp
+  {{- end }}
   CONVERTER_WORK_DIR: {{ .Values.config.converter.workDir | quote }}
   CONVERTER_STALE_FILE_AGE: {{ .Values.config.converter.staleFileAge | quote }}
   CONVERTER_HTML_STYLE_SCAN_WINDOW: {{ .Values.config.converter.htmlStyleScanWindow | quote }}
