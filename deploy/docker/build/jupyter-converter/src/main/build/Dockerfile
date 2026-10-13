@@ -26,8 +26,10 @@ ARG project_groupId=org.edu_sharing
 ARG project_version=dev
 ARG virtualEnvPath=/app/.venv
 
+# No .pyc files: keeps the app directory free of runtime writes (needed for a read-only root filesystem)
 ENV VIRTUAL_ENV=${virtualEnvPath} \
-    PATH="/app/.venv/bin:$PATH"
+    PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 

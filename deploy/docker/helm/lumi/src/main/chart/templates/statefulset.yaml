@@ -36,17 +36,14 @@ spec:
         ports:
         - name: api
           containerPort: 3000
-        {{- if or (eq .Values.config.libraryCache.mode "package") .Values.persistence.data.temp.create }}
         volumeMounts:
         {{- if eq .Values.config.libraryCache.mode "package" }}
         - name: library-cache
           mountPath: {{ .Values.config.libraryCache.dir | quote }}
         {{- end }}
-        {{- if .Values.persistence.data.temp.create }}
+        {{- /* /tmp is always writable: the temp volume if requested, else a node-local emptyDir (see volumes) */}}
         - name: temp
           mountPath: /tmp
-        {{- end }}
-        {{- end }}
         {{- with .Values.startupProbe }}
         startupProbe:
           httpGet:
@@ -89,7 +86,12 @@ spec:
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
         {{- with .Values.securityContext }}
-        securityContext: {{ toYaml . | nindent 10 }}
+        securityContext:
+          {{- /* readOnlyRootFilesystem is only rendered when enabled, so the default rendering stays unchanged */}}
+          {{- toYaml (omit . "readOnlyRootFilesystem") | nindent 10 }}
+          {{- if .readOnlyRootFilesystem }}
+          readOnlyRootFilesystem: true
+          {{- end }}
         {{- end }}
       {{- with .Values.global.image.pullSecrets }}
       imagePullSecrets: {{ toYaml . | nindent 8 }}
@@ -125,11 +127,22 @@ spec:
           {{- end }}
         {{- end }}
       {{- end }}
+      {{- if not .Values.persistence.data.temp.create }}
+      volumes:
+      - name: temp
+        {{- /* Temp files live on the node's ephemeral disk (no memory-backed emptyDir). Needed as a writable /tmp
+             when securityContext.readOnlyRootFilesystem is enabled; a Dockerfile VOLUME is ignored by Kubernetes. */}}
+        {{- if .Values.persistence.data.temp.sizeLimit }}
+        emptyDir:
+          sizeLimit: {{ .Values.persistence.data.temp.sizeLimit | quote }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
   {{/* The per-package library cache is the only copy of those packages' libraries, so the volume is
        not optional for it - it follows the mode rather than a flag of its own, which removes the
        "package mode without storage" misconfiguration. In "global" mode no claim is created. The temp
-       volume is the opposite: opt-in, like the service's, because without it /tmp simply lives on the
-       node's ephemeral disk. */}}
+       volume is the opposite: opt-in, like the service's; without it /tmp is a node-local emptyDir. */}}
   {{- if or (eq .Values.config.libraryCache.mode "package") .Values.persistence.data.temp.create }}
   volumeClaimTemplates:
   {{- if eq .Values.config.libraryCache.mode "package" }}

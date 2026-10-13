@@ -205,6 +205,8 @@ persistence:
       ## node's ephemeral disk, like the service's temp files (persistence.data.temp there).
       ## @param persistence.data.temp.create Create a volume for temporary data (mounted at /tmp)
       create: false
+      ## @param persistence.data.temp.sizeLimit Size limit of the node-local emptyDir mounted at /tmp (empty = unlimited; ignored when persistence.data.temp.create is true)
+      sizeLimit: ""
       spec:
         ## @param persistence.data.temp.spec.accessModes Set access modes for temporary data
         accessModes: [ "ReadWriteOnce" ]
@@ -267,6 +269,8 @@ securityContext:
   runAsUser: 1000
   ## @param securityContext.runAsNonRoot Refuse to start the container as root (the images run as UID 1000)
   runAsNonRoot: true
+  ## @param securityContext.readOnlyRootFilesystem Mount the root filesystem read-only (only rendered when true). Prepared but off by default: test the functional paths under load in staging before enabling, see deploy/CLAUDE.md. /tmp is a writable volume in any case, as is the library cache volume
+  readOnlyRootFilesystem: false
 
 ########################################################################################################################
 

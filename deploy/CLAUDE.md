@@ -65,6 +65,46 @@ Each chart emits these templates (service chart shown):
 `_helpers.tpl`. Charts depend on `edu_sharing-community-common-lib`. `helm-maven-plugin`
 runs init → dependency-build → lint → package → upload; `bundle/` aggregates the modules.
 
+## Read-only root filesystem
+Every chart has `securityContext.readOnlyRootFilesystem` (default **`false`**, rendered into the main
+container's `securityContext` only when `true`, so the default rendering is unchanged). It is
+**prepared, not active**: enable it per chart only after the functional paths below were tested in staging.
+The setting applies to the main container only; the service's varnish sidecars (`proxyCache`,
+`proxyMetrics`) have their own `securityContext` and are deliberately **not** made read-only.
+
+**Always-on `/tmp` volume:** all five charts mount a node-local `emptyDir` at `/tmp` (service and lumi:
+unless `persistence.data.temp.create` provides a PVC instead; optional `persistence.data.temp.sizeLimit`).
+It is deliberately not memory-backed. The Dockerfiles declare `VOLUME /tmp`, but Kubernetes
+(containerd/CRI-O) ignores that, so without the mount `/tmp` would be part of the (read-only) root filesystem.
+
+**Measured write paths** (`docker diff` on an idle container, then `docker run --read-only`):
+
+| Image | Writes (outside volumes) | Needed for read-only |
+|---|---|---|
+| service | idle: only `/tmp` (`hsperfdata_*`, `tomcat.*`, `tomcat-docbase.*` for ports 8080 and 9080). Per source additionally only `java.io.tmpdir` (AV, ConverterWebServiceCaller, H5P, Onyx, EduHtml, S3 spool, metadata). ffmpeg is the system ffmpeg (`SystemFfmpegLocator`), nothing is unpacked | writable `/tmp` |
+| document-converter | `/tmp` (`.jodconverter_*` = LibreOffice profile/socket, `OSL_PIPE_*`, `hsperfdata_*`, `tomcat*`, `CONVERTER_WORK_DIR`) and the home `/application` (`.cache/fontconfig`, `.config`) | writable `/tmp` and `HOME=/tmp` (txt->pdf and ->html tested, output byte-identical) |
+| jupyter-converter | only `/app/__pycache__` (bytecode); nothing with `PYTHONDONTWRITEBYTECODE=1` (now set in the Dockerfile) | nothing (output byte-identical); `/tmp` added anyway |
+| lumi | nothing at startup; uploads (multer) to `os.tmpdir()` resp. `H5P_UPLOAD_DIR`, library cache in `/application/library-cache` | writable `/tmp` and library cache volume (both already mounted by the chart; `H5P_UPLOAD_DIR` is not set by the chart, so uploads use `/tmp`) |
+| admin-frontend | nothing | nothing; `/tmp` added anyway |
+
+**Per chart when enabled:** service - `/tmp` (chart provides it); document-converter - `/tmp` plus
+`HOME=/tmp`, which the chart sets automatically when the flag is on (`CONVERTER_WORK_DIR` stays empty =
+`java.io.tmpdir/doc-converter`, i.e. `/tmp`; if you set it, it must point to a writable volume);
+jupyter-converter, admin-frontend - nothing beyond `/tmp`; lumi - `/tmp` and, in `libraryCache.mode: package`,
+the library cache volume (both mounted by the chart).
+
+**Method:** `docker diff <container>` lists writes outside volumes. A Dockerfile `VOLUME` such as `/tmp` is
+hidden by it, so list `/tmp` separately (`docker exec <c> ls -la /tmp`). Local check (no compose switch needed):
+
+```bash
+docker run --read-only --tmpfs /tmp <image>                    # service, lumi, jupyter-converter, admin-frontend
+docker run --read-only --tmpfs /tmp -e HOME=/tmp <image>       # document-converter
+```
+
+**Not yet verified:** only idle behaviour and a txt->pdf/html and notebook conversion were measured. The
+functional paths of the service and the converters under load (real AV/document/H5P conversions, S3
+spool, large uploads) must be tested in staging before enabling the flag; activate afterwards, per chart.
+
 ## Env-var → Spring-property mapping (key pairs)
 Two styles are used: bare env vars consumed by the `docker` profile properties, and direct
 dotted Spring keys set as env entries.
