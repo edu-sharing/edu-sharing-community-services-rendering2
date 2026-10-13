@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.clearAllMocks
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -11,6 +12,9 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.resilience.RemoteModuleUnavailableException
+import org.edu_sharing.rendering.core.resilience.ResilienceProperties
+import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.storage.StorageService
@@ -38,6 +42,8 @@ class H5pUploadServiceTest {
 
     private lateinit var mockServer: MockWebServer
     private lateinit var underTest: H5pUploadService
+    private val meters = SimpleMeterRegistry()
+    private val guardRegistry = testGuardRegistry(meters)
 
     /** nodeId deliberately carries a dot — the temp-file prefix is built from `substringBefore(".")`. */
     private val cacheObject = CacheObject(
@@ -58,7 +64,8 @@ class H5pUploadServiceTest {
             trackingService = trackingService,
             storageService = storageService,
             module = module,
-            objectMapper = JsonMapper.builder().build()
+            objectMapper = JsonMapper.builder().build(),
+            guardRegistry = guardRegistry,
         )
         clearAllMocks()
         every { module.getCredentials(cacheObject.repoId) } returns emptyMap()
@@ -247,6 +254,42 @@ class H5pUploadServiceTest {
             spoolFiles() - spoolFilesBefore,
             "the spooled .h5p temp file was not deleted"
         )
+    }
+
+    @Test
+    fun testUploadIsNeverRetriedAndAFailureDoesNotOpenTheLookupGuard() {
+        // A POST must not be repeated: a 503 is one attempt, one request.
+        // Arrange
+        stubLookup(null)
+        every { contentTransferService.getAsInputStream(cacheObject) } answers { TrackingInputStream("payload") }
+        enqueueStatus(503)
+        enqueueContentId("never-used")
+
+        // Act and assert
+        assertThrows<Exception> { underTest.getContentId(cacheObject) }
+        assertEquals(1, mockServer.requestCount)
+
+        // The upload has its own breaker; the lookup guard "lumi" stays closed.
+        assertEquals(0.0, meters.get("rendering.remote.circuit.state").tag("module", "lumi-upload").gauge().value())
+        assertTrue(meters.find("rendering.remote.circuit.state").tag("module", "lumi").gauge() == null)
+    }
+
+    @Test
+    fun testUploadRejectedWithoutContactingLumiWhenItsBreakerIsOpen() {
+        // Arrange: threshold 1 so a single 5xx opens the upload breaker
+        val registry = testGuardRegistry(meters) { modules = mapOf("lumi-upload" to ResilienceProperties.ModuleOverride().apply { failureThreshold = 1 }) }
+        val service = H5pUploadService(
+            contentTransferService, WebClient.builder().baseUrl(mockServer.url("/").toString()).build(),
+            lumiContentManagementService, trackingService, storageService, module, JsonMapper.builder().build(), registry
+        )
+        stubLookup(null)
+        every { contentTransferService.getAsInputStream(cacheObject) } answers { TrackingInputStream("payload") }
+        enqueueStatus(500)
+
+        // Act and assert
+        assertThrows<Exception> { service.getContentId(cacheObject) }
+        assertThrows<RemoteModuleUnavailableException> { service.getContentId(cacheObject) }
+        assertEquals(1, mockServer.requestCount)
     }
 
     // ── timeout ───────────────────────────────────────────────────────────────────────────────────

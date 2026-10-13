@@ -50,6 +50,7 @@ import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiConfig
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyProperties
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiStorageManager
 import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageRenderModuleTypeMapper
@@ -167,6 +168,7 @@ abstract class SharedBeans {
             JwtUtils::class,
             LumiConfig::class,
             LumiContentManagementService::class,
+            LumiProxyProperties::class,
             LumiStorageManager::class,
             MainJobLogic::class,
             MainJobCreationService::class,

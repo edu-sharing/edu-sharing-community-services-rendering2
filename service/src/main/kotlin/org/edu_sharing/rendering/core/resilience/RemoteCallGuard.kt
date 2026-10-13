@@ -21,8 +21,12 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
 
 /** The remote module cannot be called right now (open circuit, saturated bulkhead or connection pool). */
-class RemoteModuleUnavailableException(message: String, cause: Throwable? = null) :
-    RuntimeException(message, cause, false, cause != null)
+class RemoteModuleUnavailableException(
+    message: String,
+    cause: Throwable? = null,
+    /** When the call is worth repeating (remaining open time of the breaker), if known; drives `Retry-After`. */
+    val retryAfter: Duration? = null,
+) : RuntimeException(message, cause, false, cause != null)
 
 /**
  * Wraps the calls to one external system with a bulkhead, a circuit breaker and (for idempotent calls) a retry
@@ -31,7 +35,8 @@ class RemoteModuleUnavailableException(message: String, cause: Throwable? = null
  * Contract of [run]:
  * - The breaker and the bulkhead guard the whole call; the outcome is recorded once per call, after retries.
  * - Only infrastructure failures count against the breaker ([isInfrastructureFailure]); a 4xx proves the remote
- *   is alive and counts as success.
+ *   is alive and counts as success. A guard may narrow this to reachability failures only
+ *   ([FailureClassification.REACHABILITY_ONLY], per-guard setting): then a 500/507 is a success as well.
  * - Retries happen only if the caller declares the call retryable (idempotent GET/HEAD) and the failure is
  *   transient ([isTransient]). Retrying a timed-out call is deliberately excluded: it would multiply the stall.
  * - The whole call, retries and backoffs included, is capped by [RemoteCallSettings.totalBudget].
@@ -99,7 +104,8 @@ class RemoteCallGuard(
                 return@defer Mono.error<T>(
                     RemoteModuleUnavailableException(
                         "module $name temporarily unavailable (circuit open, probing again in " +
-                            "${breaker.remainingOpenTime().seconds}s)"
+                            "${breaker.remainingOpenTime().seconds}s)",
+                        retryAfter = breaker.remainingOpenTime(),
                     )
                 )
             }
@@ -150,10 +156,15 @@ class RemoteCallGuard(
 
     private fun classify(failure: Throwable): Verdict = when {
         isLocalPoolSaturation(failure) -> Verdict.IGNORED
-        isInfrastructureFailure(failure) -> Verdict.FAILURE
+        countsAsFailure(failure) -> Verdict.FAILURE
         // A 4xx or a decoding problem: the remote answered, it is healthy.
         failure is WebClientResponseException -> Verdict.SUCCESS
         else -> Verdict.IGNORED
+    }
+
+    private fun countsAsFailure(failure: Throwable): Boolean = when (settings.failureClassification) {
+        FailureClassification.DEFAULT -> isInfrastructureFailure(failure)
+        FailureClassification.REACHABILITY_ONLY -> isReachabilityFailure(failure)
     }
 
     private fun retrySpec(): Retry = Retry.from { signals ->
@@ -220,6 +231,17 @@ class RemoteCallGuard(
             causeChain(failure).any { it.javaClass.simpleName == "PoolAcquireTimeoutException" } -> true
             failure is IOException -> true
             else -> false
+        }
+
+        /**
+         * [FailureClassification.REACHABILITY_ONLY]: like [isInfrastructureFailure], but of the HTTP statuses only
+         * 502/503/504 (a gateway or the remote itself is unreachable) count. A 500/507 is an answer of a reachable
+         * remote (e.g. one broken piece of content) and must not open the breaker for everything else.
+         */
+        internal fun isReachabilityFailure(failure: Throwable): Boolean = when {
+            isLocalPoolSaturation(failure) -> false
+            failure is WebClientResponseException -> failure.statusCode.value() in 502..504
+            else -> isInfrastructureFailure(failure)
         }
 
         /**
