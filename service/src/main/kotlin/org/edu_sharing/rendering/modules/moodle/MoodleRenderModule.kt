@@ -80,7 +80,7 @@ class MoodleRenderModule(
         val timeout = Duration.ofSeconds(credentials.getValue("timeout").toLong())
         val webClient = webClientBuilder
             .clone()
-            .baseUrl(credentials.getValue("baseurl"))
+            .forMoodle(credentials)
             .build()
 
         val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"), timeout)
