@@ -73,7 +73,7 @@ class MoodleRenderModule(
 
         val webClient = WebClient
             .builder()
-            .baseUrl(credentials.getValue("baseurl"))
+            .forMoodle(credentials)
             .build()
 
         val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"))
@@ -118,7 +118,7 @@ class MoodleRenderModule(
         return try {
             objectMapper.readTree(rawBody)
         } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid JSON response from Moodle ping endpoint: $rawBody", e)
+            throw IllegalArgumentException("Invalid JSON response from Moodle ping endpoint: ${redactWebserviceToken(rawBody)}", e)
         }
     }
 

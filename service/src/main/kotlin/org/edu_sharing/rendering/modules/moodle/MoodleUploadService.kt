@@ -7,12 +7,10 @@ import kotlinx.coroutines.runBlocking
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
-import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
@@ -206,30 +204,8 @@ class MoodleUploadService(
         }
     }
 
-    private fun getWebClient(config: Map<String, String>): WebClient {
-        val builder = webClientBuilder
-            .clone()
-            .baseUrl(config["baseurl"] ?: "")
-
-        config["publicurl"]?.takeIf { it.isNotBlank() }?.let { publicUrl ->
-            val hostHeader = buildHostHeader(publicUrl)
-            if (hostHeader != null) {
-                builder.defaultHeader(HttpHeaders.HOST, hostHeader)
-            }
-        }
-
-        return builder.build()
-    }
-
-    private fun buildHostHeader(url: String): String? {
-        return try {
-            val uri = URI(url)
-            val host = uri.host ?: return null
-            if (uri.port != -1) "$host:${uri.port}" else host
-        } catch (_: Exception) {
-            null
-        }
-    }
+    private fun getWebClient(config: Map<String, String>): WebClient =
+        webClientBuilder.clone().forMoodle(config).build()
 
     private fun buildMoodleErrorMessage(response: JsonNode): String {
         val exception = response.path("exception").asText("unknown exception")
@@ -258,8 +234,9 @@ class MoodleUploadService(
         return try {
             objectMapper.readTree(rawBody)
         } catch (e: Exception) {
-            log.error("Failed to parse moodle response as JSON ($context). Raw response: {}", rawBody, e)
-            throw Exception("Invalid JSON response from moodle ($context): $rawBody", e)
+            val redactedBody = redactWebserviceToken(rawBody)
+            log.error("Failed to parse moodle response as JSON ($context). Raw response: {}", redactedBody, e)
+            throw Exception("Invalid JSON response from moodle ($context): $redactedBody", e)
         }
     }
 
