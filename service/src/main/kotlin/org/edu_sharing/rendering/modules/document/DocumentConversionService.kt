@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.ConversionService
+import org.edu_sharing.rendering.modules.ConverterCallException
 import org.edu_sharing.rendering.modules.ConverterWebServiceArguments
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
@@ -13,6 +14,7 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -52,10 +54,16 @@ class DocumentConversionService(
             subJob.finishedDate = Instant.now()
             log.debug("Document conversion FINISHED: nodeId=${cacheObject.nodeId}")
         } catch (exception: Exception) {
-            log.error("Document conversion failed for object ${renderingJob.esObjectId} with exception: ${exception.message}",exception)
+            // A document the converter rejected gets its own user message; an unreachable or overloaded
+            // converter (and anything unexpected) the generic one. The exception message embeds the request
+            // URI, so only a sanitized copy is logged.
+            log.error(
+                "Document conversion failed for object ${renderingJob.esObjectId}",
+                LogSanitizer.sanitize(exception)
+            )
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
-            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            subJob.errorMessage = (exception as? ConverterCallException)?.userMessage ?: GENERIC_CONVERSION_ERROR
         } finally {
             storageService.removeTempObject(cacheObject = cacheObject)
         }

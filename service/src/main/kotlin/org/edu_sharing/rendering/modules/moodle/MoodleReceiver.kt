@@ -9,6 +9,7 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
@@ -81,7 +82,7 @@ class MoodleReceiver (
             subJob.status = SubJobStatus.FINISHED
             subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
-            log.error("Job id ${message.id} failed with exception: ${exception.message}", exception)
+            log.error("Job id ${message.id} failed with exception: ${LogSanitizer.sanitize(exception.message)}", LogSanitizer.sanitize(exception))
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
             if (exception is MoodleUploadException) {

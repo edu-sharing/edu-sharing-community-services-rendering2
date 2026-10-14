@@ -462,6 +462,100 @@ config:
     defaultMaxQueuedTime: "PT6H"
     ## @param config.jobreaper.maxQueuedTime Per-routing-key overrides (ISO-8601 Duration) for defaultMaxQueuedTime; key = queue routing key (app.queue.<module>.key). Escape hatch for a future queue whose legitimate backlog-drain time exceeds the default - none needed today (sodix/omega/ddb resolve one link/reference per job via 1-2 REST calls, not a bulk import; even a large backlog drains in minutes at their K=50-per-pod concurrency)
     maxQueuedTime: {}
+    ## @param config.jobreaper.maxMainJobSetupTime Max time (ISO-8601 Duration) a main job may sit PROCESSING without any sub-jobs (the receiver downloads the payload and creates the sub-jobs in that state). Must exceed the longest realistic source-file download
+    maxMainJobSetupTime: "PT1H"
+
+  ## Repository registration at startup (master only): registers asynchronously per repository with retry; the
+  ## retry loop also re-registers repositories that were not reachable at startup. Defaults match the code.
+  registration:
+    ## @param config.registration.repoTimeoutSeconds Time budget in seconds for registering one repository per attempt
+    repoTimeoutSeconds: "240"
+    ## @param config.registration.retryIntervalMillis Fixed delay in milliseconds between runs of the registration retry loop
+    retryIntervalMillis: "30000"
+    ## @param config.registration.retryInitialDelaySeconds Initial backoff in seconds before a failed repository is retried
+    retryInitialDelaySeconds: "30"
+    ## @param config.registration.retryMaxDelaySeconds Upper bound in seconds of the per-repository retry backoff
+    retryMaxDelaySeconds: "600"
+
+  ## Binder module (git upload)
+  binder:
+    ## @param config.binder.sseIdleTimeout Max idle time (ISO-8601 Duration) of the binder SSE stream before the upload is aborted
+    sseIdleTimeout: "PT15M"
+    ## @param config.binder.maxFileSize Max size of a single file pushed to git (plain byte count or a size like 50MB)
+    maxFileSize: "50MB"
+
+  ## HTTP clients of the edu-sharing repository SDK (OkHttp). Defaults match the code.
+  repositoryHttp:
+    ## @param config.repositoryHttp.maxRequests Max concurrent async SDK calls across all repository hosts
+    maxRequests: "256"
+    ## @param config.repositoryHttp.maxRequestsPerHost Max concurrent async SDK calls per repository host
+    maxRequestsPerHost: "128"
+    timeout:
+      ## @param config.repositoryHttp.timeout.connect TCP connect timeout (Spring Duration, e.g. 10s)
+      connect: "10s"
+      ## @param config.repositoryHttp.timeout.read Max wait for data on an established connection
+      read: "30s"
+      ## @param config.repositoryHttp.timeout.write Max wait for a write to the repository to make progress
+      write: "30s"
+      ## @param config.repositoryHttp.timeout.call Hard upper bound for one SDK call including redirects (0 = none)
+      call: "60s"
+
+  ## Resilience layer for calls to external systems (sodix, omega, omega-validation, ddb, github, lumi). Defaults match
+  ## the code. Retry only for idempotent GET/HEAD; the breaker counts consecutive infrastructure failures per remote and
+  ## pod; metrics rendering.remote.*. Per-remote overrides (app.resilience.modules.<name>.{max-attempts,failure-threshold,
+  ## open-duration,max-concurrent-calls}) can be set via config.override (SPRING_APPLICATION_JSON), e.g.
+  ## {"app":{"resilience":{"modules":{"sodix":{"max-attempts":2}}}}}
+  resilience:
+    ## @param config.resilience.enabled Enable the resilience layer (false = pass-through)
+    enabled: "true"
+    retry:
+      ## @param config.resilience.retry.maxAttempts Total attempts including the first (1 = no retry)
+      maxAttempts: "3"
+      ## @param config.resilience.retry.initialBackoff Backoff before the first retry (Spring Duration)
+      initialBackoff: "200ms"
+      ## @param config.resilience.retry.maxBackoff Upper bound of the retry backoff
+      maxBackoff: "2s"
+      ## @param config.resilience.retry.jitter Fraction (0..1) of each backoff that is randomised downwards
+      jitter: "0.5"
+      ## @param config.resilience.retry.maxRetryAfter A 429 whose Retry-After exceeds this is not retried
+      maxRetryAfter: "5s"
+      ## @param config.resilience.retry.totalBudget Upper bound of one guarded call including all attempts; keep it below the queue/reaper timeouts
+      totalBudget: "75s"
+    circuitBreaker:
+      ## @param config.resilience.circuitBreaker.enabled Enable the circuit breaker
+      enabled: "true"
+      ## @param config.resilience.circuitBreaker.failureThreshold Consecutive infrastructure failures that open the breaker
+      failureThreshold: "5"
+      ## @param config.resilience.circuitBreaker.openDuration How long an open breaker rejects calls
+      openDuration: "30s"
+      ## @param config.resilience.circuitBreaker.halfOpenMaxCalls Concurrent probe calls in HALF_OPEN
+      halfOpenMaxCalls: "1"
+      ## @param config.resilience.circuitBreaker.failureClassification Which failures count against the breaker [DEFAULT|REACHABILITY_ONLY]; the lumi proxy guard (lumi-proxy) always defaults to REACHABILITY_ONLY
+      failureClassification: "DEFAULT"
+    bulkhead:
+      ## @param config.resilience.bulkhead.enabled Enable the bulkhead
+      enabled: "true"
+      ## @param config.resilience.bulkhead.maxConcurrentCalls Concurrent in-flight calls per remote and pod (keep at least the queue concurrency)
+      maxConcurrentCalls: "64"
+      ## @param config.resilience.bulkhead.maxWait How long a call waits for a free slot (0s = reject at once)
+      maxWait: "0s"
+
+  ddb:
+    ## @param config.ddb.authMode How the DDB consumer key is sent [QUERY|HEADER]; HEADER is unverified against the live API, opt-in only
+    authMode: "QUERY"
+
+  ## Size of the shared @Scheduled pool (minimum 4); cache cleaner, reaper, CORS sync etc. share it
+  scheduling:
+    ## @param config.scheduling.poolSize Number of threads of the shared scheduler
+    poolSize: "4"
+
+  ## Startup sweep of orphaned job temp files in /tmp (an emptyDir that survives a container restart). TempFileSweeper
+  temp:
+    cleanup:
+      ## @param config.temp.cleanup.enabled Remove stale rendering-* temp files once at startup
+      enabled: "true"
+      ## @param config.temp.cleanup.staleFileAge Only files older than this are removed; must exceed the longest job (e.g. the AV conversion timeout)
+      staleFileAge: "PT6H"
 
   ## One-time queue-durability migration (master only): all app.queue.<x> queues were renamed with a
   ## "_v2" suffix and switched to durable=true; this deletes each pre-migration queue automatically once
@@ -473,6 +567,19 @@ config:
     schedule: "PT30M"
 
   converter:
+    call:
+      ## @param config.converter.call.maxAttempts Total attempts per converter call including the first (1 = no retry)
+      maxAttempts: "3"
+      ## @param config.converter.call.initialBackoff Backoff before the first retry (doubles per retry)
+      initialBackoff: "2s"
+      ## @param config.converter.call.maxBackoff Upper bound of the retry backoff
+      maxBackoff: "20s"
+      ## @param config.converter.call.attemptTimeout Upper bound of a single attempt; keep it above the converters' own limits
+      attemptTimeout: "330s"
+      ## @param config.converter.call.totalBudget Upper bound of all attempts and pauses; keep it far below the reaper's max process time
+      totalBudget: "15m"
+      ## @param config.converter.call.maxRetryAfter Cap for the delay requested by a 503 Retry-After header
+      maxRetryAfter: "30s"
     audio:
       ## @param config.converter.audio.mimetypes Set mimetypes for audio converter
       mimetypes: audio/mpeg,audio/mp4,audio/vnd.wav,audio/ogg,audio/vorbis,audio/wav,audio/x-wav,audio/x-ms-wma
@@ -606,6 +713,13 @@ config:
       # - name: tempBucket
       #   value: temp
       #   quota: 0
+  ## Container entrypoint waits (read by entrypoint.sh, not by Spring)
+  entrypoint:
+    ## @param config.entrypoint.infraWaitTimeout Max seconds to wait for each of MongoDB/S3/RabbitMQ/Redis before the container exits with 1
+    infraWaitTimeout: "300"
+    ## @param config.entrypoint.repositoryWaitTimeout Best-effort total seconds to wait for the registered repositories before starting anyway (0 = do not wait)
+    repositoryWaitTimeout: "60"
+
   jvm:
     ram:
       ## @param config.jvm.ram.minPercentage Set minimum memory in percentages
@@ -618,6 +732,9 @@ config:
     host: edusharing-services-rendering2-lumi
     ## @param config.lumi.port Set lumi port
     port: 3000
+    proxy:
+      ## @param config.lumi.proxy.responseHeadersTimeout Upper bound for lumi to deliver status and headers of a proxied H5P response (each proxied request holds a Tomcat thread this long at most; a timeout is answered with 504)
+      responseHeadersTimeout: "20s"
 
   metrics:
     ## @param config.metrics.relabelings Define relabelings for metrics
@@ -648,6 +765,13 @@ config:
     password: ""
     ## @param config.mongodb.database Set mongodb database
     database: rendering2
+    timeout:
+      ## @param config.mongodb.timeout.connectTimeout MongoDB driver TCP connect timeout
+      connectTimeout: "10s"
+      ## @param config.mongodb.timeout.socketTimeout Max wait for one command reply (0 = infinite); keep it above the slowest aggregation of the cache cleaner
+      socketTimeout: "5m"
+      ## @param config.mongodb.timeout.serverSelectionTimeout Max wait for a suitable MongoDB server, e.g. during a primary election
+      serverSelectionTimeout: "30s"
 
   ## @param config.override Configure overrides
   override: ""
@@ -661,6 +785,16 @@ config:
     username: rendering2
     ## @param config.rabbitmq.password Set mongodb username
     password: ""
+    ## @param config.rabbitmq.connectionTimeout TCP connect + AMQP handshake timeout
+    connectionTimeout: "10s"
+    ## @param config.rabbitmq.channelRpcTimeout Max wait for the reply of a channel RPC (declare, bind, cancel); not message processing
+    channelRpcTimeout: "30s"
+    ## @param config.rabbitmq.requestedHeartbeat AMQP heartbeat interval; detects a half-open connection within about two intervals
+    requestedHeartbeat: "30s"
+    ## @param config.rabbitmq.cacheChannelSize Channel cache size, a HARD limit together with checkoutTimeout. Must cover every consumer channel of a pod (sum of the STANDARD queue concurrencies + one per remote queue) plus concurrent publishers - raise it whenever config.queue.concurrency is raised
+    cacheChannelSize: "400"
+    ## @param config.rabbitmq.checkoutTimeout How long a publisher waits for a free channel when the cache is exhausted before failing
+    checkoutTimeout: "30s"
 
   queue:
     ## The one per-queue scaling knob: max messages processed in parallel per pod. Its meaning per queue
@@ -725,6 +859,20 @@ config:
     host: edusharing-services-rendering2-rediscluster
     ## @param config.redis.port Set redis port
     port: 6379
+    client:
+      ## @param config.redis.client.commandTimeout Upper bound for one Redis command
+      commandTimeout: "5s"
+      ## @param config.redis.client.connectTimeout TCP connect timeout of a (re)connect attempt
+      connectTimeout: "10s"
+      ## @param config.redis.client.keepAlive TCP keep-alive, makes a silently reaped connection detectable
+      keepAlive: "true"
+      ## @param config.redis.client.requestQueueSize Max commands buffered while disconnected; the excess fails immediately
+      requestQueueSize: "2000"
+      ## @param config.redis.client.disconnectedBehavior Commands while disconnected [DEFAULT|ACCEPT_COMMANDS|REJECT_COMMANDS]
+      disconnectedBehavior: "DEFAULT"
+    session:
+      ## @param config.redis.session.configureAction DEFAULT lets Spring Session run CONFIG SET notify-keyspace-events Egx at startup; NO_OP for managed Redis that forbids CONFIG (then configure notify-keyspace-events Egx on the server)
+      configureAction: "DEFAULT"
 
   s3:
     ## @param config.s3.host Set S3 host
@@ -745,6 +893,26 @@ config:
     trustAllCertificates: false
     ## @param config.s3.checksumCalculationWhenRequired Set S3 checksum calculation when required
     checksumCalculationWhenRequired: false
+    client:
+      ## @param config.s3.client.maxConnections Size of the S3 HTTP connection pool; size it to the pod's peak S3 parallelism (sum of the queue concurrencies plus concurrent asset downloads)
+      maxConnections: "200"
+      ## @param config.s3.client.connectionTimeout TCP connect timeout
+      connectionTimeout: "10s"
+      ## @param config.s3.client.socketTimeout Max wait for data on an established connection (per read, not per object)
+      socketTimeout: "2m"
+      ## @param config.s3.client.connectionAcquisitionTimeout Max wait for a free pooled connection
+      connectionAcquisitionTimeout: "30s"
+      ## @param config.s3.client.connectionMaxIdleTime Idle connections older than this are closed
+      connectionMaxIdleTime: "1m"
+      ## @param config.s3.client.apiCallAttemptTimeout Deadline of one HTTP attempt; also bounds big uploads/downloads
+      apiCallAttemptTimeout: "30m"
+      ## @param config.s3.client.apiCallTimeout Deadline of a whole call including SDK retries (at least apiCallAttemptTimeout)
+      apiCallTimeout: "1h"
+    health:
+      ## @param config.s3.health.bucket Bucket the S3 health probe sends a HEAD request to; it does not have to exist (a 404 proves reachability and accepted credentials)
+      bucket: "rendering-health-probe"
+      ## @param config.s3.health.timeout Deadline of the S3 health probe
+      timeout: "5s"
 
   webclient:
     codec:
@@ -799,6 +967,8 @@ persistence:
     temp:
       ## @param persistence.data.temp.create Create temporary data
       create: false
+      ## @param persistence.data.temp.sizeLimit Size limit of the node-local emptyDir mounted at /tmp (empty = unlimited; ignored when persistence.data.temp.create is true)
+      sizeLimit: ""
       spec:
         ## @param persistence.data.temp.spec.accessModes Set access modes for temporary data
         accessModes: [ "ReadWriteOnce" ]
@@ -822,6 +992,15 @@ tolerations: []
 ## @param podAnnotations Set custom pod annotations
 podAnnotations: {}
 
+## PodDisruptionBudget, rendered only when global.cluster.pdb.enabled is set AND more than one replica runs
+podDisruptionBudget:
+  ## @param podDisruptionBudget.minAvailable Pods that must stay available during voluntary disruptions
+  minAvailable: 1
+  ## @param podDisruptionBudget.maxUnavailable Pods that may be unavailable; when set it replaces minAvailable (e.g. 1 or "25%")
+  maxUnavailable: ""
+
+########################################################################################################################
+
 podSecurityContext:
   ## @param podSecurityContext.fsGroup Set fs group for access
   fsGroup: 1000
@@ -837,14 +1016,22 @@ securityContext:
       - ALL
   ## @param securityContext.runAsUser Set drop capabilities
   runAsUser: 1000
+  ## @param securityContext.runAsNonRoot Refuse to start the container as root (the images run as UID 1000)
+  runAsNonRoot: true
+  ## @param securityContext.readOnlyRootFilesystem Mount the root filesystem read-only (only rendered when true). Prepared but off by default: test the functional paths under load in staging before enabling, see deploy/CLAUDE.md. /tmp is a writable volume in any case
+  readOnlyRootFilesystem: false
 
 ########################################################################################################################
 
-## @param terminationGracePeriod Define grace period for termination. Must be >= the queueListenerContainerFactory
-## shutdownTimeout (35m, covers the longest STANDARD job type: av/ffmpeg) or K8s SIGKILLs the pod before an
-## in-flight conversion can finish gracefully. Only an upper bound - a pod with nothing in flight (or only fast
-## jobs) still stops immediately once the JVM exits.
-terminationGracePeriod: 2160
+## @param terminationGracePeriod Define grace period for termination. Must be > the queueListenerContainerFactory
+## shutdownTimeout (35m, covers the longest STANDARD job type: av/ffmpeg) plus the HTTP drain that runs *before* it
+## (server.shutdown=graceful), or K8s SIGKILLs the pod before an in-flight conversion can finish gracefully. Keep it
+## above spring.lifecycle.timeout-per-shutdown-phase (36m) too. Only an upper bound - a pod with nothing in flight
+## (or only fast jobs) still stops immediately once the JVM exits.
+terminationGracePeriod: 2400
+
+## @param preStopSleepSeconds Seconds the container sleeps in its preStop hook before SIGTERM, so the endpoint removal reaches Ingress/Service proxies first (0 = no hook). Counts against terminationGracePeriod
+preStopSleepSeconds: 5
 
 startupProbe:
   ## @param startupProbe.failureThreshold Failure threshold for startupProbe
@@ -869,8 +1056,9 @@ livenessProbe:
   timeoutSeconds: 10
 
 readinessProbe:
-  ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
-  failureThreshold: 1
+  ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe. The readiness group checks Mongo and
+  ## Redis, so tolerate one slow answer before a pod is taken out of the Service (liveness stays dependency-free).
+  failureThreshold: 3
   ## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
   initialDelaySeconds: 10
   ## @param readinessProbe.periodSeconds Period seconds for readinessProbe

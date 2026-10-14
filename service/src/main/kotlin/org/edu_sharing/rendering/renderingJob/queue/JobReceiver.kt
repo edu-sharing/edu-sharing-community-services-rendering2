@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.ConversionModule
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.storage.StorageService
@@ -30,6 +31,9 @@ class JobReceiver(
     private val moduleRegistry: ModuleRegistry
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    /** Pause before the second attempt to persist FAILED; overridable for tests. */
+    internal var failureRetryDelayMillis: Long = 250L
 
     @RabbitListener(
         bindings = [
@@ -86,11 +90,38 @@ class JobReceiver(
             }
         } catch (e: Exception) {
             log.error("Error processing job ${jobEntry.id}", e)
-            log.debug("Marking job ${jobEntry.id} as ${RenderingJobStatus.FAILED} after exception")
-            jobEntry.status = RenderingJobStatus.FAILED
-            jobEntry.finishedTimestamp = System.currentTimeMillis()
-            jobEntry.errorMessage = ERROR_PROCESSING_JOB
+            markFailed(jobEntry)
+        }
+    }
+
+    /**
+     * Resolves the job to FAILED without ever letting an exception escape the listener. A Mongo blip that
+     * also breaks this write would otherwise leave the job PROCESSING without sub-jobs, blocking its node via
+     * `activeJobPerNodeHash` - [org.edu_sharing.rendering.renderingJob.StaleJobReaper] is the last resort for
+     * that case. Attempt 1 saves the entity; attempt 2 (after a short pause) uses version-free targeted
+     * updates, which also work when the entity's version is stale.
+     */
+    private fun markFailed(jobEntry: RenderingJob) {
+        log.debug("Marking job ${jobEntry.id} as ${RenderingJobStatus.FAILED} after exception")
+        jobEntry.status = RenderingJobStatus.FAILED
+        jobEntry.finishedTimestamp = System.currentTimeMillis()
+        jobEntry.errorMessage = ERROR_PROCESSING_JOB
+        try {
             jobRepository.save(jobEntry)
+            return
+        } catch (e: Exception) {
+            log.warn("Saving FAILED status of job ${jobEntry.id} failed, retrying with a targeted update", e)
+        }
+        try {
+            Thread.sleep(failureRetryDelayMillis)
+            jobRepository.updateErrorMessageWithoutVersion(jobEntry.id, ERROR_PROCESSING_JOB)
+            jobRepository.updateStatusWithoutVersion(jobEntry.id, RenderingJobStatus.FAILED)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            log.error("Interrupted while marking job ${jobEntry.id} FAILED; the stale-job reaper will resolve it", e)
+        } catch (e: Exception) {
+            log.error("Could not mark job ${jobEntry.id} FAILED; it stays ${RenderingJobStatus.PROCESSING} " +
+                "until the stale-job reaper resolves it", e)
         }
     }
 }

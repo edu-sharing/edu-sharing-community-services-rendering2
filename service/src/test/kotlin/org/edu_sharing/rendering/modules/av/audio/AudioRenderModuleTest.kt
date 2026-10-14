@@ -13,20 +13,23 @@ import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 
 class AudioRenderModuleTest {
     private val audioService = mockk<AudioService>()
     private val mapper = mockk<Mapper>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
+    private val mainJobLogic = mockk<MainJobLogic>(relaxed = true)
 
     private val underTest = AudioRenderModule(
         nodePermissionExpirationTime = 45L,
         mapper = mapper,
         audioService = audioService,
         subJobRepository = subJobRepository,
-        amqpTemplate = amqpTemplate,
+        jobMessagePublisher = jobMessagePublisher,
+            mainJobLogic = mainJobLogic,
         )
 
     private val cacheObject = CacheObject(
@@ -155,10 +158,13 @@ class AudioRenderModuleTest {
         every {renderingMessage.missingQualities} returns listOf(1,2)
         every {subJobRepository.save(capture(subJobList))} returns mockk<SubJob>()
         justRun {
-            amqpTemplate.convertAndSend(
+            jobMessagePublisher.publishForSubJobs(
                 "topicExchangeName",
                 "avRoutingKey",
                 capture(subJobMessageList),
+                any(),
+                any(),
+                any(),
                 capture(postProcessorSlot)
             )
         }

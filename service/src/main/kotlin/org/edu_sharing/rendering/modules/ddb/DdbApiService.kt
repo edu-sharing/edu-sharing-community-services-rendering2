@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
@@ -13,7 +14,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.edu_sharing.rendering.utils.LogSanitizer
+import org.springframework.http.HttpHeaders
+import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
+import java.time.Duration
 import java.time.Instant
 
 @Service
@@ -22,10 +27,17 @@ class DdbApiService(
     private val moduleRegistry: ModuleRegistry,
     private val subJobRepository: SubJobRepository,
     @param:Qualifier("ddbRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder,
-    private val ddbApiProperties: DdbApiProperties
+    private val ddbApiProperties: DdbApiProperties,
+    guardRegistry: RemoteCallGuardRegistry,
 ) {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
+    private val objectMapper = ObjectMapper()
+    private val guard = guardRegistry.guard("ddb")
+
+    private companion object {
+        val CALL_TIMEOUT: Duration = Duration.ofSeconds(60)
+    }
 
     private data class DdbRestData(
         val binaryRef: String,
@@ -58,7 +70,11 @@ class DdbApiService(
             subJob.status = SubJobStatus.FINISHED
             subJob.finishedDate = Instant.now()
         } catch (exception: Exception) {
-            log.error("Error while processing DDB communication: ${exception.message}", exception)
+            // The WebClient exception message embeds the request URI, which carries the IIIF consumer key.
+            log.error(
+                "Error while processing DDB communication: ${LogSanitizer.sanitize(exception.message)}",
+                LogSanitizer.sanitize(exception)
+            )
             subJob.errorMessage = GENERIC_CONVERSION_ERROR
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
@@ -89,15 +105,23 @@ class DdbApiService(
         log.debug("Calling DDB REST API for remoteId $remoteId at ${ddbApiProperties.restApiBaseUrl}")
         val webClient = webClientBuilder.clone().baseUrl(ddbApiProperties.restApiBaseUrl).build()
 
-        val response = webClient
-            .get()
-            .uri {
-                it.path("/items/${remoteId}").queryParam("oauth_consumer_key", apiToken).build()
-            }.retrieve().bodyToMono(String::class.java).block()
+        val response = guard.block(retryable = true) {
+            val spec = webClient.get().uri {
+                val builder = it.path("/items/${remoteId}")
+                if (ddbApiProperties.authMode == DdbAuthMode.QUERY) builder.queryParam("oauth_consumer_key", apiToken)
+                builder.build()
+            }
+            // HEADER mode (opt-in, unverified against the live API, see DdbApiProperties) keeps the key out of
+            // the URI and thus out of WebClientException messages and access logs.
+            (if (ddbApiProperties.authMode == DdbAuthMode.HEADER)
+                spec.header(HttpHeaders.AUTHORIZATION, "OAuth oauth_consumer_key=\"$apiToken\"")
+            else spec)
+                .retrieve().bodyToMono(String::class.java)
+                .timeout(CALL_TIMEOUT)
+        }
 
         response?.let {
-            val objectMapper = ObjectMapper()
-            val rootNode = objectMapper.readTree(it)
+            val rootNode = parseJson(it, "REST")
             val ref = rootNode.path("binaries").path("binary").path("@ref").asString("")
             val licenseLink = rootNode.path("binaries").path("binary").path("@kind").asString("")
             val licenseGroup = rootNode.path("binaries").path("binary").path("@license_group").asString("")
@@ -118,15 +142,17 @@ class DdbApiService(
     private fun callIiifApi(binaryRef: String, apiToken: String): List<Pair<Int, Int>> {
         log.debug("Calling DDB IIIF API for binaryRef $binaryRef at ${ddbApiProperties.iiifApiBaseUrl}")
         val webClient = webClientBuilder.clone().baseUrl(ddbApiProperties.iiifApiBaseUrl).build()
-        val response = webClient
-            .get()
-            .uri {
-                it.path("/${binaryRef}/info.json").queryParam("oauth_consumer_key", apiToken).build()
-            }.retrieve().bodyToMono(String::class.java).block()
+        val response = guard.block(retryable = true) {
+            webClient
+                .get()
+                .uri {
+                    it.path("/${binaryRef}/info.json").queryParam("oauth_consumer_key", apiToken).build()
+                }.retrieve().bodyToMono(String::class.java)
+                .timeout(CALL_TIMEOUT)
+        }
 
         response?.let {
-            val objectMapper = ObjectMapper()
-            val rootNode = objectMapper.readTree(it)
+            val rootNode = parseJson(it, "IIIF")
             val sizesNode = rootNode.path("sizes")
             val sizes = sizesNode.mapNotNull { sizeNode ->
                 val width = sizeNode.path("width").asInt()
@@ -142,6 +168,17 @@ class DdbApiService(
         throw Exception("Missing DDB IIIF API response")
 
     }
+
+    /** Parses a DDB response; an HTML error page or empty body yields a readable message instead of a parser error. */
+    private fun parseJson(body: String, apiName: String): JsonNode =
+        try {
+            objectMapper.readTree(body)
+        } catch (exception: Exception) {
+            throw IllegalStateException(
+                "DDB $apiName API returned a non-JSON response (starts with: " +
+                    LogSanitizer.sanitize(body.trim().take(80)) + ")"
+            )
+        }
 
     private fun getToken(renderingJob: RenderingJob): String {
         val module = moduleRegistry.getRenderModule<RenderModule>(renderingJob.module)

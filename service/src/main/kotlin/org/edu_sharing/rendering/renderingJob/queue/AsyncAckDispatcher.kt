@@ -6,7 +6,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.stereotype.Component
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
+import java.util.WeakHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -32,9 +33,14 @@ class AsyncAckDispatcher(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    // Bounded in practice by the number of live consumer channels (consumersPerQueue=1 × import queues,
-    // i.e. a handful per pod); reconnects add a few stale entries over the pod's lifetime — negligible.
-    private val channelLocks = ConcurrentHashMap<Channel, ReentrantLock>()
+    // One lock per live channel. Weak keys: after a reconnect the old Channel object is dropped by the
+    // container and its entry disappears with it, so the map stays bounded by the live consumer channels.
+    // A channel that is being acked is strongly referenced by that very call, so its lock cannot vanish
+    // mid-use. The lock value never references its key (otherwise the entry would never be collected).
+    private val channelLocks: MutableMap<Channel, ReentrantLock> = Collections.synchronizedMap(WeakHashMap())
+
+    /** Number of channels currently holding a lock entry (test hook). */
+    internal fun trackedChannelCount(): Int = channelLocks.size
 
     /**
      * Run [work] on a virtual thread, then acknowledge the delivery.

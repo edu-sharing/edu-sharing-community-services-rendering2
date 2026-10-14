@@ -8,6 +8,14 @@ interface CustomSubJobRepository {
     fun updateStatusWithoutVersion(subJobId: ObjectId, status: SubJobStatus)
 
     /**
+     * Atomically sets the sub-job FAILED (with [errorMessage] and a finish date) only while it is still QUEUED,
+     * i.e. no consumer has picked it up; a sub-job that is processing or already terminal stays untouched.
+     *
+     * @return true if the sub-job was changed
+     */
+    fun failIfQueued(subJobId: ObjectId, errorMessage: String): Boolean
+
+    /**
      * Lightweight projection of sub-jobs still in PROCESSING whose last activity ([lastModifiedDate]) is
      * older than [cutoff] — the candidate set for the stale-job reaper. Deliberately a projection (not the
      * full [org.edu_sharing.rendering.renderingJob.entity.SubJob]) so the lazy `parent` document reference

@@ -35,6 +35,16 @@ class ApiExceptionHandler {
     }
 
     @ExceptionHandler
+    @ResponseStatus(HttpStatus.CONTENT_TOO_LARGE)
+    fun handleResultTooLargeException(exception: ResultTooLargeException): ResponseEntity<ErrorMessage> {
+        log.warn("Result too large: {}", exception.message)
+        return ResponseEntity(
+            ErrorMessage(HttpStatus.CONTENT_TOO_LARGE.value(), exception.message),
+            HttpStatus.CONTENT_TOO_LARGE
+        )
+    }
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     fun handleInternalException(exception: Exception): ResponseEntity<ErrorMessage> {
         log.error("Conversion failed with exception message ${exception.message}", exception)

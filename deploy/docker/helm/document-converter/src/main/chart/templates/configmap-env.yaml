@@ -27,5 +27,19 @@ data:
   LIBREOFFICE_MAX_TASKS_PER_PROCESS: {{ .maxTasksPerProcess | quote }}
   LIBREOFFICE_TASK_EXECUTION_TIMEOUT: {{ .taskExecutionTimeout | quote }}
   LIBREOFFICE_TASK_QUEUE_TIMEOUT: {{ .taskQueueTimeout | quote }}
+  LIBREOFFICE_PROCESS_TIMEOUT: {{ .processTimeout | quote }}
+  LIBREOFFICE_PROCESS_RETRY_INTERVAL: {{ .processRetryInterval | quote }}
+  LIBREOFFICE_HEALTH_PROBE_ENABLED: {{ .healthProbe.enabled | quote }}
+  LIBREOFFICE_HEALTH_PROBE_TIMEOUT: {{ .healthProbe.timeout | quote }}
+  LIBREOFFICE_HEALTH_CACHE_TTL: {{ .healthProbe.cacheTtl | quote }}
+  LIBREOFFICE_HEALTH_FAILURE_THRESHOLD: {{ .healthProbe.failureThreshold | quote }}
   {{- end }}
+  {{- if .Values.securityContext.readOnlyRootFilesystem }}
+  {{- /* LibreOffice/fontconfig write their cache and config below $HOME, which is /application (read-only) in the image */}}
+  HOME: /tmp
+  {{- end }}
+  CONVERTER_WORK_DIR: {{ .Values.config.converter.workDir | quote }}
+  CONVERTER_STALE_FILE_AGE: {{ .Values.config.converter.staleFileAge | quote }}
+  CONVERTER_HTML_STYLE_SCAN_WINDOW: {{ .Values.config.converter.htmlStyleScanWindow | quote }}
+  CONVERTER_MAX_HTML_DOM_SIZE: {{ .Values.config.converter.maxHtmlDomSize | quote }}
   SPRING_APPLICATION_JSON: {{ .Values.config.override | quote }}

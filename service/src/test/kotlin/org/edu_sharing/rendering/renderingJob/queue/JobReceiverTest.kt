@@ -172,6 +172,42 @@ class JobReceiverTest {
         assert(job.status == RenderingJobStatus.FAILED)
     }
 
+    @Test
+    fun `falls back to targeted updates when saving FAILED fails after a Mongo blip`() {
+        underTest.failureRetryDelayMillis = 0
+        val job = freshJob(conversionType = true)
+        val cacheObject = mockk<CacheObject>()
+        every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
+        // First save (PROCESSING) works, the second one (FAILED) hits the blip.
+        every { jobRepository.save(any()) } returns job andThenThrows RuntimeException("mongo blip")
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { storageService.putTempFile(cacheObject, any()) } throws RuntimeException("S3 down")
+        justRun { jobRepository.updateErrorMessageWithoutVersion(job.id, any()) }
+        justRun { jobRepository.updateStatusWithoutVersion(job.id, RenderingJobStatus.FAILED) }
+
+        underTest.receiveMessage(RenderingJobMessage(jobId))
+
+        verify(exactly = 1) { jobRepository.updateStatusWithoutVersion(job.id, RenderingJobStatus.FAILED) }
+        verify(exactly = 1) { jobRepository.updateErrorMessageWithoutVersion(job.id, any()) }
+    }
+
+    @Test
+    fun `never lets an exception escape the listener when persisting FAILED fails twice`() {
+        underTest.failureRetryDelayMillis = 0
+        val job = freshJob(conversionType = true)
+        val cacheObject = mockk<CacheObject>()
+        every { jobRepository.findById(ObjectId(jobId)) } returns Optional.of(job)
+        every { jobRepository.save(any()) } returns job andThenThrows RuntimeException("mongo down")
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        every { storageService.putTempFile(cacheObject, any()) } throws RuntimeException("S3 down")
+        every { jobRepository.updateErrorMessageWithoutVersion(any(), any()) } throws RuntimeException("mongo down")
+
+        // Must not throw: the stale-job reaper resolves the job (PROCESSING without sub-jobs) later.
+        underTest.receiveMessage(RenderingJobMessage(jobId))
+
+        verify(exactly = 0) { jobRepository.updateStatusWithoutVersion(any(), any()) }
+    }
+
     private fun freshJob(conversionType: Boolean) = RenderingJob(
         id = ObjectId(jobId),
         esHash = "hash",

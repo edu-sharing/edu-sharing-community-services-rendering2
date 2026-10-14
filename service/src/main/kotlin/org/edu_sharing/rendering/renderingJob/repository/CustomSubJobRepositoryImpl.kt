@@ -43,6 +43,19 @@ class CustomSubJobRepositoryImpl(
         }
     }
 
+    override fun failIfQueued(subJobId: ObjectId, errorMessage: String): Boolean {
+        val query = Query(
+            Criteria.where("_id").`is`(subJobId).and("status").`is`(SubJobStatus.QUEUED.toString())
+        )
+        val update = Update()
+            .set("status", SubJobStatus.FAILED.toString())
+            .set("errorMessage", errorMessage)
+            .set("finishedDate", Instant.now())
+        // Entity-class overload for the ACKNOWLEDGED write concern, see timeoutSubJobs.
+        val result = mongoTemplate.updateFirst(query, update, SubJob::class.java)
+        return result.wasAcknowledged() && result.modifiedCount > 0
+    }
+
     override fun findProcessingSubJobsModifiedBefore(cutoff: Instant): List<StaleSubJobView> =
         findByStatusModifiedBefore(SubJobStatus.PROCESSING, cutoff)
 

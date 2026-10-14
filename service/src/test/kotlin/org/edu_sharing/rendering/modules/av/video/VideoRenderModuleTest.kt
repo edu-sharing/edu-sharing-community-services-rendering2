@@ -17,14 +17,16 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 
 @ExtendWith(MockKExtension::class)
 class VideoRenderModuleTest {
     private val nodeExpiration = 23L
     private val mapper = mockk<Mapper>()
     private val videoService = mockk<VideoService>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
+    private val mainJobLogic = mockk<MainJobLogic>(relaxed = true)
     private val subJobRepository = mockk<SubJobRepository>()
     private val config = mockk<VideoConverterConfig>()
 
@@ -36,7 +38,8 @@ class VideoRenderModuleTest {
             nodePermissionExpirationTime = nodeExpiration,
             mapper = mapper,
             videoService = videoService,
-            amqpTemplate = amqpTemplate,
+            jobMessagePublisher = jobMessagePublisher,
+            mainJobLogic = mainJobLogic,
             subJobRepository = subJobRepository,
             configuredResolutions = config,
             avRoutingKey = "av_routing_key",
@@ -192,12 +195,12 @@ class VideoRenderModuleTest {
         every { config.getPriority(720, 0) } returns 1
         every { config.getPriority(1080, 0) } returns 2
         every { subJobRepository.save(any()) } returns mockk()
-        every { amqpTemplate.convertAndSend(any(), any(), any(), any()) } returns Unit
+        every { jobMessagePublisher.publishForSubJobs(any(), any(), any(), any(), any(), any(), any()) } returns Unit
 
         underTest.createConversionSubJobs(renderingJob, message)
 
         verify(exactly = 2) { subJobRepository.save(any()) }
-        verify(exactly = 2) { amqpTemplate.convertAndSend(any(), any(), any(), any()) }
+        verify(exactly = 2) { jobMessagePublisher.publishForSubJobs(any(), any(), any(), any(), any(), any(), any()) }
         assert(subJobs.size == 2)
     }
 
@@ -213,7 +216,7 @@ class VideoRenderModuleTest {
         underTest.createConversionSubJobs(renderingJob, message)
 
         verify(exactly = 0) { subJobRepository.save(any()) }
-        verify(exactly = 0) { amqpTemplate.convertAndSend(any(), any(), any(), any()) }
+        verify(exactly = 0) { jobMessagePublisher.publishForSubJobs(any(), any(), any(), any(), any(), any(), any()) }
         assert(subJobs.isEmpty())
     }
 

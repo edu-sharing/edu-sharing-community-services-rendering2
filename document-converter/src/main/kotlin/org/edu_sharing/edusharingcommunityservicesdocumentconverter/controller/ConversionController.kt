@@ -1,6 +1,9 @@
 package org.edu_sharing.edusharingcommunityservicesdocumentconverter.controller
 
 import org.edu_sharing.edusharingcommunityservicesdocumentconverter.service.ConversionService
+import org.edu_sharing.edusharingcommunityservicesdocumentconverter.io.DeleteOnCloseResource
+import org.edu_sharing.edusharingcommunityservicesdocumentconverter.io.TempFiles
+import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
+import java.nio.charset.StandardCharsets
 /**
  * Controller responsible for handling file conversion requests.
  * This controller provides an endpoint for converting an input file into a specified target format.
@@ -19,7 +23,8 @@ import org.springframework.web.multipart.MultipartFile
 @RestController
 @RequestMapping("/conversion")
 class ConversionController (
-    private val service: ConversionService
+    private val service: ConversionService,
+    private val tempFiles: TempFiles
 ) {
     /**
      * Converts an uploaded file to the specified target format.
@@ -31,7 +36,7 @@ class ConversionController (
      *                       This parameter determines the target format for the conversion.
      * @param inputFile The multipart file to be converted. Must be a valid file upload.
      *
-     * @return ResponseEntity containing the converted file as a byte array with appropriate
+     * @return ResponseEntity containing the converted file streamed from a temp file with appropriate
      *         HTTP headers including Content-Disposition for download and Content-Type
      *         matching the target format's media type.
      *
@@ -49,12 +54,21 @@ class ConversionController (
         val fileName = service.getFileName(inputFile)
         val sourceFormat = service.getSourceFormat(fileName)
         val targetFormat = service.getTargetFormat(targetExtension)
-        val outputStream = service.convert(inputFile, sourceFormat, targetFormat)
+        val output = service.convert(inputFile, sourceFormat, targetFormat)
+        val resource = try {
+            DeleteOnCloseResource(output, tempFiles)
+        } catch (e: Throwable) {
+            tempFiles.deleteQuietly(output)
+            throw e
+        }
 
         val headers = HttpHeaders()
         val targetFilename = "${fileName.substringBefore(".")}.${targetFormat.extension}"
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=$targetFilename")
+        headers.contentDisposition = ContentDisposition.attachment()
+            .filename(targetFilename, StandardCharsets.UTF_8)
+            .build()
         headers.contentType = MediaType.parseMediaType(targetFormat.mediaType)
-        return ResponseEntity.ok().headers(headers).body(outputStream.toByteArray())
+        // The file is streamed from disk and deleted when the stream is closed (also on client abort).
+        return ResponseEntity.ok().headers(headers).body(resource)
     }
 }
