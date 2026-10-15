@@ -19,6 +19,14 @@ interface CustomRenderingJobRepository {
     fun updateErrorMessageWithoutVersion(jobId: ObjectId, errorMessage: String)
 
     /**
+     * Atomically sets the job FAILED (with [errorMessage]) only while it is still QUEUED or PROCESSING, so a job
+     * that already reached a terminal status (FINISHED/FAILED/PARTIALLY_FAILED) is never overwritten.
+     *
+     * @return true if the job was changed
+     */
+    fun failIfActive(jobId: ObjectId, errorMessage: String): Boolean
+
+    /**
      * Admin-Job-Liste eines Repos (paginiert), optional nach einer oder mehreren Statuswerten
      * gefiltert (leer/null ⇒ kein Filter) und per Freitext durchsucht (`search`, komma-/
      * leerzeichengetrennte Begriffe, jeder als Regex über module/esObjectId/errorMessage/status,

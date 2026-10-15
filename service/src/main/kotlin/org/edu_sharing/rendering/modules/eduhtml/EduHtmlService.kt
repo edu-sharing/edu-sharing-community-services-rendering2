@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.ObjectLink
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
@@ -14,7 +15,6 @@ import org.edu_sharing.rendering.renderingJob.retrieveOrCreateDeduplicatedJob
 import org.edu_sharing.rendering.storage.StaticStorageService
 import org.edu_sharing.rendering.utils.storageNodeId
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service
 class EduHtmlService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
-    private val amqpTemplate: AmqpTemplate,
+    private val jobMessagePublisher: JobMessagePublisher,
     private val storageImplementation: StaticStorageService,
     private val subJobRepository: SubJobRepository
 ) {
@@ -77,7 +77,7 @@ class EduHtmlService(
 
         val message = RenderingJobMessage(id = job.id.toString())
         log.debug("Sending EduHTML job message for jobId {} to queue {}", job.id, jobRoutingKey)
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
+        jobMessagePublisher.publishForJob(topicExchangeName, jobRoutingKey, message, job.id)
 
         return job.id.toString()
     }

@@ -2,11 +2,14 @@ package org.edu_sharing.rendering.modules.h5p
 
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.config.H5P_BASE_PATH
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
+import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
@@ -122,7 +125,43 @@ class H5pImportReceiver(
                 log.error("Could not set the error message of job {}: {}", jobEntry.id, updateException.message, updateException)
             }
         }
-        subJobRepository.save(subJob)
+        saveOutcome(jobEntry, subJob)
         mainJobLogic.processMainJob(message.id)
+    }
+
+    /**
+     * Stores the outcome of the import in [subJob]. If that fails - the sub-job was changed meanwhile (the stale-job
+     * reaper timed it out, an admin deleted the job) or Mongo failed - the sub-job would stay PROCESSING: a
+     * redelivered message is dropped because it is no longer QUEUED, and a reload of the client is handed the same
+     * active job, so it shows a spinner until the reaper times the sub-job out. It is failed without a version check
+     * instead. A reload then creates a new job, whose lookup finds the package if lumi did import it.
+     */
+    private fun saveOutcome(jobEntry: RenderingJob, subJob: SubJob) {
+        try {
+            subJobRepository.save(subJob)
+            return
+        } catch (exception: Exception) {
+            log.error(
+                "Could not save the outcome ({}) of the H5P import of job {}; failing it: {}",
+                subJob.status, jobEntry.id, exception.message, exception
+            )
+        }
+        // A failed import has set its message on the main job already. Set before the status flips, as above, and
+        // just as little allowed to keep the job from ending.
+        if (subJob.status == SubJobStatus.FINISHED) {
+            try {
+                renderingJobRepository.updateErrorMessageWithoutVersion(jobEntry.id, GENERIC_CONVERSION_ERROR)
+            } catch (updateException: Exception) {
+                log.error("Could not set the error message of job {}: {}", jobEntry.id, updateException.message, updateException)
+            }
+        }
+        try {
+            subJobRepository.updateStatusWithoutVersion(subJob.id, SubJobStatus.FAILED)
+        } catch (failException: Exception) {
+            log.error(
+                "Could not fail the H5P sub-job {} of job {} either; the stale-job reaper has to time it out: {}",
+                subJob.id, jobEntry.id, failException.message, failException
+            )
+        }
     }
 }

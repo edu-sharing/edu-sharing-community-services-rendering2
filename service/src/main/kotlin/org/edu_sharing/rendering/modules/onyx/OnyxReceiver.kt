@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.onyx
 
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
@@ -68,7 +69,7 @@ class OnyxReceiver(
             subJob.finishedDate = Instant.now()
             subJobRepository.save(subJob)
         } catch (exception: Exception) {
-            log.error("Onyx upload failed with exception: ${exception.message}", exception)
+            log.error("Onyx upload failed with exception: ${LogSanitizer.sanitize(exception.message)}", LogSanitizer.sanitize(exception))
             subJob.status = SubJobStatus.FAILED
             subJob.finishedDate = Instant.now()
             subJob.errorMessage = GENERIC_CONVERSION_ERROR

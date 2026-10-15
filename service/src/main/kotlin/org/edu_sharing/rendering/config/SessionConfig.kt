@@ -1,11 +1,14 @@
 package org.edu_sharing.rendering.config
 
 import org.springframework.beans.factory.BeanClassLoaderAware
+import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializer
 import org.springframework.security.jackson.SecurityJacksonModules
+import org.springframework.session.data.redis.config.ConfigureRedisAction
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisIndexedHttpSession
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.cfg.DateTimeFeature
@@ -15,9 +18,20 @@ import tools.jackson.module.kotlin.KotlinModule
 
 @Configuration
 @EnableRedisIndexedHttpSession
+@EnableConfigurationProperties(SessionRedisProperties::class)
 class SessionConfig: BeanClassLoaderAware {
 
     private lateinit var loader: ClassLoader
+
+    /**
+     * Opt-out of Spring Session's startup `CONFIG SET notify-keyspace-events` for managed Redis that
+     * forbids `CONFIG` (`app.redis.session.configure-action=NO_OP`; the server must then already have
+     * `notify-keyspace-events Egx`). Spring Session picks up a [ConfigureRedisAction] bean; without
+     * this bean its default action runs.
+     */
+    @Bean
+    @ConditionalOnProperty(name = ["app.redis.session.configure-action"], havingValue = "NO_OP")
+    fun configureRedisAction(): ConfigureRedisAction = ConfigureRedisAction.NO_OP
 
     @Bean
     fun springSessionDefaultRedisSerializer(): RedisSerializer<Any> {

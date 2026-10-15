@@ -1,6 +1,11 @@
 package org.edu_sharing.rendering.modules.binder
 
 import org.bson.types.ObjectId
+import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
+import org.edu_sharing.rendering.utils.LogSanitizer
+import org.springframework.beans.factory.annotation.Qualifier
+import reactor.core.Disposable
+import reactor.core.publisher.Flux
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.RenderModule
@@ -16,11 +21,10 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.stereotype.Service
-import org.springframework.util.unit.DataSize
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Duration
 import java.time.Instant
-import java.time.LocalTime
-import java.util.function.Consumer
+import java.util.concurrent.TimeoutException
 
 @Service
 class BinderUploadService(
@@ -28,8 +32,10 @@ class BinderUploadService(
     private val mainJobLogic: BinderMainJobLogic,
     private val moduleRegistry: ModuleRegistry,
     private val gitServiceRegistry: GitServiceRegistry,
-    @param:Value($$"${spring.http.codecs.max-in-memory-size}")
-    private val maxInMemorySize: DataSize
+    @param:Qualifier("longRunningWebClientBuilder")
+    private val webClientBuilder: WebClient.Builder,
+    @param:Value($$"${app.module.binder.sse-idle-timeout:PT15M}")
+    private val sseIdleTimeout: Duration
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -58,35 +64,74 @@ class BinderUploadService(
                 .retrieve()
                 .bodyToFlux(type)
 
-            eventStream.subscribe(
-                Consumer { content: ServerSentEvent<BinderSseEvent>? ->
-                    log.info(
-                        "Time: {} - event: name[{}], id [{}], content[{}] ",
-                        LocalTime.now(), content!!.event(), content.id(), content.data()
-                    )
+            consumeEvents(eventStream, binderUploadSubJob.id, gitDetails)
+        } catch (exception: Exception) {
+            log.error("Error creating jupyterHub URL: ${LogSanitizer.sanitize(exception.message)}", LogSanitizer.sanitize(exception))
+            binderUploadSubJob.status = SubJobStatus.FAILED
+            binderUploadSubJob.finishedDate = Instant.now()
+            binderUploadSubJob.message = "Error creating jupyterHub URL: " + LogSanitizer.sanitize(exception.message)
+            binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
+            mainJobLogic.processMainJob(binderUploadSubJob.parent.id.toString())
+        }
+    }
+
+    /**
+     * Subscribes to the Binder build events. Whatever ends the stream - an error, an idle timeout, or the
+     * server closing it without having sent READY/FAILED - leaves the sub-job finalized as FAILED and the
+     * main job re-evaluated, so no job is left in PROCESSING forever.
+     */
+    internal fun consumeEvents(
+        events: Flux<ServerSentEvent<BinderSseEvent>>,
+        subJobId: ObjectId,
+        gitDetails: GitDetails
+    ): Disposable =
+        events
+            // Idle timeout: maximum silence between two events (not a limit on the total build time).
+            .timeout(sseIdleTimeout)
+            .subscribe(
+                { content ->
+                    // Never log the payload: the READY event carries the access token of the Binder session.
+                    log.debug("Binder event: name[{}], id[{}], phase[{}]", content.event(), content.id(), content.data()?.phase)
                     updateSubJob(
                         eventData = content.data() ?: BinderSseEvent(phase = "", message = ""),
-                        subJobId = binderUploadSubJob.id,
+                        subJobId = subJobId,
                         gitDetails = gitDetails
                     )
                 },
-                Consumer { error: Throwable? ->
-                    log.error("Error receiving SSE: ", error)
-                    binderUploadSubJob.status = SubJobStatus.FAILED
-                    binderUploadSubJob.finishedDate = Instant.now()
-                    binderUploadSubJob.message = "Error receiving SSE " + error?.message
-                    binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
+                { error ->
+                    val reason = if (error is TimeoutException) {
+                        "no event within $sseIdleTimeout"
+                    } else {
+                        LogSanitizer.sanitize(error.message)
+                    }
+                    log.error("Error receiving SSE: $reason", LogSanitizer.sanitize(error))
+                    failIfUnfinished(subJobId, "Error receiving SSE: $reason")
+                },
+                {
+                    log.info("SSE Server emitted completion event.")
+                    failIfUnfinished(subJobId, "Binder closed the event stream without a final status")
                 }
-            ) {
-                log.info("SSE Server emitted completion event.")
+            )
+
+    /** Marks the sub-job FAILED unless it already reached a terminal status, then re-evaluates the main job. */
+    private fun failIfUnfinished(subJobId: ObjectId, message: String) {
+        try {
+            val subJob = subJobRepository.findByIdOrNull(subJobId)
+            if (subJob == null) {
+                log.warn("Cannot finalize Binder sub-job {}: not found", subJobId)
+                return
             }
+            if (subJob.status >= SubJobStatus.FINISHED) {
+                return
+            }
+            subJob.status = SubJobStatus.FAILED
+            subJob.finishedDate = Instant.now()
+            subJob.message = message
+            subJob.errorMessage = GENERIC_CONVERSION_ERROR
+            subJobRepository.save(subJob)
+            mainJobLogic.processMainJob(subJob.parent.id.toString())
         } catch (exception: Exception) {
-            log.error("Error creating jupyterHub URL: ", exception)
-            binderUploadSubJob.status = SubJobStatus.FAILED
-            binderUploadSubJob.finishedDate = Instant.now()
-            binderUploadSubJob.message = "Error creating jupyterHub URL: " + exception.message
-            binderUploadSubJob = subJobRepository.save(binderUploadSubJob)
-            mainJobLogic.processMainJob(binderUploadSubJob.parent.id.toString())
+            log.error("Could not finalize Binder sub-job $subJobId after stream end", exception)
         }
     }
 
@@ -172,8 +217,8 @@ class BinderUploadService(
         }
         val config = module.getCredentials(repoId)
         val baseUrl = config["baseurl"] ?: throw IllegalArgumentException("baseurl must be provided")
-        return WebClient.builder()
-            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySize.toBytes().toInt()) }
+        // The long-running builder carries the connector, tracing filter and codec limit of the shared config.
+        return webClientBuilder.clone()
             .baseUrl(baseUrl)
             .build()
     }

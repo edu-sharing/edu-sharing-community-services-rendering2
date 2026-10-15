@@ -10,16 +10,18 @@ import org.springframework.stereotype.Component
  * Transient failure during the startup CORS sync: the repository accepted the registration but
  * the freshly registered app has not yet replicated across the repository cluster, so the
  * app-scoped read (`applications1`) still fails. Retryable — it eventually succeeds once
- * replication catches up. Once the retry budget is exhausted this is rethrown as-is and fails
- * application startup.
+ * replication catches up. Once the retry budget is exhausted this is rethrown as-is to the
+ * caller ([org.edu_sharing.rendering.edusharingRepo.RegistrationRunner]), which logs it; it does
+ * not affect application startup (registration runs asynchronously after the application is
+ * ready) and the periodic CORS sync picks the repository up later.
  */
 class RegistrationReplicationPendingException(message: String, cause: Throwable? = null) :
     RuntimeException(message, cause)
 
 /**
  * Non-transient failure during the startup CORS sync (auth / misconfiguration). Not retried;
- * propagates out of [org.edu_sharing.rendering.edusharingRepo.RegistrationRunner] and fails
- * application startup immediately.
+ * propagates to [org.edu_sharing.rendering.edusharingRepo.RegistrationRunner], which logs it and
+ * leaves the repository to the periodic CORS sync. It does not fail application startup.
  */
 class RegistrationSyncFatalException(message: String, cause: Throwable? = null) :
     RuntimeException(message, cause)
@@ -31,9 +33,9 @@ class RegistrationSyncFatalException(message: String, cause: Throwable? = null) 
  *
  * Transient failures are retried for ~2 minutes (7 attempts: initial + 6 retries, delays
  * 5s/10s/20s/30s/30s/30s); if the budget is exhausted the last
- * [RegistrationReplicationPendingException] is rethrown and startup fails. Genuine
- * auth/misconfiguration is not retried and fails fast. Either failure comfortably fits inside
- * the 5-minute startup lock held by the runner.
+ * [RegistrationReplicationPendingException] is rethrown to the runner (which logs it and carries
+ * on). Genuine auth/misconfiguration is not retried and fails fast. The worst case (~2 minutes)
+ * fits inside the runner's per-repository time budget and lock.
  *
  * Uses Spring Framework's native retry ([Retryable] + `@EnableResilientMethods`). It lives in
  * its own bean — not [CorsSyncService] (also used at runtime) nor the runner itself — because

@@ -4,16 +4,16 @@ import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class MainJobCreationService(
-    private val amqpTemplate: AmqpTemplate,
+    private val jobMessagePublisher: JobMessagePublisher,
     private val renderingJobRepository: RenderingJobRepository,
     private val mapper: Mapper
 ) {
@@ -52,7 +52,9 @@ class MainJobCreationService(
             topicExchangeName,
             jobRoutingKey
         )
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, jobMessage)
+        // On a failed publish (exception, broker nack, unroutable) the job is set FAILED so the dedup index and
+        // getExistingJobId do not keep pointing at a job whose message was lost.
+        jobMessagePublisher.publishForJob(topicExchangeName, jobRoutingKey, jobMessage, renderingJob.id)
         return renderingJob.id.toString()
     }
 

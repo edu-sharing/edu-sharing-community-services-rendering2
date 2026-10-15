@@ -150,4 +150,38 @@ class StaleJobReaperTest {
 
         verify(exactly = 0) { mainJobLogic.processMainJob(jobWithSubJobs.id.toString()) }
     }
+
+    @Test
+    fun `reconciles a main job stuck PROCESSING with no sub-jobs and ignores one that has sub-jobs`() {
+        fun job(id: String, subJobs: MutableList<SubJob> = mutableListOf()) = RenderingJob(
+            id = ObjectId(id),
+            module = "image",
+            esObjectType = "ccm:io",
+            esObjectId = "node-1",
+            repoId = "repo-1",
+            esHash = "hash-1",
+            mimeType = "image/png",
+            nodeVersion = "1",
+            status = RenderingJobStatus.PROCESSING,
+            subJobs = subJobs,
+        )
+        val orphan = job("507f191e810c19729de860e1")
+        val withSubJob = job(
+            "507f191e810c19729de860e2",
+            mutableListOf(SubJob(routingKey = "document_job", parent = mockk(relaxed = true)))
+        )
+        val cutoff = slot<Instant>()
+        every {
+            renderingJobRepository.findByStatusAndLastModifiedDateBefore(RenderingJobStatus.PROCESSING, capture(cutoff))
+        } returns listOf(orphan, withSubJob)
+
+        val before = Instant.now()
+        reaper.reap()
+
+        verify(exactly = 1) { mainJobLogic.processMainJob(orphan.id.toString()) }
+        verify(exactly = 0) { mainJobLogic.processMainJob(withSubJob.id.toString()) }
+        // The dedicated setup-time threshold (not the sub-job process time) drives the cutoff.
+        assert(cutoff.captured.isBefore(before.minus(properties.maxMainJobSetupTime).plusSeconds(5)))
+        assert(cutoff.captured.isAfter(before.minus(properties.maxMainJobSetupTime).minusSeconds(5)))
+    }
 }

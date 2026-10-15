@@ -1,6 +1,13 @@
 {{- if .Values.global.cluster.pdb.enabled }}
 {{- range $roleName, $roleCfg := .Values.roles }}
-{{- if $roleCfg.enabled }}
+{{- /* Effective replica count: the HPA floor when autoscaling is on, the fixed count otherwise. A budget is only
+       rendered for more than one replica - with a single one "minAvailable: 1" would block every node drain.
+       maxUnavailable, when set, wins over minAvailable. */}}
+{{- $replicas := int $roleCfg.replicaCount }}
+{{- if and $roleCfg.autoscaling $roleCfg.autoscaling.enabled }}
+{{- $replicas = int $roleCfg.autoscaling.minReplicas }}
+{{- end }}
+{{- if and $roleCfg.enabled (gt $replicas 1) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -8,7 +15,11 @@ metadata:
   labels: {{ include "edusharing_common_lib.labels.app" $ | nindent 4 }}
     role: {{ $roleName }}
 spec:
-  minAvailable: 1
+  {{- if $.Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ $.Values.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ $.Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
   selector:
     matchLabels: {{ include "edusharing_common_lib.labels.app" $ | nindent 6 }}
       role: {{ $roleName }}

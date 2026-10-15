@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.config
 
 import io.lettuce.core.AbstractRedisClient
+import io.lettuce.core.ClientOptions
 import io.lettuce.core.ReadFrom
 import io.lettuce.core.SocketOptions
 import io.lettuce.core.TimeoutOptions
@@ -8,6 +9,7 @@ import io.lettuce.core.cluster.ClusterClientOptions
 import io.lettuce.core.cluster.ClusterTopologyRefreshOptions
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisClusterConfiguration
@@ -21,14 +23,48 @@ import org.springframework.data.redis.serializer.StringRedisSerializer
 import java.time.Duration
 
 @Configuration
+@EnableConfigurationProperties(RedisClientProperties::class)
 class RedisConfig {
+
+    /**
+     * Socket options shared by the standalone and the cluster client: TCP keep-alive plus an
+     * explicit connect timeout.
+     */
+    private fun socketOptions(client: RedisClientProperties): SocketOptions =
+        SocketOptions.builder()
+            .keepAlive(client.keepAlive)
+            .connectTimeout(client.connectTimeout)
+            .build()
+
+    /** Bounded per-command timeout instead of Lettuce' 60 s default. */
+    private fun timeoutOptions(client: RedisClientProperties): TimeoutOptions =
+        TimeoutOptions.enabled(client.commandTimeout)
+
+    /**
+     * Client options of the standalone connection, aligned with the cluster path: keep-alive,
+     * bounded command timeout and a bounded request queue so a Redis outage cannot grow the
+     * disconnected-command buffer without limit.
+     */
+    internal fun standaloneClientConfiguration(client: RedisClientProperties): LettuceClientConfiguration {
+        val clientOptions = ClientOptions.builder()
+            .socketOptions(socketOptions(client))
+            .timeoutOptions(timeoutOptions(client))
+            .requestQueueSize(client.requestQueueSize)
+            .disconnectedBehavior(client.disconnectedBehavior)
+            .build()
+        return LettuceClientConfiguration.builder()
+            .clientOptions(clientOptions)
+            .commandTimeout(client.commandTimeout)
+            .build()
+    }
 
 
     @Bean
     @ConditionalOnBean(RedisClusterConfigurationProperties::class)
     fun lettuceClusterConnectionFactory(
         configurationProperties: RedisClusterConfigurationProperties,
-        redisLettuceMetrics: RedisLettuceMetrics
+        redisLettuceMetrics: RedisLettuceMetrics,
+        client: RedisClientProperties
     ): RedisConnectionFactory {
         val redisConfig = RedisClusterConfiguration(configurationProperties.nodes)
 
@@ -52,13 +88,16 @@ class RedisConfig {
             .validateClusterNodeMembership(false)
             // k8s conntrack/LBs silently reap idle TCP flows; keep-alive detects dead sockets and
             // a bounded command timeout stops calls stalling for the 60s Lettuce default.
-            .socketOptions(SocketOptions.builder().keepAlive(true).build())
-            .timeoutOptions(TimeoutOptions.enabled(Duration.ofSeconds(5)))
+            .socketOptions(socketOptions(client))
+            .timeoutOptions(timeoutOptions(client))
+            .requestQueueSize(client.requestQueueSize)
+            .disconnectedBehavior(client.disconnectedBehavior)
             .build()
 
         val clientConfig = LettuceClientConfiguration.builder()
             .readFrom(ReadFrom.REPLICA_PREFERRED)
             .clientOptions(clusterClientOptions)
+            .commandTimeout(client.commandTimeout)
             .build()
 
         val factory = MeteredClusterConnectionFactory(redisConfig, clientConfig, redisLettuceMetrics)
@@ -69,10 +108,11 @@ class RedisConfig {
     @ConditionalOnMissingBean(RedisClusterConfigurationProperties::class)
     fun lettuceStandaloneConnectionFactory(
         configurationProperties: RedisStandaloneConfigurationProperties,
-        redisLettuceMetrics: RedisLettuceMetrics
+        redisLettuceMetrics: RedisLettuceMetrics,
+        client: RedisClientProperties
     ): RedisConnectionFactory {
         val redisConfig = RedisStandaloneConfiguration(configurationProperties.host, configurationProperties.port)
-        val factory = MeteredStandaloneConnectionFactory(redisConfig, redisLettuceMetrics)
+        val factory = MeteredStandaloneConnectionFactory(redisConfig, standaloneClientConfiguration(client), redisLettuceMetrics)
         return factory
     }
 
@@ -111,8 +151,9 @@ class RedisConfig {
  */
 private class MeteredStandaloneConnectionFactory(
     config: RedisStandaloneConfiguration,
+    clientConfig: LettuceClientConfiguration,
     private val metrics: RedisLettuceMetrics
-) : LettuceConnectionFactory(config) {
+) : LettuceConnectionFactory(config, clientConfig) {
     override fun createClient(): AbstractRedisClient =
         super.createClient().also(metrics::bindTo)
 }

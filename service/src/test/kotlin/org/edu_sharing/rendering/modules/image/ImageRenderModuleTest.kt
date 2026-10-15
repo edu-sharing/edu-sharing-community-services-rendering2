@@ -15,7 +15,8 @@ import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import kotlin.test.assertTrue
 
 @ExtendWith(MockKExtension::class)
@@ -24,7 +25,8 @@ class ImageRenderModuleTest {
     private val mapperMock = mockk<Mapper>()
     private val imageServiceMock = mockk<ImageService>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
+    private val mainJobLogic = mockk<MainJobLogic>(relaxed = true)
 
     private val jobDataProvider = JobDataProvider()
 
@@ -37,7 +39,8 @@ class ImageRenderModuleTest {
             mapper = mapperMock,
             imageService = imageServiceMock,
             subJobRepository = subJobRepository,
-            amqpTemplate = amqpTemplate
+            jobMessagePublisher = jobMessagePublisher,
+            mainJobLogic = mainJobLogic
         )
         clearAllMocks()
     }
@@ -272,10 +275,8 @@ class ImageRenderModuleTest {
 
         every { subJobRepository.save(capture(subJobList)) } returns mockk<SubJob>()
         justRun {
-            amqpTemplate.convertAndSend(
-                "topicExchangeName",
-                "imageRoutingKey",
-                SubJobMessage(job.id.toString())
+            jobMessagePublisher.publishForSubJobs(
+                "topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString()), job.id, any(), any()
             )
         }
 
@@ -302,7 +303,10 @@ class ImageRenderModuleTest {
         verifySequence {
             subJobRepository.save(any())
             subJobRepository.save(any())
-            amqpTemplate.convertAndSend("topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString()))
+            jobMessagePublisher.publishForSubJobs(
+                "topicExchangeName", "imageRoutingKey", SubJobMessage(job.id.toString()), job.id,
+                match { it.size == 2 && it.toSet() == job.subJobs.map { sj -> sj.id }.toSet() }, any()
+            )
         }
     }
 }

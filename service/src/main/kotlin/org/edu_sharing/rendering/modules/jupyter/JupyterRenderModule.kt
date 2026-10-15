@@ -6,13 +6,14 @@ import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.modules.ConversionModule
 import org.edu_sharing.rendering.modules.RenderModule
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.queue.SubJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -24,7 +25,8 @@ class JupyterRenderModule(
     private val mapper: Mapper,
     private val jupyterJobService: JupyterJobService,
     private val subJobRepository: SubJobRepository,
-    private val amqpTemplate: AmqpTemplate
+    private val jobMessagePublisher: JobMessagePublisher,
+    private val mainJobLogic: MainJobLogic
 ) : RenderModule, ConversionModule {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -72,7 +74,10 @@ class JupyterRenderModule(
         val jupyterJob = SubJob(routingKey = jupyterKey, parent = renderingJob)
         subJobRepository.save(jupyterJob)
         renderingJob.subJobs.add(jupyterJob)
-        amqpTemplate.convertAndSend(topicExchangeName, jupyterKey, SubJobMessage(renderingJob.id.toString()))
+        jobMessagePublisher.publishForSubJobs(
+            topicExchangeName, jupyterKey, SubJobMessage(renderingJob.id.toString()),
+            renderingJob.id, listOf(jupyterJob.id), mainJobLogic::processMainJob
+        )
         log.debug("Jupyter sub-job enqueued on routingKey={} for jobId={}", jupyterKey, renderingJob.id)
     }
 

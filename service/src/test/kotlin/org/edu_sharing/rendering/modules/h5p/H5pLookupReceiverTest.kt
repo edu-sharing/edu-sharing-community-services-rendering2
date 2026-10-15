@@ -22,7 +22,7 @@ import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 
 class H5pLookupReceiverTest {
 
@@ -30,7 +30,7 @@ class H5pLookupReceiverTest {
     private val renderingJobRepository = mockk<RenderingJobRepository>()
     private val subJobRepository = mockk<SubJobRepository>()
     private val lumiContentManagementService = mockk<LumiContentManagementService>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
     private val jobDataProvider = JobDataProvider()
     private val mapper = Mapper()
     private val appInfo = AppInfo()
@@ -40,7 +40,7 @@ class H5pLookupReceiverTest {
         renderingJobRepository,
         subJobRepository,
         lumiContentManagementService,
-        amqpTemplate,
+        jobMessagePublisher,
         mapper,
         appInfo
     )
@@ -104,7 +104,7 @@ class H5pLookupReceiverTest {
         verify(exactly = 2) { subJobRepository.save(any()) }
         verify(exactly = 1) { lumiContentManagementService.getContentId(any(), any(), any()) }
         verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
-        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, amqpTemplate)
+        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, jobMessagePublisher)
     }
 
     @Test
@@ -125,7 +125,7 @@ class H5pLookupReceiverTest {
         every {
             lumiContentManagementService.getContentId(JobDataProvider.ES_OBJECT_ID, JobDataProvider.HASH)
         } returns null
-        justRun { amqpTemplate.convertAndSend(EXCHANGE, IMPORT_KEY, capture(publishedSlot)) }
+        justRun { jobMessagePublisher.publishForSubJobs(EXCHANGE, IMPORT_KEY, capture(publishedSlot), any(), any(), any()) }
 
         // Act
         underTest.receiveMessage(message)
@@ -136,7 +136,7 @@ class H5pLookupReceiverTest {
         assertEquals(IMPORT_KEY, subJob.routingKey)
         assertEquals(RenderingJobMessage(JobDataProvider.DUMMY_JOB_ID), publishedSlot.captured)
 
-        verify(exactly = 1) { amqpTemplate.convertAndSend(EXCHANGE, IMPORT_KEY, any<Any>()) }
+        verify(exactly = 1) { jobMessagePublisher.publishForSubJobs(EXCHANGE, IMPORT_KEY, any<Any>(), any(), any(), any()) }
         // the main job must NOT be resolved yet — the import still has to run
         verify(exactly = 0) { mainJobLogic.processMainJob(any()) }
     }
@@ -154,7 +154,7 @@ class H5pLookupReceiverTest {
         every {
             lumiContentManagementService.getContentId(JobDataProvider.ES_OBJECT_ID, JobDataProvider.HASH)
         } throws IllegalStateException("lumi unreachable")
-        justRun { amqpTemplate.convertAndSend(EXCHANGE, IMPORT_KEY, any<Any>()) }
+        justRun { jobMessagePublisher.publishForSubJobs(EXCHANGE, IMPORT_KEY, any<Any>(), any(), any(), any()) }
 
         // Act
         underTest.receiveMessage(message)
@@ -162,8 +162,32 @@ class H5pLookupReceiverTest {
         // Assert
         assertEquals(SubJobStatus.QUEUED, subJob.status)
         assertEquals(IMPORT_KEY, subJob.routingKey)
-        verify(exactly = 1) { amqpTemplate.convertAndSend(EXCHANGE, IMPORT_KEY, any<Any>()) }
+        verify(exactly = 1) { jobMessagePublisher.publishForSubJobs(EXCHANGE, IMPORT_KEY, any<Any>(), any(), any(), any()) }
         verify(exactly = 0) { mainJobLogic.processMainJob(any()) }
+    }
+
+    @Test
+    fun testReceiveMessageDoesNotThrowIfTheHandOverPublishFails() {
+        // The publisher already failed the sub-job and resolved the main job; the listener must not rethrow.
+        // Arrange
+        val message = RenderingJobMessage("messageId")
+        val (job, subJob) = queuedJob()
+
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+        every { renderingJobRepository.save(any()) } returns job
+        every { subJobRepository.save(any()) } returns subJob
+        every {
+            lumiContentManagementService.getContentId(JobDataProvider.ES_OBJECT_ID, JobDataProvider.HASH)
+        } returns null
+        every {
+            jobMessagePublisher.publishForSubJobs(EXCHANGE, IMPORT_KEY, any<Any>(), any(), listOf(subJob.id), any())
+        } throws IllegalStateException("broker down")
+
+        // Act (must not throw)
+        underTest.receiveMessage(message)
+
+        // Assert
+        verify(exactly = 1) { jobMessagePublisher.publishForSubJobs(EXCHANGE, IMPORT_KEY, any<Any>(), any(), listOf(subJob.id), any()) }
     }
 
     @Test
@@ -179,7 +203,7 @@ class H5pLookupReceiverTest {
 
         // Assert
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
-        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, amqpTemplate)
+        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, jobMessagePublisher)
     }
 
     @Test
@@ -193,7 +217,7 @@ class H5pLookupReceiverTest {
 
         // Assert
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
-        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, amqpTemplate)
+        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, jobMessagePublisher)
     }
 
     @Test
@@ -207,7 +231,7 @@ class H5pLookupReceiverTest {
 
         // Assert
         verify(exactly = 1) { mainJobLogic.getMainJobEntry(message.id) }
-        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, amqpTemplate)
+        confirmVerified(mainJobLogic, renderingJobRepository, subJobRepository, lumiContentManagementService, jobMessagePublisher)
     }
 
     companion object {
