@@ -1,5 +1,7 @@
 package org.edu_sharing.rendering.renderingJob.repository
 
+import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Updates
 import org.bson.types.ObjectId
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
@@ -10,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Repository
 import java.time.Instant
+import java.util.Date
 
 @Repository
 class CustomSubJobRepositoryImpl(
@@ -92,9 +95,13 @@ class CustomSubJobRepositoryImpl(
     }
 
     override fun touchLastModifiedDate(subJobId: ObjectId) {
-        val query = Query(Criteria.where("_id").`is`(subJobId))
-        val update = Update().set("lastModifiedDate", Instant.now())
-        val updateResult = mongoTemplate.updateFirst(query, update, SubJob::class.java)
+        // Straight on the driver, not through mongoTemplate.updateFirst: for an entity with a @Version property
+        // MongoTemplate adds a `$inc` of the version to every update that does not set the version itself. That made
+        // the receiver's own copy of the sub-job stale, so its final save() of the outcome failed with an
+        // OptimisticLockingFailureException and the job stayed PROCESSING whenever the guarded call outlasted one
+        // heartbeat interval. The write concern is the client's default here, which is fine for a heartbeat.
+        val updateResult = mongoTemplate.getCollection(mongoTemplate.getCollectionName(SubJob::class.java))
+            .updateOne(Filters.eq("_id", subJobId), Updates.set("lastModifiedDate", Date.from(Instant.now())))
         log.debug("Heartbeat touch for sub-job $subJobId: acknowledged=${updateResult.wasAcknowledged()}")
     }
 }

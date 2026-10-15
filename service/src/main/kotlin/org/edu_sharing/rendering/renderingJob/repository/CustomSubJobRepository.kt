@@ -44,6 +44,10 @@ interface CustomSubJobRepository {
      * PROCESSING sub-job from looking idle to the stale-job reaper. Bypasses optimistic locking
      * deliberately: a heartbeat racing the real completion write is harmless (both just set a field to a
      * slightly different value), and failing it would defeat the point.
+     *
+     * Leaving the version alone is what matters: every receiver holds its own copy of the sub-job across the
+     * heartbeat-guarded call and `save()`s it afterwards, which fails if the version has moved on meanwhile. The
+     * other versionless updates here do bump it (MongoTemplate adds that to every update of a versioned entity).
      */
     fun touchLastModifiedDate(subJobId: ObjectId)
 }
