@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component
 class RestClientProvider(
     private val tracePropagatingInterceptor: TracePropagatingInterceptor,
     private val repositoryDispatcher: Dispatcher,
+    private val timeouts: RepositoryHttpTimeoutProperties,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -20,7 +21,7 @@ class RestClientProvider(
         log.debug("Creating AboutApi client for base URL: $url")
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
-        apiClient.httpClient = apiClient.httpClient.newBuilder()
+        apiClient.httpClient = timeouts.applyTo(apiClient.httpClient.newBuilder())
             .dispatcher(repositoryDispatcher)
             .addInterceptor(tracePropagatingInterceptor)
             .build()
@@ -33,7 +34,7 @@ class RestClientProvider(
         apiClient.basePath = "${url}/rest"
         apiClient.setUsername(username)
         apiClient.setPassword(password)
-        apiClient.httpClient = apiClient.httpClient.newBuilder()
+        apiClient.httpClient = timeouts.applyTo(apiClient.httpClient.newBuilder())
             .dispatcher(repositoryDispatcher)
             .addInterceptor(tracePropagatingInterceptor)
             .build()
@@ -46,7 +47,7 @@ class RestClientProvider(
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
-        apiClient.httpClient = apiClient.httpClient.newBuilder()
+        apiClient.httpClient = timeouts.applyTo(apiClient.httpClient.newBuilder())
             .dispatcher(repositoryDispatcher)
             .addInterceptor(tracePropagatingInterceptor)
             .build()

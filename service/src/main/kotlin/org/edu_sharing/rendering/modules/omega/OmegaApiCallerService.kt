@@ -1,12 +1,17 @@
 package org.edu_sharing.rendering.modules.omega
 
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
+import org.edu_sharing.rendering.utils.RemoteResponseParser
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import tools.jackson.databind.ObjectMapper
+import java.time.Duration
 
 @Service
 @ConditionalOnConverter
@@ -19,8 +24,22 @@ class OmegaApiCallerService(
     // *require* SNI and would fail the handshake without it; the import pool keeps validation from
     // bottlenecking on the default 16-connection pool under high import concurrency.
     @param:Qualifier("omegaRemoteWebClientBuilder") private val webClientBuilder: WebClient.Builder,
+    private val objectMapper: ObjectMapper,
+    guardRegistry: RemoteCallGuardRegistry,
 ) {
+    private companion object {
+        val CALL_TIMEOUT: Duration = Duration.ofSeconds(60)
+        val VALIDATION_TIMEOUT: Duration = Duration.ofSeconds(30)
+
+        /** Statuses on which a server typically rejects HEAD although the resource itself is fine. */
+        val HEAD_REJECTED_STATUSES = setOf(403, 405, 501)
+    }
+
     private val log = LoggerFactory.getLogger(javaClass)
+
+    // The API host and the (user-controlled, third-party) media host fail independently: separate breakers.
+    private val guard = guardRegistry.guard("omega")
+    private val validationGuard = guardRegistry.guard("omega-validation")
 
     fun getContentUrl(
         omegaJobMessage: OmegaJobMessage,
@@ -35,7 +54,8 @@ class OmegaApiCallerService(
             .baseUrl(config["baseurl"] ?: "")
             .build()
 
-        val result = webClient.get()
+        val result = guard.block(retryable = true) {
+            webClient.get()
             .uri {
                 it.queryParam("token_id", omegaJobMessage.identifier)
                     .queryParam("role", omegaJobMessage.role)
@@ -43,12 +63,10 @@ class OmegaApiCallerService(
                     .build()
             }
             .retrieve()
-            .bodyToMono<OmegaApiResponse>()
-            .block()
-
-        if (result == null) {
-            throw Exception("Omega API response is empty for node: ${omegaJobMessage.nodeId}")
+            .bodyToMono<String>()
+            .timeout(CALL_TIMEOUT)
         }
+            .let { RemoteResponseParser.parse(it, OmegaApiResponse::class.java, objectMapper, "Omega API") }
 
         val get = result.get
 
@@ -80,10 +98,24 @@ class OmegaApiCallerService(
             // Validate the resolved (edupool) URL with a normal, SNI-enabled client — that host requires
             // SNI, unlike the Omega API host above.
             val validationClient = webClientBuilder.clone().build()
-            val status = validationClient.head()
-                .uri(streamUrl)
-                .exchangeToMono { Mono.just(it.statusCode().value()) }
-                .block() ?: 0
+            var status = validationGuard.block(retryable = true) {
+                validationClient.head()
+                    .uri(streamUrl)
+                    .exchangeToMono { Mono.just(it.statusCode().value()) }
+                    .timeout(VALIDATION_TIMEOUT)
+            } ?: 0
+            if (status in HEAD_REJECTED_STATUSES) {
+                // Some hosts answer HEAD with 405/403 but serve GET; probe with a one-byte range request.
+                log.debug("Omega URL validation: HEAD answered {}, retrying with GET Range", status)
+                status = validationGuard.block(retryable = true) {
+                    validationClient.get()
+                        .uri(streamUrl)
+                        .header(HttpHeaders.RANGE, "bytes=0-0")
+                        // The body is never read; releasing it closes the connection instead of downloading the file.
+                        .exchangeToMono { response -> response.releaseBody().thenReturn(response.statusCode().value()) }
+                        .timeout(VALIDATION_TIMEOUT)
+                } ?: 0
+            }
             if (status > 299) {
                 throw Exception("given streamURL is invalid, status $status")
             }

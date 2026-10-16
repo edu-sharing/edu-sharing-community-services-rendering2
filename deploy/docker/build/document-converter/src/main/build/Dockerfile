@@ -21,7 +21,7 @@ RUN apk update && \
 RUN libreoffice --version
 
 RUN set -eux \
-    && adduser --uid=1001 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
+    && adduser --uid=1000 --home=/application --disabled-password --gecos "" --shell=/bin/bash worker \
     && chown -RL worker:worker . \
     && chown -RL worker:worker /tmp
 
@@ -33,16 +33,23 @@ COPY --from=builder application/extracted/application/ ./
 
 ########################################################################################################################
 
+# The download is pinned by checksum, so a changed or tampered release asset fails the build instead of ending up in the image.
+ARG ASYNC_PROFILER_SHA256=86b6e68c26ae62f29d9325ceee846694b2ec36437831e29066e618ecb9948446
 RUN set -eux \
     && mkdir profiler \
-    && wget -qO- https://github.com/Granulate/async-profiler/releases/download/v2.0g1/async-profiler-2.0-linux-x64.tar.gz | tar xvz -C profiler
+    && wget -q -O /tmp/async-profiler.tar.gz https://github.com/Granulate/async-profiler/releases/download/v2.0g1/async-profiler-2.0-linux-x64.tar.gz \
+    && echo "${ASYNC_PROFILER_SHA256}  /tmp/async-profiler.tar.gz" | sha256sum -c - \
+    && tar xz -f /tmp/async-profiler.tar.gz -C profiler \
+    && rm -f /tmp/async-profiler.tar.gz
 
 COPY --chown=worker:worker assets/profiler profiler/
 
 ########################################################################################################################
 
 EXPOSE 8080
-ENTRYPOINT ["sh" ,"-c", "exec java ${JAVA_OPTS} --enable-preview -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher"]
+# Container args (compose `command:` with heap/JMX flags) are JVM options: with `sh -c <script>` they would otherwise
+# become $0/$1.. of the script and be silently ignored, so the script forwards them via "$@" (the trailing `sh` is $0).
+ENTRYPOINT ["sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError ${JAVA_OPTS} \"$@\" -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher", "sh"]
 
 ########################################################################################################################
 

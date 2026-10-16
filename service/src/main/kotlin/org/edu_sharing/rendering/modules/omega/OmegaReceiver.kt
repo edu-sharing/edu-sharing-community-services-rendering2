@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.omega
 
+import org.edu_sharing.rendering.utils.LogSanitizer
 import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_CONVERSION_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
@@ -91,15 +92,15 @@ class OmegaReceiver(
             }
             subJobRepository.save(streamUrlSubJob)
         } catch (exception: Exception) {
-            log.error(exception.message, exception)
+            log.error(LogSanitizer.sanitize(exception.message), LogSanitizer.sanitize(exception))
             val objectMapper = ObjectMapper()
-            var userMessage = exception.message ?: GENERIC_CONVERSION_ERROR
+            var userMessage = LogSanitizer.sanitize(exception.message) ?: GENERIC_CONVERSION_ERROR
             if (exception is WebClientResponseException && exception.statusCode == HttpStatus.BAD_GATEWAY) {
                 userMessage = try {
                     val jsonNode = objectMapper.readTree(exception.responseBodyAsString)
                     jsonNode.path("error").asString(GENERIC_CONVERSION_ERROR)
                 } catch (e: Exception) {
-                    log.error(e.message, e)
+                    log.error(LogSanitizer.sanitize(e.message), LogSanitizer.sanitize(e))
                     GENERIC_CONVERSION_ERROR
                 }
             }

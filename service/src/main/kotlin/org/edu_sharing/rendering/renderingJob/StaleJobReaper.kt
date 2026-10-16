@@ -22,7 +22,7 @@ import java.time.Instant
  * no redelivery) never becomes terminal, so its main job stays non-terminal — and
  * [MainJobCreationService.getExistingJobId] reuses any non-terminal job for the same node+hash, poisoning
  * re-rendering until the 8-day TTL. This reaper (master-only, scheduled, cluster-singleton via ShedLock)
- * runs three passes, each resolving to [MainJobLogic.processMainJob] so the main job lands on
+ * runs four passes, each resolving to [MainJobLogic.processMainJob] so the main job lands on
  * FAILED/PARTIALLY_FAILED and unblocks `getExistingJobId` reuse. No re-queue — the frontend re-requests
  * (see the sodix/omega/ddb idempotency audit and [AsyncAckDispatcher]).
  *
@@ -42,6 +42,10 @@ import java.time.Instant
  *    [MainJobCreationService.createMainJob]) was lost before [JobReceiver][org.edu_sharing.rendering.renderingJob.queue.JobReceiver]
  *    ever ran to create sub-jobs, so pass 2 has nothing to find. `processMainJob` already resolves an
  *    empty-sub-jobs main job to FAILED, so this pass only needs to identify the candidates.
+ * 4. **Main jobs stuck PROCESSING with zero sub-jobs** beyond [JobReaperProperties.maxMainJobSetupTime] —
+ *    [JobReceiver][org.edu_sharing.rendering.renderingJob.queue.JobReceiver] set PROCESSING but then neither
+ *    created sub-jobs nor managed to persist FAILED (e.g. a Mongo outage), so passes 1-3 cannot see the job
+ *    while its `activeJobPerNodeHash` entry blocks the node.
  */
 @Component
 @ConditionalOnMaster
@@ -71,6 +75,7 @@ class StaleJobReaper(
             subJobRepository::findQueuedSubJobsModifiedBefore, QUEUED_TIMEOUT_MESSAGE, "QUEUED",
         )
         affectedJobs += reapOrphanedQueuedJobs(now)
+        affectedJobs += reapOrphanedProcessingJobs(now)
         reconcile(affectedJobs)
     }
 
@@ -119,6 +124,23 @@ class StaleJobReaper(
         log.warn(
             "Stale-job reaper found ${orphaned.size} main job(s) stuck QUEUED with no sub-jobs " +
                 "(job-queue message lost or queue purged); reconciling to FAILED"
+        )
+        return orphaned.map { it.id }.toSet()
+    }
+
+    /**
+     * Main jobs stuck PROCESSING with no sub-jobs at all — see pass 4 in the class doc. Uses its own
+     * [JobReaperProperties.maxMainJobSetupTime] since the content download happens in this state.
+     */
+    private fun reapOrphanedProcessingJobs(now: Instant): Set<ObjectId> {
+        val cutoff = now.minus(properties.maxMainJobSetupTime)
+        val orphaned = renderingJobRepository
+            .findByStatusAndLastModifiedDateBefore(RenderingJobStatus.PROCESSING, cutoff)
+            .filter { it.subJobs.isEmpty() }
+        if (orphaned.isEmpty()) return emptySet()
+        log.warn(
+            "Stale-job reaper found ${orphaned.size} main job(s) stuck PROCESSING with no sub-jobs " +
+                "(job receiver failed and could not persist FAILED); reconciling to FAILED"
         )
         return orphaned.map { it.id }.toSet()
     }

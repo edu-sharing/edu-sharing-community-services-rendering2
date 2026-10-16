@@ -7,7 +7,9 @@ import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_MODULE_NOT_AVAILABLE
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_NOT_FOUND
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_OBJECT_NOT_SUPPORTED
 import org.edu_sharing.rendering.core.dto.ErrorMessage
+import org.edu_sharing.rendering.core.resilience.RemoteModuleUnavailableException
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException
 import org.springframework.web.reactive.function.client.WebClientResponseException.Forbidden
 import java.io.IOException
+import java.time.Duration
 
 @ControllerAdvice
 class ApiExceptionHandler {
@@ -111,6 +114,46 @@ class ApiExceptionHandler {
             userMessage = GENERIC_ACCESS_DENIED
         )
         return ResponseEntity(errorMessage, HttpStatus.FORBIDDEN)
+    }
+
+    /**
+     * The remote module is shielded by the resilience layer (open breaker, full bulkhead, saturated pool): answer
+     * 503 with `Retry-After` (remaining breaker time, if known). One WARN line, no stack trace: it is an expected
+     * operating condition, not a bug.
+     */
+    @ExceptionHandler
+    fun handleRemoteModuleUnavailableException(exception: RemoteModuleUnavailableException): ResponseEntity<ErrorMessage> {
+        log.warn("{}", exception.message)
+        return unavailable(HttpStatus.SERVICE_UNAVAILABLE, exception.message, exception, exception.retryAfter)
+    }
+
+    /** Backing module unreachable (502) or too slow (504); one WARN line, no stack trace. */
+    @ExceptionHandler
+    fun handleModuleGatewayException(exception: ModuleGatewayException): ResponseEntity<ErrorMessage> {
+        log.warn("{}", exception.message)
+        return unavailable(exception.status, exception.message, exception, exception.retryAfter)
+    }
+
+    private fun unavailable(
+        status: HttpStatus,
+        message: String?,
+        exception: Exception,
+        retryAfter: Duration?,
+    ): ResponseEntity<ErrorMessage> {
+        val errorMessage = ErrorMessage(
+            status = status.value(),
+            message = message,
+            details = emptyMap(),
+            exception = exception,
+            userMessage = GENERIC_MODULE_NOT_AVAILABLE,
+        )
+        val response = ResponseEntity.status(status)
+        if (retryAfter != null) {
+            // Round up and never advertise 0 s: a client would retry immediately into the still-open breaker.
+            val seconds = ((retryAfter.toMillis() + 999) / 1000).coerceAtLeast(1)
+            response.header(HttpHeaders.RETRY_AFTER, seconds.toString())
+        }
+        return response.body(errorMessage)
     }
 
     @ExceptionHandler

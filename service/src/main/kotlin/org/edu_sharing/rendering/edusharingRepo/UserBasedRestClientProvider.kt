@@ -22,6 +22,7 @@ class UserBasedRestClientProvider(
     private val authHeaderProvider: AuthHeaderProvider,
     private val tracePropagatingInterceptor: TracePropagatingInterceptor,
     private val repositoryDispatcher: Dispatcher,
+    private val timeouts: RepositoryHttpTimeoutProperties,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -50,7 +51,7 @@ class UserBasedRestClientProvider(
             authenticationApiFactory = ::getAuthenticationApiClient,
             isGuestUser = SecurityContextUtils.currentUser().isGuest,
         )
-        apiClient.httpClient = apiClient.httpClient.newBuilder()
+        apiClient.httpClient = timeouts.applyTo(apiClient.httpClient.newBuilder())
             .dispatcher(repositoryDispatcher)
             .addInterceptor(interceptor)
             .addInterceptor(tracePropagatingInterceptor)
@@ -67,7 +68,7 @@ class UserBasedRestClientProvider(
         val apiClient = ApiClient()
         apiClient.basePath = "${url}/rest"
         headers.forEach { (key, value) -> apiClient.addDefaultHeader(key, value) }
-        apiClient.httpClient = apiClient.httpClient.newBuilder()
+        apiClient.httpClient = timeouts.applyTo(apiClient.httpClient.newBuilder())
             .dispatcher(repositoryDispatcher)
             .addInterceptor(tracePropagatingInterceptor)
             .build()

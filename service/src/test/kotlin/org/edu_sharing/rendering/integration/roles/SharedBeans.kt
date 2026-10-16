@@ -6,10 +6,13 @@ import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.config.*
 import org.edu_sharing.rendering.core.PingController
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
+import org.edu_sharing.rendering.core.resilience.ResilienceProperties
 import org.edu_sharing.rendering.core.exception.ApiExceptionHandler
 import org.edu_sharing.rendering.edusharingRepo.AuthHeaderProvider
 import org.edu_sharing.rendering.edusharingRepo.EncryptionService
 import org.edu_sharing.rendering.edusharingRepo.RepositoryHttpConfig
+import org.edu_sharing.rendering.edusharingRepo.RepositoryHttpTimeoutProperties
 import org.edu_sharing.rendering.edusharingRepo.RestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.TracePropagatingInterceptor
 import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheBroadcaster
@@ -21,6 +24,7 @@ import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.edusharingRepo.services.MetadataService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.modules.ConverterCallProperties
 import org.edu_sharing.rendering.modules.ConverterWebServiceCaller
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.modules.av.AvModuleTypeMapper
@@ -46,6 +50,7 @@ import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModuleTypeMapper
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiConfig
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
+import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyProperties
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiStorageManager
 import org.edu_sharing.rendering.modules.image.ImageRenderModule
 import org.edu_sharing.rendering.modules.image.ImageRenderModuleTypeMapper
@@ -65,6 +70,7 @@ import org.edu_sharing.rendering.modules.sodix.SodixRemoteConfig
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModule
 import org.edu_sharing.rendering.modules.sodix.SodixRenderModuleTypeMapper
 import org.edu_sharing.rendering.renderingJob.MainJobCreationService
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.SubJobHeartbeat
 import org.edu_sharing.rendering.renderingJob.metrics.QueueConsumerMetrics
@@ -92,6 +98,7 @@ import org.edu_sharing.rendering.security.cors.CorsConfig
 import org.edu_sharing.rendering.security.jwt.JwtUtils
 import org.edu_sharing.rendering.storage.*
 import org.edu_sharing.rendering.storage.bucket.BucketPerMediaTypeStrategy
+import org.edu_sharing.rendering.utils.TempFileSweeper
 import org.springframework.security.access.PermissionEvaluator
 import org.springframework.util.ClassUtils
 
@@ -125,6 +132,7 @@ abstract class SharedBeans {
             GitServiceRegistry::class,
             BucketPerMediaTypeStrategy::class,
             ContentTransferService::class,
+            ConverterCallProperties::class,
             ConverterWebServiceCaller::class,
             CorsConfig::class,
             DdbApiProperties::class,
@@ -161,9 +169,11 @@ abstract class SharedBeans {
             JwtUtils::class,
             LumiConfig::class,
             LumiContentManagementService::class,
+            LumiProxyProperties::class,
             LumiStorageManager::class,
             MainJobLogic::class,
             MainJobCreationService::class,
+            JobMessagePublisher::class,
             Mapper::class,
             MetadataService::class,
             ModulePermissionService::class,
@@ -192,7 +202,9 @@ abstract class SharedBeans {
             RedisConfig::class,
             RedisLettuceMetrics::class,
             RedisStandaloneConfigurationProperties::class,
+            RemoteCallGuardRegistry::class,
             RemoteListenerContainerFactorySupport::class,
+            ResilienceProperties::class,
             RenderingMetrics::class,
             RegistrationCacheBroadcaster::class,
             RegistrationCacheConfig::class,
@@ -202,6 +214,7 @@ abstract class SharedBeans {
             RepositoryRegistrationService::class,
             RepositoryRegistrationStorageService::class,
             RepositoryHttpConfig::class,
+            RepositoryHttpTimeoutProperties::class,
             RestClientProvider::class,
             Rs2StorageManager::class,
             S3Config::class,
@@ -223,6 +236,7 @@ abstract class SharedBeans {
             SpringDocConfig::class,
             StorageManagerRegistry::class,
             SubJobHeartbeat::class,
+            TempFileSweeper::class,
             TracePropagatingInterceptor::class,
             TrackingService::class,
             VideoConverterConfig::class,
@@ -244,6 +258,15 @@ abstract class SharedBeans {
             // into the role tests' package filter like the other functional beans here.
             "rabbitConnectionFactoryExecutorPostProcessor",
             "writeConcernResolver",
+            // Typed config objects registered through @EnableConfigurationProperties (bean name =
+            // "<prefix>-<fully qualified class name>") and the lambda-based Mongo timeout customizer.
+            "app.mongodb.timeout-org.edu_sharing.rendering.config.MongoTimeoutProperties",
+            "app.redis.client-org.edu_sharing.rendering.config.RedisClientProperties",
+            "app.redis.session-org.edu_sharing.rendering.config.SessionRedisProperties",
+            "app.s3.client-org.edu_sharing.rendering.storage.S3ClientProperties",
+            "app.temp.cleanup-org.edu_sharing.rendering.utils.TempCleanupProperties",
+            "app.s3.health-org.edu_sharing.rendering.storage.S3HealthProperties",
+            "mongoTimeoutCustomizer",
         )
 
         val all = classBeans.map { ClassUtils.getShortNameAsProperty(it.java)} union functionalBeans

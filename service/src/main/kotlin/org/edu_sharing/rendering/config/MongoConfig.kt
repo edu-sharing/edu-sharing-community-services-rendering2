@@ -1,10 +1,14 @@
 package org.edu_sharing.rendering.config
 
 import com.mongodb.WriteConcern
+import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.edusharingRepo.entity.ExternalBucket
+import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.entity.RendererKeyConfig
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.convert.converter.Converter
@@ -19,11 +23,37 @@ import org.springframework.data.mongodb.core.convert.MappingMongoConverter
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @EnableMongoAuditing
+@EnableConfigurationProperties(MongoTimeoutProperties::class)
 @Configuration
 class MongoConfig {
 
+    /**
+     * Sets the driver timeouts explicitly (see [MongoTimeoutProperties]); without them a hung
+     * connection blocks its caller indefinitely (`socketTimeoutMS` defaults to infinite).
+     */
+    @Bean
+    fun mongoTimeoutCustomizer(timeouts: MongoTimeoutProperties): MongoClientSettingsBuilderCustomizer =
+        MongoClientSettingsBuilderCustomizer { builder ->
+            builder.applyToSocketSettings { socket ->
+                socket.connectTimeout(timeouts.connectTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                socket.readTimeout(timeouts.socketTimeout.toMillis(), TimeUnit.MILLISECONDS)
+            }
+            builder.applyToClusterSettings { cluster ->
+                cluster.serverSelectionTimeout(timeouts.serverSelectionTimeout.toMillis(), TimeUnit.MILLISECONDS)
+            }
+        }
+
+    /**
+     * Write concern per entity. Everything that is persisted through this template is
+     * ACKNOWLEDGED: there is no documented performance decision behind the former UNACKNOWLEDGED
+     * default for tracking/registration data, and a silently lost `TrackingEntry` skews the cache
+     * cleaner's size accounting (MEMORY_AUDIT F17), a lost registration write would not surface
+     * at all. UNACKNOWLEDGED remains only as the fallback for an unknown/absent entity, which no
+     * current write path hits.
+     */
     @Bean
     fun writeConcernResolver(): WriteConcernResolver {
         return WriteConcernResolver { action: MongoAction? ->
@@ -32,7 +62,10 @@ class MongoConfig {
                 action.entityType == RendererKeyConfig::class.java -> WriteConcern.ACKNOWLEDGED
                 action.entityType == RenderingJob::class.java -> WriteConcern.ACKNOWLEDGED
                 action.entityType == SubJob::class.java -> WriteConcern.ACKNOWLEDGED
+                action.entityType == TrackingEntry::class.java -> WriteConcern.ACKNOWLEDGED
+                action.entityType == RepositoryRegistration::class.java -> WriteConcern.ACKNOWLEDGED
                 action.collectionName == "renderingJob" -> WriteConcern.ACKNOWLEDGED
+                action.collectionName == "Tracking" -> WriteConcern.ACKNOWLEDGED
                 else -> WriteConcern.UNACKNOWLEDGED
             }
         }

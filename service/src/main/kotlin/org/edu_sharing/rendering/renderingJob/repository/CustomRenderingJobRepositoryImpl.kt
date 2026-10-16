@@ -100,6 +100,20 @@ class CustomRenderingJobRepositoryImpl(
         }
     }
 
+    override fun failIfActive(jobId: ObjectId, errorMessage: String): Boolean {
+        val query = Query(
+            Criteria.where("_id").`is`(jobId)
+                .and("status").`in`(RenderingJobStatus.QUEUED.toString(), RenderingJobStatus.PROCESSING.toString())
+        )
+        val update = Update()
+            .set("status", RenderingJobStatus.FAILED.toString())
+            .set("errorMessage", errorMessage)
+            .set("finishedTimestamp", System.currentTimeMillis())
+        // Entity-class overload so the WriteConcernResolver maps RenderingJob -> ACKNOWLEDGED (see updateStatusWithoutVersion).
+        val result = mongoTemplate.updateFirst(query, update, RenderingJob::class.java)
+        return result.wasAcknowledged() && result.modifiedCount > 0
+    }
+
     /** Zerlegt die Sucheingabe an Kommas/Whitespace in einzelne Begriffe (leere verworfen). */
     private fun searchTerms(search: String?): List<String> =
         search?.split(Regex("[,\\s]+"))?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()

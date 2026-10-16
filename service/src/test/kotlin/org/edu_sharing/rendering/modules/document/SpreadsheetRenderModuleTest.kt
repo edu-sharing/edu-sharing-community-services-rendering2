@@ -4,11 +4,12 @@ import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.http.MediaType
 
 @ExtendWith(MockKExtension::class)
@@ -16,7 +17,8 @@ class SpreadsheetRenderModuleTest {
     private val mapper = mockk<Mapper>()
     private val documentService = mockk<DocumentService>()
     private val subJobRepository = mockk<SubJobRepository>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
+    private val mainJobLogic = mockk<MainJobLogic>()
     private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
     private val nodeExpiration = 88L
 
@@ -28,7 +30,8 @@ class SpreadsheetRenderModuleTest {
             nodePermissionExpirationTime = nodeExpiration,
             mapper = mapper,
             documentService = documentService,
-            amqpTemplate = amqpTemplate,
+            jobMessagePublisher = jobMessagePublisher,
+            mainJobLogic = mainJobLogic,
             subJobRepository = subJobRepository,
             repositoryRegistrationStorageService = repositoryRegistrationStorageService
         )

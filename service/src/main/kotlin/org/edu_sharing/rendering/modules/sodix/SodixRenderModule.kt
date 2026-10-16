@@ -7,6 +7,7 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.RenderModule
 import org.edu_sharing.rendering.modules.ThirdPartyModule
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
@@ -14,7 +15,6 @@ import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -23,7 +23,7 @@ class SodixRenderModule(
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
-    private val amqpTemplate: AmqpTemplate,
+    private val jobMessagePublisher: JobMessagePublisher,
     private val subJobRepository: SubJobRepository,
     @param:Value($$"${app.queue.topicExchange}")
     private val topicExchangeName: String,
@@ -110,7 +110,7 @@ class SodixRenderModule(
             role = role
         )
         log.debug("Sending Sodix job message for jobId ${job.id}, identifier $replicationSourceId, isPaidMedia $isPaidMedia to queue $jobRoutingKey")
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
+        jobMessagePublisher.publishForJob(topicExchangeName, jobRoutingKey, message, job.id)
 
         return RenderDataResponse(
             jobId = job.id.toString(),
@@ -153,7 +153,7 @@ class SodixRenderModule(
             role = role
         )
         log.debug("Re-enqueuing Sodix job message for jobId ${renderingJob.id}, identifier $identifier, isPaidMedia $isPaidMedia to queue $jobRoutingKey")
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, message)
+        jobMessagePublisher.publishForJob(topicExchangeName, jobRoutingKey, message, renderingJob.id)
     }
 
     override fun validateThirdPartyCredentials(

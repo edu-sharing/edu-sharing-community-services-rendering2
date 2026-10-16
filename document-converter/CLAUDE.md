@@ -28,6 +28,9 @@ tracing needs `org.springframework.boot:spring-boot-micrometer-tracing-opentelem
 | `controller/ConversionController.kt` | `@RestController @RequestMapping("/conversion")`, `POST` multipart upload with optional `format` param (default PDF). |
 | `service/ConversionService.kt` | Runs the jodconverter conversion; jsoup post-processes HTML output (adds table CSS styling). |
 | `config/ConverterConfig.kt` | Wires the jodconverter `LocalConverter` bean. |
+| `io/TempFiles.kt` | Temp-file factory, startup sweep, delete-on-close response resource. |
+| `health/` | LibreOffice readiness HealthIndicator. |
+| `config/ConverterProperties.kt` | Typed `app.converter.*` settings. |
 | `exception/` | `FormatException` (→ 412), `ApiExceptionHandler`; missing file → 400. |
 | `dto/ErrorMessage.kt` | Error response body. |
 
@@ -44,8 +47,19 @@ tracing needs `org.springframework.boot:spring-boot-micrometer-tracing-opentelem
 - Multipart limit 128 MB (`spring.servlet.multipart.max-file-size/-request-size`).
 - Actuator on **port 8081** (`management.server.port=8081`, exposing `health,metrics,prometheus`).
   The main web server uses the Spring default unless overridden by the deployment.
-- HTML output is the special case: converted HTML is re-styled with jsoup; other target
-  formats pass through jodconverter directly.
+- No result is held in memory: the upload is moved to a temp file (`io/TempFiles`, `app.converter.work-dir`),
+  jodconverter writes to a second temp file and the response is streamed by `DeleteOnCloseResource`, which
+  deletes the file when the stream closes (also on client abort). Leftovers older than
+  `app.converter.stale-file-age` (and `.jodconverter_*` profile dirs in `java.io.tmpdir`) are swept at startup.
+- Word processing sources (`doc, docx, odt, ott, rtf`, unless the target is docx) first go through a docx
+  normalization pass into another temp file (`app.normalizeTextDocuments`, default on): it works around LibreOffice
+  dropping the content of tables inside floating text boxes, at the cost of a second LibreOffice pass.
+- HTML output is the special case: the table CSS is injected before `</head>` by streaming (no DOM); only when no
+  `</head>` is in the scan window the Jsoup fallback runs, capped by `app.converter.max-html-dom-bytes` (413).
+- Health: `health/LibreOfficeHealthIndicator` (component `libreOffice`, part of the **readiness** group only;
+  liveness stays independent). Manager-running check + cached txt->pdf probe; DOWN only after
+  `failure-threshold` consecutive failures/timeouts. Timeouts are staggered: execution 120s < queue 300s <
+  caller's client timeout 600s; keep that order when changing them.
 
 ## Runtime dependency
 LibreOffice **must be installed** on the host running this service — the jodconverter
@@ -60,4 +74,3 @@ This module builds with the system **`mvn`** (not the `./service/mvnw` wrapper):
 mvn -Pdev -pl document-converter clean compile
 mvn -Pdev -pl document-converter clean verify
 ```
-No unit tests exist in this module yet — if you add behavior, add tests under `src/test`.

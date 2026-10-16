@@ -139,6 +139,15 @@ tolerations: []
 ## @param podAnnotations Set custom pod annotations
 podAnnotations: {}
 
+## PodDisruptionBudget, rendered only when global.cluster.pdb.enabled is set AND more than one replica runs
+podDisruptionBudget:
+  ## @param podDisruptionBudget.minAvailable Pods that must stay available during voluntary disruptions
+  minAvailable: 1
+  ## @param podDisruptionBudget.maxUnavailable Pods that may be unavailable; when set it replaces minAvailable (e.g. 1 or "25%")
+  maxUnavailable: ""
+
+########################################################################################################################
+
 podSecurityContext:
   ## @param podSecurityContext.fsGroup Set fs group for access
   fsGroup: 1000
@@ -155,11 +164,31 @@ securityContext:
       - ALL
   ## @param securityContext.runAsUser Define user to run under
   runAsUser: 1000
+  ## @param securityContext.runAsNonRoot Refuse to start the container as root (the images run as UID 1000)
+  runAsNonRoot: true
+  ## @param securityContext.readOnlyRootFilesystem Mount the root filesystem read-only (only rendered when true). Prepared but off by default: test the functional paths under load in staging before enabling, see deploy/CLAUDE.md. /tmp is a writable volume in any case
+  readOnlyRootFilesystem: false
+
+########################################################################################################################
+
+persistence:
+
+  data:
+
+    temp:
+      ## Temp files (conversion work files, spooled uploads) live on the node's ephemeral disk, not in the
+      ## container layer: /tmp is an emptyDir. That keeps them out of the writable layer and makes /tmp writable
+      ## when securityContext.readOnlyRootFilesystem is enabled. No memory-backed emptyDir on purpose.
+      ## @param persistence.data.temp.sizeLimit Size limit of the node-local emptyDir mounted at /tmp (empty = unlimited)
+      sizeLimit: ""
 
 ########################################################################################################################
 
 ## @param terminationGracePeriod Define grace period for termination
 terminationGracePeriod: 30
+
+## @param preStopSleepSeconds Seconds the container sleeps in its preStop hook before SIGTERM, so the endpoint removal reaches Ingress/Service proxies first (0 = no hook). Counts against terminationGracePeriod
+preStopSleepSeconds: 5
 
 startupProbe:
   ## @param startupProbe.failureThreshold Failure threshold for startupProbe

@@ -2,7 +2,17 @@ package org.edu_sharing.rendering.modules.binder.git
 
 import tools.jackson.databind.ObjectMapper
 import org.edu_sharing.rendering.modules.binder.dto.GitDetails
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
+import org.edu_sharing.rendering.core.resilience.RemoteModuleUnavailableException
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.core.io.buffer.DataBufferLimitException
+import org.springframework.core.io.buffer.DataBufferUtils
+import org.springframework.util.unit.DataSize
+import org.springframework.web.reactive.function.client.WebClientResponseException
+import java.time.Duration
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import java.io.ByteArrayInputStream
@@ -14,10 +24,18 @@ import java.util.regex.Pattern
 @Service
 class GitHubService(
     private val gitHubRepoApiWebClient: WebClient,
-    private val gitHubBinaryWebClient: WebClient
+    private val gitHubBinaryWebClient: WebClient,
+    guardRegistry: RemoteCallGuardRegistry,
+    @param:Value($$"${app.module.binder.max-file-size:50MB}")
+    private val maxFileSize: DataSize
 ): GitService {
 
+    private companion object {
+        val FILE_TIMEOUT: Duration = Duration.ofSeconds(60)
+    }
+
     private val log = LoggerFactory.getLogger(javaClass)
+    private val guard = guardRegistry.guard("github")
 
     @Throws (Exception::class)
     override fun getFile(
@@ -28,14 +46,52 @@ class GitHubService(
             throw IllegalArgumentException("Could not parse file path from GitHub URL")
         }
         log.debug("Fetching file from GitHub: user={}, repo={}, branch={}, filePath={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath)
-        val stream = gitHubBinaryWebClient.get()
-            .uri("/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}/${gitDetails.filePath}")
-            .header("Authorization", "Bearer $token")
-            .retrieve()
-            .bodyToMono(ByteArray::class.java)
-            .map { it.inputStream() }
-            .block()
+        // Streamed and joined against an explicit limit instead of bodyToMono(ByteArray), which is capped by the
+        // shared codec buffer limit (spring.http.codecs.max-in-memory-size) and fails on larger notebooks.
+        val maxBytes = maxFileSize.toBytes().toInt()
+        val stream = try {
+            guard.block(retryable = true) {
+                DataBufferUtils.join(
+                    gitHubBinaryWebClient.get()
+                        .uri("/${gitDetails.user}/${gitDetails.repo}/${gitDetails.branch}/${gitDetails.filePath}")
+                        .header("Authorization", "Bearer $token")
+                        .retrieve()
+                        .bodyToFlux(DataBuffer::class.java),
+                    maxBytes
+                )
+                    .map { buffer ->
+                        try {
+                            ByteArray(buffer.readableByteCount()).also { buffer.read(it) }
+                        } finally {
+                            DataBufferUtils.release(buffer)
+                        }
+                    }
+                    .map { it.inputStream() }
+                    .timeout(FILE_TIMEOUT)
+            }
+        } catch (exception: WebClientResponseException) {
+            throw IllegalStateException(describeFailure(exception, "fetching ${gitDetails.filePath}"), exception)
+        } catch (exception: DataBufferLimitException) {
+            throw IllegalStateException(
+                "File ${gitDetails.filePath} in ${gitDetails.user}/${gitDetails.repo} exceeds the limit of $maxFileSize",
+                exception
+            )
+        }
         return stream ?: throw Exception("No stream returned from server")
+    }
+
+    /** Readable, credential-free reason for a failed GitHub call; spells out rate limiting (403/429). */
+    internal fun describeFailure(exception: WebClientResponseException, action: String): String {
+        val status = exception.statusCode.value()
+        return when {
+            status == 429 || (status == 403 && exception.headers.getFirst("X-RateLimit-Remaining") == "0") ->
+                "GitHub rate limit reached while $action (retry-after=${exception.headers.getFirst("Retry-After")}, " +
+                    "reset=${exception.headers.getFirst("X-RateLimit-Reset")})"
+
+            status == 403 -> "GitHub denied access (403) while $action; check the configured token"
+            status == 404 -> "GitHub resource not found (404) while $action"
+            else -> "GitHub answered $status while $action"
+        }
     }
 
     override fun checkIfObjectLinkIsUpToDate(
@@ -45,16 +101,21 @@ class GitHubService(
     ): Boolean {
         log.debug("Checking GitHub commit freshness: user={}, repo={}, branch={}, filePath={}, lastModifiedInCache={}", gitDetails.user, gitDetails.repo, gitDetails.branch, gitDetails.filePath, lastModifiedInCache)
         try {
-            val response = gitHubRepoApiWebClient
-                .get()
-                .uri {
-                    it.path("/${gitDetails.user}/${gitDetails.repo}/commits")
-                        .queryParam("path", gitDetails.filePath ?: "")
-                        .queryParam("sha", gitDetails.branch)
-                        .build()
-                }
-                .header("Authorization", "Bearer $token")
-                .retrieve().bodyToMono(String::class.java).block()
+            val response = guard.block(retryable = true) {
+                gitHubRepoApiWebClient
+                    .get()
+                    .uri {
+                        it.path("/${gitDetails.user}/${gitDetails.repo}/commits")
+                            .queryParam("path", gitDetails.filePath ?: "")
+                            .queryParam("sha", gitDetails.branch)
+                            // Only the latest commit is inspected; do not transfer the default page of 30.
+                            .queryParam("per_page", 1)
+                            .build()
+                    }
+                    .header("Authorization", "Bearer $token")
+                    .retrieve().bodyToMono(String::class.java)
+                    .timeout(FILE_TIMEOUT)
+            }
             response?.let {
                 val objectMapper = ObjectMapper()
                 val rootNode = objectMapper.readTree(it)
@@ -69,9 +130,19 @@ class GitHubService(
                     return commitTimeStamp < lastModifiedInCache
                 }
             }
+        } catch (exception: WebClientResponseException) {
+            // 403/429 (rate limit, token) and other HTTP errors are expected operationally: no stack trace.
+            log.warn(
+                "GitHub freshness check failed, existing cached preview will be used: {}",
+                describeFailure(exception, "checking commits of ${gitDetails.user}/${gitDetails.repo}")
+            )
+            return true
+        } catch (exception: RemoteModuleUnavailableException) {
+            log.warn("GitHub freshness check skipped, existing cached preview will be used: {}", exception.message)
+            return true
         } catch (exception: Exception) {
             // ToDo send info to client to inform of potentially deprecated preview from cache
-            log.warn("Error calling github api for file check. Existing cached preview will be used.", exception)
+            log.warn("Error calling github api for file check. Existing cached preview will be used.", LogSanitizer.sanitize(exception))
             return true
         }
         return false

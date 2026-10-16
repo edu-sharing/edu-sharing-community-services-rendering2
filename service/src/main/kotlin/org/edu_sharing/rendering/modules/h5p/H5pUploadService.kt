@@ -1,12 +1,16 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
+import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
+import org.edu_sharing.rendering.core.resilience.ResilienceProperties
 import org.edu_sharing.rendering.edusharingRepo.services.ContentTransferService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiContentResponse
 import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.utils.RemoteResponseParser
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType
@@ -29,9 +33,17 @@ class H5pUploadService(
     private val trackingService: TrackingService,
     private val storageService: StorageService,
     private val module: H5pRenderModule,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    guardRegistry: RemoteCallGuardRegistry,
 ) {
     private val log = LoggerFactory.getLogger(H5pUploadService::class.java)
+
+    /**
+     * Own guard, separate from the lookup guard `lumi`, so a failing upload cannot open the breaker the display
+     * path relies on. A POST, so never retried; default failure classification (5xx counts, 4xx is a success).
+     * Its total budget (15 min, see [ResilienceProperties]) sits above the upload timeout (credential `timeout`).
+     */
+    private val guard = guardRegistry.guard(ResilienceProperties.LUMI_UPLOAD_GUARD)
 
     fun getContentId(cacheObject: CacheObject): String {
         log.debug("Resolving H5P content id for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
@@ -69,7 +81,7 @@ class H5pUploadService(
 
     private fun uploadPackage(cacheObject: CacheObject): LumiContentResponse {
         log.debug("Uploading H5P package to Lumi for nodeId={}, hash={}", cacheObject.nodeId, cacheObject.hash)
-        val originalFile = File.createTempFile(
+        val originalFile = JobTempFiles.createFile(
             "${cacheObject.nodeId.substringBefore(".")}_${cacheObject.hash}_",
             ".h5p"
         )
@@ -80,21 +92,26 @@ class H5pUploadService(
             val builder = MultipartBodyBuilder()
             builder.part("file", FileSystemResource(originalFile))
             builder.part("nodeId", cacheObject.nodeId + "_" + cacheObject.hash)
-            val response = lumiWebClient
-                .post()
-                .uri {
-                    val uri = UriComponentsBuilder.fromUri(it.build())
-                        .path("/edusharing")
-                        .build(true)
-                        .toUri()
-                    uri
-                }.contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(builder.build()))
-                .retrieve()
-                .bodyToMono<String>()
-                .timeout(getTimeout(cacheObject.repoId))
-                .block()
-            val uploaded = objectMapper.readValue(response, LumiContentResponse::class.java)
+            val timeout = getTimeout(cacheObject.repoId)
+            val response = guard.block(retryable = false) {
+                lumiWebClient
+                    .post()
+                    .uri {
+                        val uri = UriComponentsBuilder.fromUri(it.build())
+                            .path("/edusharing")
+                            .build(true)
+                            .toUri()
+                        uri
+                    }.contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(builder.build()))
+                    .retrieve()
+                    .bodyToMono<String>()
+                    .timeout(timeout)
+            }
+            // An unreadable 2xx body (empty, HTML, error object) is an operational failure: a readable
+            // IllegalStateException, not an opaque Jackson one. It carries no HTTP status, so H5pImportFailure
+            // maps it to GENERIC_CONVERSION_ERROR as before.
+            val uploaded = RemoteResponseParser.parse(response, LumiContentResponse::class.java, objectMapper, "lumi upload")
             log.debug(
                 "H5P package upload complete: lumiContentId={} for nodeId={}, libraryBytes={}",
                 uploaded.contentId, cacheObject.nodeId, uploaded.libraryBytes

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.storage
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.asset.AssetController.Companion.ROOT_REQUEST_PATH
 import org.edu_sharing.rendering.asset.AssetController.Companion.STATIC_ASSET_PATH
 import org.edu_sharing.rendering.asset.dto.AssetLinkParams
@@ -517,7 +518,7 @@ class S3StorageService(
         // AWS SDK v2 sync client needs a known content-length for InputStream.
         // Fallback: spool to a temp file to determine the length without buffering on the heap.
         log.warn("Executing upload to S3 without known content-length; spooling to temp file. Cache object: $cacheObject")
-        val tempFile = Files.createTempFile("s3-spool-", ".tmp")
+        val tempFile = JobTempFiles.createPath("s3-spool-", ".tmp")
         try {
             streamProvider().use { stream -> Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING) }
             s3Client.putObject(request, RequestBody.fromFile(tempFile))
@@ -530,11 +531,18 @@ class S3StorageService(
         }
     }
 
-    private fun createBucketIfMissing(bucket: String) {
+    internal fun createBucketIfMissing(bucket: String) {
         try {
             s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
         } catch (_: NoSuchBucketException) {
-            s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
+            try {
+                s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
+            } catch (_: BucketAlreadyOwnedByYouException) {
+                // Another pod created it between our HEAD and CREATE: that is the desired end state.
+            } catch (e: S3Exception) {
+                // Same race on S3 implementations that answer a plain 409 instead of the typed error.
+                if (e.statusCode() != 409) throw e
+            }
         }
     }
 

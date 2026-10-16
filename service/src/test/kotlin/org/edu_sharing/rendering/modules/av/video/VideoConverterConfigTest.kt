@@ -4,7 +4,11 @@ import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.boot.context.properties.bind.Bindable
+import org.springframework.boot.context.properties.bind.Binder
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource
 
 
 @ExtendWith(MockKExtension::class)
@@ -15,18 +19,43 @@ class VideoConverterConfigTest {
     @BeforeEach
     fun setUp() {
         config = VideoConverterConfig().apply {
-            resolutions = mapOf(
-                "240" to VideoResolutionItemConfig(priority = 1),
-                "480" to VideoResolutionItemConfig(priority = 2),
-                "720" to VideoResolutionItemConfig(priority = 3)
-            )
+            resolutions = listOf(240, 480, 720)
+            priorities = mapOf(240 to 1, 480 to 2, 720 to 3)
         }
     }
 
+    // application.properties first, then what Helm/compose deliver on top (a later source wins, as an env var would).
+    private fun bind(vararg overrides: Pair<String, String>): VideoConverterConfig {
+        val applicationProperties = MapConfigurationPropertySource(mapOf(
+            "app.converter.video.resolutions" to "480,720,1080",
+            "app.converter.video.priorities.480" to "2",
+            "app.converter.video.priorities.720" to "1",
+            "app.converter.video.priorities.1080" to "0"
+        ))
+        val deployment = MapConfigurationPropertySource(overrides.toMap())
+        return Binder(deployment, applicationProperties)
+            .bindOrCreate("app.converter.video", Bindable.of(VideoConverterConfig::class.java))
+    }
+
     @Test
-    fun `getResolutions should return list of resolution integers`() {
-        val result = config.getResolutions()
-        assertTrue(result.containsAll(listOf(240, 480, 720)))
+    fun `binds the comma-separated resolutions Helm and compose deliver`() {
+        val bound = bind("app.converter.video.resolutions" to "480,720")
+        assertEquals(listOf(480, 720), bound.resolutions)
+        assertEquals(listOf(480, 720), bound.getPossibleResolutions(null))
+    }
+
+    @Test
+    fun `dropping a height keeps the queue's max priority`() {
+        // x-max-priority of the durable AV queue comes from here and cannot be redeclared with another value
+        val bound = bind("app.converter.video.resolutions" to "720,1080")
+        assertEquals(2, bound.getMaxPriority())
+        assertEquals(1, bound.getPriority(720, 0))
+    }
+
+    @Test
+    fun `validate rejects an empty resolution list`() {
+        assertThrows<IllegalArgumentException> { VideoConverterConfig().validate() }
+        assertThrows<IllegalArgumentException> { VideoConverterConfig().apply { resolutions = listOf(0) }.validate() }
     }
 
     @Test
@@ -68,12 +97,12 @@ class VideoConverterConfigTest {
     @Test
     fun `getPossibleResolutions should return resolutions less than or equal to original height`() {
         val result = config.getPossibleResolutions(500)
-        assertEquals(listOf(240, 480), result.sorted())
+        assertEquals(listOf(240, 480), result)
     }
 
     @Test
     fun `getPossibleResolutions should return all resolutions if original height is null`() {
         val result = config.getPossibleResolutions(null)
-        assertEquals(listOf(240, 480, 720), result.sorted())
+        assertEquals(listOf(240, 480, 720), result)
     }
 }

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.eduhtml
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.CacheObject
 import org.edu_sharing.rendering.core.exception.ConversionException
@@ -25,7 +26,7 @@ class EduHtmlConversionService(
 
     fun cacheData(cacheObject: CacheObject, candidates: List<String>) {
         log.debug("Downloading EduHTML content for nodeId ${cacheObject.nodeId}, hash ${cacheObject.hash}")
-        val tempZip = Files.createTempFile("eduhtml-", ".zip")
+        val tempZip = JobTempFiles.createPath("eduhtml-", ".zip")
 
         try {
             contentTransferService.getAsInputStream(cacheObject).use { input ->

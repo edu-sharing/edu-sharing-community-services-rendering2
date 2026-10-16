@@ -8,6 +8,7 @@ import org.edu_sharing.rendering.renderingJob.MainJobLogic
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
+import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.junit.jupiter.api.AfterEach
@@ -71,7 +72,7 @@ class DocumentReceiverTest {
         val cacheObject = mockk<CacheObject>()
         every { message.id } returns "job123"
         every { mainJobLogic.getMainJobEntry("job123") } returns job
-        every { job.subJobs } returns mutableListOf(mockk<SubJob>())
+        every { job.subJobs } returns mutableListOf(mockk<SubJob>().also { every { it.status } returns SubJobStatus.QUEUED })
         every { renderingJobRepository.save(job) } returns job
         justRun { job.status = RenderingJobStatus.PROCESSING }
         justRun { job.processingStartedTimestamp = any() }
@@ -94,5 +95,39 @@ class DocumentReceiverTest {
             documentConversionService.process(cacheObject, job)
             mainJobLogic.processMainJob("job123")
         }
+    }
+
+    @Test
+    fun redeliveryWithTerminalSubJobDoesNotConvertAgainButResolvesMainJob() {
+        val message = RenderingJobMessage("job123")
+        val job = mockk<RenderingJob>()
+        every { mainJobLogic.getMainJobEntry("job123") } returns job
+        every { job.subJobs } returns mutableListOf(mockk<SubJob>().also { every { it.status } returns SubJobStatus.FINISHED })
+        every { mainJobLogic.processMainJob("job123") } returns true
+
+        underTest.receiveMessage(message)
+
+        verify(exactly = 0) { documentConversionService.process(any(), any()) }
+        verify(exactly = 0) { renderingJobRepository.save(any<RenderingJob>()) }
+        verify(exactly = 1) { mainJobLogic.processMainJob("job123") }
+    }
+
+    @Test
+    fun redeliveryWithProcessingSubJobRestartsTheConversion() {
+        val message = RenderingJobMessage("job123")
+        val job = mockk<RenderingJob>()
+        val cacheObject = mockk<CacheObject>()
+        every { mainJobLogic.getMainJobEntry("job123") } returns job
+        every { job.subJobs } returns mutableListOf(mockk<SubJob>().also { every { it.status } returns SubJobStatus.PROCESSING })
+        every { renderingJobRepository.save(job) } returns job
+        justRun { job.status = RenderingJobStatus.PROCESSING }
+        justRun { job.processingStartedTimestamp = any() }
+        every { mapper.renderingJobToCacheObject(job) } returns cacheObject
+        justRun { documentConversionService.process(cacheObject, job) }
+        every { mainJobLogic.processMainJob("job123") } returns true
+
+        underTest.receiveMessage(message)
+
+        verify(exactly = 1) { documentConversionService.process(cacheObject, job) }
     }
 }

@@ -92,6 +92,7 @@ Sub-Job-Dauer p95, Durchsatz, Fehlerrate.
 | `scenarios/omega.js` | OMEGA/DE.FWU (Import) | thirdparty-mock :8092 |
 | `scenarios/ddb.js` | DDB (Import, 2 API-Calls/Job) | thirdparty-mock :8092 |
 | `scenarios/all.js` | gemischt | je nach `MIX` |
+| `scenarios/video-mix.js` | großes Video + gleichzeitige einfache Last (siehe [Video unter Last](#video-unter-last-masterworker-cluster-lokal)) | je nach `MIX` |
 
 Profile (`-e PROFILE=`): `smoke` (Funktions-Check), `ramping` (Scaling-Kurve),
 `arrival` (Sättigung), `burst` (Ramp-up/Teardown). Feintuning: `VUS`, `RATE`, `DURATION`, `RAMP`.
@@ -233,6 +234,83 @@ Messung (24-Kern-Dev-Maschine, `cpus` = Prozesse, sättigende Last, 45 s, 0 Fehl
 
 Skalierung nahezu linear bis 4 Prozesse, danach flacht sie ab (8 Prozesse ≈ 7 Kerne ausgelastet, nur
 ~1,5 GiB RSS für dieses Dokument). Reale Office-Dokumente brauchen deutlich mehr Speicher je Prozess.
+
+## Video unter Last (Master+Worker-Cluster lokal)
+
+Reproduziert die Kundensituation „großes Video ist langsam, andere Konvertierungen laufen währenddessen in
+Timeouts“ auf der Helm-Topologie **Master+Worker** mit CPU-limitierten Pods. `local-cluster.sh` startet
+einen master- und `WORKERS` Worker-JVMs (Rollen `controller,job-manager,converter,avconverter`), jeden in einer
+eigenen cgroup mit `CPUQuota`/`MemoryMax` (= `limits.cpu`/`limits.memory`). Die ffmpeg-Prozesse erben die
+cgroup und teilen sich die Quota mit dem JVM — wie im Pod. Queue-/Converter-Werte = Helm-Chart-Defaults
+(`app.queue.av.concurrency=2`, `ffmpegThreads=4`, `veryfast`), nicht `application.properties`.
+
+```bash
+docker compose up -d rustfs repository-cache rabbitmq mongo rendering2-document-converter
+# beliebiges echtes Video >= 1080p (synthetische testsrc-Videos sind viel zu billig zu encodieren)
+VIDEO_FIXTURE=/pfad/zu/video-1080p.mp4 CPU_SET=0-11 loadtest/local-cluster.sh start
+k6 run -e BASE_URL=http://localhost:8085,http://localhost:8086 -e RATE=2 \
+  -e MIX=image,document,pdf,audio [-e VIDEO_COUNT=2] loadtest/k6/scenarios/video-mix.js
+loadtest/local-cluster.sh stats    # CPU + CFS-Throttling je Pod
+loadtest/local-cluster.sh stop
+```
+
+- `video-mix.js`: konstante einfache Last (`RATE`/s aus `MIX`), nach `WARMUP_S` (60 s) startet `VIDEO_COUNT`
+  Videos; sind alle terminal, endet der Test. Metriken: `rs2_video_quality_ready{quality}`,
+  `rs2_video_first_quality`, `rs2_time_to_finish{phase:before|during}`, `rs2_job_errors{phase:...}`
+  (ein einfacher Job über `POLL_TIMEOUT_MS` = 120 s zählt als Fehler).
+- Ohne lokal installiertes k6: `docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD/loadtest/k6:/k6:ro" grafana/k6 run ... /k6/scenarios/video-mix.js`.
+- Varianten per Env: `EXTRA_PROPS="-Dapp.queue.av.concurrency=4 -Dapp.converter.av.niceness=10"`, dedizierte
+  AV-Converter mit gleichem CPU-Budget: `WORKER_ROLES=controller,job-manager,converter WORKER_CPU=1 AV_CONVERTERS=1 AV_CPU=2`.
+- Belegte Ports (z. B. 8081 durch ein anderes Projekt): `DOCUMENT_CONVERTER=http://localhost:<port>` und den
+  document-converter per compose-Override umlegen.
+- Nach Codeänderungen `local-cluster.sh build` (die JVMs laufen direkt aus `service/target/classes`; während
+  eines Laufs nicht neu kompilieren).
+
+Messung (Oktober 2026, i7-12700H, Pods auf P-Cores; Video: Big Buck Bunny 1080p, 10:34 min, 276 MB, 3
+Zielauflösungen; einfache Last 2/s aus image/document/pdf/audio; 2 Worker × 2 CPU, 6 GiB):
+
+| Lauf | 480p / 720p / 1080p fertig nach | einfache Jobs während Video (p50 / p95, Timeouts) |
+|---|---|---|
+| R1 Helm-Defaults, 1 Video | 991 / 1021 / 1019 s | 1,5 / 3,7 s, 0 (image p50 0,6 → 2,9 s) |
+| R1b Helm-Defaults, **2 Videos** | 480p beider Videos nach 882/886 s, danach abgebrochen | **415 Audio-Timeouts**, Audio-Wartezeit in der AV-Queue bis 880 s; image p95 10 s |
+| R4 dedizierter AV-Converter (2 CPU) + 2 Worker à 1 CPU, 1 Video | 602 / 628 / 1177 s | image/document/pdf unbeeinflusst (p95 0,6 s); **266 Audio-Timeouts** |
+| R5 `av.concurrency=4`, 2 Videos | 743–1640 / ~1700 / 1013 s + **1× FAILED (30-min-Grenze)** | 1,8 / 5,4 s, 0 Timeouts |
+| R3 Code-Fix (Encoder-Threads) + `niceness=10`, 1 Video | **377 / 770 / 1005 s** | **0,9 / 2,7 s**, 0 (image p50 1,8 s) |
+
+Erkenntnisse:
+
+1. **`ffmpegThreads` wirkte bis zum Fix nicht auf den Encoder.** jave setzte das `-threads` *vor* `-i`
+   (= nur Decoder); libx264 wählte seine Threadzahl aus den CPUs des Nodes, nicht aus dem Pod-Limit. Unter
+   CPU-Quota teilt der Kernel CPU pro Thread — die 1080p-Encodierung mit den meisten Threads verdrängte die
+   billige 480p-Stufe (R1: 480p so spät wie 1080p; R5: 480p eines Videos erst *nach* dessen 1080p).
+   Fix: `EncodingAttributes.setDecodingThreads/setEncodingThreads`.
+2. **Timeouts einfacher Jobs entstehen durch AV-Slots, nicht durch CPU.** Audio teilt sich die AV-Queue mit
+   den Videostufen. Belegen lange Encodierungen alle `Pods × app.queue.av.concurrency` Slots, wartet jedes
+   Audio (und jedes kleine Video) bis eine Stufe fertig ist — Minuten. Reine CPU-Konkurrenz verlangsamt
+   in-JVM-Jobs nur (Faktor 2–6), ohne Timeouts in dieser Last.
+3. **Harte 30-min-Grenze pro AV-Job:** `app.converter.av.conversionTimeout=PT30M` *und* RabbitMQs Default
+   `consumer_timeout` (1800000 ms) — der Broker schließt den Kanal und stellt die Nachricht neu zu. Mehr
+   parallele Encodierungen pro Pod (R5) verlängern jede einzelne und reißen diese Grenze.
+4. **`app.converter.video.resolutions` aus Helm/compose war wirkungslos:** der String `480,720,1080` band
+   nicht auf die damalige Map `resolutions.<h>.priority`; es galten immer die drei Einträge aus
+   `application.properties`. Behoben: `resolutions` ist jetzt eine Liste, die Prioritäten stehen getrennt in
+   `app.converter.video.priorities.<h>`.
+5. **Dedizierte AV-Converter** isolieren image/document/pdf vollständig, lassen bei gleichem CPU-Budget aber
+   die Worker leer laufen (0,2 von 1 CPU) und verschärfen den Audio-Stau (nur 2 Slots).
+
+Was eine Stufe kostet (reines ffmpeg, 120-s-Ausschnitt 1080p, 2-CPU-Quota, 2 Encoder-Threads, Einzelläufe):
+
+| | 480p | 720p | 1080p | Dateigröße 1080p |
+|---|---|---|---|---|
+| `veryfast` (Default) | 27 s | 45 s | 60 s | 26,8 MB |
+| `superfast` | 25 s | 51 s | 45 s | 46,3 MB |
+| `ultrafast` | 20 s | 25 s | 30 s | 85,2 MB |
+| 1080p nur umpacken (`-c:v copy`, Quelle ist schon H.264 1080p) | | | 2 s | 36,5 MB |
+| alle drei Stufen in einem ffmpeg-Lauf (einmal decodieren) | 115 s statt 132 s | | | |
+
+Im Ende-zu-Ende-Lauf kostet das ganze Video (10:34 min) für alle drei Stufen ~2200 CPU-Sekunden (R4: 1080p
+allein 509 s auf 2 CPUs) — bei 2 × 2 CPUs also rund 10 Minuten des gesamten Clusters. `-threads 4` statt
+`2` macht unter 2-CPU-Quota nach dem Fix kaum einen Unterschied (64 vs. 62 s).
 
 ## Neue Metriken (Referenz)
 

@@ -29,9 +29,28 @@ spec:
         env:
           - name: ENABLE_METRICS
             value: "true"
+          {{- with .Values.config.jupyter }}
+          - name: JUPYTER_CONVERSION_TIMEOUT
+            value: {{ .conversionTimeout | quote }}
+          - name: JUPYTER_MAX_CONCURRENT_CONVERSIONS
+            value: {{ .maxConcurrentConversions | quote }}
+          - name: JUPYTER_SLOT_WAIT_TIMEOUT
+            value: {{ .slotWaitTimeout | quote }}
+          - name: JUPYTER_MAX_UPLOAD_BYTES
+            value: {{ .maxUploadBytes | int64 | quote }}
+          - name: JUPYTER_UVICORN_WORKERS
+            value: {{ .uvicorn.workers | quote }}
+          - name: JUPYTER_UVICORN_LIMIT_CONCURRENCY
+            value: {{ .uvicorn.limitConcurrency | quote }}
+          - name: JUPYTER_UVICORN_TIMEOUT_KEEP_ALIVE
+            value: {{ .uvicorn.timeoutKeepAlive | quote }}
+          {{- end }}
         ports:
         - name: api
           containerPort: 8000
+        volumeMounts:
+        - name: temp
+          mountPath: /tmp
         {{- with .Values.startupProbe }}
         startupProbe:
           httpGet:
@@ -45,7 +64,8 @@ spec:
         {{- end }}
         {{- with .Values.livenessProbe }}
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /ping
             port: api
           failureThreshold: {{ .failureThreshold }}
           initialDelaySeconds: {{ .initialDelaySeconds }}
@@ -63,11 +83,22 @@ spec:
           successThreshold: {{ .successThreshold }}
           timeoutSeconds: {{ .timeoutSeconds }}
         {{- end }}
+        {{- if .Values.preStopSleepSeconds }}
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep {{ .Values.preStopSleepSeconds }}"]
+        {{- end }}
         {{- with .Values.resources }}
         resources: {{ toYaml . | nindent 10 }}
         {{- end }}
         {{- with .Values.securityContext }}
-        securityContext: {{ toYaml . | nindent 10 }}
+        securityContext:
+          {{- /* readOnlyRootFilesystem is only rendered when enabled, so the default rendering stays unchanged */}}
+          {{- toYaml (omit . "readOnlyRootFilesystem") | nindent 10 }}
+          {{- if .readOnlyRootFilesystem }}
+          readOnlyRootFilesystem: true
+          {{- end }}
         {{- end }}
       {{- with .Values.global.image.pullSecrets }}
       imagePullSecrets: {{ toYaml . | nindent 8 }}
@@ -103,3 +134,13 @@ spec:
           {{- end }}
         {{- end }}
       {{- end }}
+      volumes:
+      - name: temp
+        {{- /* Temp files live on the node's ephemeral disk (no memory-backed emptyDir). Needed as a writable /tmp
+             when securityContext.readOnlyRootFilesystem is enabled; a Dockerfile VOLUME is ignored by Kubernetes. */}}
+        {{- if .Values.persistence.data.temp.sizeLimit }}
+        emptyDir:
+          sizeLimit: {{ .Values.persistence.data.temp.sizeLimit | quote }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}

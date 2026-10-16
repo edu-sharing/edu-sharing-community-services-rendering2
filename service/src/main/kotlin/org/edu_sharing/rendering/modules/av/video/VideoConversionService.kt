@@ -67,7 +67,7 @@ class VideoConversionService(
             val encoder = encoderFactory.`object`
             val encodingAttributes = initEncodingAttributes(targetWidth, targetHeight)
             timeoutGuard.runEncode(encoder, subJob.id) {
-                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, listOf(ffmpegThreadsArg(threads)))
+                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, encodingAttributes, listener, emptyList())
             }
             outputCacheObject.size = fileHelper.outputFile.length()
             log.debug("Video encoding complete: nodeId=${cacheObject.nodeId}, outputSize=${outputCacheObject.size} bytes, quality=$targetHeight")
@@ -112,6 +112,11 @@ class VideoConversionService(
         val attrs = EncodingAttributes()
         attrs.setAudioAttributes(audio)
         attrs.setVideoAttributes(video)
+        // jave places these before (decoder) and after (encoder) -i. A single -threads before -i would
+        // only limit the decoder and leave libx264 at its default, sized from the host's CPU count
+        // rather than the pod's CPU limit.
+        attrs.setDecodingThreads(threads)
+        attrs.setEncodingThreads(threads)
 
         return attrs
     }

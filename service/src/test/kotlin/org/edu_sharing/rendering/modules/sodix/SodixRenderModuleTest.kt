@@ -11,17 +11,17 @@ import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationS
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.core.AmqpTemplate
 
 class SodixRenderModuleTest {
     private val repositoryRegistrationStorageService = mockk<RepositoryRegistrationStorageService>()
     private val mapper = mockk<Mapper>()
     private val jobRepository = mockk<RenderingJobRepository>(relaxUnitFun = true)
-    private val amqpTemplate = mockk<AmqpTemplate>(relaxUnitFun = true)
+    private val jobMessagePublisher = mockk<JobMessagePublisher>(relaxUnitFun = true)
     private val subJobRepository = mockk<SubJobRepository>(relaxed = true)
     private val jobDataProvider = JobDataProvider()
 
@@ -34,7 +34,7 @@ class SodixRenderModuleTest {
             repositoryRegistrationStorageService,
             mapper,
             jobRepository,
-            amqpTemplate,
+            jobMessagePublisher,
             subJobRepository,
             exchange,
             routingKey,
@@ -95,7 +95,7 @@ class SodixRenderModuleTest {
         assert(response.jobId == null)
         assert(response.module == "SODIX")
         verify(exactly = 0) { jobRepository.save(any()) }
-        verify(exactly = 0) { amqpTemplate.convertAndSend(any<String>(), any<String>(), any<Any>()) }
+        verify(exactly = 0) { jobMessagePublisher.publishForJob(any(), any(), any(), any()) }
     }
 
     @Test
@@ -113,9 +113,9 @@ class SodixRenderModuleTest {
         assert(response.jobId == job.id.toString())
         verify(exactly = 1) { jobRepository.save(job) }
         verify(exactly = 1) {
-            amqpTemplate.convertAndSend(exchange, routingKey, match<SodixJobMessage> {
+            jobMessagePublisher.publishForJob(exchange, routingKey, match<SodixJobMessage> {
                 it.identifier == "sodix-123" && !it.isPaidMedia
-            })
+            }, job.id)
         }
     }
 
@@ -146,9 +146,9 @@ class SodixRenderModuleTest {
             jobRepository.updateStatusWithoutVersion(job.id, RenderingJobStatus.PROCESSING)
         }
         verify(exactly = 1) {
-            amqpTemplate.convertAndSend(exchange, routingKey, match<SodixJobMessage> {
+            jobMessagePublisher.publishForJob(exchange, routingKey, match<SodixJobMessage> {
                 it.identifier == "sodix-123" && !it.isPaidMedia && it.nodeId == job.esObjectId
-            })
+            }, job.id)
         }
     }
 
@@ -160,6 +160,6 @@ class SodixRenderModuleTest {
         underTest.refreshLinks(job)
 
         verify(exactly = 1) { subJobRepository.claimForRefresh(job.subJobs.first().id) }
-        verify(exactly = 0) { amqpTemplate.convertAndSend(any<String>(), any<String>(), any<Any>()) }
+        verify(exactly = 0) { jobMessagePublisher.publishForJob(any(), any(), any(), any()) }
     }
 }

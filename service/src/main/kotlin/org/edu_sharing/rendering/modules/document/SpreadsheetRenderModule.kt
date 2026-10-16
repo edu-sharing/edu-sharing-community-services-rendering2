@@ -2,9 +2,10 @@ package org.edu_sharing.rendering.modules.document
 
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.renderingJob.MainJobLogic
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.MediaType
@@ -19,13 +20,15 @@ class SpreadsheetRenderModule(
     mapper: Mapper,
     documentService: DocumentService,
     subJobRepository: SubJobRepository,
-    amqpTemplate: AmqpTemplate
+    jobMessagePublisher: JobMessagePublisher,
+    mainJobLogic: MainJobLogic
 ): DocumentRenderModule(
     nodePermissionExpirationTime = nodePermissionExpirationTime,
     mapper = mapper,
     documentService = documentService,
     subJobRepository = subJobRepository,
-    amqpTemplate = amqpTemplate,
+    jobMessagePublisher = jobMessagePublisher,
+    mainJobLogic = mainJobLogic,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
