@@ -69,6 +69,7 @@ data:
   "app.converter.audio.bitrate": {{ .Values.config.converter.audio.bitrate | quote }}
   "app.converter.audio.ffmpegThreads": {{ .Values.config.converter.audio.ffmpegThreads | quote }}
   "app.converter.av.ffmpegPath": {{ .Values.config.converter.av.ffmpegPath | quote }}
+  "app.converter.av.niceness": {{ .Values.config.converter.av.niceness | quote }}
   "app.cache.cleaner.schedule": {{ .Values.config.cache.cleaner.schedule | quote }}
   "app.cache.cleaner.threshold.lower": {{ .Values.config.cache.cleaner.threshold.lower | quote }}
   "app.cache.cleaner.threshold.upper": {{ .Values.config.cache.cleaner.threshold.upper | quote }}
@@ -78,13 +79,77 @@ data:
   {{- range $k, $v := .Values.config.jobreaper.maxProcessTime }}
   "app.jobreaper.max-process-time.{{ $k }}": {{ $v | quote }}
   {{- end }}
+  "app.jobreaper.max-main-job-setup-time": {{ .Values.config.jobreaper.maxMainJobSetupTime | quote }}
   "app.jobreaper.default-max-queued-time": {{ .Values.config.jobreaper.defaultMaxQueuedTime | quote }}
   {{- range $k, $v := .Values.config.jobreaper.maxQueuedTime }}
   "app.jobreaper.max-queued-time.{{ $k }}": {{ $v | quote }}
   {{- end }}
+  INFRA_WAIT_TIMEOUT: {{ .Values.config.entrypoint.infraWaitTimeout | quote }}
+  REPOSITORY_WAIT_TIMEOUT: {{ .Values.config.entrypoint.repositoryWaitTimeout | quote }}
+  "app.repository.registration.repo-timeout-seconds": {{ .Values.config.registration.repoTimeoutSeconds | quote }}
+  "app.repository.registration.retry-interval-millis": {{ .Values.config.registration.retryIntervalMillis | quote }}
+  "app.repository.registration.retry-initial-delay-seconds": {{ .Values.config.registration.retryInitialDelaySeconds | quote }}
+  "app.repository.registration.retry-max-delay-seconds": {{ .Values.config.registration.retryMaxDelaySeconds | quote }}
+  "app.module.binder.sse-idle-timeout": {{ .Values.config.binder.sseIdleTimeout | quote }}
+  "app.module.binder.max-file-size": {{ .Values.config.binder.maxFileSize | quote }}
+  "app.repository-http.max-requests": {{ .Values.config.repositoryHttp.maxRequests | quote }}
+  "app.repository-http.max-requests-per-host": {{ .Values.config.repositoryHttp.maxRequestsPerHost | quote }}
+  "app.repository-http.timeout.connect": {{ .Values.config.repositoryHttp.timeout.connect | quote }}
+  "app.repository-http.timeout.read": {{ .Values.config.repositoryHttp.timeout.read | quote }}
+  "app.repository-http.timeout.write": {{ .Values.config.repositoryHttp.timeout.write | quote }}
+  "app.repository-http.timeout.call": {{ .Values.config.repositoryHttp.timeout.call | quote }}
+  "app.resilience.enabled": {{ .Values.config.resilience.enabled | quote }}
+  "app.resilience.retry.max-attempts": {{ .Values.config.resilience.retry.maxAttempts | quote }}
+  "app.resilience.retry.initial-backoff": {{ .Values.config.resilience.retry.initialBackoff | quote }}
+  "app.resilience.retry.max-backoff": {{ .Values.config.resilience.retry.maxBackoff | quote }}
+  "app.resilience.retry.jitter": {{ .Values.config.resilience.retry.jitter | quote }}
+  "app.resilience.retry.max-retry-after": {{ .Values.config.resilience.retry.maxRetryAfter | quote }}
+  "app.resilience.retry.total-budget": {{ .Values.config.resilience.retry.totalBudget | quote }}
+  "app.resilience.circuit-breaker.enabled": {{ .Values.config.resilience.circuitBreaker.enabled | quote }}
+  "app.resilience.circuit-breaker.failure-threshold": {{ .Values.config.resilience.circuitBreaker.failureThreshold | quote }}
+  "app.resilience.circuit-breaker.open-duration": {{ .Values.config.resilience.circuitBreaker.openDuration | quote }}
+  "app.resilience.circuit-breaker.half-open-max-calls": {{ .Values.config.resilience.circuitBreaker.halfOpenMaxCalls | quote }}
+  "app.resilience.circuit-breaker.failure-classification": {{ .Values.config.resilience.circuitBreaker.failureClassification | quote }}
+  "app.resilience.bulkhead.enabled": {{ .Values.config.resilience.bulkhead.enabled | quote }}
+  "app.resilience.bulkhead.max-concurrent-calls": {{ .Values.config.resilience.bulkhead.maxConcurrentCalls | quote }}
+  "app.resilience.bulkhead.max-wait": {{ .Values.config.resilience.bulkhead.maxWait | quote }}
+  "app.module.ddb.auth-mode": {{ .Values.config.ddb.authMode | quote }}
+  "app.converter.call.max-attempts": {{ .Values.config.converter.call.maxAttempts | quote }}
+  "app.converter.call.initial-backoff": {{ .Values.config.converter.call.initialBackoff | quote }}
+  "app.converter.call.max-backoff": {{ .Values.config.converter.call.maxBackoff | quote }}
+  "app.converter.call.attempt-timeout": {{ .Values.config.converter.call.attemptTimeout | quote }}
+  "app.converter.call.total-budget": {{ .Values.config.converter.call.totalBudget | quote }}
+  "app.converter.call.max-retry-after": {{ .Values.config.converter.call.maxRetryAfter | quote }}
+  "app.scheduling.pool-size": {{ .Values.config.scheduling.poolSize | quote }}
+  "app.temp.cleanup.enabled": {{ .Values.config.temp.cleanup.enabled | quote }}
+  "app.temp.cleanup.stale-file-age": {{ .Values.config.temp.cleanup.staleFileAge | quote }}
+  "app.mongodb.timeout.connect-timeout": {{ .Values.config.mongodb.timeout.connectTimeout | quote }}
+  "app.mongodb.timeout.socket-timeout": {{ .Values.config.mongodb.timeout.socketTimeout | quote }}
+  "app.mongodb.timeout.server-selection-timeout": {{ .Values.config.mongodb.timeout.serverSelectionTimeout | quote }}
+  "spring.rabbitmq.connection-timeout": {{ .Values.config.rabbitmq.connectionTimeout | quote }}
+  "spring.rabbitmq.channel-rpc-timeout": {{ .Values.config.rabbitmq.channelRpcTimeout | quote }}
+  "spring.rabbitmq.requested-heartbeat": {{ .Values.config.rabbitmq.requestedHeartbeat | quote }}
+  "spring.rabbitmq.cache.channel.size": {{ .Values.config.rabbitmq.cacheChannelSize | quote }}
+  "spring.rabbitmq.cache.channel.checkout-timeout": {{ .Values.config.rabbitmq.checkoutTimeout | quote }}
+  "app.redis.client.command-timeout": {{ .Values.config.redis.client.commandTimeout | quote }}
+  "app.redis.client.connect-timeout": {{ .Values.config.redis.client.connectTimeout | quote }}
+  "app.redis.client.keep-alive": {{ .Values.config.redis.client.keepAlive | quote }}
+  "app.redis.client.request-queue-size": {{ .Values.config.redis.client.requestQueueSize | quote }}
+  "app.redis.client.disconnected-behavior": {{ .Values.config.redis.client.disconnectedBehavior | quote }}
+  "app.redis.session.configure-action": {{ .Values.config.redis.session.configureAction | quote }}
+  "app.s3.client.max-connections": {{ .Values.config.s3.client.maxConnections | quote }}
+  "app.s3.client.connection-timeout": {{ .Values.config.s3.client.connectionTimeout | quote }}
+  "app.s3.client.socket-timeout": {{ .Values.config.s3.client.socketTimeout | quote }}
+  "app.s3.client.connection-acquisition-timeout": {{ .Values.config.s3.client.connectionAcquisitionTimeout | quote }}
+  "app.s3.client.connection-max-idle-time": {{ .Values.config.s3.client.connectionMaxIdleTime | quote }}
+  "app.s3.client.api-call-attempt-timeout": {{ .Values.config.s3.client.apiCallAttemptTimeout | quote }}
+  "app.s3.client.api-call-timeout": {{ .Values.config.s3.client.apiCallTimeout | quote }}
+  "app.s3.health.bucket": {{ .Values.config.s3.health.bucket | quote }}
+  "app.s3.health.timeout": {{ .Values.config.s3.health.timeout | quote }}
   "app.queue-migration.enabled": {{ .Values.config.queueMigration.enabled | quote }}
   "app.queue-migration.schedule": {{ .Values.config.queueMigration.schedule | quote }}
   "app.lumi.host": {{ printf "http://%s:%d" .Values.config.lumi.host (.Values.config.lumi.port | int) | quote }}
+  "app.lumi.proxy.response-headers-timeout": {{ .Values.config.lumi.proxy.responseHeadersTimeout | quote }}
   "app.documentConverter.host": {{ printf "http://%s:%d" .Values.config.converter.document.host (.Values.config.converter.document.port | int) | quote }}
   "app.jupyterConverter.host": {{ printf "http://%s:%d" .Values.config.converter.jupyter.host (.Values.config.converter.jupyter.port | int) | quote }}
   "spring.http.codecs.max-in-memory-size": {{ .Values.config.webclient.codec.maxInMemorySize | quote }}

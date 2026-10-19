@@ -15,6 +15,13 @@ services:
       RUSTFS_OBS_LOG_DIRECTORY: ""
       RUST_BACKTRACE: full
     command: [ "rustfs" ]
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health || wget -q -O /dev/null http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       - "rendering2-rustfs-storage-volume-data:/data"
     expose:
@@ -30,6 +37,13 @@ services:
       RABBITMQ_DEFAULT_PASS: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       RABBITMQ_SECURE_PASSWORD: true
       RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
     expose:
       - "5672"
       - "15672"
@@ -44,9 +58,29 @@ services:
       MONGODB_EXTRA_LUMI_DATABASE: "${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
       MONGODB_EXTRA_LUMI_USERNAME: "${RENDERING2_LUMI_DATABASE_USER:-lumi}"
       MONGODB_EXTRA_LUMI_PASSWORD: "${RENDERING2_LUMI_DATABASE_PASS:-lumi}"
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'quit(db.adminCommand({ping: 1}).ok ? 0 : 1)'"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+
+  redis-cache:
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rendering2-service:
     image: "${docker.registry}/${docker.repository}/${docker.prefix}-deploy-docker-build-service:${docker.tag}"
+    # Graceful shutdown drains in-flight HTTP requests and RabbitMQ consumers (up to 35 min for an ffmpeg job,
+    # see spring.lifecycle.timeout-per-shutdown-phase in application.properties). Docker's default of 10 s would
+    # SIGKILL the container long before. Only an upper bound: an idle service still stops immediately.
+    stop_grace_period: "${RENDERING2_SERVICE_STOP_GRACE_PERIOD:-40m}"
     command:
       - -Xms${RENDERING2_SERVICE_JAVA_XMS:-512m}
       - -Xmx${RENDERING2_SERVICE_JAVA_XMX:-512m}
@@ -148,6 +182,7 @@ services:
       app.converter.audio.bitrate: "${RENDERING2_SERVICE_CONVERTER_AUDIO_BITRATE:-160}"
       app.converter.audio.ffmpegThreads: "${RENDERING2_SERVICE_CONVERTER_AUDIO_FFMPEG_THREADS:-1}"
       app.converter.av.ffmpegPath: "${RENDERING2_SERVICE_CONVERTER_AV_FFMPEG_PATH:-ffmpeg}"
+      app.converter.av.niceness: "${RENDERING2_SERVICE_CONVERTER_AV_NICENESS:-0}"
       app.cache.cleaner.schedule: "${RENDERING2_SERVICE_CACHE_CLEANER_SCHEDULE:-0 */15 * * * *}"
       app.cache.cleaner.threshold.lower: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_LOWER:-0.7}"
       app.cache.cleaner.threshold.upper: "${RENDERING2_SERVICE_CACHE_CLEANER_THRESHOLD_UPPER:-0.9}"
@@ -165,6 +200,82 @@ services:
       # consumer is attached anymore. See LegacyQueueCleaner. Disable once confirmed complete.
       app.queue-migration.enabled: "${RENDERING2_QUEUE_MIGRATION_ENABLED:-true}"
       app.queue-migration.schedule: "${RENDERING2_QUEUE_MIGRATION_SCHEDULE:-PT30M}"
+      # Max time a main job may sit PROCESSING without sub-jobs (payload download); must exceed the longest source download.
+      app.jobreaper.max-main-job-setup-time: "${RENDERING2_JOBREAPER_MAX_MAIN_JOB_SETUP_TIME:-PT1H}"
+      # Entrypoint waits (entrypoint.sh, not Spring): max seconds per infrastructure service before the container
+      # exits 1, and the best-effort wait for the registered repositories (0 = do not wait).
+      INFRA_WAIT_TIMEOUT: "${RENDERING2_SERVICE_INFRA_WAIT_TIMEOUT:-300}"
+      REPOSITORY_WAIT_TIMEOUT: "${RENDERING2_SERVICE_REPOSITORY_WAIT_TIMEOUT:-60}"
+      # Repository registration retry loop (master only), see application.properties.
+      app.repository.registration.repo-timeout-seconds: "${RENDERING2_SERVICE_REGISTRATION_REPO_TIMEOUT_SECONDS:-240}"
+      app.repository.registration.retry-interval-millis: "${RENDERING2_SERVICE_REGISTRATION_RETRY_INTERVAL_MILLIS:-30000}"
+      app.repository.registration.retry-initial-delay-seconds: "${RENDERING2_SERVICE_REGISTRATION_RETRY_INITIAL_DELAY_SECONDS:-30}"
+      app.repository.registration.retry-max-delay-seconds: "${RENDERING2_SERVICE_REGISTRATION_RETRY_MAX_DELAY_SECONDS:-600}"
+      app.module.binder.sse-idle-timeout: "${RENDERING2_SERVICE_BINDER_SSE_IDLE_TIMEOUT:-PT15M}"
+      app.module.binder.max-file-size: "${RENDERING2_SERVICE_BINDER_MAX_FILE_SIZE:-50MB}"
+      # Timeouts of the repository SDK's OkHttp clients; call = hard bound per request (0 = none).
+      app.repository-http.timeout.connect: "${RENDERING2_SERVICE_REPOSITORY_HTTP_CONNECT_TIMEOUT:-10s}"
+      app.repository-http.timeout.read: "${RENDERING2_SERVICE_REPOSITORY_HTTP_READ_TIMEOUT:-30s}"
+      app.repository-http.timeout.write: "${RENDERING2_SERVICE_REPOSITORY_HTTP_WRITE_TIMEOUT:-30s}"
+      app.repository-http.timeout.call: "${RENDERING2_SERVICE_REPOSITORY_HTTP_CALL_TIMEOUT:-60s}"
+      # Resilience layer for calls to sodix/omega/omega-validation/ddb/github/lumi (retry only for idempotent GET/HEAD,
+      # breaker per remote and pod, metrics rendering.remote.*). Per-remote overrides: app.resilience.modules.<name>.*.
+      app.resilience.enabled: "${RENDERING2_SERVICE_RESILIENCE_ENABLED:-true}"
+      app.resilience.retry.max-attempts: "${RENDERING2_SERVICE_RESILIENCE_RETRY_MAX_ATTEMPTS:-3}"
+      app.resilience.retry.initial-backoff: "${RENDERING2_SERVICE_RESILIENCE_RETRY_INITIAL_BACKOFF:-200ms}"
+      app.resilience.retry.max-backoff: "${RENDERING2_SERVICE_RESILIENCE_RETRY_MAX_BACKOFF:-2s}"
+      app.resilience.retry.jitter: "${RENDERING2_SERVICE_RESILIENCE_RETRY_JITTER:-0.5}"
+      app.resilience.retry.max-retry-after: "${RENDERING2_SERVICE_RESILIENCE_RETRY_MAX_RETRY_AFTER:-5s}"
+      app.resilience.retry.total-budget: "${RENDERING2_SERVICE_RESILIENCE_RETRY_TOTAL_BUDGET:-75s}"
+      app.resilience.circuit-breaker.enabled: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_ENABLED:-true}"
+      app.resilience.circuit-breaker.failure-threshold: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_FAILURE_THRESHOLD:-5}"
+      app.resilience.circuit-breaker.open-duration: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_OPEN_DURATION:-30s}"
+      app.resilience.circuit-breaker.half-open-max-calls: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS:-1}"
+      app.resilience.circuit-breaker.failure-classification: "${RENDERING2_SERVICE_RESILIENCE_CIRCUIT_BREAKER_FAILURE_CLASSIFICATION:-DEFAULT}"
+      app.resilience.bulkhead.enabled: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_ENABLED:-true}"
+      app.resilience.bulkhead.max-concurrent-calls: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_MAX_CONCURRENT_CALLS:-64}"
+      app.resilience.bulkhead.max-wait: "${RENDERING2_SERVICE_RESILIENCE_BULKHEAD_MAX_WAIT:-0s}"
+      # DDB consumer key transport: QUERY (default) or HEADER (unverified against the live API, opt-in only).
+      app.module.ddb.auth-mode: "${RENDERING2_SERVICE_DDB_AUTH_MODE:-QUERY}"
+      # Retry/timeout budget of the document/jupyter converter calls (transient 502/503/504, connection errors, timeouts).
+      app.converter.call.max-attempts: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_ATTEMPTS:-3}"
+      app.converter.call.initial-backoff: "${RENDERING2_SERVICE_CONVERTER_CALL_INITIAL_BACKOFF:-2s}"
+      app.converter.call.max-backoff: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_BACKOFF:-20s}"
+      app.converter.call.attempt-timeout: "${RENDERING2_SERVICE_CONVERTER_CALL_ATTEMPT_TIMEOUT:-330s}"
+      app.converter.call.total-budget: "${RENDERING2_SERVICE_CONVERTER_CALL_TOTAL_BUDGET:-15m}"
+      app.converter.call.max-retry-after: "${RENDERING2_SERVICE_CONVERTER_CALL_MAX_RETRY_AFTER:-30s}"
+      app.scheduling.pool-size: "${RENDERING2_SERVICE_SCHEDULING_POOL_SIZE:-4}"
+      # Startup sweep of orphaned job temp files (stale-file-age must exceed the longest job).
+      app.temp.cleanup.enabled: "${RENDERING2_SERVICE_TEMP_CLEANUP_ENABLED:-true}"
+      app.temp.cleanup.stale-file-age: "${RENDERING2_SERVICE_TEMP_CLEANUP_STALE_FILE_AGE:-PT6H}"
+      # MongoDB driver timeouts (socket-timeout stays above the slowest cache-cleaner aggregation).
+      app.mongodb.timeout.connect-timeout: "${RENDERING2_SERVICE_MONGODB_CONNECT_TIMEOUT:-10s}"
+      app.mongodb.timeout.socket-timeout: "${RENDERING2_SERVICE_MONGODB_SOCKET_TIMEOUT:-5m}"
+      app.mongodb.timeout.server-selection-timeout: "${RENDERING2_SERVICE_MONGODB_SERVER_SELECTION_TIMEOUT:-30s}"
+      # RabbitMQ timeouts. cache.channel.size is a HARD limit: raise it together with any app.queue.<x>.concurrency
+      # (it must cover all consumer channels of the container plus concurrent publishers).
+      spring.rabbitmq.connection-timeout: "${RENDERING2_SERVICE_RABBITMQ_CONNECTION_TIMEOUT:-10s}"
+      spring.rabbitmq.channel-rpc-timeout: "${RENDERING2_SERVICE_RABBITMQ_CHANNEL_RPC_TIMEOUT:-30s}"
+      spring.rabbitmq.requested-heartbeat: "${RENDERING2_SERVICE_RABBITMQ_HEARTBEAT:-30s}"
+      spring.rabbitmq.cache.channel.size: "${RENDERING2_SERVICE_RABBITMQ_CACHE_CHANNEL_SIZE:-400}"
+      spring.rabbitmq.cache.channel.checkout-timeout: "${RENDERING2_SERVICE_RABBITMQ_CHECKOUT_TIMEOUT:-30s}"
+      # Lettuce (Redis) resilience and Spring Session bootstrap; NO_OP for managed Redis that forbids CONFIG.
+      app.redis.client.command-timeout: "${RENDERING2_SERVICE_REDIS_COMMAND_TIMEOUT:-5s}"
+      app.redis.client.connect-timeout: "${RENDERING2_SERVICE_REDIS_CONNECT_TIMEOUT:-10s}"
+      app.redis.client.keep-alive: "${RENDERING2_SERVICE_REDIS_KEEP_ALIVE:-true}"
+      app.redis.client.request-queue-size: "${RENDERING2_SERVICE_REDIS_REQUEST_QUEUE_SIZE:-2000}"
+      app.redis.client.disconnected-behavior: "${RENDERING2_SERVICE_REDIS_DISCONNECTED_BEHAVIOR:-DEFAULT}"
+      app.redis.session.configure-action: "${RENDERING2_SERVICE_REDIS_SESSION_CONFIGURE_ACTION:-DEFAULT}"
+      # S3 client pool/timeouts and the health probe (HEAD on a bucket that need not exist).
+      app.s3.client.max-connections: "${RENDERING2_SERVICE_S3_MAX_CONNECTIONS:-200}"
+      app.s3.client.connection-timeout: "${RENDERING2_SERVICE_S3_CONNECTION_TIMEOUT:-10s}"
+      app.s3.client.socket-timeout: "${RENDERING2_SERVICE_S3_SOCKET_TIMEOUT:-2m}"
+      app.s3.client.connection-acquisition-timeout: "${RENDERING2_SERVICE_S3_CONNECTION_ACQUISITION_TIMEOUT:-30s}"
+      app.s3.client.connection-max-idle-time: "${RENDERING2_SERVICE_S3_CONNECTION_MAX_IDLE_TIME:-1m}"
+      app.s3.client.api-call-attempt-timeout: "${RENDERING2_SERVICE_S3_API_CALL_ATTEMPT_TIMEOUT:-30m}"
+      app.s3.client.api-call-timeout: "${RENDERING2_SERVICE_S3_API_CALL_TIMEOUT:-1h}"
+      app.s3.health.bucket: "${RENDERING2_SERVICE_S3_HEALTH_BUCKET:-rendering-health-probe}"
+      app.s3.health.timeout: "${RENDERING2_SERVICE_S3_HEALTH_TIMEOUT:-5s}"
       spring.rabbitmq.username: "${RENDERING2_MESSAGE_QUEUE_USER:-rendering}"
       spring.rabbitmq.password: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       app.repository.registration.id.local.url: http://repository-service:8080/edu-sharing
@@ -242,16 +353,29 @@ services:
       server.servlet.session.cookie.secure: "${RENDERING2_SERVICE_COOKIE_SECURE:-false}"
       server.servlet.session.cookie.partitioned: "${RENDERING2_SERVICE_COOKIE_PARTITIONED:-false}"
       app.lumi.host: http://rendering2-lumi:3000
+      # Upper bound for lumi to deliver status + headers of a proxied H5P response (each proxied request holds a
+      # Tomcat thread this long at most; a timeout is answered with 504).
+      app.lumi.proxy.response-headers-timeout: "${RENDERING2_SERVICE_LUMI_PROXY_RESPONSE_HEADERS_TIMEOUT:-20s}"
       app.documentConverter.host: http://rendering2-document-converter:8080
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    # Readiness on the management port (management.server.port, same endpoint the Helm chart probes). curl ships in the image.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9080/actuator/health/readiness"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 3m
     expose:
       - "8080"
     depends_on:
       mongo-database:
-        condition: service_started
+        condition: service_healthy
       rendering2-message-queue:
-        condition: service_started
+        condition: service_healthy
       redis-cache:
-        condition: service_started
+        condition: service_healthy
+      rendering2-rustfs-storage:
+        condition: service_healthy
       # Lumi can need minutes to start; H5P jobs consumed earlier fail with "connection refused".
       rendering2-lumi:
         condition: service_healthy
@@ -275,8 +399,30 @@ services:
       LIBREOFFICE_MAX_TASKS_PER_PROCESS: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_MAX_TASKS_PER_PROCESS:-100}"
       LIBREOFFICE_TASK_EXECUTION_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_EXECUTION_TIMEOUT:-120000}"
       LIBREOFFICE_TASK_QUEUE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_TASK_QUEUE_TIMEOUT:-300000}"
+      # Time to start/connect/terminate one office process (ms) and the pause between attempts (ms).
+      LIBREOFFICE_PROCESS_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PROCESS_TIMEOUT:-120000}"
+      LIBREOFFICE_PROCESS_RETRY_INTERVAL: "${RENDERING2_DOCUMENT_CONVERTER_LIBREOFFICE_PROCESS_RETRY_INTERVAL:-250}"
+      # LibreOffice readiness probe (txt->pdf, cached); readiness only, liveness stays independent.
+      LIBREOFFICE_HEALTH_PROBE_ENABLED: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_PROBE_ENABLED:-true}"
+      LIBREOFFICE_HEALTH_PROBE_TIMEOUT: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_PROBE_TIMEOUT:-10s}"
+      LIBREOFFICE_HEALTH_CACHE_TTL: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_CACHE_TTL:-30s}"
+      LIBREOFFICE_HEALTH_FAILURE_THRESHOLD: "${RENDERING2_DOCUMENT_CONVERTER_HEALTH_FAILURE_THRESHOLD:-3}"
+      # Temp files of the conversion pipeline (empty = <java.io.tmpdir>/doc-converter), the startup sweep age of stale
+      # temp files, the scan window for HTML styles and the max HTML size parsed into a DOM.
+      CONVERTER_WORK_DIR: "${RENDERING2_DOCUMENT_CONVERTER_WORK_DIR:-}"
+      CONVERTER_STALE_FILE_AGE: "${RENDERING2_DOCUMENT_CONVERTER_STALE_FILE_AGE:-6h}"
+      CONVERTER_HTML_STYLE_SCAN_WINDOW: "${RENDERING2_DOCUMENT_CONVERTER_HTML_STYLE_SCAN_WINDOW:-256KB}"
+      CONVERTER_MAX_HTML_DOM_SIZE: "${RENDERING2_DOCUMENT_CONVERTER_MAX_HTML_DOM_SIZE:-32MB}"
     cpus: "${RENDERING2_DOCUMENT_CONVERTER_CPUS:-2}"
     mem_limit: "${RENDERING2_DOCUMENT_CONVERTER_MEMORY:-4g}"
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    # Management port of the document-converter (management.server.port); busybox wget ships in the image.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health/readiness"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 2m
     expose:
       - "8080"
 
@@ -346,6 +492,15 @@ services:
       LOG_SCOPE: h5p:*
       LOG_LEVEL: info
       DEBUG: h5p:*
+      # How long a shutdown waits for a running import before the process exits; keep it below stop_grace_period.
+      SHUTDOWN_TIMEOUT_MS: "${RENDERING2_LUMI_SHUTDOWN_TIMEOUT_MS:-30000}"
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    stop_grace_period: "${RENDERING2_LUMI_STOP_GRACE_PERIOD:-40s}"
+    depends_on:
+      mongo-database:
+        condition: service_healthy
+      rendering2-rustfs-storage:
+        condition: service_healthy
     volumes:
       - "rendering2-lumi-volume-library-cache:/application/library-cache"
     healthcheck:
@@ -370,6 +525,14 @@ services:
       VIRTUAL_HOST: "${RENDERING2_SERVICE_PUBLIC_HOST:-repository.127.0.0.1.nip.io}"
       VIRTUAL_PATH: "${RENDERING2_ADMIN_FRONTEND_PUBLIC_PATH:-/rendering-admin}/"
       VIRTUAL_PORT: 8080
+    restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
+    # server.mjs answers /ping at the root regardless of BASE_HREF (also under the prefix); node ships in the image.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     expose:
       - "8080"
     ports:

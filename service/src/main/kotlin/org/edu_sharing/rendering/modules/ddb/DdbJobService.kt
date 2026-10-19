@@ -2,13 +2,13 @@ package org.edu_sharing.rendering.modules.ddb
 
 import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -17,7 +17,7 @@ class DdbJobService(
     private val mapper: Mapper,
     private val jobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
-    private val amqpTemplate: AmqpTemplate
+    private val jobMessagePublisher: JobMessagePublisher
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -39,7 +39,7 @@ class DdbJobService(
         )
         subJobRepository.save(subJob)
         log.debug("Sending DDB job message for jobId ${job.id}, remoteId $remoteId to queue $jobRoutingKey")
-        amqpTemplate.convertAndSend(topicExchangeName, jobRoutingKey, DdbJobMessage(id = job.id.toString(), remoteId = remoteId))
+        jobMessagePublisher.publishForJob(topicExchangeName, jobRoutingKey, DdbJobMessage(id = job.id.toString(), remoteId = remoteId), job.id)
 
         return job.id.toString()
     }

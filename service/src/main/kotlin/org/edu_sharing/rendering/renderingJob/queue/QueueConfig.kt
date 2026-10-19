@@ -1,6 +1,5 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.config.DirectRabbitListenerContainerFactory
 import org.springframework.amqp.rabbit.connection.AbstractConnectionFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
@@ -162,7 +161,7 @@ class QueueConfig {
     }
 
     @Bean
-    fun amqpTemplate(connectionFactory: ConnectionFactory, messageConverter: MessageConverter): AmqpTemplate {
+    fun amqpTemplate(connectionFactory: ConnectionFactory, messageConverter: MessageConverter): RabbitTemplate {
         val template = RabbitTemplate(connectionFactory)
         template.messageConverter = messageConverter
         // Inject the current trace context into message headers when publishing.
@@ -186,6 +185,14 @@ class QueueConfig {
         template.setConfirmCallback { correlationData, ack, cause ->
             if (!ack) {
                 log.error("Publish not confirmed by broker (nacked): correlationData={}, cause={}", correlationData, cause)
+                // Map the nack back to its job (see JobMessagePublisher) instead of only logging it. Offloaded to
+                // a virtual thread: this callback runs on a broker-client thread that must not block on Mongo.
+                if (correlationData is JobCorrelationData) {
+                    Thread.ofVirtual().start { correlationData.unconfirmed("broker nack: $cause") }
+                }
+            } else if (correlationData is JobCorrelationData && correlationData.returned != null) {
+                // Acked but returned as unroutable (mandatory flag): the message is not in any queue.
+                Thread.ofVirtual().start { correlationData.unconfirmed("unroutable: ${correlationData.returned?.replyText}") }
             }
         }
         return template

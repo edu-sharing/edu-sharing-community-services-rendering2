@@ -12,7 +12,8 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 ## Layout
 | Path | Responsibility |
 |---|---|
-| `src/index.ts` | Entry point; Express init, graceful shutdown (SIGINT/SIGTERM). |
+| `src/index.ts` | Entry point; Express init, graceful shutdown (SIGINT/SIGTERM): refuses new `POST`s (imports) with 503 once it started, waits up to `SHUTDOWN_TIMEOUT_MS` (default 10000) for running requests. |
+| `src/shutdown.ts` | `SHUTDOWN_TIMEOUT_MS` parsing and the process-level guards: `unhandledRejection` is logged and counted (`lumi_unhandled_rejections_total`) but **not fatal** (an abandoned import may reject long after its 504); `uncaughtException` starts the controlled shutdown with exit code 1. |
 | `src/router.ts` | edu-sharing-specific routes (below). |
 | `src/createH5PEditor.ts` | Builds the H5P editor with S3 + Mongo storage (incl. the S3 connection pool); returns it as `H5PDeps` together with the shared storages/options. |
 | `src/packageLibraries/` | Per-package isolated H5P library caches (below). Self-contained; off by default. |
@@ -70,7 +71,7 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
   - `AWS_S3_REQUEST_TIMEOUT_MS` is a *socket inactivity* timeout; backpressure from a slow client
     stalls reads on the S3 socket, so enabling it can truncate large downloads.
 - **Package size limits**: `H5P_MAX_TOTAL_SIZE` (max *unpacked* size of a package, default 1000 MB in `config.json`, 4GB in compose/Helm) and `H5P_MAX_FILE_SIZE` (max single file, 1000 MB / 2GB), plain byte count or `2GB`-style size; an unparsable value logs a warning and keeps the default. Larger packages fail with `package-validation-failed:total-size-too-large`. The import works on the spooled **file** (`uploadPackage(path)`), so neither limit is bound by memory and a package may exceed 2 GiB: a 2.3 GB package imports with ~0.7 GB RSS. Handing the library a `Buffer` instead would fail above 2 GiB (`fs.readFile`) and keep the package in RAM plus a second copy in `/tmp` - do not go back to that. Time is the remaining limit: the rendering service's per-repository `timeout` credential (default 300 s) and `H5P_IMPORT_TIMEOUT_MS` have to cover an import of that size on your storage.
-- **Server**: `PORT` (default 3000), `BASE_URL=/public/h5p`, `CACHE=in-memory`.
+- **Server**: `PORT` (default 3000), `BASE_URL=/public/h5p`, `CACHE=in-memory`, `SHUTDOWN_TIMEOUT_MS` (default 10000; how long a shutdown waits for a running import - the Helm chart derives it from `terminationGracePeriod` minus `preStopSleepSeconds` minus 10 s, compose sets 30000 with `stop_grace_period` 40s).
 - **Per-package library cache**: `H5P_LIBRARY_CACHE` (`global` | `package`, default `global`),
   `H5P_LIBRARY_CACHE_DIR` (default `/application/library-cache`), `H5P_LIBRARY_CACHE_QUOTA`
   (**soft** limit, see *Quota*; byte count or `10GB`-style size, binary units via `parseDataSize`;

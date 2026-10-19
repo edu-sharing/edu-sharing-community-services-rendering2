@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.edusharingRepo.services
 
+import org.edu_sharing.rendering.utils.JobTempFiles
 import org.edu_sharing.rendering.config.AppInfo
 import org.edu_sharing.rendering.edusharingRepo.cache.RegistrationCacheConfig
 import org.edu_sharing.rendering.edusharingRepo.dom.MetadataFile
@@ -75,7 +76,7 @@ class MetadataService(
      */
     fun generateMetadataFile(useInternal: Boolean): MetadataFile {
         log.debug("Generating metadata file for appId=${appInfo.appId} (useInternal=$useInternal)")
-        val file = File.createTempFile("metadata", ".xml")
+        val file = JobTempFiles.createFile("metadata", ".xml")
 
         FileOutputStream(file).use { outputStream ->
             val metadata = getConfig()

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.ddb
 
+import org.edu_sharing.rendering.utils.LogSanitizer
 import org.edu_sharing.rendering.core.annotation.ConditionalOnConverter
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.renderingJob.MainJobLogic
@@ -74,7 +75,7 @@ class DdbReceiver(
             // failures thrown past that handling (infra/DB errors) so the main job never stays
             // stuck in PROCESSING — an orphaned non-terminal job would poison re-rendering of the
             // node until the 8-day TTL (see MainJobCreationService.getExistingJobId reuse).
-            log.error("Error processing DDB job ${message.id}, marking as FAILED", exception)
+            log.error("Error processing DDB job ${message.id}, marking as FAILED", LogSanitizer.sanitize(exception))
             renderingJobRepository.updateStatusWithoutVersion(mainJob.id, RenderingJobStatus.FAILED)
         } finally {
             // Always reconcile: on success this aggregates the sub-job states; if a sub-job was left

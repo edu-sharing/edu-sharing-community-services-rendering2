@@ -64,6 +64,49 @@ when you add a role-gated bean, extend the matching role test.
    `@Version`, and a TTL index (8 days); less-critical writes use a weaker write concern
    (`MongoConfig` `WriteConcernResolver`).
 
+### Robustness of the job flow (RENDER-178)
+- **Publish failures** — every module publishes its job-bound messages through `JobMessagePublisher`; a publish
+  exception, a broker nack or an unroutable return (mapped back via `JobCorrelationData` in `QueueConfig`'s confirm
+  callback) is compensated instead of leaving a QUEUED job nobody will pick up. Two variants:
+  - `publishForJob` - the message starts a whole main job (MainJobCreationService, Binder upload, Sodix, Omega, DDB,
+    Onyx, Moodle, EduHtml, H5P lookup). The main job is set FAILED (atomic `failIfActive`: only while QUEUED or
+    PROCESSING, so an already terminal job is never overwritten), which also frees the `activeJobPerNodeHash` entry.
+  - `publishForSubJobs` - the message only stands for some sub-jobs of a main job (image/document/jupyter/video/audio;
+    several messages per main job, the image module sends one message for all its quality sub-jobs; H5P lookup ->
+    import hand-over). Failing the whole main job would be too coarse, so only those sub-jobs are set FAILED
+    (`failIfQueued`, `GENERIC_CONVERSION_ERROR`, only while still QUEUED) and the main job is resolved by the
+    module's `processMainJob` (`MainJobLogic`; may yield FAILED, PARTIALLY_FAILED or keep waiting). It takes an
+    optional `MessagePostProcessor` (AV priority).
+  A synchronous exception is rethrown to the caller after compensation (inside `JobReceiver` it ends in its failure
+  path; `H5pLookupReceiver` catches it, because the publisher has already resolved the job). Nack/unroutable run
+  asynchronously on a virtual thread and never throw.
+  Deliberately NOT routed through the publisher: `CorsSyncService` / `RegistrationCacheBroadcaster` (broadcasts
+  without a persisted job - nothing to fail) and the optional Binder preview message in
+  `BinderService.createPreviewSubJob` (best effort: a lost message only fails the preview sub-job, as
+  `BinderMainJobLogic` finishes the job when only that one fails, and must not fail the already enqueued upload).
+- **`JobReceiver` failure path** never throws out of the listener: FAILED is saved, retried once via targeted updates;
+  if that also fails the job stays PROCESSING without sub-jobs and `StaleJobReaper` pass 4 resolves it after
+  `app.jobreaper.max-main-job-setup-time` (default PT1H, must exceed the longest source download).
+- **Redelivery idempotency** — the standard receivers (image/av/document/jupyter via `AbstractReceiver`) skip terminal
+  sub-jobs (and only re-resolve the main job via the idempotent `processMainJob`); a sub-job left PROCESSING by a dead
+  delivery is deliberately restarted.
+- **Orphaned temp files** - every job-bound temp file is created through `utils/JobTempFiles` (prefix `rendering-`).
+  `TempFileSweeper` (all roles, `ApplicationRunner`) removes, once at startup only, REGULAR files with that prefix
+  directly in `java.io.tmpdir` older than `app.temp.cleanup.stale-file-age` (default PT6H; must exceed the longest job,
+  e.g. `app.converter.av.conversionTimeout`); directories (`hsperfdata_*`, `tomcat.*`) and foreign names are never
+  touched. Needed because the Helm `/tmp` emptyDir survives a container restart. Files of earlier versions (no prefix)
+  are not recognised. Create new temp files only through `JobTempFiles`.
+- **Ack locks** - `AsyncAckDispatcher` keeps its per-channel ack lock in a synchronized `WeakHashMap`: a channel dropped
+  after a reconnect takes its entry with it (no growth); the per-channel serialization is unchanged.
+- **ShedLock keep-alive** - `ShedLockConfig` wraps the `MongoLockProvider` in ShedLock's `KeepAliveLockProvider`
+  (`net.javacrumbs.shedlock.support`): a running task's lock is extended every `lockAtMostFor / 2` on a dedicated 2-thread
+  daemon executor (not the shared `taskScheduler`), so a long CacheCleaner/StaleJobReaper run keeps its lock;
+  a dead JVM stops extending, so `lockAtMostFor` stays the crash protection. Constraint: every `lockAtMostFor` must be
+  >= 30 s (the wrapper throws otherwise) - keep that in mind for new `@SchedulerLock`s. A pod shutdown cancels the
+  extension of a still running task.
+- **H5P upload answer** - parsed via `RemoteResponseParser`; an empty/HTML/null/error-object 2xx body yields a readable
+  `IllegalStateException` (no HTTP status in the cause chain, so `H5pImportFailure` maps it to `GENERIC_CONVERSION_ERROR`).
+
 ### Error messages of a failed sub-job
 `SubJob.errorMessage` is not text for the user but a **translation key of the repository UI**
 (`ErrorStrings`, `RENDERING.ERROR.*`); most modules set `GENERIC_CONVERSION_ERROR`. A new key therefore needs
@@ -139,7 +182,78 @@ repo at a time. Controllers:
 - `app.*` binds to `AppInfo` (`@ConfigurationProperties("app")`).
 - MongoDB uses Boot 4 `spring.mongodb.*`. Outbound converter hosts:
   `app.lumi.host` (3000), `app.documentConverter.host` (8081), `app.jupyterConverter.host` (9120).
+- **Resilience config (typed, defaults in code, all overridable):** `app.mongodb.timeout.*` (`MongoTimeoutProperties`),
+  `app.redis.client.*` (`RedisClientProperties`, shared by the standalone and cluster Lettuce client),
+  `app.redis.session.configure-action=NO_OP` (managed Redis without `CONFIG`), `app.s3.client.*` / `app.s3.health.*`
+  (`S3ClientProperties`/`S3HealthProperties`), `app.scheduling.pool-size` (min 4), and in `application.properties` the
+  Rabbit timeouts, the health groups and graceful shutdown. **Health groups:** `liveness` = `livenessState` only (must
+  never depend on a subsystem - a restart does not fix Mongo/Redis); `readiness` = `readinessState,mongo,redis`
+  (override `management.endpoint.health.group.readiness.include` to drop one). Helm's startup probe therefore also uses
+  the liveness path. **Shutdown:** `spring.lifecycle.timeout-per-shutdown-phase` (36m) must stay above
+  `QueueConfig`'s 35 min container `shutdownTimeout` and below Helm's `terminationGracePeriod` (2400 s). With
+  `spring.rabbitmq.cache.channel.checkout-timeout` set, `cache.channel.size` is a hard cap - keep it above the sum of
+  the queue concurrencies. All `MongoTemplate` writes are ACKNOWLEDGED.
+- **Repository SDK (OkHttp) timeouts:** `app.repository-http.timeout.{connect,read,write,call}` (`RepositoryHttpTimeoutProperties`,
+  defaults 10 s / 30 s / 30 s / 60 s; `0` = none) are applied by `RestClientProvider` and `UserBasedRestClientProvider`
+  to every `ApiClient`; the generated client otherwise has no call timeout. A new SDK client factory must call
+  `timeouts.applyTo(builder)` too. `CorsSyncService.syncAllowedOriginsWithAllRepositories` isolates failures per
+  repository (sanitized WARN log, counter `cors.sync.failures`) so one unreachable repository no longer stalls the
+  sync of the others. `ContentTransferService` maps fetch errors through `LogSanitizer` (the signed `authToken` is in
+  the request URI that WebClient exceptions embed) - that wrapper drops the original exception type and cause chain.
+- **Resilience layer (`core/resilience`, `app.resilience.*`, `ResilienceProperties`):** guards calls to sodix, omega,
+  omega-validation, ddb, github and lumi. Retry with jittered backoff only for idempotent GET/HEAD (a 429 with a
+  `Retry-After` above `retry.max-retry-after` is not retried; `retry.total-budget` caps one call incl. all attempts and
+  must stay below the queue/reaper timeouts). The circuit breaker counts **consecutive** infrastructure failures (5xx,
+  connect/reset, timeout - not 4xx) per remote **and pod** (state is not shared across pods); the bulkhead caps in-flight
+  calls per remote and pod (keep >= the queue concurrency). Metrics are named `rendering.remote.*`. `enabled=false` makes
+  the layer a pass-through; per-remote overrides via `app.resilience.modules.<name>.*`. `app.module.ddb.auth-mode=HEADER`
+  keeps the DDB key out of URIs but is unverified against the live API (default `QUERY`).
+  - **Breaker semantics and known limits (by design):** it counts **consecutive whole calls after retries** (one
+    success resets the streak); there is deliberately no rate window - retry already smooths partial failures, so it
+    opens only when several calls in a row fail even after their retries. The state is **per pod and per remote**
+    (pod-local trouble should open only there); briefly inconsistent answers between pods during learning and
+    recovery are known and bounded by `open-duration`. `HALF_OPEN` admits a single probe call (`half-open-max-calls`),
+    so a slow probe prolongs the block. Long timeouts delay learning (a call counts only once it has timed out).
+  - **Failure classification (`failure-classification`, per guard):** `DEFAULT` counts 5xx (not 501), connect/reset,
+    timeouts and pool wait timeouts; a 4xx is a success. `REACHABILITY_ONLY` counts only connect/reset/timeout and
+    HTTP 502/503/504 - a 500/507 is an answer of a reachable remote and resets the streak. Set globally via
+    `app.resilience.circuit-breaker.failure-classification` or per guard via `app.resilience.modules.<name>.*`.
+  - **Lumi guards:** `lumi` (lookups in `LumiContentManagementService`, retry for GET) is separate from `lumi-proxy`
+    (reverse proxy `LumiProxyService`: no retry, bulkhead 256, `open-duration` 10 s, `REACHABILITY_ONLY`, so one broken
+    H5P content reloaded by a user cannot open the breaker for all contents; header wait capped by the typed
+    `app.lumi.proxy.response-headers-timeout`, default 20 s, `LumiProxyProperties`) and `lumi-upload` (`H5pUploadService`
+    POST: no retry, default classification, 15 min budget above the credential `timeout`). The guards only wrap the
+    wait for status + headers (`toEntityFlux ... block()`); the body streaming afterwards (`FluxInputStream`) is **not**
+    covered - accepted. The built-in profile of a guard lives in `ResilienceProperties.BUILT_IN_MODULE_DEFAULTS`
+    (precedence: configured module value, built-in default, global section).
+  - **HTTP mapping (`ApiExceptionHandler`, global):** `RemoteModuleUnavailableException` (open breaker, full bulkhead,
+    saturated pool) -> 503 with `Retry-After` (remaining breaker time, when known); proxy connection errors -> 502,
+    header timeout -> 504 (`ModuleGatewayException`); all with `userMessage` `GENERIC_MODULE_NOT_AVAILABLE`, logged as
+    one WARN line without stack trace.
+  - **Alerting (Prometheus; Micrometer dots become underscores, counters get `_total`; all with label `module`):**
+    - Breaker open for more than a minute: `max by (module) (rendering_remote_circuit_state) == 2` for `1m`
+      (`for: 1m`; 0 closed, 1 half-open, 2 open; per pod, so use `max`/`count` over pods as needed).
+    - Rejections without contacting the remote: `sum by (module, reason) (rate(rendering_remote_calls_rejected_total[5m])) > 0`
+      with `reason` = `circuit_open` (breaker) or `bulkhead_full` (limit too low or remote slow); alert on
+      `bulkhead_full` more sharply, it can also signal an undersized bulkhead.
+    - Remote in trouble although the breaker is still closed: `sum by (module) (rate(rendering_remote_retries_total[5m])) > 0.5`
+      (tune the threshold; only idempotent GET/HEAD calls retry).
+    - Optional saturation view: `max by (module) (rendering_remote_calls_inflight)` against the module's
+      `max-concurrent-calls`.
+- **Converter calls (`ConverterWebServiceCaller`, `app.converter.call.*`, `ConverterCallProperties`):** only transient
+  status classes are retried (502/503/504, connection errors, timeouts; a 503 honours `Retry-After` up to
+  `max-retry-after`); other 4xx/5xx fail at once. One attempt is bounded by `attempt-timeout` (330 s, above the
+  converters' own limits), all attempts plus pauses by `total-budget` (15 min, far below the reaper's 30 min).
+- The Welle-1 properties above are all mirrored (with their defaults) in `application.properties`, Helm
+  (`configmap-env.yaml` / `values.yaml`) and compose; the mapping is in `../deploy/CLAUDE.md`.
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.
+- **Video resolutions:** `app.converter.video.resolutions` is a plain list (`480,720,1080`, what Helm/compose set);
+  the per-height RabbitMQ priority lives apart in `app.converter.video.priorities.<height>` (`VideoConverterConfig`).
+  Their maximum is the durable AV queue's `x-max-priority`, which RabbitMQ refuses to redeclare with another value -
+  so it must not depend on which heights are listed.
+- **AV jobs longer than 30 min fail:** `app.converter.av.conversionTimeout` (PT30M) aborts ffmpeg, and RabbitMQ's
+  default `consumer_timeout` (30 min) closes the channel of an unacked delivery and redelivers it. Raise both together
+  (see `docs/QUEUE_SCALING.md` §6); `StaleJobReaper` is not a limit there (it measures idle time).
 - **RabbitMQ listener concurrency is not just `app.queue.<x>.concurrency`.** `DirectMessageListenerContainer`
   only uses `QueueConfig.rabbitConsumerExecutor` to bootstrap consumer registration; each consumer's message
   handling runs on whichever thread the RabbitMQ Java client's own, **connection-wide** `ConsumerWorkService`

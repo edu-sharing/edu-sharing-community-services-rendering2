@@ -10,12 +10,12 @@ import org.edu_sharing.rendering.renderingJob.entity.RenderingJob
 import org.edu_sharing.rendering.renderingJob.entity.RenderingJobStatus
 import org.edu_sharing.rendering.renderingJob.entity.SubJob
 import org.edu_sharing.rendering.renderingJob.entity.SubJobStatus
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.edu_sharing.rendering.renderingJob.queue.RenderingJobMessage
 import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.combinePath
 import org.slf4j.LoggerFactory
-import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.rabbit.annotation.Exchange
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
@@ -38,7 +38,7 @@ class H5pLookupReceiver(
     private val renderingJobRepository: RenderingJobRepository,
     private val subJobRepository: SubJobRepository,
     private val lumiContentManagementService: LumiContentManagementService,
-    private val amqpTemplate: AmqpTemplate,
+    private val jobMessagePublisher: JobMessagePublisher,
     private val mapper: Mapper,
     private val appInfo: AppInfo
 ) {
@@ -130,7 +130,19 @@ class H5pLookupReceiver(
         subJob.processingStartedDate = null
         subJob.routingKey = importRoutingKey
         subJobRepository.save(subJob)
-        amqpTemplate.convertAndSend(topicExchangeName, importRoutingKey, RenderingJobMessage(jobEntry.id.toString()))
+        try {
+            // Sub-job variant: the sub-job is already QUEUED on the import key, so a lost message fails exactly
+            // it (and, being the only one, the job) instead of leaving it queued for a message that never comes.
+            jobMessagePublisher.publishForSubJobs(
+                topicExchangeName, importRoutingKey, RenderingJobMessage(jobEntry.id.toString()),
+                jobEntry.id, listOf(subJob.id), mainJobLogic::processMainJob
+            )
+        } catch (exception: Exception) {
+            // The publisher already failed the sub-job and resolved the job to FAILED. Do not let the exception
+            // leave the listener: a redelivery would only find a terminal job and drop the message anyway.
+            log.error("Could not hand H5P job {} over to the import queue; the job was failed", jobEntry.id, exception)
+            return
+        }
         log.debug("H5P job {} handed over to the import queue on routingKey={}", jobEntry.id, importRoutingKey)
     }
 }

@@ -18,6 +18,7 @@ import eduSharingPlayer from "./eduSharingPlayer";
 import {fileStreamScopeMiddleware} from "./s3Streams";
 import {mathJaxRouter} from "./mathDisplay";
 import {registerImportMetrics} from "./metrics";
+import {installProcessGuards, readShutdownTimeoutMs} from "./shutdown";
 import {readDataSize} from "./dataSize";
 import {extendWhitelist} from "./whitelist";
 import {
@@ -158,6 +159,17 @@ const start = async () => {
     // Must run first so the adopted trace id is in scope for every downstream middleware/handler log.
     app.use(traceContextMiddleware);
 
+    // Set once a shutdown started. New package imports are refused from then on: they could not finish within the
+    // grace period, and the rendering service retries a 503 against another pod.
+    let shuttingDown = false
+    app.use((req, res, next) => {
+        if (shuttingDown && req.method === 'POST') {
+            res.set('Retry-After', '5').set('Connection', 'close').status(503).send('Shutting down')
+            return
+        }
+        next()
+    })
+
     // Opens the scope that ties the S3 streams of a GET request to its response, so an aborted download
     // cannot pin a socket of the S3 connection pool. Must wrap every route that serves files.
     app.use(fileStreamScopeMiddleware);
@@ -231,27 +243,37 @@ const start = async () => {
     const server = app.listen(port);
     log.info(`Server started successfully on port ${port}`)
 
-    // Graceful Shutdown Handler
-    const shutdown = () => {
-        log.info("Shutting down gracefully...");
+    // Graceful Shutdown Handler. In-flight requests (a running import above all) get SHUTDOWN_TIMEOUT_MS to finish;
+    // keep it below the pod's terminationGracePeriodSeconds. /ping stays 200 throughout: it is a liveness check.
+    const shutdownTimeoutMs = readShutdownTimeoutMs()
+    const shutdown = (exitCode = 0) => {
+        if (shuttingDown) {
+            return
+        }
+        shuttingDown = true
+        log.info(`Shutting down gracefully (waiting up to ${shutdownTimeoutMs} ms for running requests)...`);
+
+        const forceTimer = setTimeout(() => {
+            log.warn("Forcefully shutting down...");
+            process.exit(1);
+        }, shutdownTimeoutMs);
+        forceTimer.unref()
 
         server.close(() => {
             log.info("Server closed.");
             // Remember the library cache size so the next start does not begin without one.
             (packageLibraryStore?.flush() ?? Promise.resolve())
                 .catch(error => log.warn(`Could not flush the library cache size: ${error.message}`))
-                .finally(() => process.exit(0));
+                .finally(() => process.exit(exitCode));
         });
-
-        setTimeout(() => {
-            log.warn("Forcefully shutting down...");
-            process.exit(1);
-        }, 10000); // Force exit after 10s
+        // Idle keep-alive connections would otherwise keep close() waiting until the force timer.
+        server.closeIdleConnections()
     };
 
     // Handle termination signals
-    process.on("SIGINT", shutdown);  // Ctrl+C
-    process.on("SIGTERM", shutdown); // Kubernetes/Docker stop
+    process.on("SIGINT", () => shutdown());  // Ctrl+C
+    process.on("SIGTERM", () => shutdown()); // Kubernetes/Docker stop
+    installProcessGuards(() => shutdown(1))
 }
 
 start().catch((error) => {

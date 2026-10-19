@@ -23,4 +23,8 @@ done
 # we need to wait, because mongodb sometimes need some more time...
 sleep 5
 
-exec sh -c "$@"
+# The command arrives as ONE string (ENTRYPOINT/args, e.g. "node ${NODE_OPTS} dist/index.js") whose variables still
+# have to be expanded, hence the inner shell. "exec" inside it replaces that shell with the command, so node becomes
+# PID 1 and receives SIGTERM directly (without it the shell may stay in between and swallow the signal, and the
+# graceful shutdown never runs). Several separate arguments are joined with spaces, as before.
+exec sh -c "exec $*"

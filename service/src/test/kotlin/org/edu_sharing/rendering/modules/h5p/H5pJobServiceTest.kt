@@ -15,7 +15,7 @@ import org.edu_sharing.rendering.testUtils.JobDataProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.amqp.core.AmqpTemplate
+import org.edu_sharing.rendering.renderingJob.queue.JobMessagePublisher
 import org.springframework.dao.DuplicateKeyException
 
 @ExtendWith(MockKExtension::class)
@@ -23,7 +23,7 @@ class H5pJobServiceTest {
     private val jobRepository = mockk<RenderingJobRepository>()
     private val subJobRepository = mockk<SubJobRepository>()
     private val mapper = mockk<Mapper>()
-    private val amqpTemplate = mockk<AmqpTemplate>()
+    private val jobMessagePublisher = mockk<JobMessagePublisher>()
     private val jobDataProvider = JobDataProvider()
 
     private lateinit var underTest: H5pJobService
@@ -34,7 +34,7 @@ class H5pJobServiceTest {
             mapper = mapper,
             jobRepository = jobRepository,
             subJobRepository = subJobRepository,
-            amqpTemplate = amqpTemplate,
+            jobMessagePublisher = jobMessagePublisher,
         )
         underTest.lookupRoutingKey = "lookupRoutingKey"
         underTest.topicExchangeName = "exchange"
@@ -75,7 +75,7 @@ class H5pJobServiceTest {
         val subJobSlot = slot<SubJob>()
         every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message) }
+        justRun { jobMessagePublisher.publishForJob("exchange", "lookupRoutingKey", message, any()) }
 
         excludeRecords {
             node.ref.id
@@ -97,7 +97,7 @@ class H5pJobServiceTest {
             mapper.nodeToRenderingJob(node, "H5P", true)
             jobRepository.save(dummyJob)
             subJobRepository.save(any())
-            amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message)
+            jobMessagePublisher.publishForJob("exchange", "lookupRoutingKey", message, any())
         }
     }
 
@@ -129,7 +129,7 @@ class H5pJobServiceTest {
         verify(exactly = 2) { jobRepository.findAllByEsObjectId("dummyNodeId") }
         verify(exactly = 1) { jobRepository.save(newJob) }
         verify(exactly = 0) { subJobRepository.save(any()) }
-        verify(exactly = 0) { amqpTemplate.convertAndSend(any<String>(), any<String>(), any<RenderingJobMessage>()) }
+        verify(exactly = 0) { jobMessagePublisher.publishForJob(any<String>(), any<String>(), any<RenderingJobMessage>(), any()) }
     }
 
     @Test
@@ -148,7 +148,7 @@ class H5pJobServiceTest {
         val subJobSlot = slot<SubJob>()
         every { subJobRepository.save(capture(subJobSlot)) } returns mockk<SubJob>()
         val message = RenderingJobMessage(id = dummyJob.id.toString())
-        justRun { amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message) }
+        justRun { jobMessagePublisher.publishForJob("exchange", "lookupRoutingKey", message, any()) }
 
         excludeRecords {
             node.ref.id
@@ -170,7 +170,7 @@ class H5pJobServiceTest {
             mapper.nodeToRenderingJob(node, "H5P", true)
             jobRepository.save(dummyJob)
             subJobRepository.save(any())
-            amqpTemplate.convertAndSend("exchange", "lookupRoutingKey", message)
+            jobMessagePublisher.publishForJob("exchange", "lookupRoutingKey", message, any())
         }
     }
 }

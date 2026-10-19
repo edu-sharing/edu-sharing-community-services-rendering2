@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.http.HttpHeaders
 import org.edu_sharing.rendering.core.ErrorStrings
@@ -333,5 +334,74 @@ class H5pImportReceiverTest {
         Assertions.assertNull(job.errorMessage)
         verify(exactly = 1) { renderingJobRepository.save(any()) }
         verify(exactly = 0) { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) }
+    }
+
+    /**
+     * Runs an import whose outcome cannot be saved: the second save of the sub-job (the outcome; the first is
+     * PROCESSING) fails like it did when the heartbeat had moved the version on during a long upload.
+     */
+    private fun runImportWhoseOutcomeCannotBeSaved(upload: () -> String): Pair<RenderingJob, SubJob> {
+        val message = RenderingJobMessage("messageId")
+        val job = jobDataProvider.getJobWithoutSubJobs("H5P")
+        val subJob = jobDataProvider.getDummySubJob(
+            subId = JobDataProvider.SUB_ID_1, mimeType = "application/zip", module = "H5P", quality = 0,
+            status = SubJobStatus.QUEUED
+        )
+        job.subJobs.add(subJob)
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+        every { renderingJobRepository.save(any()) } answers { firstArg() }
+        every { subJobRepository.save(any()) } answers { firstArg() } andThenThrows
+            OptimisticLockingFailureException("Cannot save entity with version 4 to collection subJob")
+        every { h5pUploadService.getContentId(any()) } answers { upload() }
+        justRun { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) }
+        justRun { subJobRepository.updateStatusWithoutVersion(any(), any()) }
+        every { mainJobLogic.processMainJob(message.id) } returns true
+
+        underTest.receiveMessage(message)
+
+        return job to subJob
+    }
+
+    @Test
+    fun testASuccessfulImportWhoseOutcomeCannotBeSavedFailsTheJobInsteadOfLeavingItProcessing() {
+        // The sub-job stayed PROCESSING and the client showed a spinner, also after a reload.
+        val (job, subJob) = runImportWhoseOutcomeCannotBeSaved { "contentId" }
+
+        verify(exactly = 1) { subJobRepository.updateStatusWithoutVersion(subJob.id, SubJobStatus.FAILED) }
+        assertEquals(ErrorStrings.GENERIC_CONVERSION_ERROR, messageSetOn(job))
+        verify(exactly = 1) { mainJobLogic.processMainJob("messageId") }
+    }
+
+    @Test
+    fun testAFailedImportWhoseOutcomeCannotBeSavedKeepsItsOwnMessage() {
+        val (job, subJob) = runImportWhoseOutcomeCannotBeSaved { throw lumiAnswered(413) }
+
+        verify(exactly = 1) { subJobRepository.updateStatusWithoutVersion(subJob.id, SubJobStatus.FAILED) }
+        assertEquals(ErrorStrings.H5P_PACKAGE_TOO_LARGE, messageSetOn(job))
+        verify(exactly = 1) { mainJobLogic.processMainJob("messageId") }
+    }
+
+    @Test
+    fun testAJobWhoseOutcomeCannotBeSavedNorFailedStillGetsAggregated() {
+        // Mongo is gone altogether: nothing to do but log - the stale-job reaper times the sub-job out.
+        every { subJobRepository.updateStatusWithoutVersion(any(), any()) } throws RuntimeException("mongo down")
+        every { renderingJobRepository.updateErrorMessageWithoutVersion(any(), any()) } throws RuntimeException("mongo down")
+        val message = RenderingJobMessage("messageId")
+        val job = jobDataProvider.getJobWithoutSubJobs("H5P")
+        job.subJobs.add(
+            jobDataProvider.getDummySubJob(
+                subId = JobDataProvider.SUB_ID_1, mimeType = "application/zip", module = "H5P", quality = 0,
+                status = SubJobStatus.QUEUED
+            )
+        )
+        every { mainJobLogic.getMainJobEntry(message.id) } returns job
+        every { renderingJobRepository.save(any()) } answers { firstArg() }
+        every { subJobRepository.save(any()) } answers { firstArg() } andThenThrows RuntimeException("mongo down")
+        every { h5pUploadService.getContentId(any()) } returns "contentId"
+        every { mainJobLogic.processMainJob(message.id) } returns true
+
+        underTest.receiveMessage(message)
+
+        verify(exactly = 1) { mainJobLogic.processMainJob(message.id) }
     }
 }

@@ -3,8 +3,15 @@
 // Alle Werte sind per Umgebungsvariable (`-e KEY=value`) überschreibbar, damit dieselben
 // Skripte lokal (Phase A) und im Cluster (Phase B) laufen.
 
-// Öffentliche API des Service (POST /public/renderdata, GET /public/job). Lokal 8080.
-export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+// Public API of the service (POST /public/renderdata, GET /public/job). Locally 8080. Several
+// controllers comma-separated (e.g. the workers of local-cluster.sh): every request goes to a random
+// one, as behind the k8s Service. Sessions live in Redis, so any controller can answer for a job.
+export const BASE_URLS = (__ENV.BASE_URL || 'http://localhost:8080').split(',').map((u) => u.trim());
+export const BASE_URL = BASE_URLS[0];
+
+export function baseUrl() {
+  return BASE_URLS[Math.floor(Math.random() * BASE_URLS.length)];
+}
 
 // repoId muss mit "TEST" beginnen, damit bei app.security.enabled=false die synthetische
 // Registrierung greift (RepositoryRegistrationStorageService).
@@ -33,6 +40,9 @@ export const MODULES = {
   imagePng: { nodeId: 'TEST_loadtest/image.png',      mimetype: 'image/png',                mediatype: 'image' },
   audio:    { nodeId: 'TEST_loadtest/audio.wav',      mimetype: 'audio/x-wav',              mediatype: 'audio' },
   video:    { nodeId: 'TEST_loadtest/video.mp4',      mimetype: 'video/mp4',                mediatype: 'video' },
+  // Large video (not in the repo): local-cluster.sh links VIDEO_FIXTURE in as classpath:loadtest/large-video.mp4.
+  // It must be >= 1080p for all three target resolutions (no upscaling, see README troubleshooting).
+  videoLarge: { nodeId: 'TEST_loadtest/large-video.mp4', mimetype: 'video/mp4',              mediatype: 'video' },
   document: { nodeId: 'TEST_loadtest/document.txt',   mimetype: 'text/plain',               mediatype: 'document' },
   pdf:      { nodeId: 'TEST_loadtest/document.pdf',   mimetype: 'application/pdf',           mediatype: 'document' },
   jupyter:  { nodeId: 'TEST_loadtest/notebook.ipynb', mimetype: 'application/x-ipynb+json',  mediatype: 'document' },

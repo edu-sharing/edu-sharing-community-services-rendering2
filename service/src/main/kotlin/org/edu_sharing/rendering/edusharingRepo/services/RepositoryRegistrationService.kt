@@ -60,8 +60,17 @@ class RepositoryRegistrationService(
             .build()
     }
 
-    private fun createRegistration(request: RegisterRepositoryRequest, force: Boolean): RepositoryRegistration {
+    /**
+     * Builds the registration from the repository's remote metadata. Performs only reads (metadata, about) and
+     * never touches the stored registrations: a failing or hanging remote call must not destroy an existing,
+     * working registration (see [persistRegistration] for the write).
+     */
+    private fun buildRegistration(request: RegisterRepositoryRequest, force: Boolean): RepositoryRegistration {
         log.debug("Fetching metadata from repository URL: ${request.url} (force=$force)")
+        if (!force && !storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
+            // Fail fast, before any remote call.
+            throw IllegalArgumentException("It's not allowed to register more than one repository")
+        }
         val metadata = getWebClient(request.url)
             .get()
             .uri {
@@ -92,18 +101,10 @@ class RepositoryRegistrationService(
 
         log.debug("Received metadata from ${request.url}: appId=${metadata.appId}, domains=${metadata.domain}")
 
-        if (!storageService.isStoringByRepoId() && repositoryRegistrationStorageService.getRegistrationCount() > 0) {
-            if (force) {
-                repositoryRegistrationStorageService.clearRegistrations()
-            } else {
-                throw IllegalArgumentException("It's not allowed to register more than one repository")
-            }
-        }
-
         val signatureAlgorithm = getSigningAlgorithm(request.url)
         log.debug("Signing algorithm for ${request.url}: $signatureAlgorithm")
 
-        val registration = RepositoryRegistration(
+        return RepositoryRegistration(
             repoId = metadata.appId,
             url = request.url,
             publicKey = metadata.publicKey,
@@ -113,14 +114,25 @@ class RepositoryRegistrationService(
             buckets = request.externalBuckets,
             signingAlgorithm = signatureAlgorithm
         )
+    }
 
-        if (force) {
-           repositoryRegistrationStorageService.getRegistrationByRepoId(metadata.appId)
-               .ifPresent {
-                   registration.id = it.id
-               }
+    /**
+     * Writes the registration as an upsert: an existing document with the same repoId is overwritten in place
+     * (same id), so there is no delete+insert window in which no registration exists. There is no Mongo
+     * transaction manager in this application, so the write order is what keeps the state consistent. Only
+     * registrations of *other* repositories are removed (single-repository mode with `force`), and only now,
+     * after every remote call succeeded.
+     */
+    private fun persistRegistration(registration: RepositoryRegistration, force: Boolean): RepositoryRegistration {
+        if (!storageService.isStoringByRepoId() && force) {
+            repositoryRegistrationStorageService.getRegistrations()
+                .filter { it.repoId != registration.repoId }
+                .forEach { repositoryRegistrationStorageService.removeRegistration(it.repoId) }
         }
-
+        if (force) {
+            repositoryRegistrationStorageService.getRegistrationByRepoIdFresh(registration.repoId)
+                .ifPresent { registration.id = it.id }
+        }
         return repositoryRegistrationStorageService.storeRegistration(registration)
     }
 
@@ -129,14 +141,16 @@ class RepositoryRegistrationService(
     @CacheEvict(RegistrationCacheConfig.REPOSITORY_KEYS, key = "#result.repoId")
     fun registerWithRepository(request: RegisterRepositoryRequest, force: Boolean = false, useInternal: Boolean = false): RepositoryRegistration {
         log.debug("Registering with repository at ${request.url} (force=$force, useInternal=$useInternal)")
-        val registrationEntity = createRegistration(request, force)
-        log.debug("Registration entity created for repoId=${registrationEntity.repoId}; pushing metadata file to repository")
+        val registrationEntity = buildRegistration(request, force)
+        log.debug("Registration entity built for repoId=${registrationEntity.repoId}; pushing metadata file to repository")
         val adminV1Api = restClientProvider.getAdminV1Client(request.url, request.username, request.password)
         metadataService.generateMetadataFile(useInternal = useInternal).use {
             adminV1Api.addApplication(it.file)
         }
         registrationEntity.signingAlgorithm = getSigningAlgorithm(registrationEntity.url)
-        return registrationEntity
+        // Persist last: a registration is only stored once the repository accepted the application, so a
+        // stored registration always means "registered at the repository" (the retry job relies on that).
+        return persistRegistration(registrationEntity, force)
     }
 
     @Transactional

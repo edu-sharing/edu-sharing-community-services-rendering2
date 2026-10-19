@@ -3,6 +3,7 @@ package org.edu_sharing.rendering.storage
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
+import io.mockk.verify
 import org.edu_sharing.rendering.cacheCleaner.BucketAggregation
 import org.edu_sharing.rendering.cacheCleaner.BucketInfo
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
@@ -11,10 +12,16 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.storage.bucket.BucketStrategy
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException
+import software.amazon.awssdk.services.s3.model.S3Exception
 import java.util.Optional
 
 /**
@@ -110,5 +117,34 @@ class S3StorageServiceTest {
             ),
             result,
         )
+    }
+
+    @Test
+    fun `createBucketIfMissing tolerates a concurrent creation by another pod`() {
+        every { s3Client.headBucket(any<HeadBucketRequest>()) } throws NoSuchBucketException.builder().build()
+        every { s3Client.createBucket(any<CreateBucketRequest>()) } throws
+            BucketAlreadyOwnedByYouException.builder().build()
+
+        underTest.createBucketIfMissing("rs2-image")
+
+        verify(exactly = 1) { s3Client.createBucket(any<CreateBucketRequest>()) }
+    }
+
+    @Test
+    fun `createBucketIfMissing tolerates a plain 409 conflict`() {
+        every { s3Client.headBucket(any<HeadBucketRequest>()) } throws NoSuchBucketException.builder().build()
+        every { s3Client.createBucket(any<CreateBucketRequest>()) } throws
+            S3Exception.builder().statusCode(409).build()
+
+        underTest.createBucketIfMissing("rs2-image")
+    }
+
+    @Test
+    fun `createBucketIfMissing still fails on other errors`() {
+        every { s3Client.headBucket(any<HeadBucketRequest>()) } throws NoSuchBucketException.builder().build()
+        every { s3Client.createBucket(any<CreateBucketRequest>()) } throws
+            S3Exception.builder().statusCode(403).build()
+
+        assertThrows<S3Exception> { underTest.createBucketIfMissing("rs2-image") }
     }
 }
