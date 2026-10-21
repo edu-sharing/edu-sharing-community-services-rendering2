@@ -22,7 +22,7 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val mongoDBContainer = MongoDBContainer(DockerImageName.parse("mongo:6.0.6"))
+        private val mongoDBContainer = MongoDBContainer(DockerImageName.parse("mongo:8.0.34"))
 
         @JvmStatic
         @Container
@@ -34,11 +34,11 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:3.11-management")
+        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:4.1.3-management")
 
         @JvmStatic
         @Container
-        private val redisContainer: RedisContainer = RedisContainer(DockerImageName.parse("redis:7.0.10"))
+        private val redisContainer: RedisContainer = RedisContainer(DockerImageName.parse("redis:8.2.10"))
             .withExposedPorts(6379)
 
         @DynamicPropertySource
