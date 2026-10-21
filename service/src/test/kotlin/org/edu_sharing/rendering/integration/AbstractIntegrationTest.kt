@@ -34,7 +34,7 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:3.11-management")
+        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:4.1.3-management")
 
         @JvmStatic
         @Container
