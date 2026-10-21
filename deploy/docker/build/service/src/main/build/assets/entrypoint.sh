@@ -41,13 +41,13 @@ wait_for_tcp Redis "${redis_host}" "${redis_port}"
 if [ "${repository_wait_timeout}" -gt 0 ]; then
   repo_deadline=$(($(date +%s) + repository_wait_timeout))
   for entry in $(env | grep '^app\.repository\.registration\.id\.[^=]*\.url='); do
-    url=${entry#*=}
-    until [ "$(curl -sSfq --connect-timeout 3 -m 5 -w "%{http_code}\n" -o /dev/null -H 'Accept: application/json' "${url}/rest/_about/status/SERVICE?timeoutSeconds=3" 2>/dev/null || true)" = 200 ]; do
+    repo_url=${entry#*=}
+    until [ "$(curl -sSfq --connect-timeout 3 -m 5 -w "%{http_code}\n" -o /dev/null -H 'Accept: application/json' "${repo_url}/rest/_about/status/SERVICE?timeoutSeconds=3" 2>/dev/null || true)" = 200 ]; do
       if [ "$(date +%s)" -ge "${repo_deadline}" ]; then
-        echo >&2 "WARN: repository ${url} not ready after ${repository_wait_timeout}s, starting anyway."
+        echo >&2 "WARN: repository ${repo_url} not ready after ${repository_wait_timeout}s, starting anyway."
         break
       fi
-      echo >&2 "Waiting for ${url} service ..."
+      echo >&2 "Waiting for ${repo_url} service ..."
       sleep 3
     done
   done
