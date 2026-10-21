@@ -26,7 +26,7 @@ services:
     command: [ "rustfs" ]
 
   repository-cache:
-    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:6.2.7
+    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:8.2.10
     environment:
       ALLOW_EMPTY_PASSWORD: "yes"
     ports:
@@ -47,7 +47,7 @@ services:
       - "15692:15692"
 
   mongo:
-    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:7.0.15"
+    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:8.0.34"
     environment:
       MONGODB_ROOT_USER: admin
       MONGODB_ROOT_PASSWORD: admin
