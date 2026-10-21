@@ -247,6 +247,13 @@ repo at a time. Controllers:
 - The Welle-1 properties above are all mirrored (with their defaults) in `application.properties`, Helm
   (`configmap-env.yaml` / `values.yaml`) and compose; the mapping is in `../deploy/CLAUDE.md`.
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.
+- **Video resolutions:** `app.converter.video.resolutions` is a plain list (`480,720,1080`, what Helm/compose set);
+  the per-height RabbitMQ priority lives apart in `app.converter.video.priorities.<height>` (`VideoConverterConfig`).
+  Their maximum is the durable AV queue's `x-max-priority`, which RabbitMQ refuses to redeclare with another value -
+  so it must not depend on which heights are listed.
+- **AV jobs longer than 30 min fail:** `app.converter.av.conversionTimeout` (PT30M) aborts ffmpeg, and RabbitMQ's
+  default `consumer_timeout` (30 min) closes the channel of an unacked delivery and redelivers it. Raise both together
+  (see `docs/QUEUE_SCALING.md` §6); `StaleJobReaper` is not a limit there (it measures idle time).
 - **RabbitMQ listener concurrency is not just `app.queue.<x>.concurrency`.** `DirectMessageListenerContainer`
   only uses `QueueConfig.rabbitConsumerExecutor` to bootstrap consumer registration; each consumer's message
   handling runs on whichever thread the RabbitMQ Java client's own, **connection-wide** `ConsumerWorkService`

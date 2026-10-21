@@ -80,6 +80,9 @@ class AudioConversionServiceTest {
         assert(attrSlot.captured.audioAttributes.flatMap { it.channels }.get() == 2)
         assert(attrSlot.captured.audioAttributes.flatMap { it.codec }.get() == CODEC)
         assert(attrSlot.captured.outputFormat.get() == OUTPUT_FORMAT)
+        // the thread limit must reach the encoder (-threads after -i), not only the decoder
+        assert(attrSlot.captured.decodingThreads.get() == 1)
+        assert(attrSlot.captured.encodingThreads.get() == 1)
         assert(mmoSlot.captured.single().file.toString() == DUMMY_ORIGINAL_FILE_PATH)
 
         verifySequence {

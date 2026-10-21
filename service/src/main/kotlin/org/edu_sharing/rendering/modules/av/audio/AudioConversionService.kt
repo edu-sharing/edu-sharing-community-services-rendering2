@@ -7,7 +7,6 @@ import org.edu_sharing.rendering.modules.av.AvConversionService
 import org.edu_sharing.rendering.modules.av.AvConversionTimeoutGuard
 import org.edu_sharing.rendering.modules.av.AvFileHelper
 import org.edu_sharing.rendering.modules.av.ConditionalOnAvConverter
-import org.edu_sharing.rendering.modules.av.ffmpegThreadsArg
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectFactory
 import org.springframework.beans.factory.annotation.Value
@@ -54,7 +53,7 @@ class AudioConversionService(
             fileHelper.fetchOriginalTempFile(cacheObject)
             val multiMediaObject = MultimediaObject(fileHelper.originalFile, ffmpegLocator)
             timeoutGuard.runEncode(encoder, subJob.id) {
-                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, attributes, listener, listOf(ffmpegThreadsArg(threads)))
+                encoder.encode(listOf(multiMediaObject), fileHelper.outputFile, attributes, listener, emptyList())
             }
             val outputCacheObject = cacheObject.deepCopy()
             outputCacheObject.quality = bitrate.toInt()
@@ -74,6 +73,8 @@ class AudioConversionService(
         val encodingAttributes = EncodingAttributes()
         encodingAttributes.setOutputFormat(OUTPUT_FORMAT)
         encodingAttributes.setAudioAttributes(audioAttributes)
+        encodingAttributes.setDecodingThreads(threads)
+        encodingAttributes.setEncodingThreads(threads)
         return encodingAttributes
     }
 }

@@ -590,6 +590,8 @@ config:
     av:
       ## @param config.converter.av.ffmpegPath Path to the ffmpeg executable (installed in the image; override with an absolute path if not on PATH)
       ffmpegPath: ffmpeg
+      ## @param config.converter.av.niceness OS priority (nice level 0-19) ffmpeg runs with; above 0 the JVM (requests, image conversions) gets the pod's CPU first while a video encodes, 0 = same priority as the JVM
+      niceness: 0
     document:
       ## @param config.converter.document.host Set document-converter host
       host: edusharing-services-rendering2-document-converter
@@ -623,6 +625,8 @@ config:
       ffmpegPreset: veryfast
       ## @param config.converter.video.mimetypes Set mimetypes for video converter
       mimetypes: video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/vnd.avi,video/avi,video/x-flv,video/x-matroska,video/ogg,video/x-ms-wmv,video/theora
+      ## Comma-separated target heights; drop one to stop rendering it. The RabbitMQ priority per height stays in
+      ## application.properties (app.converter.video.priorities.<height>).
       ## @param config.converter.video.resolutions Set resolutions for video converter
       resolutions: 480,720,1080
 

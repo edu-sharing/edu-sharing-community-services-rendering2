@@ -191,6 +191,20 @@ jeweiligen Klassen, hier nur die Fundstellen:
   statt sie mitten in der Verarbeitung abzubrechen (nur für STANDARD/SINGLE_ACTIVE wirksam — bei
   REMOTE-Queues kehrt der Listener durch `AsyncAckDispatcher` sofort zurück, siehe dessen
   Doc-Kommentar).
+- **30-Minuten-Grenze für lang laufende Nachrichten (`consumer_timeout`).** STANDARD-Queues bestätigen
+  eine Nachricht erst, wenn der Handler fertig ist. RabbitMQ wartet darauf per Default höchstens
+  **30 Minuten** (`consumer_timeout = 1800000` ms); danach schließt der Broker den Kanal
+  (`PRECONDITION_FAILED: delivery acknowledgement on channel … timed out`) und stellt die Nachricht neu zu.
+  Praktisch betrifft das nur die **AV-Queue**: `app.converter.av.conversionTimeout` (`PT30M`) bricht ffmpeg
+  zur selben Zeit ab, ein Video-Sub-Job über 30 Minuten endet also `FAILED` — gemessen mit einem
+  1080p-Video bei mehreren parallelen Encodierungen pro Pod (`../loadtest/README.md`, „Video unter Last“).
+  Wer `conversionTimeout` erhöht, muss den Broker mitziehen — global in `rabbitmq.conf`
+  (`consumer_timeout = 7200000`) oder nur für die AV-Queue per Policy (ab RabbitMQ 3.12, ohne die Queue neu
+  zu deklarieren):
+  `rabbitmqctl set_policy av-consumer-timeout '^av_job_queue_v2$' '{"consumer-timeout": 7200000}' --apply-to queues`.
+  Achtung: Pro Queue greift nur **eine** Policy (die mit der höchsten Priorität) — gibt es schon eine
+  passende, den Schlüssel dort ergänzen. `StaleJobReaper` ist hier keine Grenze: er misst Leerlauf, und
+  AV-Sub-Jobs melden alle 10 % Fortschritt.
 
 ---
 
@@ -247,6 +261,7 @@ Vollständige Env→Property-Tabelle: [`../deploy/CLAUDE.md`](../deploy/CLAUDE.m
 | RAM-/Channel-Druck auf den Pods | `concurrency` **nicht** blind erhöhen — mehr Channels je Pod summieren sich über alle Queues eines Pods (`converter`-Rolle: 13 Receiver). `spring.rabbitmq.cache.channel.size` entsprechend mitziehen. |
 | Ungleiche Lastverteilung über Pods | `prefetch` niedrig halten (STANDARD: `1`). Hoher Prefetch = ein Pod hortet Nachrichten. |
 | Reihenfolge/Exactly-once nötig | Nicht über diesen Mechanismus lösen — Sub-Jobs sind unabhängig, Ergebnisse idempotent pro `nodeId/hash`. |
+| Videos brauchen > 30 Minuten pro Auflösung (FAILED nach genau 30 min, Broker-Log `delivery acknowledgement … timed out`) | Weniger parallele Encodierungen pro Pod (`concurrency.av`) oder mehr CPU je Pod; sonst `app.converter.av.conversionTimeout` **und** den RabbitMQ-`consumer_timeout` gemeinsam erhöhen (Abschnitt 6). |
 | Queue-Leader-Verteilung im Cluster wirkt schief | Kein Consumer-Tuning-Thema — `queue_leader_locator` am Broker prüfen (`rabbitmqctl list_queues name leader`), siehe das RabbitMQ-Resilienz-Audit. |
 
 **Nicht anfassen ohne den k6-Lasttest erneut zu fahren:**
