@@ -8,8 +8,10 @@ RUN mkdir -p extracted/snapshot-dependencies && if [[ -z "$(ls -A ./extracted/sn
 
 FROM ${docker.from.eclipse-temurin.21}
 
+# apk upgrade: pick up OS package fixes the base image has not been rebuilt with yet.
 RUN set -eux \
     && apk update  \
+    && apk upgrade --no-cache \
     && apk add --no-cache netcat-openbsd curl ffmpeg
 
 

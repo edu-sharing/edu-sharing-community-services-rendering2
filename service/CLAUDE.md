@@ -5,7 +5,7 @@ versioning, Jackson 3 / Kotlin conventions, and the Redis-prefix warnings — th
 and are not repeated.
 
 ## What this module is
-The main rendering service: a **role-based, plugin-style** Spring Boot 4.1.1 app
+The main rendering service: a **role-based, plugin-style** Spring Boot 4.1.2 app
 (Kotlin 2.4, Java 21). It accepts signed render requests from edu-sharing repositories,
 dispatches them to a content-type module (image, video, document, H5P, …), runs conversions
 synchronously or as async jobs, stores results in S3, and serves the assets.

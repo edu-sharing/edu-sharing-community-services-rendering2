@@ -67,9 +67,9 @@ class LibreOfficeHealthIndicator(
         val future = executor.submit<Int> {
             val out = ByteArrayOutputStream()
             converter.convert(ByteArrayInputStream("health".toByteArray()))
-                .`as`(DefaultDocumentFormatRegistry.getFormatByExtension("txt")!!)
+                .`as`(DefaultDocumentFormatRegistry.getInstance().getFormatByExtension("txt")!!)
                 .to(out)
-                .`as`(DefaultDocumentFormatRegistry.getFormatByExtension("pdf")!!)
+                .`as`(DefaultDocumentFormatRegistry.getInstance().getFormatByExtension("pdf")!!)
                 .execute()
             out.size()
         }

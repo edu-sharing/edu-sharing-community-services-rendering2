@@ -23,7 +23,7 @@
         <resource.delimiter>@</resource.delimiter>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>4.1.1</spring-boot.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
         <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
         <shedlock.version>7.10.1</shedlock.version>
     </properties>
@@ -63,6 +63,24 @@
                 <type>pom</type>
             </dependency>
 
+            <!-- CVE overrides. Direct entries win over the imported BOMs below; drop each one once the
+                 BOM catches up. -->
+            <!-- Boot 4.1.2 manages 5.30.0 (spring-rabbit 4.1.2 itself builds against 5.31.0), affected by
+                 GHSA-68mj-5wr7-6fgg, GHSA-93j5-89vc-pph4, GHSA-jh4v-gfqj-7rhx, GHSA-6g32-pxv4-2wfj et al.
+                 5.33.0 enabled TLS hostname verification by default; we connect without TLS. -->
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+                <version>5.37.0</version>
+            </dependency>
+            <!-- GHSA-3w8q-xq97-5j7x; transitive via the repository REST client's swagger-parser
+                 (json-schema-core). Stays on the 1.7.x API that json-schema-core was built against. -->
+            <dependency>
+                <groupId>org.mozilla</groupId>
+                <artifactId>rhino</artifactId>
+                <version>1.7.15.1</version>
+            </dependency>
+
             <!-- Import the Kotlin BOM before spring-boot-dependencies: Maven resolves a version from
                  the first dependencyManagement import that mentions it, and spring-boot-dependencies
                  otherwise pins kotlin-stdlib/kotlin-reflect to an older Kotlin than ${kotlin.version}. -->
@@ -70,6 +88,23 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-bom</artifactId>
                 <version>${kotlin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- CVE override, same first-import-wins rule: Boot 4.1.2 manages Jackson 3.1.7 / 2.21.7,
+                 affected by CVE-2026-110879 (type parameters of generic type ids bypass the
+                 PolymorphicTypeValidator; jackson-databind #6287). Drop both once Boot ships >= 3.1.8 / 2.21.8. -->
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>3.1.8</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.21.8</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

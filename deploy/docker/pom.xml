@@ -26,13 +26,18 @@
       dockerio.mirror.docker.edu-sharing.com/eclipse-temurin:21-jre-alpine-3.24
     </docker.from.eclipse-temurin.21>
 
-    <docker.from.node.21>
-      dockerio.mirror.docker.edu-sharing.com/node:21-alpine
-    </docker.from.node.21>
-
     <docker.from.node.24>
-      dockerio.mirror.docker.edu-sharing.com/node:24.18.0-alpine
+      dockerio.mirror.docker.edu-sharing.com/node:24-alpine3.24
     </docker.from.node.24>
+
+    <!-- Builder and runtime stage must stay on the same Debian release (the venv is copied across). -->
+    <docker.from.python.3.13>
+      dockerio.mirror.docker.edu-sharing.com/python:3.13-trixie
+    </docker.from.python.3.13>
+
+    <docker.from.python.3.13-slim>
+      dockerio.mirror.docker.edu-sharing.com/python:3.13-slim-trixie
+    </docker.from.python.3.13-slim>
 
     <docker.edu_sharing.community.common.redis.name>
       edu_sharing-community-common-docker-redis

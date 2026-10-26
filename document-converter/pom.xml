@@ -23,8 +23,8 @@
     <resource.delimiter>@</resource.delimiter>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <jodconverter.version>4.4.11</jodconverter.version>
-    <spring-boot.version>4.1.1</spring-boot.version>
+    <jodconverter.version>5.1.1</jodconverter.version>
+    <spring-boot.version>4.1.2</spring-boot.version>
     <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
   </properties>
 
