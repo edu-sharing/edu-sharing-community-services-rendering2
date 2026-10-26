@@ -1,4 +1,4 @@
-FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-bullseye AS builder
+FROM ${docker.from.python.3.13} AS builder
 
 RUN pip install poetry==2.1.2
 
@@ -17,7 +17,7 @@ RUN poetry install --only main --no-root
 RUN rm -rf $POETRY_CACHE_DIR
 
 
-FROM dockerio.mirror.docker.edu-sharing.com/python:3.13-slim-bullseye
+FROM ${docker.from.python.3.13-slim}
 
 ARG git_branch=dev
 ARG git_commit_id=dev

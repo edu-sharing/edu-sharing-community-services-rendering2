@@ -12,8 +12,10 @@ FROM ${docker.from.eclipse-temurin.21}
 VOLUME /tmp
 WORKDIR application
 
-# Enable community repository, update package list, and install LibreOffice
+# Enable community repository, update package list, patch OS packages the base image has not been
+# rebuilt with yet, and install LibreOffice
 RUN apk update && \
+    apk upgrade --no-cache && \
     apk add --no-cache libreoffice fontconfig ttf-dejavu msttcorefonts-installer && \
     update-ms-fonts
 

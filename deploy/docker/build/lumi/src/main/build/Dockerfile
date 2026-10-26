@@ -1,7 +1,9 @@
-FROM ${docker.from.node.21}
+FROM ${docker.from.node.24}
 
+# apk upgrade: pick up OS package fixes the base image has not been rebuilt with yet.
 RUN set -eux \
     && apk update  \
+    && apk upgrade --no-cache \
     && apk add --no-cache netcat-openbsd
 
 WORKDIR /application

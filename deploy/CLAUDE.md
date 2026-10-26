@@ -39,17 +39,21 @@ container env `BASE_HREF` (UI path) and `ADMIN_API_BASE` (service context-path, 
 configure the static server at runtime — see [`../admin-frontend/CLAUDE.md`](../admin-frontend/CLAUDE.md).
 
 ## Dockerfiles (`build/<module>/src/main/build/Dockerfile`)
-- **service** & **document-converter**: Amazon Corretto 21-alpine, Spring Boot layered-jar
+All base images are the `docker.from.*` properties in `docker/pom.xml`. They are not hard-coded in the Dockerfiles,
+which are Maven-filtered. The tags are moving tags, so a rebuild picks up upstream fixes. The Alpine images also run
+`apk upgrade` to patch OS packages before the upstream image is rebuilt.
+- **service** & **document-converter**: `eclipse-temurin:21-jre-alpine-3.24`, Spring Boot layered-jar
   extraction (`java -Djarmode=tools -jar application.jar extract --layers --launcher`; Boot
   4.1 removed the old `-Djarmode=layertools` mode), non-root `worker` user, entrypoint sets
   `-Dspring.profiles.active=docker`. The document-converter image additionally installs
   **LibreOffice + fonts**.
-- **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000. Creates
+- **lumi**: `node:24-alpine3.24` (built with the older Node in `lumi/pom.xml`), non-root `node` user, runs `dist/index.js`, exposes 3000. Creates
   `/application/library-cache` **owned by `node` before `USER node`** — `/application` is root-owned,
   so a volume mounted there would be created as root and the node user could not write into it
   (Docker seeds a fresh named volume from this directory's ownership; K8s uses the pod's `fsGroup`).
-- **jupyter-converter**: `python:3.13` (Poetry install in a builder stage), runs `python -m main`.
-- **admin-frontend**: `node:21-alpine`, serves the static Angular build via a dependency-free
+- **jupyter-converter**: `python:3.13-trixie` (Poetry install in a builder stage) and `python:3.13-slim-trixie` at
+  runtime, runs `python -m main`. Both stages must stay on the same Debian release, because the venv is copied across.
+- **admin-frontend**: `node:24-alpine3.24`, serves the static Angular build via a dependency-free
   `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
   prefix, injects `BASE_HREF`/`ADMIN_API_BASE` into `index.html` at request time). Exposes 8080.
 
