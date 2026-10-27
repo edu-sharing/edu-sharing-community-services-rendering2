@@ -63,7 +63,8 @@ files here are filtered with them, and the service integration tests read the sa
 (`service/src/test/resources/docker-images.properties`, `TestImages`). Bump a version once, in the root pom. The RabbitMQ
 `...rabbitmq.series` (major-minor, `4-3`) is part of the Helm StatefulSet name: a patch bump keeps the name, a minor bump
 replaces the cluster (`docs/RABBITMQ-CLUSTER-AUSTAUSCH.md`). The root `compose.yml` (local infrastructure for the IDE and the
-load tests) still carries its own image versions.
+load tests) cannot read the pom and runs without a Maven step, so it carries literal versions for the edu-sharing infrastructure
+images; `ComposeImageVersionsTest` (service module) fails when they differ from the root pom or float on `latest`.
 
 `docker-maven-plugin` builds images on `install` and pushes on `deploy`, naming them from the
 root POM's `docker.registry` / `docker.repository` / `docker.prefix` and the git-derived `docker.tag`.
@@ -132,6 +133,7 @@ dotted Spring keys set as env entries.
 | `REDIS_HOST` / `REDIS_PORT` | `spring.redis.standalone.host` / `.port` | `redis-cache` / `6379` |
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | `spring.rabbitmq.host` / `.port` | `rendering2-message-queue` / `5672` |
 | `RENDERING2_QUEUE_<KEY>_CONCURRENCY` (Helm `config.queue.concurrency.<key>`) | `app.queue.<key>.concurrency` — the one per-queue scaling knob: max messages processed in parallel per pod. Meaning follows the queue's `mode` (code-only, in `application.properties`): STANDARD = registered `DirectMessageListenerContainer` consumers; REMOTE (sodix/omega/ddb — resolve a link/reference to externally-hosted material) = K (remote HTTP pool + prefetch, on virtual threads); SINGLE_ACTIVE (the h5p *import* queue) is forced to 1 and not exposed here — the h5p lookup queue in front of it is STANDARD and is exposed as `h5pLookup` | `1` (code); per-queue starting values in the chart |
+| `RENDERING2_MESSAGE_QUEUE_CONSUMER_TIMEOUT` (compose only; Helm: RabbitMQ chart `config.consumerTimeout`, set by the bundle) | RabbitMQ `consumer_timeout` in ms, passed as `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS` (`-rabbit consumer_timeout <ms>`). Quorum queues cancel a consumer and redeliver its message after this long without an ack (broker default 30 min). An av job acks only after the encode (up to 30 min, reaper at 45 min via `app.jobreaper.max-process-time.av_job_v3`), so keep it above that | `3600000` |
 | `RENDERING2_QUEUE_PREFETCH` (Helm `config.queue.prefetch`) | `app.queue.prefetch` — global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from their concurrency) | `1` |
 | `RENDERING2_QUEUE_<KEY>_PREFETCH` (Helm `config.queue.remotePrefetch.<key>`, `key` ∈ sodix/omega/ddb only) | `app.queue.<key>.prefetch` — optional per-REMOTE-queue prefetch override; must be >= the queue's concurrency (enforced at startup) | empty = derive from `concurrency` |
 | `RENDERING2_SERVICE_CONVERTER_SPREADSHEET_TO_HTML_ENABLED` (Helm `config.converter.spreadsheet.enabled`) | `app.converter.spreadsheetToHtml.enabled` — gates `SpreadsheetRenderModule` via `@ConditionalOnProperty` (no `matchIfMissing`, so anything but `true` unregisters the module): spreadsheets (xls/xlsx/ods/csv) are converted to HTML by the document-converter, otherwise they fall back to the regular document rendering (PDF) | `true` |

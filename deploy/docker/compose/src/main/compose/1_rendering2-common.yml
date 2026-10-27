@@ -37,6 +37,9 @@ services:
       RABBITMQ_DEFAULT_PASS: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       RABBITMQ_SECURE_PASSWORD: true
       RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
+      # Quorum queues cancel a consumer and redeliver its message after consumer_timeout (ms) without an ack, default 30 minutes. An
+      # av job acks only after the encode (up to 30 minutes, reaper at 45): keep this above app.jobreaper.max-process-time.av_job_v3.
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout ${RENDERING2_MESSAGE_QUEUE_CONSUMER_TIMEOUT:-3600000}"
     restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
