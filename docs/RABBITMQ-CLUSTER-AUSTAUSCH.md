@@ -62,6 +62,20 @@ Das Chart nutzt `cluster_formation.peer_discovery_backend = rabbit_peer_discover
 - *Ungeprüft:* Wiederholung der Erstbildung (bisher ein einzelner Lauf), Rolling-Restart (T3), Verhalten unter Last und
   die Option mit ServiceAccount/RBAC im Cluster.
 
+### 1.3 Entscheidungen (2026-10-27)
+- **Automatischer Austausch per Pipeline: ja.** Er läuft im normalen `helm upgrade` jeder Umgebung.
+- **Zielversion: 4.3** (Image 4.3.7), Community-Support bis 31.01.2027.
+- **Quorum Queues: umgesetzt.** Alle 15 Business-Queues sind Quorum (`app.queue.<x>.type`, einzeln auf `classic`
+  umstellbar), die Namen wurden auf `_v3` umgestellt, damit ein nicht ersetzter Broker nicht mit `406` stillschweigend
+  aufhört zu konsumieren. `x-max-priority` ist entfallen (Quorum lehnt es ab), die av-Priorität läuft über die
+  Nachrichten-Eigenschaft. Details und Messwerte: `docs/QUEUE_SCALING.md` §6.
+- **Consumer-Timeout:** Das Bundle setzt ihn auf 60 min (`config.consumerTimeout`), über dem Reaper-Wert für av (45 min).
+- **`partitionHandling` entfernt** (unter 4.3 wirkungslos).
+- **`max-queued-time` gekürzt:** Standard 1 h statt 6 h, av 6 h (`app.jobreaper.max-queued-time.av_job_v3`).
+- **Fehler mitkorrigiert:** Der Reaper-Override `max-process-time.av_job=PT45M` traf wegen des Routing-Keys `av_job_v2` nie
+  zu (av-Jobs wurden nach 30 statt 45 Minuten gereapt). Der Key heißt jetzt `av_job_v3`, in `application.properties`,
+  Helm und Compose.
+
 ## 2. Ablauf beim Pipeline-Update
 
 1. Die Pipeline führt wie gewohnt `helm upgrade` des Bundles aus.
@@ -75,7 +89,7 @@ Das Chart nutzt `cluster_formation.peer_discovery_backend = rabbit_peer_discover
 - `kubectl get pods`: `…-4-3-0..2` auf `1/1`, die alten Pods sind weg.
 - `rabbitmqctl cluster_status` auf `…-4-3-0`: **ein** Cluster, drei Knoten, alle `…-4-3-N`.
 - `rabbitmq-diagnostics server_version`, `rabbitmqctl list_feature_flags` (`khepri_db` = `enabled`).
-- `rabbitmqctl list_queues name state consumers`: alle 15 `_job_queue_v2`-Queues mit Consumern.
+- `rabbitmqctl list_queues name state consumers`: alle 15 `_job_queue_v3`-Queues mit Consumern, jeweils vom Typ `quorum`.
 - Log der Service-Pods: `Unroutable published message`, `Publish not confirmed`.
 - Ein Test-Render-Request, Job muss `FINISHED` werden.
 
@@ -110,7 +124,7 @@ nicht zu vermeiden.
 
 ### 3.2 Nachrichten und Jobs
 - Messages im alten Cluster sind verloren. Während der Mischphase der Service-Pods bleiben Jobs mit verlorenen
-  Messages `QUEUED` bis zum Reaper (`app.jobreaper.default-max-queued-time`, Standard **6 h**; Dedup liefert bis
+  Messages `QUEUED` bis zum Reaper (`app.jobreaper.default-max-queued-time`, Standard jetzt **1 h** (av: 6 h); Dedup liefert bis
   dahin dieselbe tote Job-ID). Wer das nicht hinnehmen will, verkürzt den Wert vorübergehend vor dem Update.
 - `PROCESSING`-Jobs löst der Reaper nach 30 min auf (av: 45 min).
 - Registrierungs-Cache: höchstens 5 Minuten (TTL) veraltet, falls ein Broadcast verpasst wurde.
@@ -146,7 +160,7 @@ hatte eigene PVCs und hat die alten Daten nie berührt. Nach dem Aufräumen gibt
   werden kann, und ob `nodeshutdown.sh` (preStop), der Konfig-Mount `/bitnami/rabbitmq/conf` und die Env-Variablen des
   Charts mit den 4.1.5-Skripten unter 4.3.7 funktionieren. Der 4.2.9-Cluster in Dev läuft auf demselben Aufbau.
   4.3 braucht Erlang 27 oder neuer (erfüllt), Khepri ist einziger Metadatenspeicher (Mnesia entfällt),
-  `RABBITMQ_CLUSTER_PARTITION_HANDLING` wirkt nicht mehr. Community-Support für 4.3 endet am 31.01.2027 (Stand der
+  `RABBITMQ_CLUSTER_PARTITION_HANDLING` wirkt nicht mehr (aus dem Chart entfernt). Community-Support für 4.3 endet am 31.01.2027 (Stand der
   Prüfung 2026-10-27, 4.4.0 ist erschienen).
 - Ob die Update-Routine Umgebungs-Values besitzt, die `nameOverride` oder den Service-Host überschreiben und den
   Anker aushebeln. Dann müssen beide Werte dort mitgezogen werden.
