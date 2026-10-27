@@ -84,8 +84,16 @@
     </docker.edu_sharing.community.common.rabbitmq.name>
 
     <docker.edu_sharing.community.common.rabbitmq.tag>
-      4.2.9
+      4.3.7
     </docker.edu_sharing.community.common.rabbitmq.tag>
+
+    <!-- major-minor of the tag above with '-' instead of '.', part of the Helm name of the RabbitMQ StatefulSet
+         (edusharing-services-rendering2-rabbitmq-4-3). Keep it in sync with the tag: a patch bump (4.3.7 -> 4.3.8)
+         keeps the name and runs as a rolling upgrade, a minor bump (4.3 -> 4.4) changes the name and replaces the
+         cluster (see docs/RABBITMQ-CLUSTER-AUSTAUSCH.md). -->
+    <docker.edu_sharing.community.common.rabbitmq.series>
+      4-3
+    </docker.edu_sharing.community.common.rabbitmq.series>
 
     <docker.edu_sharing.community.common.mongodb.name>
       edu_sharing-community-common-docker-mongodb

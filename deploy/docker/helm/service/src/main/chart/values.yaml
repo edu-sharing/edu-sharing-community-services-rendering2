@@ -782,7 +782,7 @@ config:
 
   rabbitmq:
     ## @param config.rabbitmq.host Set rabbitmq host
-    host: edusharing-services-rendering2-rabbitmq
+    host: edusharing-services-rendering2-rabbitmq-${docker.edu_sharing.community.common.rabbitmq.series}
     ## @param config.rabbitmq.port Set rabbitmq port
     port: 5672
     ## @param config.rabbitmq.username Set rabbitmq username

@@ -21,8 +21,8 @@ edusharing_services_rendering2_rabbitmq:
     ## @param edusharing_services_rendering2_rabbitmq.image.tag Set rabbitmq image tag
     tag: ${docker.edu_sharing.community.common.rabbitmq.tag}
 
-  ## @param edusharing_services_rendering2_rabbitmq.nameOverride Override rabbitmq name
-  nameOverride: &rabbitmqNameOverride edusharing-services-rendering2-rabbitmq
+  ## @param edusharing_services_rendering2_rabbitmq.nameOverride Override rabbitmq name. A changed name makes helm create a new StatefulSet with new PVCs and remove the old one (blue-green replacement, see docs/RABBITMQ-CLUSTER-AUSTAUSCH.md); the service host follows through the YAML anchor
+  nameOverride: &rabbitmqNameOverride edusharing-services-rendering2-rabbitmq-${docker.edu_sharing.community.common.rabbitmq.series}
 
   service:
     port:
@@ -32,6 +32,9 @@ edusharing_services_rendering2_rabbitmq:
   config:
     ## @param edusharing_services_rendering2_rabbitmq.config.username Set mongodb username
     username: &rabbitmqConfigUsername rendering2
+
+    ## @param edusharing_services_rendering2_rabbitmq.config.cookieFromName Derive the Erlang cookie from the password and the release name, so the replacement cluster never joins the old one while both run during the upgrade
+    cookieFromName: true
 
     metrics:
       detailed:
