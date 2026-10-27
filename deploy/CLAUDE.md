@@ -57,6 +57,14 @@ which are Maven-filtered. The tags are moving tags, so a rebuild picks up upstre
   `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
   prefix, injects `BASE_HREF`/`ADMIN_API_BASE` into `index.html` at request time). Exposes 8080.
 
+**Infrastructure image versions** (`docker.edu_sharing.community.common.*`: Redis, RabbitMQ, MongoDB, MinIO, RustFS, ...) live
+in the **root `pom.xml`**, not in `docker/pom.xml`, so that the service module sees them too: the Helm charts and compose
+files here are filtered with them, and the service integration tests read the same values for their Testcontainers
+(`service/src/test/resources/docker-images.properties`, `TestImages`). Bump a version once, in the root pom. The RabbitMQ
+`...rabbitmq.series` (major-minor, `4-3`) is part of the Helm StatefulSet name: a patch bump keeps the name, a minor bump
+replaces the cluster (`docs/RABBITMQ-CLUSTER-AUSTAUSCH.md`). The root `compose.yml` (local infrastructure for the IDE and the
+load tests) still carries its own image versions.
+
 `docker-maven-plugin` builds images on `install` and pushes on `deploy`, naming them from the
 root POM's `docker.registry` / `docker.repository` / `docker.prefix` and the git-derived `docker.tag`.
 

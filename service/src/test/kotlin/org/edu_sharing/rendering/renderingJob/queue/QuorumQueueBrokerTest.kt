@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
+import org.edu_sharing.rendering.testUtils.TestImages
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -34,7 +35,7 @@ class QuorumQueueBrokerTest {
     companion object {
         @JvmStatic
         @Container
-        private val rabbit = RabbitMQContainer("rabbitmq:4.3.7-management")
+        private val rabbit = RabbitMQContainer(TestImages.rabbitmq())
     }
 
     private lateinit var connectionFactory: CachingConnectionFactory

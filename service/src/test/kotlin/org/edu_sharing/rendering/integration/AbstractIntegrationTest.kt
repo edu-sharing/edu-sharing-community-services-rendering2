@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.integration
 
 import com.redis.testcontainers.RedisContainer
+import org.edu_sharing.rendering.testUtils.TestImages
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -22,7 +23,7 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val mongoDBContainer = MongoDBContainer(DockerImageName.parse("mongo:8.0.34"))
+        private val mongoDBContainer = MongoDBContainer(TestImages.mongodb())
 
         @JvmStatic
         @Container
@@ -34,7 +35,7 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:4.3.7-management")
+        private val rabbitMQContainer = RabbitMQContainer(TestImages.rabbitmq())
 
         /** Base URL of the broker's management API, for tests that inspect queue types, consumers and counts. */
         @JvmStatic
@@ -48,7 +49,7 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val redisContainer: RedisContainer = RedisContainer(DockerImageName.parse("redis:8.2.10"))
+        private val redisContainer: RedisContainer = RedisContainer(TestImages.redis())
             .withExposedPorts(6379)
 
         @DynamicPropertySource
