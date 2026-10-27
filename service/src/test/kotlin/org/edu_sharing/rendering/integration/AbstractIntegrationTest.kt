@@ -34,7 +34,17 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:4.1.3-management")
+        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:4.3.7-management")
+
+        /** Base URL of the broker's management API, for tests that inspect queue types, consumers and counts. */
+        @JvmStatic
+        protected fun rabbitManagementUrl(): String = rabbitMQContainer.httpUrl
+
+        @JvmStatic
+        protected fun rabbitAdminUser(): String = rabbitMQContainer.adminUsername
+
+        @JvmStatic
+        protected fun rabbitAdminPassword(): String = rabbitMQContainer.adminPassword
 
         @JvmStatic
         @Container

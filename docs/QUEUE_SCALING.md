@@ -176,12 +176,18 @@ jeweiligen Klassen, hier nur die Fundstellen:
   orphane `PROCESSING`-Sub-Jobs (crashter Consumer) **und** — als Sicherheitsnetz — Sub-Jobs bzw.
   Hauptjobs, die ungewöhnlich lange `QUEUED` hängen (verlorene Publish oder eine beim
   Broker-Neustart geleerte transiente Queue). Timeouts: `app.jobreaper.default-max-process-time`
-  (PT30M) und `app.jobreaper.default-max-queued-time` (PT6H — großzügig genug für einen legitimen
-  Backlog z. B. bei HPA-Scale-up-Verzögerung; sodix/omega/ddb brauchen **keinen** längeren
-  Per-Queue-Override, obwohl sie andernorts als „Import-Queues" bezeichnet werden — jeder Job ist
-  nur 1-2 schnelle REST-Calls, die einen Link/eine Referenz auflösen, kein Download, daher
-  drainiert selbst ein großer Backlog bei K=50/Pod in Minuten. `app.jobreaper.max-queued-time.<key>`
-  bleibt als Escape Hatch für eine zukünftige Queue mit echtem Lang-Backlog).
+  (PT30M) und `app.jobreaper.default-max-queued-time` (**PT1H**, vorher PT6H). Eine verlorene Nachricht
+  (Broker ersetzt, Publish verworfen) lässt ihren Job so lange `QUEUED` stehen, und
+  `MainJobCreationService` gibt jeder erneuten Anfrage in dieser Zeit die Id des toten Jobs zurück —
+  deshalb wurde der Wert gekürzt. Er muss über der Drain-Zeit der schnellen Queues liegen: sodix/omega/ddb
+  sind nur 1-2 REST-Calls pro Job (Link/Referenz auflösen, kein Download), ein Backlog von über 100k
+  drainiert bei K=50/Pod in Minuten. Die **AV-Queue** hat deshalb einen eigenen Eintrag
+  `app.jobreaper.max-queued-time.av_job_v3=PT6H`: Encodierungen (bis PT30M, Concurrency 10 pro Pod) können
+  legitim stundenlang warten. Ein gereapter, noch in der Queue liegender Job wird nicht neu eingereiht;
+  das Frontend fragt neu an, und die spät zugestellte Nachricht wird verworfen (alle Sub-Jobs terminal).
+  **Der Schlüssel muss exakt dem Routing-Key entsprechen** (`app.queue.<x>.key`): mit `av_job` statt
+  `av_job_v2` griff der PT45M-Override für av nicht, und av-Jobs wurden nach den 30 Minuten des Defaults
+  gereapt.
 - **Redelivery-Guards** in den Receivern (`if (subJob.status != SubJobStatus.QUEUED) return`,
   analog `H5pLookupReceiver`): verhindern, dass eine erneut zugestellte Nachricht (z. B. Ack
   verloren, obwohl der Job schon fertig war) externe Seiteneffekte wiederholt (Moodle-Import,
@@ -191,22 +197,36 @@ jeweiligen Klassen, hier nur die Fundstellen:
   statt sie mitten in der Verarbeitung abzubrechen (nur für STANDARD/SINGLE_ACTIVE wirksam — bei
   REMOTE-Queues kehrt der Listener durch `AsyncAckDispatcher` sofort zurück, siehe dessen
   Doc-Kommentar).
-- **30-Minuten-Grenze für lang laufende Nachrichten (`consumer_timeout`).** STANDARD-Queues bestätigen
-  eine Nachricht erst, wenn der Handler fertig ist. RabbitMQ wartet darauf per Default höchstens
-  **30 Minuten** (`consumer_timeout = 1800000` ms); danach schließt der Broker den Kanal
-  (`PRECONDITION_FAILED: delivery acknowledgement on channel … timed out`) und stellt die Nachricht neu zu.
-  Praktisch betrifft das nur die **AV-Queue**: `app.converter.av.conversionTimeout` (`PT30M`) bricht ffmpeg
-  zur selben Zeit ab, ein Video-Sub-Job über 30 Minuten endet also `FAILED` — gemessen mit einem
-  1080p-Video bei mehreren parallelen Encodierungen pro Pod (`../loadtest/README.md`, „Video unter Last“).
-  Wer `conversionTimeout` erhöht, muss den Broker mitziehen — global in `rabbitmq.conf`
-  (`consumer_timeout = 7200000`) oder nur für die AV-Queue per Policy (ab RabbitMQ 3.12, ohne die Queue neu
-  zu deklarieren):
-  `rabbitmqctl set_policy av-consumer-timeout '^av_job_queue_v2$' '{"consumer-timeout": 7200000}' --apply-to queues`.
-  Achtung: Pro Queue greift nur **eine** Policy (die mit der höchsten Priorität) — gibt es schon eine
-  passende, den Schlüssel dort ergänzen. `StaleJobReaper` ist hier keine Grenze: er misst Leerlauf, und
-  AV-Sub-Jobs melden alle 10 % Fortschritt.
-
----
+- **Queue-Typ: Quorum.** Alle Business-Queues sind **Quorum-Queues** (`x-queue-type: quorum`, Default, pro Queue
+  mit `app.queue.<x>.type=classic` überschreibbar). Fällt der Knoten aus, der eine Queue führt, übernimmt ein
+  anderes Replikat nach Sekunden; eine classic Queue ist bis zur Rückkehr ihres Knotens nicht erreichbar.
+  Gemessen in einem frischen 4.3.7-Testcluster (harter Kill des Leader-Pods): classic über 73 s nicht erreichbar,
+  Quorum nach spätestens ca. 9 s wieder bedienbar (Obergrenze, die Messung war serielle Roundtrips).
+  - Der Typ ist bei der Deklaration fest. Eine vorhandene classic Queue lässt sich nicht als Quorum neu
+    deklarieren (`406`, von `mismatchedQueuesFatal=false` verschluckt — die Consumer starten dann nie).
+    Deshalb heißen die Queues jetzt `*_job_queue_v3` (Routing-Key `*_job_v3`); die `_v2`-Queues stehen in
+    `app.queue-migration.legacy-queue-names`, und der `LegacyQueueCleaner` löscht sie, sobald kein Consumer mehr
+    angehängt ist.
+  - **Prioritäten:** Quorum-Queues ordnen strikt nach der Nachrichten-Eigenschaft `priority` im Bereich 0-31 und
+    **lehnen `x-max-priority` ab** (`invalid arg 'x-max-priority'`; die Doku behauptet „ignoriert"). Das Argument
+    ist deshalb entfallen. Eine Nachricht **ohne** Priorität zählt wie 4 und überholt alle Höhen darunter, jede
+    AV-Nachricht trägt daher eine explizite Priorität (`PriorityPostProcessor`; Audio 255 wird auf 31 begrenzt).
+  - Beide Deklarationen einer Queue (`QueueTopologyConfig` und jeder `@RabbitListener`) müssen `x-queue-type`
+    identisch setzen; `QueueDeclarationConsistencyTest` prüft das für alle Receiver.
+  - Exklusive, nicht-durable und servergenannte Queues (CORS- und Registrierungs-Cache-Broadcast) bleiben classic.
+  - Verlust der Mehrheit der Replikate (bei 3 Knoten zwei): die Queue ist laut RabbitMQ-Doku dauerhaft nicht
+    verfügbar und muss gelöscht und neu angelegt werden (der Service deklariert fehlende Queues selbst, ersetzt
+    aber kein vorhandenes kaputtes Queue-Objekt).
+- **60-Minuten-Grenze für lang laufende Nachrichten (`consumer_timeout`).** STANDARD-Queues bestätigen eine
+  Nachricht erst, wenn der Handler fertig ist. Bei **Quorum-Queues** wartet RabbitMQ darauf per Default höchstens
+  **30 Minuten**; danach bricht der Broker den Consumer ab und stellt die Nachricht neu zu — bei av eine zweite
+  Encodierung. (Classic Queues und Streams werten den Timeout seit 4.3 nicht mehr aus.) Praktisch betrifft das nur
+  die **AV-Queue**: `app.converter.av.conversionTimeout` (`PT30M`) bricht ffmpeg zur selben Zeit ab, und der Reaper
+  greift bei 45 Minuten (`app.jobreaper.max-process-time.av_job_v3`). Das Helm-Bundle setzt den Timeout deshalb auf
+  **60 Minuten** (RabbitMQ-Chart `config.consumerTimeout=3600000`, rendert `consumer_timeout` in `rabbitmq.conf`).
+  Wer `conversionTimeout` erhöht, muss Reaper **und** Timeout mitziehen; der Broker-Wert muss über dem Reaper-Wert
+  liegen. `StaleJobReaper` ist hier keine Grenze für laufende Encodierungen: er misst Leerlauf, und AV-Sub-Jobs
+  melden alle 10 % Fortschritt.
 
 ## 7. Wo stelle ich was ein — Config-Referenz
 

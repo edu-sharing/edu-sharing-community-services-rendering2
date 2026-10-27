@@ -249,11 +249,19 @@ repo at a time. Controllers:
 - Per-module node-permission session caching expiry: `app.session.<module>.nodePermissionExpirationTime`.
 - **Video resolutions:** `app.converter.video.resolutions` is a plain list (`480,720,1080`, what Helm/compose set);
   the per-height RabbitMQ priority lives apart in `app.converter.video.priorities.<height>` (`VideoConverterConfig`).
-  Their maximum is the durable AV queue's `x-max-priority`, which RabbitMQ refuses to redeclare with another value -
-  so it must not depend on which heights are listed.
+  The AV queue is a quorum queue: it orders by the message `priority` over 0-31 (strict since RabbitMQ 4.3) and
+  **rejects** an `x-max-priority` argument, so no maximum is declared any more. Every AV message must carry an explicit
+  priority (`PriorityPostProcessor` does): a quorum queue counts a message without one as 4.
+- **Queue type:** all business queues are quorum queues (`app.queue.<x>.type`, default `quorum`, `classic` per queue).
+  The type cannot change on an existing queue (a mismatch answers `406`, swallowed by `mismatchedQueuesFatal=false`, so
+  the consumers never start), hence the `_v3` names and the `_v2` entries in `app.queue-migration.legacy-queue-names`.
+  Both declarations of a queue (`QueueTopologyConfig.declareArguments` and the `@RabbitListener` `Argument`s) must carry
+  the same `x-queue-type`; `QueueDeclarationConsistencyTest` enforces it for every receiver.
 - **AV jobs longer than 30 min fail:** `app.converter.av.conversionTimeout` (PT30M) aborts ffmpeg, and RabbitMQ's
-  default `consumer_timeout` (30 min) closes the channel of an unacked delivery and redelivers it. Raise both together
-  (see `docs/QUEUE_SCALING.md` §6); `StaleJobReaper` is not a limit there (it measures idle time).
+  `consumer_timeout` (default 30 min, evaluated by quorum queues only since 4.3) cancels the consumer of an unacked
+  delivery and redelivers it. The Helm bundle sets it to 60 min (RabbitMQ chart `config.consumerTimeout`), above the
+  reaper's `app.jobreaper.max-process-time.av_job_v3` (45 min). Raise all three together (see `docs/QUEUE_SCALING.md`
+  §6). The reaper keys must equal `app.queue.<x>.key` exactly or the override silently does not apply.
 - **RabbitMQ listener concurrency is not just `app.queue.<x>.concurrency`.** `DirectMessageListenerContainer`
   only uses `QueueConfig.rabbitConsumerExecutor` to bootstrap consumer registration; each consumer's message
   handling runs on whichever thread the RabbitMQ Java client's own, **connection-wide** `ConsumerWorkService`
