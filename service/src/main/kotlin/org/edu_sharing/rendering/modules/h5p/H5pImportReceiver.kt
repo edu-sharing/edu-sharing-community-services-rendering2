@@ -53,6 +53,9 @@ class H5pImportReceiver(
                     name = "#{h5pQueueProperties.name}",
                     durable = "true",
                     arguments = [Argument(
+                        name = "x-queue-type",
+                        value = "#{h5pQueueProperties.queueTypeArgument}"
+                    ), Argument(
                         name = "x-single-active-consumer",
                         value = "#{h5pQueueProperties.singleActiveConsumer}",
                         type = "java.lang.Boolean"

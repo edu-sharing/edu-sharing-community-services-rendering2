@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -32,7 +33,14 @@ class OnyxReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{onyxQueueProperties.name}", durable = "true"),
+                value = Queue(
+                    name = "#{onyxQueueProperties.name}",
+                    durable = "true",
+                    arguments = [Argument(
+                        name = "x-queue-type",
+                        value = "#{onyxQueueProperties.queueTypeArgument}"
+                    )]
+                ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{onyxQueueProperties.key}"]
             )

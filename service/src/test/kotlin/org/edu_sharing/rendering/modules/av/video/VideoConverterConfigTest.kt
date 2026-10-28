@@ -45,22 +45,17 @@ class VideoConverterConfigTest {
     }
 
     @Test
-    fun `dropping a height keeps the queue's max priority`() {
-        // x-max-priority of the durable AV queue comes from here and cannot be redeclared with another value
+    fun `dropping a height keeps the priorities of the remaining ones`() {
+        // priorities are bound independently of the resolutions, so removing 480 does not shift 720/1080
         val bound = bind("app.converter.video.resolutions" to "720,1080")
-        assertEquals(2, bound.getMaxPriority())
         assertEquals(1, bound.getPriority(720, 0))
+        assertEquals(0, bound.getPriority(1080, -1))
     }
 
     @Test
     fun `validate rejects an empty resolution list`() {
         assertThrows<IllegalArgumentException> { VideoConverterConfig().validate() }
         assertThrows<IllegalArgumentException> { VideoConverterConfig().apply { resolutions = listOf(0) }.validate() }
-    }
-
-    @Test
-    fun `getMaxPriority should return the highest priority`() {
-        assertEquals(3, config.getMaxPriority())
     }
 
     @Test

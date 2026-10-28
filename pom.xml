@@ -25,6 +25,90 @@
     <docker.registry>docker.edu-sharing.com</docker.registry>
 
 
+    <!-- Docker images of the infrastructure services (MongoDB, Redis, RabbitMQ, S3, ...). One place for both consumers:
+         the Helm charts and compose files (deploy/docker, filtered into values.yaml and the compose YAML) and the service
+         integration tests, whose Testcontainers use the same upstream versions (service/src/test/resources/docker-images.properties).
+         Bump a version here and deployment and tests move together. -->
+    <docker.edu_sharing.community.common.redis.name>
+      edu_sharing-community-common-docker-redis
+    </docker.edu_sharing.community.common.redis.name>
+
+    <docker.edu_sharing.community.common.redis.tag>
+      8.2.10-1
+    </docker.edu_sharing.community.common.redis.tag>
+
+    <docker.edu_sharing.community.common.redis.exporter.name>
+      edu_sharing-community-common-docker-redis-export
+    </docker.edu_sharing.community.common.redis.exporter.name>
+
+    <docker.edu_sharing.community.common.redis.exporter.tag>
+      1.75.0
+    </docker.edu_sharing.community.common.redis.exporter.tag>
+
+    <docker.edu_sharing.community.common.redis-cluster.name>
+      edu_sharing-community-common-docker-redis-cluster
+    </docker.edu_sharing.community.common.redis-cluster.name>
+
+    <docker.edu_sharing.community.common.redis-cluster.tag>
+      8.2.10-1
+    </docker.edu_sharing.community.common.redis-cluster.tag>
+
+    <docker.edu_sharing.community.common.minio.name>
+      edu_sharing-community-common-docker-minio
+    </docker.edu_sharing.community.common.minio.name>
+
+    <docker.edu_sharing.community.common.minio.tag>
+      2025.7.23
+    </docker.edu_sharing.community.common.minio.tag>
+
+    <docker.edu_sharing.community.common.rustfs.name>
+      edu_sharing-community-common-docker-rustfs
+    </docker.edu_sharing.community.common.rustfs.name>
+
+    <docker.edu_sharing.community.common.rustfs.tag>
+      1.0.0-rc.5-1
+    </docker.edu_sharing.community.common.rustfs.tag>
+
+    <docker.edu_sharing.community.common.rabbitmq.name>
+      edu_sharing-community-common-docker-rabbitmq
+    </docker.edu_sharing.community.common.rabbitmq.name>
+
+    <docker.edu_sharing.community.common.rabbitmq.tag>
+      4.3.7-1
+    </docker.edu_sharing.community.common.rabbitmq.tag>
+
+    <!-- major-minor of the tag above with '-' instead of '.', part of the Helm name of the RabbitMQ StatefulSet
+         (edusharing-services-rendering2-rabbitmq-4-3). Keep it in sync with the tag: a patch bump (4.3.7 -> 4.3.8)
+         keeps the name and runs as a rolling upgrade, a minor bump (4.3 -> 4.4) changes the name and replaces the
+         cluster (see docs/RABBITMQ-CLUSTER-AUSTAUSCH.md). -->
+    <docker.edu_sharing.community.common.rabbitmq.series>
+      4-3
+    </docker.edu_sharing.community.common.rabbitmq.series>
+
+    <docker.edu_sharing.community.common.mongodb.name>
+      edu_sharing-community-common-docker-mongodb
+    </docker.edu_sharing.community.common.mongodb.name>
+
+    <docker.edu_sharing.community.common.mongodb.tag>
+      8.0.34-1
+    </docker.edu_sharing.community.common.mongodb.tag>
+
+    <docker.edu_sharing.community.common.mongodb.exporter.name>
+      edu_sharing-community-common-docker-mongodb-exporter
+    </docker.edu_sharing.community.common.mongodb.exporter.name>
+
+    <docker.edu_sharing.community.common.mongodb.exporter.tag>
+      0.47.0
+    </docker.edu_sharing.community.common.mongodb.exporter.tag>
+
+    <docker.edu_sharing.community.common.minideb.name>
+      edu_sharing-community-common-docker-minideb
+    </docker.edu_sharing.community.common.minideb.name>
+
+    <docker.edu_sharing.community.common.minideb.tag>
+      12.0.1
+    </docker.edu_sharing.community.common.minideb.tag>
+
     <!-- release-2 -->
     <bom.repository.version>${project.version}</bom.repository.version>
 

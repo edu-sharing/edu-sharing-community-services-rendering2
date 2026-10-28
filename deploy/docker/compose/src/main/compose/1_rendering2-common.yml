@@ -37,6 +37,9 @@ services:
       RABBITMQ_DEFAULT_PASS: "${RENDERING2_MESSAGE_QUEUE_PASSWORD:-rendering}"
       RABBITMQ_SECURE_PASSWORD: true
       RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
+      # Quorum queues cancel a consumer and redeliver its message after consumer_timeout (ms) without an ack, default 30 minutes. An
+      # av job acks only after the encode (up to 30 minutes, reaper at 45): keep this above app.jobreaper.max-process-time.av_job_v3.
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout ${RENDERING2_MESSAGE_QUEUE_CONSUMER_TIMEOUT:-3600000}"
     restart: "${RENDERING2_RESTART_POLICY:-on-failure:5}"
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
@@ -191,11 +194,14 @@ services:
       app.jobreaper.enabled: "${RENDERING2_JOBREAPER_ENABLED:-true}"
       app.jobreaper.schedule: "${RENDERING2_JOBREAPER_SCHEDULE:-600000}"
       app.jobreaper.default-max-process-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_PROCESS_TIME:-PT30M}"
-      app.jobreaper.max-process-time.av_job: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
-      # max-queued-time is deliberately much larger than max-process-time: QUEUED is also the state of a
-      # legitimate backlog (e.g. HPA scale-up lag under a burst), not just a lost/never-delivered message.
-      app.jobreaper.default-max-queued-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_QUEUED_TIME:-PT6H}"
-      # One-time queue-durability migration (master only): deletes each pre-"_v2"-rename queue once no
+      # The key must equal app.queue.av.key (av_job_v3), otherwise the override does not match.
+      app.jobreaper.max-process-time.av_job_v3: "${RENDERING2_JOBREAPER_MAX_PROCESS_TIME_AV_JOB:-PT45M}"
+      # max-queued-time: QUEUED is also the state of a legitimate backlog (e.g. HPA scale-up lag under a burst), not
+      # just a lost/never-delivered message. A lost message leaves its job QUEUED this long; av encodes can
+      # legitimately queue for hours, so av has its own, longer limit.
+      app.jobreaper.default-max-queued-time: "${RENDERING2_JOBREAPER_DEFAULT_MAX_QUEUED_TIME:-PT1H}"
+      app.jobreaper.max-queued-time.av_job_v3: "${RENDERING2_JOBREAPER_MAX_QUEUED_TIME_AV_JOB:-PT6H}"
+      # One-time queue-durability migration (master only): deletes each pre-"_v2"/"_v3"-rename queue once no
       # consumer is attached anymore. See LegacyQueueCleaner. Disable once confirmed complete.
       app.queue-migration.enabled: "${RENDERING2_QUEUE_MIGRATION_ENABLED:-true}"
       app.queue-migration.schedule: "${RENDERING2_QUEUE_MIGRATION_SCHEDULE:-PT30M}"

@@ -3,7 +3,9 @@ version: '3.8'
 services:
 
   rustfs:
-    image: rustfs/rustfs:latest
+    # Image versions of the infrastructure services must equal the root pom.xml (docker.edu_sharing.community.common.*, the same
+    # ones the deployment and the integration tests use); ComposeImageVersionsTest fails when they drift.
+    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-rustfs:1.0.0-rc.5-1
     container_name: rustfs-server
     ports:
       - "9101:9000"   # S3 API endpoint
@@ -26,28 +28,32 @@ services:
     command: [ "rustfs" ]
 
   repository-cache:
-    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:8.2.10
+    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:8.2.10-1
     environment:
       ALLOW_EMPTY_PASSWORD: "yes"
     ports:
       - "9109:6379"
 
   rabbitmq:
-    image: rabbitmq:4.1-management
+    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-rabbitmq:4.3.7-1"
     environment:
       RABBITMQ_DEFAULT_USER: "rendering"
       RABBITMQ_DEFAULT_PASS: "rendering"
       RABBITMQ_SECURE_PASSWORD: true
       RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: true
+      # Management UI and the Prometheus plugin (queue depth/consumer metrics on :15692/metrics for the load test). The edu-sharing
+      # image enables only what is listed here; the former upstream rabbitmq image had the Prometheus plugin on by default.
+      RABBITMQ_PLUGINS: "rabbitmq_management rabbitmq_prometheus"
+      # Quorum queues cancel a consumer and redeliver its message after consumer_timeout without an ack (default 30 minutes). An av job
+      # acks only after the encode (up to 30 minutes), so keep this above app.jobreaper.max-process-time.av_job_v3 (45 minutes).
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout 3600000"
     ports:
       - "9104:5672"
       - "15672:15672"
-      # Prometheus-Plugin (im offiziellen rabbitmq-Image standardmäßig aktiv) für den Lasttest:
-      # Queue-Tiefe/Consumer-Metriken unter :15692/metrics.
       - "15692:15692"
 
   mongo:
-    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:8.0.34"
+    image: "docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-mongodb:8.0.34-1"
     environment:
       MONGODB_ROOT_USER: admin
       MONGODB_ROOT_PASSWORD: admin

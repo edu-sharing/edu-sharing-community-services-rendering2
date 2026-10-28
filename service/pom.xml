@@ -481,6 +481,23 @@
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
         <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
+        <!-- docker-images.properties is filtered with the image versions from the root pom, so the Testcontainers use the same
+             versions as the deployment; everything else in src/test/resources stays unfiltered. -->
+        <testResources>
+            <testResource>
+                <directory>${basedir}/src/test/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>docker-images.properties</include>
+                </includes>
+            </testResource>
+            <testResource>
+                <directory>${basedir}/src/test/resources</directory>
+                <excludes>
+                    <exclude>docker-images.properties</exclude>
+                </excludes>
+            </testResource>
+        </testResources>
         <resources>
 
             <!-- FROM spring-boot-starter-parent-3.4.5.pom -->

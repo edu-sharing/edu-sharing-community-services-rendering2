@@ -57,6 +57,21 @@ which are Maven-filtered. The tags are moving tags, so a rebuild picks up upstre
   `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
   prefix, injects `BASE_HREF`/`ADMIN_API_BASE` into `index.html` at request time). Exposes 8080.
 
+**Infrastructure image versions** (`docker.edu_sharing.community.common.*`: Redis, RabbitMQ, MongoDB, MinIO, RustFS, ...) live
+in the **root `pom.xml`**, not in `docker/pom.xml`, so that the service module sees them too: the Helm charts and compose
+files here are filtered with them, and the service integration tests run **the same edu-sharing images** in their Testcontainers
+(`service/src/test/resources/docker-images.properties` holds the filtered references, `TestImages`/`TestContainers` build the
+containers). Bump a version once, in the root pom, and deployment and tests move together. The Bitnami-layout images need a few
+settings the upstream images do not (RabbitMQ user and `RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS`, Redis `ALLOW_EMPTY_PASSWORD`, MongoDB
+`MONGODB_EXTRA_FLAGS` for the replica set); they are set in `TestContainers`. An edu-sharing tag is the upstream version plus an
+optional revision (`8.2.10-1`: the same upstream version, rebuilt, e.g. with a security fix). One run can replace a whole image with
+`-Dtest.image.<mongodb|redis|rabbitmq>=<image>` (needed for MongoDB 8.0.34 on Linux kernel 6.19+). The CI job that runs the
+integration tests pulls these images from `docker.registry`. The RabbitMQ
+`...rabbitmq.series` (major-minor, `4-3`) is part of the Helm StatefulSet name: a patch bump keeps the name, a minor bump
+replaces the cluster (`docs/RABBITMQ-CLUSTER-AUSTAUSCH.md`). The root `compose.yml` (local infrastructure for the IDE and the
+load tests) cannot read the pom and runs without a Maven step, so it carries literal versions for the edu-sharing infrastructure
+images; `ComposeImageVersionsTest` (service module) fails when they differ from the root pom or float on `latest`.
+
 `docker-maven-plugin` builds images on `install` and pushes on `deploy`, naming them from the
 root POM's `docker.registry` / `docker.repository` / `docker.prefix` and the git-derived `docker.tag`.
 
@@ -124,6 +139,7 @@ dotted Spring keys set as env entries.
 | `REDIS_HOST` / `REDIS_PORT` | `spring.redis.standalone.host` / `.port` | `redis-cache` / `6379` |
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | `spring.rabbitmq.host` / `.port` | `rendering2-message-queue` / `5672` |
 | `RENDERING2_QUEUE_<KEY>_CONCURRENCY` (Helm `config.queue.concurrency.<key>`) | `app.queue.<key>.concurrency` — the one per-queue scaling knob: max messages processed in parallel per pod. Meaning follows the queue's `mode` (code-only, in `application.properties`): STANDARD = registered `DirectMessageListenerContainer` consumers; REMOTE (sodix/omega/ddb — resolve a link/reference to externally-hosted material) = K (remote HTTP pool + prefetch, on virtual threads); SINGLE_ACTIVE (the h5p *import* queue) is forced to 1 and not exposed here — the h5p lookup queue in front of it is STANDARD and is exposed as `h5pLookup` | `1` (code); per-queue starting values in the chart |
+| `RENDERING2_MESSAGE_QUEUE_CONSUMER_TIMEOUT` (compose only; Helm: RabbitMQ chart `config.consumerTimeout`, set by the bundle) | RabbitMQ `consumer_timeout` in ms, passed as `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS` (`-rabbit consumer_timeout <ms>`). Quorum queues cancel a consumer and redeliver its message after this long without an ack (broker default 30 min). An av job acks only after the encode (up to 30 min, reaper at 45 min via `app.jobreaper.max-process-time.av_job_v3`), so keep it above that | `3600000` |
 | `RENDERING2_QUEUE_PREFETCH` (Helm `config.queue.prefetch`) | `app.queue.prefetch` — global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from their concurrency) | `1` |
 | `RENDERING2_QUEUE_<KEY>_PREFETCH` (Helm `config.queue.remotePrefetch.<key>`, `key` ∈ sodix/omega/ddb only) | `app.queue.<key>.prefetch` — optional per-REMOTE-queue prefetch override; must be >= the queue's concurrency (enforced at startup) | empty = derive from `concurrency` |
 | `RENDERING2_SERVICE_CONVERTER_SPREADSHEET_TO_HTML_ENABLED` (Helm `config.converter.spreadsheet.enabled`) | `app.converter.spreadsheetToHtml.enabled` — gates `SpreadsheetRenderModule` via `@ConditionalOnProperty` (no `matchIfMissing`, so anything but `true` unregisters the module): spreadsheets (xls/xlsx/ods/csv) are converted to HTML by the document-converter, otherwise they fall back to the regular document rendering (PDF) | `true` |
