@@ -31,12 +31,19 @@ object TestImages {
         return value
     }
 
+    /**
+     * The upstream version behind an edu-sharing image tag. The pom tags are the upstream version plus an optional
+     * revision (`8.2.10-1`: the same upstream version, rebuilt, e.g. with a security fix); the upstream images the
+     * Testcontainers use have no revision. A pre-release such as `1.0.0-rc.5` is not a revision and stays.
+     */
+    internal fun upstreamVersion(tag: String): String = tag.replace(Regex("""-\d+$"""), "")
+
     private fun image(system: String, default: () -> String): DockerImageName =
         DockerImageName.parse(System.getProperty(system)?.takeIf { it.isNotBlank() } ?: default())
 
-    fun mongodb(): DockerImageName = image("test.image.mongodb") { "mongo:${tag("mongodb.tag")}" }
+    fun mongodb(): DockerImageName = image("test.image.mongodb") { "mongo:${upstreamVersion(tag("mongodb.tag"))}" }
 
-    fun redis(): DockerImageName = image("test.image.redis") { "redis:${tag("redis.tag")}" }
+    fun redis(): DockerImageName = image("test.image.redis") { "redis:${upstreamVersion(tag("redis.tag"))}" }
 
-    fun rabbitmq(): DockerImageName = image("test.image.rabbitmq") { "rabbitmq:${tag("rabbitmq.tag")}-management" }
+    fun rabbitmq(): DockerImageName = image("test.image.rabbitmq") { "rabbitmq:${upstreamVersion(tag("rabbitmq.tag"))}-management" }
 }

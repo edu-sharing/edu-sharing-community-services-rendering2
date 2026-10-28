@@ -16,6 +16,14 @@ class TestImagesTest {
     }
 
     @Test
+    fun `an edu-sharing revision suffix is cut off, a pre-release is not`() {
+        assertEquals("8.2.10", TestImages.upstreamVersion("8.2.10-1"))
+        assertEquals("4.3.7", TestImages.upstreamVersion("4.3.7"))
+        assertEquals("1.0.0-rc.5", TestImages.upstreamVersion("1.0.0-rc.5"))
+        assertEquals("1.0.0-rc.5", TestImages.upstreamVersion("1.0.0-rc.5-1"))
+    }
+
+    @Test
     fun `the images are the upstream ones the Testcontainers modules expect`() {
         assertEquals("mongo", TestImages.mongodb().unversionedPart)
         assertEquals("redis", TestImages.redis().unversionedPart)

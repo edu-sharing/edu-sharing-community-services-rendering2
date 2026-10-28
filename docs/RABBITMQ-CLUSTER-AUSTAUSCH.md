@@ -151,7 +151,7 @@ hatte eigene PVCs und hat die alten Daten nie berührt. Nach dem Aufräumen gibt
   (mein Wissen zu Helm 3, nicht in der Pipeline getestet). Dev ist dafür geeignet, der dortige Broker steht ohnehin.
 - Node-Verlust mit Volume-Wechsel auf NFS (T4) messen; `nfs-storage` ist für RabbitMQ heikel (fsync/Locking),
   ein Storage-Wechsel ließe sich beim Austausch über `persistence.data.spec.storageClassName` erledigen.
-- **Image 4.3.7:** Der Bundle-Tag steht in `deploy/docker/pom.xml` auf `4.3.7`, die Serie auf `4-3`. Das Image
+- **Image 4.3.7-1:** Der Bundle-Tag steht im Root-`pom.xml` auf `4.3.7-1` (die Revision `-1` ist der Neubau mit dem eMudhra-Fix aus DESP-430: emSign-Roots aus System- und Java-Truststore entfernt, RabbitMQ unverändert 4.3.7), die Serie auf `4-3`. Das Image
   `edu_sharing-community-common-docker-rabbitmq:4.3.7` wird im Common-Image-Repo (Tag `4.3.7`, 2026-10-27) gebaut: Das
   Dockerfile lädt RabbitMQ 4.3.7 und Erlang/OTP 27.3.4.19 aus den Upstream-Quellen (mit SHA256-Prüfung) und nutzt nur
   noch `bitnami/minideb` als Basis, nicht mehr das Bitnami-RabbitMQ-Image. 4.3.6 gibt es als Image nicht. Das Layout bleibt
