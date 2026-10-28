@@ -59,8 +59,14 @@ which are Maven-filtered. The tags are moving tags, so a rebuild picks up upstre
 
 **Infrastructure image versions** (`docker.edu_sharing.community.common.*`: Redis, RabbitMQ, MongoDB, MinIO, RustFS, ...) live
 in the **root `pom.xml`**, not in `docker/pom.xml`, so that the service module sees them too: the Helm charts and compose
-files here are filtered with them, and the service integration tests read the same values for their Testcontainers
-(`service/src/test/resources/docker-images.properties`, `TestImages`). Bump a version once, in the root pom. An edu-sharing tag is the upstream version plus an optional revision (`8.2.10-1`: the same upstream version, rebuilt, e.g. with a security fix); the integration tests cut the revision off to get the upstream image (`TestImages.upstreamVersion`). The RabbitMQ
+files here are filtered with them, and the service integration tests run **the same edu-sharing images** in their Testcontainers
+(`service/src/test/resources/docker-images.properties` holds the filtered references, `TestImages`/`TestContainers` build the
+containers). Bump a version once, in the root pom, and deployment and tests move together. The Bitnami-layout images need a few
+settings the upstream images do not (RabbitMQ user and `RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS`, Redis `ALLOW_EMPTY_PASSWORD`, MongoDB
+`MONGODB_EXTRA_FLAGS` for the replica set); they are set in `TestContainers`. An edu-sharing tag is the upstream version plus an
+optional revision (`8.2.10-1`: the same upstream version, rebuilt, e.g. with a security fix). One run can replace a whole image with
+`-Dtest.image.<mongodb|redis|rabbitmq>=<image>` (needed for MongoDB 8.0.34 on Linux kernel 6.19+). The CI job that runs the
+integration tests pulls these images from `docker.registry`. The RabbitMQ
 `...rabbitmq.series` (major-minor, `4-3`) is part of the Helm StatefulSet name: a patch bump keeps the name, a minor bump
 replaces the cluster (`docs/RABBITMQ-CLUSTER-AUSTAUSCH.md`). The root `compose.yml` (local infrastructure for the IDE and the
 load tests) cannot read the pom and runs without a Maven step, so it carries literal versions for the edu-sharing infrastructure

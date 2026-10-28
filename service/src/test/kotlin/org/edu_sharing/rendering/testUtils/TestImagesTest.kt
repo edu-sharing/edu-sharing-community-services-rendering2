@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.testUtils
 
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -7,27 +8,29 @@ import org.junit.jupiter.api.Test
 
 class TestImagesTest {
 
+    @AfterEach
+    fun clearOverrides() {
+        System.clearProperty("test.image.redis")
+    }
+
     @Test
-    fun `the image versions are filled in from the root pom, not left as placeholders`() {
+    fun `the images are filled in from the root pom, not left as placeholders`() {
         listOf(TestImages.mongodb(), TestImages.redis(), TestImages.rabbitmq()).forEach {
-            assertFalse(it.versionPart.contains("@"), "unfiltered placeholder in $it")
-            assertTrue(Regex("""\d+\.\d+(\.\d+)?(-management)?""").matches(it.versionPart), "unexpected tag in $it")
+            assertFalse(it.asCanonicalNameString().contains("@"), "unfiltered placeholder in $it")
+            assertTrue(it.versionPart.isNotEmpty() && it.versionPart != "latest", "no fixed version in $it")
         }
     }
 
     @Test
-    fun `an edu-sharing revision suffix is cut off, a pre-release is not`() {
-        assertEquals("8.2.10", TestImages.upstreamVersion("8.2.10-1"))
-        assertEquals("4.3.7", TestImages.upstreamVersion("4.3.7"))
-        assertEquals("1.0.0-rc.5", TestImages.upstreamVersion("1.0.0-rc.5"))
-        assertEquals("1.0.0-rc.5", TestImages.upstreamVersion("1.0.0-rc.5-1"))
+    fun `the tests run the edu-sharing images the deployment runs`() {
+        assertTrue(TestImages.mongodb().repository.endsWith("/edu_sharing-community-common-docker-mongodb"), TestImages.mongodb().toString())
+        assertTrue(TestImages.redis().repository.endsWith("/edu_sharing-community-common-docker-redis"), TestImages.redis().toString())
+        assertTrue(TestImages.rabbitmq().repository.endsWith("/edu_sharing-community-common-docker-rabbitmq"), TestImages.rabbitmq().toString())
     }
 
     @Test
-    fun `the images are the upstream ones the Testcontainers modules expect`() {
-        assertEquals("mongo", TestImages.mongodb().unversionedPart)
-        assertEquals("redis", TestImages.redis().unversionedPart)
-        assertEquals("rabbitmq", TestImages.rabbitmq().unversionedPart)
-        assertTrue(TestImages.rabbitmq().versionPart.endsWith("-management"))
+    fun `a system property replaces the whole image for one run`() {
+        System.setProperty("test.image.redis", "redis:7.0.10")
+        assertEquals("redis:7.0.10", TestImages.redis().asCanonicalNameString())
     }
 }
