@@ -25,7 +25,20 @@ class StorageManagerRegistry(
      * @return The corresponding {@link BucketManagement} instance, or {@code null} if no manager is found.
      */
     fun getBucketManagerByBucketName(bucketName: String, repoId: String): StorageManager? {
-        val manager = storageManagers.firstOrNull { it.isBucketOwner(bucketName, repoId) }
+        // An owner check may need a remote call (lumi); a failing manager must not hide a healthy one that
+        // owns the bucket. Only if nobody claims the bucket is the failure propagated, so an entry is never
+        // mistaken for "unowned" (and its tracking dropped) merely because its owner was unreachable.
+        var failure: Exception? = null
+        val manager = storageManagers.firstOrNull {
+            try {
+                it.isBucketOwner(bucketName, repoId)
+            } catch (exception: Exception) {
+                log.warn("Owner check of ${it.javaClass.simpleName} failed for bucket=$bucketName, repoId=$repoId: ${exception.message}")
+                failure = failure ?: exception
+                false
+            }
+        }
+        if (manager == null) failure?.let { throw it }
         log.debug("Resolved bucket manager for bucket=$bucketName, repoId=$repoId: ${manager?.javaClass?.simpleName ?: "none"}")
         return manager
     }
