@@ -45,7 +45,7 @@ class RedisConfig {
      * bounded command timeout and a bounded request queue so a Redis outage cannot grow the
      * disconnected-command buffer without limit.
      */
-    internal fun standaloneClientConfiguration(client: RedisClientProperties): LettuceClientConfiguration {
+    fun standaloneClientConfiguration(client: RedisClientProperties): LettuceClientConfiguration {
         val clientOptions = ClientOptions.builder()
             .socketOptions(socketOptions(client))
             .timeoutOptions(timeoutOptions(client))
