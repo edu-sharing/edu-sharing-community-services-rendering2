@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.integration
 
 import com.redis.testcontainers.RedisContainer
+import org.edu_sharing.rendering.testUtils.TestContainers
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -9,7 +10,6 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.mongodb.MongoDBContainer
 import org.testcontainers.rabbitmq.RabbitMQContainer
 import org.testcontainers.utility.DockerImageName
 
@@ -22,7 +22,7 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val mongoDBContainer = MongoDBContainer(DockerImageName.parse("mongo:8.0.34"))
+        private val mongoDBContainer = TestContainers.mongodb()
 
         @JvmStatic
         @Container
@@ -34,11 +34,21 @@ abstract class AbstractIntegrationTest() {
 
         @JvmStatic
         @Container
-        private val rabbitMQContainer = RabbitMQContainer("rabbitmq:4.1.3-management")
+        private val rabbitMQContainer = TestContainers.rabbitmq()
+
+        /** Base URL of the broker's management API, for tests that inspect queue types, consumers and counts. */
+        @JvmStatic
+        protected fun rabbitManagementUrl(): String = rabbitMQContainer.httpUrl
+
+        @JvmStatic
+        protected fun rabbitAdminUser(): String = rabbitMQContainer.adminUsername
+
+        @JvmStatic
+        protected fun rabbitAdminPassword(): String = rabbitMQContainer.adminPassword
 
         @JvmStatic
         @Container
-        private val redisContainer: RedisContainer = RedisContainer(DockerImageName.parse("redis:8.2.10"))
+        private val redisContainer: RedisContainer = TestContainers.redis()
             .withExposedPorts(6379)
 
         @DynamicPropertySource
@@ -62,6 +72,8 @@ abstract class AbstractIntegrationTest() {
             // RabbitMQ
             registry.add("spring.rabbitmq.host", rabbitMQContainer::getHost)
             registry.add("spring.rabbitmq.port", rabbitMQContainer::getAmqpPort)
+            registry.add("spring.rabbitmq.username", rabbitMQContainer::getAdminUsername)
+            registry.add("spring.rabbitmq.password", rabbitMQContainer::getAdminPassword)
 
             // Redis
             registry.add("spring.redis.standalone.host", redisContainer::getHost)

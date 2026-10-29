@@ -12,6 +12,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -36,7 +37,14 @@ class MoodleReceiver (
             // per pod, so moodle imports run in parallel across the cluster (each import mostly waits on the
             // remote moodle, including a restore poll of up to 10 minutes).
             QueueBinding(
-                value = Queue(name = "#{moodleQueueProperties.name}", durable = "true"),
+                value = Queue(
+                    name = "#{moodleQueueProperties.name}",
+                    durable = "true",
+                    arguments = [Argument(
+                        name = "x-queue-type",
+                        value = "#{moodleQueueProperties.queueTypeArgument}"
+                    )]
+                ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{moodleQueueProperties.key}"]
             )

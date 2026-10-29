@@ -8,6 +8,11 @@ mongodb_port=${MONGODB_PORT:?Error: MONGODB_PORT environment variable is not set
 s3_host=${S3_HOST:?Error: S3_HOST environment variable is not set}
 s3_port=${S3_PORT:?Error: S3_PORT environment variable is not set}
 
+# As PID 1 this shell ignores SIGTERM unless a handler is installed; without it a stop during the
+# wait phase would block until the stop grace period elapses and Docker sends SIGKILL.
+# The handler is reset by the final exec, so node handles signals itself afterwards.
+trap 'echo >&2 "Received stop signal while waiting for dependencies, exiting."; exit 143' TERM INT
+
 # Wait for MongoDB to be ready
 until nc -z "${mongodb_host}" "${mongodb_port}"; do
   echo "Waiting for ${mongodb_host}:${mongodb_port}..."

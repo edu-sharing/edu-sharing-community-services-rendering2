@@ -19,6 +19,11 @@ infra_wait_timeout=${INFRA_WAIT_TIMEOUT:-300}
 # Repository wait is best effort only (0 = do not wait); the application registers repositories later on its own.
 repository_wait_timeout=${REPOSITORY_WAIT_TIMEOUT:-60}
 
+# As PID 1 this shell ignores SIGTERM unless a handler is installed; without it a stop during the
+# wait phase would block until the (possibly very long) stop grace period elapses and Docker sends SIGKILL.
+# The handler is reset by the final exec, so the JVM handles signals itself afterwards.
+trap 'echo >&2 "Received stop signal while waiting for dependencies, exiting."; exit 143' TERM INT
+
 # wait_for_tcp <name> <host> <port>: block until the port is open, exit 1 after INFRA_WAIT_TIMEOUT seconds
 wait_for_tcp() {
   deadline=$(($(date +%s) + infra_wait_timeout))

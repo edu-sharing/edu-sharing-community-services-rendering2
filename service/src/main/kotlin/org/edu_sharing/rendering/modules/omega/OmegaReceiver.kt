@@ -14,6 +14,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import com.rabbitmq.client.Channel
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -39,7 +40,14 @@ class OmegaReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{omegaQueueProperties.name}", durable = "true"),
+                value = Queue(
+                    name = "#{omegaQueueProperties.name}",
+                    durable = "true",
+                    arguments = [Argument(
+                        name = "x-queue-type",
+                        value = "#{omegaQueueProperties.queueTypeArgument}"
+                    )]
+                ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{omegaQueueProperties.key}"]
             )

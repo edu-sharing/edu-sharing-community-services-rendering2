@@ -16,9 +16,9 @@ class VideoConverterConfig {
 
     /**
      * RabbitMQ message priority of a height's sub-job (higher is converted first); a height without an entry gets
-     * priority 0. Kept apart from [resolutions] on purpose: the AV queue is durable and declared with
-     * `x-max-priority` = [getMaxPriority], and RabbitMQ refuses to redeclare it with another value - so removing a
-     * height from [resolutions] must not change that maximum.
+     * priority 0. The AV queue is a quorum queue, which orders strictly by the message `priority` over 0-31 and needs no
+     * queue argument. Every AV message must carry an explicit priority: on a quorum queue a message without one counts
+     * as 4 and would overtake all heights configured below that ([PriorityPostProcessor] always sets it).
      */
     var priorities: Map<Int, Int> = emptyMap()
 
@@ -29,7 +29,6 @@ class VideoConverterConfig {
         }
     }
 
-    fun getMaxPriority() = priorities.values.maxOrNull()
     fun getPriority(resolution: Int, default: Int) = priorities[resolution] ?: default
     fun isEmpty(): Boolean = resolutions.isEmpty()
     fun getMaxResolution() = resolutions.max()

@@ -10,6 +10,7 @@ import org.edu_sharing.rendering.renderingJob.repository.RenderingJobRepository
 import com.rabbitmq.client.Channel
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -31,7 +32,14 @@ class DdbReceiver(
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = "#{ddbQueueProperties.name}", durable = "true"),
+                value = Queue(
+                    name = "#{ddbQueueProperties.name}",
+                    durable = "true",
+                    arguments = [Argument(
+                        name = "x-queue-type",
+                        value = "#{ddbQueueProperties.queueTypeArgument}"
+                    )]
+                ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{ddbQueueProperties.key}"]
             )
