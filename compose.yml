@@ -28,7 +28,7 @@ services:
     command: [ "rustfs" ]
 
   repository-cache:
-    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:8.2.10-1
+    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-redis:8.2.10-2
     environment:
       ALLOW_EMPTY_PASSWORD: "yes"
     ports:
