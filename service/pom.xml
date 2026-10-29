@@ -24,6 +24,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>4.1.2</spring-boot.version>
+        <!-- Parallel surefire forks for unit tests; override with -DforkCount=1 for debugging -->
+        <forkCount>4</forkCount>
+        <reuseForks>true</reuseForks>
         <spring-boot.run.main-class>${start-class}</spring-boot.run.main-class>
         <shedlock.version>7.10.1</shedlock.version>
     </properties>
