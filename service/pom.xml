@@ -31,6 +31,14 @@
     <dependencyManagement>
         <dependencies>
 
+            <!-- security update: swagger-core (via the rest client) brings guava 32.1.3-android,
+                 can be removed again once swagger-parser ships a fixed guava version -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.7.2-jre</version>
+            </dependency>
+
             <!-- Override Kotlin deps because of spring boot dependencies imports older one -->
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
