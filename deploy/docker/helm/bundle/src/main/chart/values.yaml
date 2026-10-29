@@ -36,6 +36,13 @@ edusharing_services_rendering2_rabbitmq:
     ## @param edusharing_services_rendering2_rabbitmq.config.consumerTimeout Consumer timeout in milliseconds (rabbitmq.conf consumer_timeout): the broker cancels a consumer and redelivers its message after this long without an ack. The av consumers ack only after the encode (up to 30 minutes, reaper 45 minutes), so keep it above 45 minutes
     consumerTimeout: "3600000"
 
+    quorum:
+      membershipReconciliation:
+        ## @param edusharing_services_rendering2_rabbitmq.config.quorum.membershipReconciliation.enabled Let the quorum queue leaders grow their queue onto a node that joined after the queue was declared (target = replicaCount). Without it a queue declared by an early service pod keeps 2 replicas on a 3 node cluster (seen in bird-dev: the third broker pod started 98 s late) and is unavailable when one of those 2 nodes goes down. Needs the RabbitMQ chart 1.1.11 or newer
+        enabled: true
+        ## @param edusharing_services_rendering2_rabbitmq.config.quorum.membershipReconciliation.interval Safety-net evaluation interval in milliseconds next to the trigger that a joining node sets off (5 minutes instead of the broker default of 60)
+        interval: "300000"
+
     ## @param edusharing_services_rendering2_rabbitmq.config.cookieFromName Derive the Erlang cookie from the password and the release name, so the replacement cluster never joins the old one while both run during the upgrade
     cookieFromName: true
 

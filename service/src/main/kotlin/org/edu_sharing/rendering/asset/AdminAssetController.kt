@@ -11,9 +11,8 @@ import org.edu_sharing.rendering.asset.dto.AssetTypeInfo
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
-import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
-import org.edu_sharing.rendering.storage.StorageService
+import org.edu_sharing.rendering.storage.StorageManagerRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -40,8 +39,7 @@ import org.springframework.web.bind.annotation.RestController
 @ConditionalOnMaster
 class AdminAssetController(
     private val trackingEntryRepository: TrackingEntryRepository,
-    private val storageService: StorageService,
-    private val mapper: Mapper
+    private val storageManagerRegistry: StorageManagerRegistry
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -186,12 +184,20 @@ class AdminAssetController(
     }
 
     /**
-     * Entfernt die S3-Objekte der übergebenen Tracking-Einträge und anschließend die
-     * Tracking-Einträge selbst. `removeObjects` gruppiert nach Bucket und löscht in 1000er-Chunks.
+     * Entfernt die Objekte der übergebenen Tracking-Einträge und anschließend die Tracking-Einträge selbst.
+     * Wie im `CacheCleaner` löscht der für den Bucket zuständige [org.edu_sharing.rendering.storage.StorageManager]
+     * (S3 oder z. B. lumi für H5P-Inhalte) - ein direkter S3-Zugriff träfe Buckets, die nur lumi kennt.
      */
     private fun deleteEntries(entries: List<TrackingEntry>) {
         if (entries.isEmpty()) return
-        storageService.removeObjects(entries.map { mapper.trackingEntryToCacheObject(it) })
+        entries.groupBy { storageManagerRegistry.getBucketManagerByBucketName(it.bucket, it.repoId) }
+            .forEach { (manager, managerEntries) ->
+                if (manager == null) {
+                    log.warn("No storage manager owns bucket ${managerEntries.first().bucket}, dropping ${managerEntries.size} tracking entries only")
+                } else {
+                    manager.deleteObjectsFromStorage(managerEntries)
+                }
+            }
         trackingEntryRepository.deleteAll(entries)
     }
 
