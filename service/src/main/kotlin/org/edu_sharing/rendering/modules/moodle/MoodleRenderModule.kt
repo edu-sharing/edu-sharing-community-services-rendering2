@@ -73,8 +73,16 @@ class MoodleRenderModule(
            moduleName = module()
        )
 
-        if ((credentials["user"] == null || credentials["password"] == null) && credentials["token"] == null) {
-            throw IllegalArgumentException("User and password or token must be provided.")
+        val webserviceToken = credentials["token"]?.takeIf { it.isNotBlank() }
+        if (webserviceToken == null) {
+            if (credentials["user"].isNullOrBlank() || credentials["password"].isNullOrBlank()) {
+                throw IllegalArgumentException("User and password or token must be provided.")
+            }
+            // User/password mode: Moodle is not contacted here. The pair is only exchanged for a
+            // webservice token when a job runs (MoodleUploadService.getUrl), so wrong credentials
+            // surface as a failed job, not as a failed registration.
+            log.debug("No Moodle webservice token configured for repoId $repoId, skipping the ping")
+            return
         }
 
         val timeout = Duration.ofSeconds(credentials.getValue("timeout").toLong())
@@ -82,8 +90,6 @@ class MoodleRenderModule(
             .clone()
             .forMoodle(credentials)
             .build()
-
-        val webserviceToken = credentials["token"] ?: getWebserviceToken(webClient, credentials.getValue("user"), credentials.getValue("password"), timeout)
 
         log.debug("Calling Moodle ping endpoint for repoId $repoId at ${credentials.getValue("baseurl")}")
         // The webservice token goes into the POST body, not the query string.
