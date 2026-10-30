@@ -44,6 +44,14 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 - `GET  /package-libraries/:packageId/:uberName/:file` — library files of one package (only mounted when the per-package cache is on)
 - `GET  /mathjax/<mathjax>-<font>/...` — MathJax and its font from `node_modules` (`mathDisplay.ts`, mounted in `index.ts`); both versions are in the path, so it is cached as immutable
 
+The stock `h5pAjaxExpressRouter` (`index.ts`) runs with only the player's routes: `/core`, `/editor`,
+`/libraries`, `/content`, `/contentUserData`, `/finishedData`. **`/download`, `/params`, `/ajax` (GET and POST)
+and `/temp-files` are switched off**: the permission system is `LaissezFairePermissionSystem` with a dummy user,
+so they would export any package, its parameters, or install libraries for whoever reaches lumi. The rendering
+service's proxy (`LumiProxyController`) forwards only `/{contentId}` and `/content/{contentId}/**` (both
+permission-checked) plus `/core`, `/libraries`, `/package-libraries` and `/mathjax`. A new route the browser has to
+reach needs an entry there too.
+
 ## npm scripts (`package.json`)
 - `npm run setup` → `rm -rf ./h5p && ./download-core.sh 1.28.0 1.25` — downloads H5P core
   (1.28.0) and editor (1.25); **versions are the script args**, change them there.

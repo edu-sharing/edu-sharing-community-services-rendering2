@@ -218,7 +218,18 @@ const start = async () => {
             h5pEditor,
             path.resolve(path.join(__dirname, '../h5p/core')),
             path.resolve(path.join(__dirname, '../h5p/editor')),
-            undefined,
+            // Only what the player needs. The permission system lets everything through (see
+            // createH5PEditor.ts), so the package export (/download), the content parameters (/params),
+            // the editor ajax endpoint (incl. library uploads) and temporary files would hand any
+            // content to whoever reaches lumi. The rendering service's proxy forwards none of them
+            // either (LumiProxyController); this is the second line.
+            {
+                routeGetDownload: false,
+                routeGetParameters: false,
+                routeGetAjax: false,
+                routePostAjax: false,
+                routeGetTemporaryContentFile: false
+            },
             'auto' // You can change the language of the editor here by setting
             // the language code you need here. 'auto' means the route will try
             // to use the language detected by the i18next language detector.
