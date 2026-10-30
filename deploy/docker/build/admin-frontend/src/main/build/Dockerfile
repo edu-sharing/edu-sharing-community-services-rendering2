@@ -1,5 +1,9 @@
 FROM ${docker.from.node.24}
 
+# npm/npx are removed: the server only runs `node` and the npm bundled with the base image
+# ships vulnerable undici and brace-expansion versions that are not needed at runtime.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 WORKDIR /application
 
 # Statischer SPA-Server (nur Node-Bordmittel)
