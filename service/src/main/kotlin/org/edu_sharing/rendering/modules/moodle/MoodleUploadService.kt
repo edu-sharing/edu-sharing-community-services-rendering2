@@ -58,7 +58,8 @@ class MoodleUploadService(
     ): Pair<String, String> {
         val config = module.getCredentials(repoId)
         val webClient = getWebClient(config)
-        val webserviceToken = config["token"] ?: module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "", moodleTimeout(config))
+        // A blank token (registrations stored before blank values were dropped) means user/password mode.
+        val webserviceToken = config["token"]?.takeIf { it.isNotBlank() } ?: module.getWebserviceToken(webClient, config["user"] ?: "", config["password"] ?: "", moodleTimeout(config))
         val courseId = if (module is ScormRenderModule) {
             uploadScorm(
                 moodleJobMessage = moodleJobMessage,

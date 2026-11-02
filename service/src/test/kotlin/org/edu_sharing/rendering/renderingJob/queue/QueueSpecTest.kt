@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.boot.context.properties.bind.Bindable
+import org.springframework.boot.context.properties.bind.Binder
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource
 
 /**
  * Verifies the per-mode semantics encapsulated by [QueueSpec] and its three mode-fixing base classes. The
@@ -50,5 +53,35 @@ class QueueSpecTest {
     fun `validate rejects a remote prefetch below concurrency`() {
         val spec = TestRemote().apply { concurrency = 50; prefetch = 10 }
         assertThrows(IllegalArgumentException::class.java) { spec.validateRemotePrefetch() }
+    }
+
+    @Test
+    fun `a queue is a quorum queue unless configured otherwise`() {
+        assertEquals(QueueType.QUORUM, TestStandard().type)
+        assertEquals("quorum", TestStandard().queueTypeArgument)
+    }
+
+    @Test
+    fun `the type can be set per queue to classic`() {
+        val spec = Binder(MapConfigurationPropertySource(mapOf("app.queue.x.type" to "classic")))
+            .bind("app.queue.x", Bindable.ofInstance(TestStandard())).get()
+        assertEquals(QueueType.CLASSIC, spec.type)
+        assertEquals(mapOf<String, Any>("x-queue-type" to "classic"), spec.declareArguments)
+    }
+
+    @Test
+    fun `declareArguments carries the queue type and never x-max-priority`() {
+        // quorum queues reject x-max-priority (RabbitMQ 4.3: "invalid arg 'x-max-priority'"), priorities are per message
+        assertEquals(mapOf<String, Any>("x-queue-type" to "quorum"), TestStandard().declareArguments)
+        assertEquals(mapOf<String, Any>("x-queue-type" to "quorum"), TestRemote().declareArguments)
+        assertFalse(TestStandard().declareArguments.containsKey("x-max-priority"))
+    }
+
+    @Test
+    fun `a single-active queue declares the type and single-active-consumer`() {
+        assertEquals(
+            mapOf<String, Any>("x-queue-type" to "quorum", "x-single-active-consumer" to true),
+            TestSingleActive().declareArguments,
+        )
     }
 }

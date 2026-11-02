@@ -20,6 +20,17 @@ import jakarta.annotation.PostConstruct
 enum class QueueMode { STANDARD, REMOTE, SINGLE_ACTIVE }
 
 /**
+ * Broker-side type of a queue, fixed at declaration (`x-queue-type`): RabbitMQ cannot change it afterwards, and a
+ * redeclaration with another type fails with `406 PRECONDITION_FAILED`.
+ *
+ * - [QUORUM]  — replicated over the cluster nodes (Raft). When the node that leads a queue dies, another replica takes
+ *   over within seconds, so the queue stays available; a classic queue is unreachable until its node is back. Strict
+ *   message priorities (0-31) are supported since RabbitMQ 4.3. Always durable, never exclusive.
+ * - [CLASSIC] — one copy on one node. Cheaper (no replication), but not available while that node is down.
+ */
+enum class QueueType { QUORUM, CLASSIC }
+
+/**
  * The full, typed tuning surface of a single queue — everything a DevOps needs to reason about it lives in one
  * block (`app.queue.<queue>.*`): its routing ([name]/[key]) and the one authoritative scaling knob [concurrency]
  * ("max messages processed in parallel per pod for this queue"). The [mode] is contributed by the concrete
@@ -51,6 +62,17 @@ abstract class QueueSpec {
     var prefetch: Int? = null
 
     /**
+     * Broker-side queue type, `app.queue.<queue>.type`. Defaults to [QueueType.QUORUM]; set a single queue to `classic`
+     * to opt it out (e.g. a bulk queue whose backlog should not be replicated). Changing it for an existing queue needs
+     * a new queue name, see `app.queue-migration.*`.
+     */
+    var type: QueueType = QueueType.QUORUM
+
+    /** Source of the `x-queue-type` argument value, shared by the `@RabbitListener` declarations and [declareArguments]. */
+    val queueTypeArgument: String
+        get() = type.name.lowercase()
+
+    /**
      * Consumers (channels) registered per queue on the `DirectMessageListenerContainer` — the value fed to
      * `@RabbitListener.concurrency`. Only [STANDARD] scales its consumer count with [concurrency]. [REMOTE]
      * keeps a single channel per pod (its K parallelism comes from prefetch + virtual threads via
@@ -72,15 +94,18 @@ abstract class QueueSpec {
 
     /**
      * Broker-side queue arguments beyond the common durable/exclusive/auto-delete flags, keyed by mode/module.
-     * The default covers [singleActiveConsumer] generically (any [SingleActiveQueueProperties] queue); a
-     * subclass with its own argument (e.g. [AvQueueProperties]'s `x-max-priority`) overrides this rather than
+     * The default covers the queue type ([queueTypeArgument]) and [singleActiveConsumer] generically (any
+     * [SingleActiveQueueProperties] queue); a subclass with an argument of its own overrides this rather than
      * being special-cased elsewhere. This is what lets [QueueTopologyConfig] declare every queue purely from a
      * `List<QueueSpec>` — a new module's queue is picked up automatically, without editing that class — while
      * each `@RabbitListener`'s own `arguments` (independently SpEL-driven) must still match it exactly, or the
      * two declarations mismatch with `406 PRECONDITION_FAILED` wherever the same pod runs both.
      */
     open val declareArguments: Map<String, Any>
-        get() = if (singleActiveConsumer) mapOf("x-single-active-consumer" to true) else emptyMap()
+        get() = buildMap {
+            put("x-queue-type", queueTypeArgument)
+            if (singleActiveConsumer) put("x-single-active-consumer", true)
+        }
 }
 
 /** Base for a plain fan-out queue on the shared listener factory. [concurrency] = registered consumers per pod. */

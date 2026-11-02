@@ -17,6 +17,7 @@ import org.edu_sharing.rendering.renderingJob.repository.SubJobRepository
 import org.edu_sharing.rendering.utils.combinePath
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.Exchange
+import org.springframework.amqp.rabbit.annotation.Argument
 import org.springframework.amqp.rabbit.annotation.Queue
 import org.springframework.amqp.rabbit.annotation.QueueBinding
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -55,7 +56,14 @@ class H5pLookupReceiver(
             QueueBinding(
                 // No x-single-active-consumer here (unlike the import queue): lookups are read-only and
                 // must fan out across all consumers and pods.
-                value = Queue(name = "#{h5pLookupQueueProperties.name}", durable = "true"),
+                value = Queue(
+                    name = "#{h5pLookupQueueProperties.name}",
+                    durable = "true",
+                    arguments = [Argument(
+                        name = "x-queue-type",
+                        value = "#{h5pLookupQueueProperties.queueTypeArgument}"
+                    )]
+                ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),
                 key = ["#{h5pLookupQueueProperties.key}"]
             )

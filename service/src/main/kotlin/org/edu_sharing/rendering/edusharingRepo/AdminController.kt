@@ -3,13 +3,13 @@ package org.edu_sharing.rendering.edusharingRepo
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.edu_sharing.rendering.cacheCleaner.TrackingEntry
 import org.edu_sharing.rendering.cacheCleaner.TrackingEntryRepository
 import org.slf4j.LoggerFactory
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.core.ErrorStrings.GENERIC_INTERNAL_SERVER_ERROR
 import org.edu_sharing.rendering.core.annotation.ConditionalOnMaster
 import org.edu_sharing.rendering.core.dto.ErrorMessage
-import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.dto.*
@@ -18,6 +18,8 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationCon
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
+import org.edu_sharing.rendering.storage.StorageManager
+import org.edu_sharing.rendering.storage.StorageManagerRegistry
 import org.edu_sharing.rendering.storage.StorageService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
@@ -37,7 +39,7 @@ class AdminController(
     private val corsSyncService: CorsSyncService,
     private val storageService: StorageService,
     private val trackingEntryRepository: TrackingEntryRepository,
-    private val mapper: Mapper,
+    private val storageManagerRegistry: StorageManagerRegistry,
     private val trackingService: TrackingService,
     private val repositoryRegistrationConfig: RepositoryRegistrationConfig,
     private val repositoryRegistrationStorageService: RepositoryRegistrationStorageService,
@@ -124,18 +126,32 @@ class AdminController(
             val entry = trackingEntryRepository.findByRepoIdAndNodeIdAndHash(repoId, nodeId, hash).orElseThrow {
                 throw EntryNotFoundException("No tracking entry found for repoId $repoId, nodeId $nodeId and hash $hash.")
             }
-            val cacheObject = mapper.trackingEntryToCacheObject(entry)
-            storageService.removeObjects(listOf(cacheObject))
+            deleteFromStorage(listOf(entry))
             trackingEntryRepository.delete(entry)
         } else {
             val entries = trackingEntryRepository.findAllByRepoIdAndNodeId(repoId, nodeId)
             if (entries.isEmpty()) {
                 throw EntryNotFoundException("No tracking entries found for repoId $repoId, nodeId $nodeId.")
             }
-            storageService.removeObjects(entries.map {mapper.trackingEntryToCacheObject(it)})
+            deleteFromStorage(entries)
             trackingEntryRepository.deleteAll(entries)
         }
         return ResponseEntity.noContent().build()
+    }
+
+    /**
+     * Deletes through the [StorageManager] that owns each entry's bucket (like the `CacheCleaner`): S3 for the
+     * rendering buckets, lumi for H5P content, which S3 does not know.
+     */
+    private fun deleteFromStorage(entries: List<TrackingEntry>) {
+        entries.groupBy { storageManagerRegistry.getBucketManagerByBucketName(it.bucket, it.repoId) }
+            .forEach { (manager, managerEntries) ->
+                if (manager == null) {
+                    log.warn("No storage manager owns bucket ${managerEntries.first().bucket}, dropping ${managerEntries.size} tracking entries only")
+                } else {
+                    manager.deleteObjectsFromStorage(managerEntries)
+                }
+            }
     }
 
     @GetMapping("/repository/details")

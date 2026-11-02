@@ -70,7 +70,8 @@ class TraceProbeListener(private val tracer: Tracer) {
     @RabbitListener(
         bindings = [
             QueueBinding(
-                value = Queue(name = TRACE_TEST_QUEUE, durable = "false"),
+                // durable + auto-delete: RabbitMQ 4.3 rejects a non-durable queue that is not exclusive (transient_nonexcl_queues)
+                value = Queue(name = TRACE_TEST_QUEUE, durable = "true", autoDelete = "true"),
                 exchange = Exchange(name = TRACE_TEST_EXCHANGE, type = "topic"),
                 key = [TRACE_TEST_KEY],
             )

@@ -45,9 +45,8 @@ class AvReceiver(
                     name = "#{avQueueProperties.name}",
                     durable = "true",
                     arguments = [Argument(
-                        name = "x-max-priority",
-                        value = "#{videoConverterConfig.getMaxPriority()}",
-                        type = "java.lang.Integer"
+                        name = "x-queue-type",
+                        value = "#{avQueueProperties.queueTypeArgument}"
                     )]
                 ),
                 exchange = Exchange(name = "#{queueProperties.topicExchange}", type = "topic"),

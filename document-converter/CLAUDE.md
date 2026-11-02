@@ -11,13 +11,20 @@ Kotlin 2.4, package root
 `org.edu_sharing.edusharingcommunityservicesdocumentconverter`.
 
 ## Spring Boot version
-On Boot 4.1 (`pom.xml` `<spring-boot.version>4.1.1</spring-boot.version>`), same as `service`.
-`jodconverter-spring-boot-starter` (4.4.11, the latest release) has no official Boot 4 build,
-but its autoconfig only touches 8 stable Boot classes (`AutoConfiguration`, 4x
-`ConditionalOn*`, `ConfigurationProperties`, `EnableConfigurationProperties`,
-`NestedConfigurationProperty`) — all present unchanged in the 4.1.1 jars. Its POMs pull no
-Jackson (jodconverter-core uses gson), so there's no mixed-Jackson concern either. Re-verify
-those 8 classes still exist on any future Boot upgrade. The module runs on Jackson 3
+On Boot 4.1 (`pom.xml` `<spring-boot.version>4.1.2</spring-boot.version>`), same as `service`.
+`jodconverter-spring-boot-starter` 5.x is built against Boot 4 (5.1.1 imports the Boot 4.1.1
+BOM). Its Maven POM only depends on `spring-boot-starter`, so `jodconverter-local` stays an
+explicit dependency. Its POMs pull no Jackson (jodconverter-core uses gson). Notes on 5.x:
+- `DefaultDocumentFormatRegistry`'s static lookups are gone — use
+  `DefaultDocumentFormatRegistry.getInstance().getFormatByExtension(...)`.
+- The `jodconverter.local.*` timeouts are `Duration`s with `@DurationUnit(MILLIS)`, so plain
+  numbers in `application.properties` still mean milliseconds.
+- The starter adds a `jodconverter` health component and `OfficeManagerMetrics`. The
+  readiness/liveness groups list their components explicitly, so pod probes don't see it.
+- Like 4.x, it also registers its own `localDocumentConverter` next to our `converter` bean
+  (`ConverterConfig`); it backs off only on that bean name.
+
+The module runs on Jackson 3
 (`tools.jackson.*`), and the actuator starter no longer carries the tracing autoconfig, so
 tracing needs `org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry` next to
 `micrometer-tracing-bridge-otel` (see `pom.xml`).
