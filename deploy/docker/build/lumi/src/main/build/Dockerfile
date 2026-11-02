@@ -1,10 +1,13 @@
 FROM ${docker.from.node.24}
 
 # apk upgrade: pick up OS package fixes the base image has not been rebuilt with yet.
+# npm/npx are removed: the service only runs `node` and the npm bundled with the base image
+# ships vulnerable undici and brace-expansion versions that are not needed at runtime.
 RUN set -eux \
     && apk update  \
     && apk upgrade --no-cache \
-    && apk add --no-cache netcat-openbsd
+    && apk add --no-cache netcat-openbsd \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /application
 

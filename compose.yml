@@ -5,7 +5,7 @@ services:
   rustfs:
     # Image versions of the infrastructure services must equal the root pom.xml (docker.edu_sharing.community.common.*, the same
     # ones the deployment and the integration tests use); ComposeImageVersionsTest fails when they drift.
-    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-rustfs:1.0.0-rc.5-2
+    image: docker.edu-sharing.com/community/common/edu_sharing-community-common-docker-rustfs:1.0.4
     container_name: rustfs-server
     ports:
       - "9101:9000"   # S3 API endpoint

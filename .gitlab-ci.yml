@@ -1,7 +1,13 @@
+# Shared by all jobs. The frontend-maven-plugin downloads Node/npm into <module>/node (and
+# admin-frontend/src/main/frontend/node) on every run; caching it and the npm download cache
+# (.npm, see npm_config_cache below) avoids re-fetching them from the Artifactory raw mirror.
 cache:
   key: $CI_BUILD_REF_NAME
   paths:
     - .m2/repository
+    - .npm
+    - lumi/node
+    - admin-frontend/src/main/frontend/node
 
 variables:
   COMMON_BIND_HOST: "0.0.0.0"
@@ -14,6 +20,7 @@ variables:
   DOCKER_PASSWORD: "$DOCKER_PASSWORD"
   MAVEN_CLI: "-Ddocker.registry=$DOCKER_REGISTRY -Dhelm.deploy.url=$HELM_REGISTRY -Dhelm.deploy.type=$HELM_TYPE -Dmaven.deploy.releases=$MAVEN_DEPLOY_RELEASES -Dmaven.deploy.snapshots=$MAVEN_DEPLOY_SNAPSHOTS -Dversioning.configFile=maven-git-versioning-extension-ci.xml --batch-mode --errors --fail-fast --show-version"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
 
 default:
   image: maven:3.9.9-eclipse-temurin-21
@@ -24,7 +31,9 @@ default:
       command: [ "dockerd-entrypoint.sh" ]
 stages:
   - verify
+  - prepare
   - deploy
+  - release
 
 # Verifiziert, dass die ins admin-frontend eingecheckte OpenAPI-Spec (openapi/admin-api.json)
 # mit dem übereinstimmt, was der aktuelle Backend-Code produziert ("committed vs live").
@@ -45,14 +54,23 @@ verify:admin-api-contract:
     when: on_failure
     expire_in: 3 day
 
-deploy:
-  stage: deploy
-  variables:
-    ENABLE_DOCKER_DAEMON_BUILD: "false"
+# Deploy is split into three steps so the per-module image/chart builds run as parallel jobs:
+#   1. deploy:parents   - parent/aggregator POMs, deployed once (a release repo rejects re-deploys,
+#                         so the module jobs below must not each deploy them via -am)
+#   2. deploy:<module>  - one job per module: its code, Docker image and Helm chart (reactor-local,
+#                         the image build reads the module jar from the same reactor)
+#   3. deploy:bundle    - compose files and the Helm bundle, which resolves the per-module charts
+#                         deployed in step 2 from the repository
+.deploy-rules:
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^maven\/release\/.*/ && $CI_PIPELINE_SOURCE == "pipeline"
     - if: $CI_COMMIT_TAG && $CI_PIPELINE_SOURCE == "pipeline"
     - if: $CI_COMMIT_BRANCH !~ /^maven\/release\/.*/ && $CI_COMMIT_TAG == null
+
+.deploy-job:
+  extends: .deploy-rules
+  variables:
+    ENABLE_DOCKER_DAEMON_BUILD: "false"
   before_script:
     - apt-get update -y
     - apt-get install -y unzip
@@ -62,13 +80,37 @@ deploy:
     - ./linux-amd64/helm repo add edu-sharing https://artifacts.edu-sharing.com/repository/helm
     - popd
   script:
-    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy
+    - mvn $MAVEN_CLI -s .mvn/settings.xml deploy -pl $DEPLOY_MODULES
   artifacts:
     paths:
       - service/target/surefire-reports
       - document-converter/target/surefire-reports
     when: on_failure
     expire_in: 3 day
+
+deploy:parents:
+  extends: .deploy-job
+  stage: prepare
+  variables:
+    DEPLOY_MODULES: ".,deploy,deploy/docker,deploy/docker/build,deploy/docker/helm"
+
+deploy:module:
+  extends: .deploy-job
+  stage: deploy
+  parallel:
+    matrix:
+      - DEPLOY_MODULES:
+          - "service,deploy/docker/build/service,deploy/docker/helm/service"
+          - "document-converter,deploy/docker/build/document-converter,deploy/docker/helm/document-converter"
+          - "jupyter-converter,deploy/docker/build/jupyter-converter,deploy/docker/helm/jupyter-converter"
+          - "lumi,deploy/docker/build/lumi,deploy/docker/helm/lumi"
+          - "admin-frontend,deploy/docker/build/admin-frontend,deploy/docker/helm/admin-frontend"
+
+deploy:bundle:
+  extends: .deploy-job
+  stage: release
+  variables:
+    DEPLOY_MODULES: "deploy/docker/compose,deploy/docker/helm/bundle"
 
 check-helmreadme:
   stage: verify
