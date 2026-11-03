@@ -2,6 +2,7 @@ package org.edu_sharing.rendering.modules.h5p.lumi
 
 import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import io.mockk.clearAllMocks
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import okhttp3.mockwebserver.MockResponse
@@ -11,6 +12,7 @@ import org.edu_sharing.rendering.core.exception.ResourceNotFoundException
 import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiNodeInfo
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
+import org.edu_sharing.generated.repository.backend.services.rest.client.model.Node
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -328,5 +330,24 @@ class LumiContentManagementServiceTest {
         val exception = assertThrows<IllegalStateException> { underTest.getNodeInfo("content123") }
 
         assert(exception.message!!.contains("content123"))
+    }
+
+    @Test
+    fun testGetNodeTitleReadsTheTitleOfTheSessionNode() {
+        every { nodeSessionContextRepo.getNode("node1") } returns Node().title("Pharmakologie").name("Stoffwechsel.h5p")
+
+        assertEquals("Pharmakologie", underTest.getNodeTitle("node1"))
+    }
+
+    @Test
+    fun testGetNodeTitleIsNullWithoutATitle() {
+        // Not the file name: the title in the package is the better fallback, and lumi keeps it without a node title.
+        every { nodeSessionContextRepo.getNode("blank") } returns Node().title(" ").name("Stoffwechsel.h5p")
+        every { nodeSessionContextRepo.getNode("untitled") } returns Node().name("Stoffwechsel.h5p")
+        every { nodeSessionContextRepo.getNode("missing") } returns null
+
+        assertNull(underTest.getNodeTitle("blank"))
+        assertNull(underTest.getNodeTitle("untitled"))
+        assertNull(underTest.getNodeTitle("missing"))
     }
 }
