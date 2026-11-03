@@ -41,7 +41,10 @@ class LumiProxyController(
             body = body,
             method = method,
             request = request,
-            additionalHeaders = additionalHeader ?: emptyMap()
+            additionalHeaders = additionalHeader ?: emptyMap(),
+            // Read on every request rather than cached with the node info: the session holds the node as the
+            // repository delivered it with the latest render request, so a renamed node shows its new title.
+            nodeTitle = lumiContentManagementService.getNodeTitle(nodeInfo.nodeId)
         )
         return result
     }

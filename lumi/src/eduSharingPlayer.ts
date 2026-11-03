@@ -100,6 +100,15 @@ const withoutContentUserData = (integration: IIntegration): IIntegration => {
 };
 
 /**
+ * JSON for an inline `<script>`. `JSON.stringify` leaves `<` as it is, so a string containing `</script>` - the node
+ * title (nodeTitle.ts), any text of the content - would end the script element and turn the rest into markup. As
+ * `<` it is the same character to the script, but the HTML parser no longer sees a tag. Outside of strings JSON
+ * has no `<`, so nothing else changes.
+ */
+export const toScriptJson = (value: unknown, space?: number): string =>
+    JSON.stringify(value, null, space).replace(/</g, '\\u003c');
+
+/**
  * Custom H5P player for Edu-Sharing purposes
  */
 export default (model: IPlayerModel): string => `<!doctype html>
@@ -115,7 +124,7 @@ export default (model: IPlayerModel): string => `<!doctype html>
     .join('\n    ')}
 
     <script>
-        window.H5PIntegration = ${JSON.stringify(withoutContentUserData(model.integration), null, 2)};
+        window.H5PIntegration = ${toScriptJson(withoutContentUserData(model.integration), 2)};
     </script>
     ${mathDisplayHead(model)}
 
@@ -129,7 +138,7 @@ export default (model: IPlayerModel): string => `<!doctype html>
             window.parent.postMessage(
               {
                 type: 'H5P_XAPI',
-                contentId: ${JSON.stringify(model.contentId)},
+                contentId: ${toScriptJson(model.contentId)},
                 statement: statement
               },
               '*'
