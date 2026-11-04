@@ -12,6 +12,9 @@
       <dt>Rendering bucket</dt>
       <dd class="mono">
         {{ r.renderingBucket ?? '–' }}
+        @if (r.renderingBucketKeyPrefix) {
+          <span class="muted">(key prefix {{ r.renderingBucketKeyPrefix }})</span>
+        }
         @if (r.renderingBucketQuota) {
           <span class="muted">({{ r.renderingBucketQuota | bytes }} quota)</span>
         }
@@ -19,6 +22,9 @@
       <dt>Temp bucket</dt>
       <dd class="mono">
         {{ r.tempBucket ?? '–' }}
+        @if (r.tempBucketKeyPrefix) {
+          <span class="muted">(key prefix {{ r.tempBucketKeyPrefix }})</span>
+        }
         @if (r.tempBucketQuota) {
           <span class="muted">({{ r.tempBucketQuota | bytes }} quota — informational only, never enforced)</span>
         }

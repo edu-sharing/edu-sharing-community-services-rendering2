@@ -13,6 +13,12 @@ import { PollingService } from '../../core/polling.service';
 import { RepoContextService } from '../../core/repo-context.service';
 import { Column, DataTable } from '../../shared/data-table';
 
+/**
+ * A storage row plus a unique key: the rendering and the temp bucket can be the same S3 bucket (told apart by key
+ * prefix), so the bucket name alone does not identify a row.
+ */
+type BucketRow = BucketUsageInfo & { rowKey: string };
+
 @Component({
   selector: 'app-dashboard',
   imports: [DataTable, BytesPipe, MatButtonModule, MatIconModule],
@@ -54,23 +60,26 @@ export class Dashboard {
   );
 
   /**
-   * Bucket name -> exact snapshot, keyed per bucket rather than a single global mode: clicking
+   * Row key -> exact snapshot, keyed per row (see [BucketRow.rowKey]) rather than a single global mode: clicking
    * "measure exact" on one row only freezes that row, other rows keep following the live tracked
    * poll. A pinned row is excluded from automatic updates until [resetExact] is called — otherwise
    * the very next poll tick would immediately overwrite the exact value with the tracked one.
    */
-  protected readonly pinnedExact = signal<Record<string, BucketUsageInfo>>({});
-  private readonly exactClick$ = new Subject<string>();
+  protected readonly pinnedExact = signal<Record<string, BucketRow>>({});
+  private readonly exactClick$ = new Subject<BucketRow>();
 
   constructor() {
     this.exactClick$
       .pipe(
         withLatestFrom(this.repoId$),
-        switchMap(([bucketName, repoId]) =>
+        switchMap(([row, repoId]) =>
           repoId
-            ? this.storageApi.getStorageUsage({ repoId, exact: true, bucket: bucketName }).pipe(
-                map((res) => ({ bucketName, bucket: res.buckets.find((b) => b.name === bucketName) ?? null })),
-                catchError(() => of({ bucketName, bucket: null })),
+            ? this.storageApi.getStorageUsage({ repoId, exact: true, bucket: row.name }).pipe(
+                map((res) => ({
+                  rowKey: row.rowKey,
+                  bucket: res.buckets.map((b) => this.toRow(b)).find((b) => b.rowKey === row.rowKey) ?? null,
+                })),
+                catchError(() => of({ rowKey: row.rowKey, bucket: null })),
               )
             : of(null),
         ),
@@ -78,7 +87,7 @@ export class Dashboard {
       )
       .subscribe((result) => {
         if (result?.bucket) {
-          this.pinnedExact.update((m) => ({ ...m, [result.bucketName]: result.bucket! }));
+          this.pinnedExact.update((m) => ({ ...m, [result.rowKey]: result.bucket! }));
         }
       });
   }
@@ -102,15 +111,24 @@ export class Dashboard {
     return s ? s.failed + s.partiallyFailed : 0;
   });
 
-  /** Live tracked buckets, with any pinned-exact rows (see [pinnedExact]) substituted in by name. */
-  protected readonly buckets = computed<BucketUsageInfo[]>(() => {
+  /** Live tracked buckets, with any pinned-exact rows (see [pinnedExact]) substituted in by row key. */
+  protected readonly buckets = computed<BucketRow[]>(() => {
     const live = this.storage()?.buckets ?? [];
     const pinned = this.pinnedExact();
-    return live.map((b) => pinned[b.name] ?? b);
+    return live.map((b) => {
+      const row = this.toRow(b);
+      return pinned[row.rowKey] ?? row;
+    });
   });
 
   protected readonly bucketColumns: Column[] = [
-    { key: 'name', label: 'Bucket / volume', sortable: true, cssClass: 'mono' },
+    {
+      key: 'name',
+      label: 'Bucket / volume',
+      sortable: true,
+      cssClass: 'mono',
+      value: (row: BucketUsageInfo) => this.rowLabel(row),
+    },
     { key: 'size', label: 'Size', sortable: true, align: 'right', kind: 'bytes' },
     { key: 'quota', label: 'Quota', sortable: true, align: 'right', kind: 'bytes' },
     {
@@ -124,14 +142,14 @@ export class Dashboard {
     {
       key: 'status',
       label: 'Status',
-      value: (row: BucketUsageInfo) => this.bucketStatus(row),
+      value: (row: BucketRow) => this.bucketStatus(row),
       cssClass: 'muted',
     },
   ];
 
   /** Requests a fresh exact snapshot for one bucket and pins it (see [pinnedExact]) once it arrives. */
-  measureExact(bucketName: string): void {
-    this.exactClick$.next(bucketName);
+  measureExact(row: BucketRow): void {
+    this.exactClick$.next(row);
   }
 
   protected readonly cleaning = signal(false);
@@ -171,15 +189,24 @@ export class Dashboard {
   }
 
   /** Un-pins a bucket row so the next poll tick resumes showing its live tracked value. */
-  resetExact(bucketName: string): void {
+  resetExact(row: BucketRow): void {
     this.pinnedExact.update((m) => {
-      const { [bucketName]: _removed, ...rest } = m;
+      const { [row.rowKey]: _removed, ...rest } = m;
       return rest;
     });
   }
 
-  protected isPinned(row: BucketUsageInfo): boolean {
-    return this.pinnedExact()[row.name] !== undefined;
+  protected isPinned(row: BucketRow): boolean {
+    return this.pinnedExact()[row.rowKey] !== undefined;
+  }
+
+  private toRow(b: BucketUsageInfo): BucketRow {
+    return { ...b, rowKey: (b.temp ? 'temp:' : '') + b.name + '|' + (b.keyPrefix ?? '') };
+  }
+
+  /** Display label of a row: the bucket name, plus its key prefix (which already ends with a slash) when scoped. */
+  protected rowLabel(row: BucketUsageInfo): string {
+    return row.keyPrefix ? `${row.name}/${row.keyPrefix}` : row.name;
   }
 
   barColor(percent: number | null): string {
@@ -194,7 +221,12 @@ export class Dashboard {
     return row.kind === 'LIBRARY_CACHE';
   }
 
-  private bucketStatus(row: BucketUsageInfo): string {
+  private bucketStatus(row: BucketRow): string {
+    const status = this.bucketStatusText(row);
+    return row.temp ? `temp bucket · ${status}` : status;
+  }
+
+  private bucketStatusText(row: BucketRow): string {
     if (this.isLibraryCache(row)) {
       return (row.usedPercent ?? 0) > 100
         ? 'volume of lumi — over its quota, freed by the cache cleaner'
@@ -202,7 +234,7 @@ export class Dashboard {
     }
     if (this.isPinned(row)) return 'exact snapshot — click reset to resume live updates';
     if (!row.measured) return 'not measured — click the refresh icon to measure exact';
-    if (!row.enforced) return 'not enforced';
+    if (!row.enforced) return row.temp ? 'informational quota, never enforced' : 'not enforced';
     return '';
   }
 }
