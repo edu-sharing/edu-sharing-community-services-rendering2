@@ -16,8 +16,12 @@ data class RepositoryDetailInfo(
     val quota: Long,
     val renderingBucket: String?,
     val renderingBucketQuota: Long?,
+    /** Normalized key prefix of the rendering bucket; `null` when empty or not configured. */
+    val renderingBucketKeyPrefix: String?,
     val tempBucket: String?,
     val tempBucketQuota: Long?,
+    /** Normalized key prefix of the temp bucket; `null` when empty or not configured. */
+    val tempBucketKeyPrefix: String?,
     /** H5P/lumi content bucket; name + quota come from lumi itself, not from this registration. */
     val contentBucket: String?,
     val contentBucketQuota: Long?,

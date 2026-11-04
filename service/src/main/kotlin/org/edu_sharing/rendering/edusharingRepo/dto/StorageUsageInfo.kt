@@ -34,6 +34,10 @@ data class StorageUsageInfo(
  *   the temp bucket never has an [org.edu_sharing.rendering.storage.StorageManager] and is therefore always `false`.
  * @property measured `false` if the size isn't reliable — currently only the temp bucket without
  *   `exact=true` (it is barely tracked, see [org.edu_sharing.rendering.edusharingRepo.AdminStorageController]).
+ * @property keyPrefix Normalized key prefix (no leading slash, one trailing slash) this row is scoped to, or `null`
+ *   if the row covers the whole bucket. Rendering and temp bucket may be the same S3 bucket, separated only by
+ *   their prefixes - then [name] alone is not unique and the two rows are told apart by [keyPrefix] / [temp].
+ * @property temp `true` for the temp bucket's row (informational quota, never enforced).
  */
 data class BucketUsageInfo(
     val name: String,
@@ -42,5 +46,7 @@ data class BucketUsageInfo(
     val usedPercent: Double? = null,
     val enforced: Boolean = true,
     val measured: Boolean = true,
-    val kind: StorageScopeKind = StorageScopeKind.BUCKET
+    val kind: StorageScopeKind = StorageScopeKind.BUCKET,
+    val keyPrefix: String? = null,
+    val temp: Boolean = false
 )

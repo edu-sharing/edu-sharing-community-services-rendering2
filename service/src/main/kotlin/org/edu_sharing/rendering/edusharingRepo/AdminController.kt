@@ -216,8 +216,12 @@ class AdminController(
             quota = entity.quota,
             renderingBucket = entity.buckets?.renderingBucket?.takeIf { it.isConfigured }?.name,
             renderingBucketQuota = entity.buckets?.renderingBucket?.quota?.takeIf { it > 0 },
+            renderingBucketKeyPrefix = entity.buckets?.renderingBucket?.takeIf { it.isConfigured }
+                ?.normalizedKeyPrefix()?.ifEmpty { null },
             tempBucket = entity.buckets?.tempBucket?.takeIf { it.isConfigured }?.name,
             tempBucketQuota = entity.buckets?.tempBucket?.quota?.takeIf { it > 0 },
+            tempBucketKeyPrefix = entity.buckets?.tempBucket?.takeIf { it.isConfigured }
+                ?.normalizedKeyPrefix()?.ifEmpty { null },
             contentBucket = contentBucketInfo?.first,
             contentBucketQuota = contentBucketInfo?.second?.takeIf { it > 0 },
             allowedOrigins = entity.allowedOrigins.toList(),

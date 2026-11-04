@@ -56,14 +56,6 @@ class ExternalBucketStrategy(
         return "/${cacheObject.repoId}/$urlPath"
     }
 
-    override fun getCacheObjectFromStoragePath(
-        bucket: String,
-        storagePath: String
-    ): CacheObject? {
-        val (type, nodeId, hash) = storagePath.trimStart('/').split("/", limit = 3)
-        return CacheObject.of(repoId = bucket, type = type, nodeId = nodeId, hash = hash)
-    }
-
     override fun isManagedBucket(bucket: String, repoId: String): Boolean {
         return repositoryRegistrationStorageService
             .getRegistrationByRepoId(repoId)

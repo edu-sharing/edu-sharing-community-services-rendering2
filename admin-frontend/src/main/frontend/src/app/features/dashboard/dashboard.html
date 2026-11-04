@@ -97,7 +97,7 @@
       [columns]="bucketColumns"
       [rows]="buckets()"
       [rowActions]="bucketActionsTpl"
-      trackKey="name"
+      trackKey="rowKey"
       [initialSort]="{ key: 'size', dir: 'desc' }"
       searchPlaceholder="Search buckets…"
     />
@@ -112,9 +112,9 @@
     <div class="dt-row-actions">
       <button
         matButton
-        [attr.aria-label]="'Measure exact size for bucket ' + row.name"
+        [attr.aria-label]="'Measure exact size for bucket ' + rowLabel(row)"
         title="Recompute this bucket's exact size live from S3. The value then stays pinned across automatic refreshes until reset."
-        (click)="measureExact(row.name)"
+        (click)="measureExact(row)"
       >
         <mat-icon aria-hidden="true">refresh</mat-icon>
         Measure exact
@@ -122,9 +122,9 @@
       @if (isPinned(row)) {
         <button
           matButton
-          [attr.aria-label]="'Unpin exact size for bucket ' + row.name"
+          [attr.aria-label]="'Unpin exact size for bucket ' + rowLabel(row)"
           title="This row is pinned to the measured exact snapshot. Click to resume automatic tracked updates."
-          (click)="resetExact(row.name)"
+          (click)="resetExact(row)"
         >
           <mat-icon aria-hidden="true">push_pin</mat-icon>
           Unpin

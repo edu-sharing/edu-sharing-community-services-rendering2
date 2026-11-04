@@ -10,7 +10,6 @@ interface BucketStrategy {
     fun getExtensionFromMimeType(mimeType: String): String
     fun getCacheObjectFromStaticPath(path: String): Pair<CacheObject, String>
     fun prefixStaticPath(cacheObject: CacheObject, path: String): String
-    fun getCacheObjectFromStoragePath(bucket: String, storagePath: String): CacheObject?
     fun isManagedBucket(bucket: String, repoId: String): Boolean
     fun getTempBucket(repoId: String): String = "temp"
 
