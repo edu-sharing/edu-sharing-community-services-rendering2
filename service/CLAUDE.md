@@ -174,6 +174,8 @@ repo at a time. Controllers:
   don't in `byType` mode): list grouped by nodeId, versions, delete single/by-type/all.
   Deletions remove the S3 object **and** the `TrackingEntry` together.
 
+**lumi is only consulted for repositories with the `H5P` optional module** (`H5pRenderModule.MODULE_NAME`): `LumiStorageManager` lists no buckets/quota/storage info and `repository/details` shows no content bucket without it, so deployments without lumi stay quiet. `Rs2StorageManager` is `@Order(HIGHEST_PRECEDENCE)` (lumi is last) in `StorageManagerRegistry`, so lumi's owner check only runs for buckets the service does not own; that check is deliberately not gated on H5P, so lumi content stays routable after H5P was deactivated.
+
 ## Config gotchas
 - `spring.redis.standalone.*` (→ `RedisStandaloneConfigurationProperties`) and
   `spring.redis.cluster.*` (→ `RedisClusterConfigurationProperties`) are **this module's own**

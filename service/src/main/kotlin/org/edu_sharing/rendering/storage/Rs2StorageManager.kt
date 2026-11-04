@@ -5,9 +5,15 @@ import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
 import org.edu_sharing.rendering.storage.bucket.BucketStrategy
 import org.slf4j.LoggerFactory
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 
+// StorageManagerRegistry asks the managers in this order: the service's own buckets are recognized
+// locally without a remote call, so lumi's owner check only runs for buckets the service does not own
+// (e.g. lumi's content bucket).
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 class Rs2StorageManager(
     private val storageService: StorageService,
     private val mapper: Mapper,
