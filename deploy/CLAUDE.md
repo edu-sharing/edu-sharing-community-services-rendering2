@@ -39,19 +39,38 @@ container env `BASE_HREF` (UI path) and `ADMIN_API_BASE` (service context-path, 
 configure the static server at runtime — see [`../admin-frontend/CLAUDE.md`](../admin-frontend/CLAUDE.md).
 
 ## Dockerfiles (`build/<module>/src/main/build/Dockerfile`)
-- **service** & **document-converter**: Amazon Corretto 21-alpine, Spring Boot layered-jar
+All base images are the `docker.from.*` properties in `docker/pom.xml`. They are not hard-coded in the Dockerfiles,
+which are Maven-filtered. The tags are moving tags, so a rebuild picks up upstream fixes. The Alpine images also run
+`apk upgrade` to patch OS packages before the upstream image is rebuilt.
+- **service** & **document-converter**: `eclipse-temurin:21-jre-alpine-3.24`, Spring Boot layered-jar
   extraction (`java -Djarmode=tools -jar application.jar extract --layers --launcher`; Boot
   4.1 removed the old `-Djarmode=layertools` mode), non-root `worker` user, entrypoint sets
   `-Dspring.profiles.active=docker`. The document-converter image additionally installs
   **LibreOffice + fonts**.
-- **lumi**: `node:21-alpine`, non-root `node` user, runs `dist/index.js`, exposes 3000. Creates
+- **lumi**: `node:24-alpine3.24` (built with the older Node in `lumi/pom.xml`), non-root `node` user, runs `dist/index.js`, exposes 3000. Creates
   `/application/library-cache` **owned by `node` before `USER node`** — `/application` is root-owned,
   so a volume mounted there would be created as root and the node user could not write into it
   (Docker seeds a fresh named volume from this directory's ownership; K8s uses the pod's `fsGroup`).
-- **jupyter-converter**: `python:3.13` (Poetry install in a builder stage), runs `python -m main`.
-- **admin-frontend**: `node:21-alpine`, serves the static Angular build via a dependency-free
+- **jupyter-converter**: `python:3.13-trixie` (Poetry install in a builder stage) and `python:3.13-slim-trixie` at
+  runtime, runs `python -m main`. Both stages must stay on the same Debian release, because the venv is copied across.
+- **admin-frontend**: `node:24-alpine3.24`, serves the static Angular build via a dependency-free
   `server.mjs` (Node built-ins only; SPA fallback, `/ping` health, strips the `BASE_HREF`
   prefix, injects `BASE_HREF`/`ADMIN_API_BASE` into `index.html` at request time). Exposes 8080.
+
+**Infrastructure image versions** (`docker.edu_sharing.community.common.*`: Redis, RabbitMQ, MongoDB, MinIO, RustFS, ...) live
+in the **root `pom.xml`**, not in `docker/pom.xml`, so that the service module sees them too: the Helm charts and compose
+files here are filtered with them, and the service integration tests run **the same edu-sharing images** in their Testcontainers
+(`service/src/test/resources/docker-images.properties` holds the filtered references, `TestImages`/`TestContainers` build the
+containers). Bump a version once, in the root pom, and deployment and tests move together. The Bitnami-layout images need a few
+settings the upstream images do not (RabbitMQ user and `RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS`, Redis `ALLOW_EMPTY_PASSWORD`, MongoDB
+`MONGODB_EXTRA_FLAGS` for the replica set); they are set in `TestContainers`. An edu-sharing tag is the upstream version plus an
+optional revision (`8.2.10-1`: the same upstream version, rebuilt, e.g. with a security fix). One run can replace a whole image with
+`-Dtest.image.<mongodb|redis|rabbitmq>=<image>` (needed for MongoDB 8.0.34 on Linux kernel 6.19+). The CI job that runs the
+integration tests pulls these images from `docker.registry`. The RabbitMQ
+`...rabbitmq.series` (major-minor, `4-3`) is part of the Helm StatefulSet name: a patch bump keeps the name, a minor bump
+replaces the cluster (`docs/RABBITMQ-CLUSTER-AUSTAUSCH.md`). The root `compose.yml` (local infrastructure for the IDE and the
+load tests) cannot read the pom and runs without a Maven step, so it carries literal versions for the edu-sharing infrastructure
+images; `ComposeImageVersionsTest` (service module) fails when they differ from the root pom or float on `latest`.
 
 `docker-maven-plugin` builds images on `install` and pushes on `deploy`, naming them from the
 root POM's `docker.registry` / `docker.repository` / `docker.prefix` and the git-derived `docker.tag`.
@@ -120,6 +139,7 @@ dotted Spring keys set as env entries.
 | `REDIS_HOST` / `REDIS_PORT` | `spring.redis.standalone.host` / `.port` | `redis-cache` / `6379` |
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | `spring.rabbitmq.host` / `.port` | `rendering2-message-queue` / `5672` |
 | `RENDERING2_QUEUE_<KEY>_CONCURRENCY` (Helm `config.queue.concurrency.<key>`) | `app.queue.<key>.concurrency` — the one per-queue scaling knob: max messages processed in parallel per pod. Meaning follows the queue's `mode` (code-only, in `application.properties`): STANDARD = registered `DirectMessageListenerContainer` consumers; REMOTE (sodix/omega/ddb — resolve a link/reference to externally-hosted material) = K (remote HTTP pool + prefetch, on virtual threads); SINGLE_ACTIVE (the h5p *import* queue) is forced to 1 and not exposed here — the h5p lookup queue in front of it is STANDARD and is exposed as `h5pLookup` | `1` (code); per-queue starting values in the chart |
+| `RENDERING2_MESSAGE_QUEUE_CONSUMER_TIMEOUT` (compose only; Helm: RabbitMQ chart `config.consumerTimeout`, set by the bundle) | RabbitMQ `consumer_timeout` in ms, passed as `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS` (`-rabbit consumer_timeout <ms>`). Quorum queues cancel a consumer and redeliver its message after this long without an ack (broker default 30 min). An av job acks only after the encode (up to 30 min, reaper at 45 min via `app.jobreaper.max-process-time.av_job_v3`), so keep it above that | `3600000` |
 | `RENDERING2_QUEUE_PREFETCH` (Helm `config.queue.prefetch`) | `app.queue.prefetch` — global prefetch for STANDARD/SINGLE_ACTIVE queues (remote queues derive prefetch from their concurrency) | `1` |
 | `RENDERING2_QUEUE_<KEY>_PREFETCH` (Helm `config.queue.remotePrefetch.<key>`, `key` ∈ sodix/omega/ddb only) | `app.queue.<key>.prefetch` — optional per-REMOTE-queue prefetch override; must be >= the queue's concurrency (enforced at startup) | empty = derive from `concurrency` |
 | `RENDERING2_SERVICE_CONVERTER_SPREADSHEET_TO_HTML_ENABLED` (Helm `config.converter.spreadsheet.enabled`) | `app.converter.spreadsheetToHtml.enabled` — gates `SpreadsheetRenderModule` via `@ConditionalOnProperty` (no `matchIfMissing`, so anything but `true` unregisters the module): spreadsheets (xls/xlsx/ods/csv) are converted to HTML by the document-converter, otherwise they fall back to the regular document rendering (PDF) | `true` |
@@ -130,6 +150,7 @@ dotted Spring keys set as env entries.
 | `RENDERING2_LUMI_DATABASE_{NAME,USER}` | lumi Mongo db/user | `lumi` |
 | `RENDERING2_LUMI_S3_MAX_SOCKETS` (Helm `config.s3.maxSockets`) | lumi `AWS_S3_MAX_SOCKETS` — parallel S3 connections; every H5P library/content file is one S3 request, so the AWS SDK default of 50 throttles the player | `256` |
 | `RENDERING2_S3_RENDERING_BUCKET{,_QUOTA}` (Helm `config.home.registrations[0].buckets`, entry `renderingBucket`) | `app.repository.registration.id.<key>.externalBuckets.renderingBucket.{name,quota}` — externalBucket mode only; quota (0/empty = no limit, `@DataSizeUnit(BYTES)`-bound: a plain byte count or a human-readable size like `10GB`, Spring's binary units) enforced by the CacheCleaner | empty / `0` |
+| `RENDERING2_S3_{RENDERING,TEMP}_BUCKET_KEY_PREFIX` (Helm, entry `keyPrefix`) | `app.repository.registration.id.<key>.externalBuckets.{renderingBucket,tempBucket}.keyPrefix` — externalBucket mode only; objects of that bucket live below `<prefix>/` so rendering and temp (or several repos) can share one S3 bucket; use distinct, non-nested prefixes (overlapping scopes in one bucket are logged as a WARN at startup). Quota measurement (`/admin/storage/usage?exact=true`) is scoped to the prefix. A prefix change orphans existing objects | empty |
 | `RENDERING2_S3_TEMP_BUCKET{,_QUOTA}` (Helm, entry `tempBucket`) | `app.repository.registration.id.<key>.externalBuckets.tempBucket.{name,quota}` — quota (same format as above) is informational only, never enforced (see `GET /admin/storage/usage?exact=true`) | empty / `0` |
 | `RENDERING2_S3_DEFAULT_QUOTA` | `app.repository.registration.id.<key>.quota` — repo-wide fallback quota (same format as above), only in effect while none of the repo's buckets above (or the lumi content bucket) has its own quota | `0` |
 | `RENDERING2_LUMI_CONTENT_BUCKET_QUOTA` (Helm `config.s3.buckets.contentQuota`, lumi chart) | lumi `CONTENT_AWS_S3_BUCKET_QUOTA` — quota for lumi's own content bucket (a plain byte count or a human-readable size like `10GB`, parsed by lumi's own `parseDataSize`, binary units matching the service side), queried live by rendering2 (`GET /edusharing/buckets`) instead of being duplicated into the rendering2 repository registration | `0` |

@@ -24,7 +24,8 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 | `src/s3Pool.ts` | Watchdog for the S3 connection pool (below). |
 | `src/metrics.ts` | Prometheus gauges for the import queue and the S3 pool. |
 | `src/traceContext.ts` | Adopts the incoming b3/W3C trace id and prefixes every `debug` log line with it. Binds `req.emit`/`res.emit` into the `AsyncLocalStorage` context — **do not remove**: without it every request with a body (the package import above all) logs untraced, because body parsers resume the chain from stream events that fire in the socket's async context. |
-| `src/eduSharingPlayer.ts` | Custom H5P player/renderer. Also injects the core styles the bundled `playerAssetList.json` omits, and seeds a preloaded empty `contentUserData` so H5P core skips the `contentUserData` AJAX call that h5p-express answers with 403 while the feature is off (`contentUserStateSaveInterval: false`). |
+| `src/eduSharingPlayer.ts` | Custom H5P player/renderer. Also injects the core styles the bundled `playerAssetList.json` omits, and seeds a preloaded empty `contentUserData` so H5P core skips the `contentUserData` AJAX call that h5p-express answers with 403 while the feature is off (`contentUserStateSaveInterval: false`). Inline JSON goes through `toScriptJson` (escapes `<`), so no string in it can close the `<script>`. |
+| `src/nodeTitle.ts` | Shows the node's current title instead of the h5p.json one: the rendering service sends it percent-encoded in `X-Edu-Sharing-Node-Title`, the render route passes it to `H5PPlayer.render` as `metadataOverride` (the whole metadata, title replaced). The repository never writes a renamed title into the package. |
 | `src/mathDisplay.ts` | LaTeX for every H5P page: serves MathJax 4 (npm `mathjax` + its font) and builds the `<head>` snippet `eduSharingPlayer` injects (config/observer ported from the upstream `H5P.MathDisplay` addon). Only injected when the content parameters contain LaTeX and the package does not ship `H5P.MathDisplay` itself. |
 | `src/EduSharingModel.ts` | Mongo node↔content mapping model. |
 | `src/User.ts` | Dummy user for H5P context. |
@@ -36,13 +37,21 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 - `GET  /edusharing/nodeid/:nodeId` — content id for an edu-sharing node id
 - `GET  /edusharing/contentid/:contentId` — node id for a content id
 - `POST /edusharing` — upload an H5P package, map it to a node id. Failures carry a meaningful status instead of a blanket 500 - see *Why an import is rejected* below
-- `GET  /:contentId` — render the H5P player (HTML)
+- `GET  /:contentId` — render the H5P player (HTML); an `X-Edu-Sharing-Node-Title` header replaces the content title (`nodeTitle.ts`)
 - `DELETE /edusharing/:nodeHash` — delete content + mapping
 - `GET  /edusharing/buckets` — S3 bucket config and quotas; `libraryCache` (size + soft quota) only once the cache size is known
 - `GET  /edusharing/ping` — liveness only: answers 200 whenever the process does. Unchanged on purpose, because the Helm chart's probes restart the pod on failure.
 - `GET  /edusharing/health` — import queue + S3 pool state as JSON; **503** while an import is past its deadline or the S3 pool is stuck. Not wired to any probe; hooking it up is an operator's decision.
 - `GET  /package-libraries/:packageId/:uberName/:file` — library files of one package (only mounted when the per-package cache is on)
 - `GET  /mathjax/<mathjax>-<font>/...` — MathJax and its font from `node_modules` (`mathDisplay.ts`, mounted in `index.ts`); both versions are in the path, so it is cached as immutable
+
+The stock `h5pAjaxExpressRouter` (`index.ts`) runs with only the player's routes: `/core`, `/editor`,
+`/libraries`, `/content`, `/contentUserData`, `/finishedData`. **`/download`, `/params`, `/ajax` (GET and POST)
+and `/temp-files` are switched off**: the permission system is `LaissezFairePermissionSystem` with a dummy user,
+so they would export any package, its parameters, or install libraries for whoever reaches lumi. The rendering
+service's proxy (`LumiProxyController`) forwards only `/{contentId}` and `/content/{contentId}/**` (both
+permission-checked) plus `/core`, `/libraries`, `/package-libraries` and `/mathjax`. A new route the browser has to
+reach needs an entry there too.
 
 ## npm scripts (`package.json`)
 - `npm run setup` → `rm -rf ./h5p && ./download-core.sh 1.28.0 1.25` — downloads H5P core

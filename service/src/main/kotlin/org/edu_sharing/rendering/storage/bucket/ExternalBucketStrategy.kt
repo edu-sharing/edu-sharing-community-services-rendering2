@@ -13,8 +13,23 @@ class ExternalBucketStrategy(
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun getCacheObjectRootPath(cacheObject: CacheObject): String {
-        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}"
+        return "${getRenderingKeyPrefix(cacheObject.repoId)}${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}"
     }
+
+    override fun getTempStoragePath(cacheObject: CacheObject): String {
+        return "${getTempKeyPrefix(cacheObject.repoId)}${super.getTempStoragePath(cacheObject)}"
+    }
+
+    override fun getRenderingKeyPrefix(repoId: String): String = registrationBuckets(repoId)
+        ?.renderingBucket?.takeIf { it.isConfigured }?.normalizedKeyPrefix().orEmpty()
+
+    override fun getTempKeyPrefix(repoId: String): String = registrationBuckets(repoId)
+        ?.tempBucket?.takeIf { it.isConfigured }?.normalizedKeyPrefix().orEmpty()
+
+    private fun registrationBuckets(repoId: String) = repositoryRegistrationStorageService
+        .getRegistrationByRepoId(repoId)
+        .orElse(null)
+        ?.buckets
 
     override fun getBucket(cacheObject: CacheObject): String {
         val bucket = repositoryRegistrationStorageService
@@ -35,16 +50,10 @@ class ExternalBucketStrategy(
         cacheObject: CacheObject,
         path: String
     ): String {
-        val storagePath = getStoragePath(cacheObject, path)
-        return "/${cacheObject.repoId}/${storagePath.trimStart('/')}"
-    }
-
-    override fun getCacheObjectFromStoragePath(
-        bucket: String,
-        storagePath: String
-    ): CacheObject? {
-        val (type, nodeId, hash) = storagePath.trimStart('/').split("/", limit = 3)
-        return CacheObject.of(repoId = bucket, type = type, nodeId = nodeId, hash = hash)
+        // The public URL is /repoId/type/nodeId/hash/path and is parsed back by getCacheObjectFromStaticPath,
+        // so it must not carry the bucket-internal key prefix that getStoragePath adds.
+        val urlPath = "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}/${path.trimStart('/')}"
+        return "/${cacheObject.repoId}/$urlPath"
     }
 
     override fun isManagedBucket(bucket: String, repoId: String): Boolean {

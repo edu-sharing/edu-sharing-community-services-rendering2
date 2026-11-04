@@ -37,6 +37,9 @@ import org.springframework.web.bind.annotation.RestController
  * same way (see [tempBucketUsage]): it is only ever live-measured when [bucket] names it explicitly,
  * never on automatic polling — a live listing there is otherwise skipped as too expensive.
  *
+ * The rendering and the temp bucket may be one S3 bucket separated by key prefixes; the response then holds one row
+ * per scope with the same `name`, told apart by [BucketUsageInfo.keyPrefix] / [BucketUsageInfo.temp].
+ *
  * Bucket quotas come from [StorageManagerRegistry.getManagedBucketQuotas] — the same source as the
  * `CacheCleaner` — except for the temp bucket, which never has an
  * [org.edu_sharing.rendering.storage.StorageManager] and whose quota is therefore read directly from
@@ -76,9 +79,13 @@ class AdminStorageController(
         // attributed to this single repo — see isRepoAccurate().
         val exactBucket = (exact && bucket != null && isRepoAccurate() && bucketStrategy.isManagedBucket(bucket, repoId))
             .takeIf { it }
-            ?.let { bucket!! to storageService.getDirectorySize(bucket, "") }
+            ?.let { bucket!! to storageService.getDirectorySize(bucket, bucketStrategy.getRenderingKeyPrefix(repoId)) }
 
         val enforcedQuotas = storageManagerRegistry.getManagedBucketQuotas(repoId)
+
+        // Tracked buckets managed by the strategy are scoped to this repo's rendering prefix (external buckets);
+        // any other tracked bucket (e.g. lumi's content bucket) is a whole bucket.
+        val renderingPrefix = bucketStrategy.getRenderingKeyPrefix(repoId).ifEmpty { null }
 
         val buckets = trackedBuckets.map { (name, trackedSize) ->
             val size = if (name == exactBucket?.first) exactBucket.second else trackedSize
@@ -89,12 +96,15 @@ class AdminStorageController(
                 quota = bucketQuota,
                 usedPercent = bucketQuota?.let { (size.toDouble() / it.toDouble()) * 100.0 },
                 enforced = bucketQuota != null,
-                measured = true
+                measured = true,
+                keyPrefix = if (bucketStrategy.isManagedBucket(name, repoId)) renderingPrefix else null
             )
         }.toMutableList()
 
+        // The temp bucket may be the same S3 bucket as the rendering bucket (distinguished by key prefix): both rows
+        // are then shown. The temp row is only skipped if a row already covers exactly the same scope.
         tempBucketUsage(registration, exact, bucket)
-            ?.takeIf { temp -> buckets.none { it.name == temp.name } }
+            ?.takeIf { temp -> buckets.none { it.name == temp.name && it.keyPrefix == temp.keyPrefix } }
             ?.let { buckets += it }
 
         // lumi's H5P library cache is a volume, not a bucket: it is in none of the tracked buckets above, yet it
@@ -176,14 +186,16 @@ class AdminStorageController(
     ): BucketUsageInfo? {
         val tempBucket = registration.buckets?.tempBucket?.takeIf { it.isConfigured && it.quota > 0 } ?: return null
         val measureExact = exact && requestedBucket == tempBucket.name
-        val size = if (measureExact) storageService.getDirectorySize(tempBucket.name, "") else 0L
+        val size = if (measureExact) storageService.getDirectorySize(tempBucket.name, tempBucket.normalizedKeyPrefix()) else 0L
         return BucketUsageInfo(
             name = tempBucket.name,
             size = size,
             quota = tempBucket.quota,
             usedPercent = if (measureExact) (size.toDouble() / tempBucket.quota.toDouble()) * 100.0 else null,
             enforced = false,
-            measured = measureExact
+            measured = measureExact,
+            keyPrefix = tempBucket.normalizedKeyPrefix().ifEmpty { null },
+            temp = true
         )
     }
 

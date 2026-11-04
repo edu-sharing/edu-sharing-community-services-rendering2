@@ -117,6 +117,14 @@ class LumiContentManagementService(
         return module.getCspHeader(repoId)
     }
 
+    /**
+     * The title of the node as the repository delivered it with the latest render request of this session, or `null`
+     * if it has none. The player shows it in place of the title stored in the package: the repository never writes a
+     * changed title into the package, so that one keeps the title the package was created with.
+     */
+    fun getNodeTitle(nodeId: String): String? =
+        nodeSessionContextRepo.getNode(nodeId)?.title?.takeIf { it.isNotBlank() }
+
     private fun retrieveNodeInfo(contentId: String): LumiNodeInfo {
         log.debug("Retrieving Lumi node info for contentId={}", contentId)
         val response = try {

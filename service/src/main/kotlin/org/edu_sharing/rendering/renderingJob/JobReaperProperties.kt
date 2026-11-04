@@ -10,7 +10,7 @@ import java.time.Duration
  *
  * The reaper decides a PROCESSING sub-job is orphaned once it has been idle longer than its **max process
  * time**. That time is per job type ([maxProcessTime], keyed by the sub-job's `routingKey`, i.e. the queue
- * key such as `av_job`/`document_job`/`sodix_job`), falling back to [defaultMaxProcessTime]. A type's value
+ * key such as `av_job_v3`/`document_job_v3`/`sodix_job_v3`), falling back to [defaultMaxProcessTime]. A type's value
  * must exceed the longest *real* processing time for that type, or legitimately slow jobs get reaped.
  */
 @Component
@@ -20,7 +20,7 @@ class JobReaperProperties {
     /** Fallback max process time for any routing key without an explicit [maxProcessTime] entry. */
     var defaultMaxProcessTime: Duration = Duration.ofMinutes(30)
 
-    /** Per-routing-key overrides (e.g. `av_job` runs longer than the default). */
+    /** Per-routing-key overrides (e.g. `av_job_v3` runs longer than the default). */
     var maxProcessTime: MutableMap<String, Duration> = mutableMapOf()
 
     fun maxProcessTimeFor(routingKey: String): Duration =

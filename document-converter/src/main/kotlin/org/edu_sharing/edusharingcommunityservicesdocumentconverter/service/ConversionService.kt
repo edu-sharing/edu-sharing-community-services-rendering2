@@ -84,7 +84,7 @@ class ConversionService (
     }
 
     fun getTargetFormat(targetExtension: String): DocumentFormat {
-        return DefaultDocumentFormatRegistry.getFormatByExtension(targetExtension)
+        return DefaultDocumentFormatRegistry.getInstance().getFormatByExtension(targetExtension)
             ?: throw FormatException("Unknown target format: $targetExtension")
     }
 
@@ -93,7 +93,7 @@ class ConversionService (
         if (! supportedExtensions.contains(sourceExtension)) {
             throw FormatException("Source extension $sourceExtension is not supported.")
         }
-        return DefaultDocumentFormatRegistry.getFormatByExtension(sourceExtension)
+        return DefaultDocumentFormatRegistry.getInstance().getFormatByExtension(sourceExtension)
             ?: throw FormatException("Unknown source format: $sourceExtension")
     }
 

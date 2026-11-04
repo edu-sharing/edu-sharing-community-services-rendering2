@@ -23,9 +23,14 @@ class H5pRenderModule(
     private val securityEnabled: Boolean
 ): RenderModule, ThirdPartyModule {
 
+    companion object {
+        /** Name of the optional module a repository must have activated to use H5P (and lumi). */
+        const val MODULE_NAME = "H5P"
+    }
+
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun module() = "H5P"
+    override fun module() = MODULE_NAME
 
     override fun isOptionalModule() = true
 
