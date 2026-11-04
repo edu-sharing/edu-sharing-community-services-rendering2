@@ -13,6 +13,7 @@ import {H5PDeps} from "./createH5PEditor";
 import {createImportQueue, getImportQueueStatus} from "./importQueue";
 import {importErrorStatus} from "./importErrors";
 import {getS3PoolStatus, resetS3Pool} from "./s3Pool";
+import {metadataWithNodeTitle, NODE_TITLE_HEADER, nodeTitleFromHeader} from "./nodeTitle";
 
 /**
  * Everything the per-package library cache needs, or `undefined` when the feature is off.
@@ -270,6 +271,14 @@ const router = (
                     ? createScopedPlayer(packageLibraries.deps, req.params.contentId, scopedStorage)
                     : h5pPlayer
 
+                // Both players read the content from the content storage the editor uses as well.
+                const metadataOverride = await metadataWithNodeTitle(
+                    h5pEditor.contentManager,
+                    req.params.contentId,
+                    req.user,
+                    nodeTitleFromHeader(req.headers[NODE_TITLE_HEADER])
+                )
+
                 const h5pPage = await player.render(
                     req.params.contentId,
                     req.user,
@@ -277,6 +286,7 @@ const router = (
                         ? req.language ?? 'en'
                         : languageOverride,
                     {
+                        metadataOverride,
                         showCopyButton: false,
                         showDownloadButton: false,
                         showFrame: true,

@@ -404,7 +404,57 @@ class LumiProxyServiceTest {
         assert(result.headers["X-Override"] == listOf("overridden"))
     }
 
-    // ── failure mapping and guard ─────────────────────────────────────────────────────────────────
+    // ── node title ────────────────────────────────────────────────────────────────────────────────
+
+    private fun proxyWithNodeTitle(nodeTitle: String?, browserHeaders: Map<String, String> = emptyMap()) =
+        underTest.processProxyRequest(
+            pathPrefix = "/h5p",
+            nodeInfo = mockk<LumiNodeInfo>(),
+            body = null,
+            method = HttpMethod.GET,
+            request = mockRequest(uri = "/h5p/abc123", headers = browserHeaders),
+            nodeTitle = nodeTitle,
+        )
+
+    @Test
+    fun testSendsTheNodeTitleToLumiPercentEncoded() {
+        enqueue()
+
+        val result = proxyWithNodeTitle("Pharmakologie – Endokrinologie & Stoffwechsel")
+
+        // Spaces as %20, not "+": lumi decodes it with decodeURIComponent.
+        assert(
+            mockServer.takeRequest().getHeader(LumiProxyService.NODE_TITLE_HEADER) ==
+                "Pharmakologie%20%E2%80%93%20Endokrinologie%20%26%20Stoffwechsel"
+        )
+        // Meant for lumi only, not for the browser.
+        assert(result.headers.getFirst(LumiProxyService.NODE_TITLE_HEADER) == null)
+    }
+
+    @Test
+    fun testSendsNoNodeTitleForANodeWithoutTitle() {
+        enqueue()
+        enqueue()
+
+        proxyWithNodeTitle(null)
+        proxyWithNodeTitle("  ")
+
+        assert(mockServer.takeRequest().getHeader(LumiProxyService.NODE_TITLE_HEADER) == null)
+        assert(mockServer.takeRequest().getHeader(LumiProxyService.NODE_TITLE_HEADER) == null)
+    }
+
+    @Test
+    fun testTheBrowserCannotSetTheNodeTitle() {
+        enqueue()
+        enqueue()
+        val browserHeaders = mapOf(LumiProxyService.NODE_TITLE_HEADER to "%3Cscript%3E")
+
+        proxyWithNodeTitle(null, browserHeaders)
+        proxyWithNodeTitle("Pharmakologie", browserHeaders)
+
+        assert(mockServer.takeRequest().getHeader(LumiProxyService.NODE_TITLE_HEADER) == null)
+        assert(mockServer.takeRequest().headers.values(LumiProxyService.NODE_TITLE_HEADER) == listOf("Pharmakologie"))
+    }
 
     private fun proxy(service: LumiProxyService, request: HttpServletRequest = mockRequest("/h5p/some/path/test")) =
         service.processProxyRequest("/h5p", null, HttpMethod.GET, request)
