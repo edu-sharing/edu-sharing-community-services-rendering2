@@ -14,6 +14,10 @@ abstract class BaseBucketStrategy : BucketStrategy {
         return sb.toString()
     }
 
+    override fun getTempStoragePath(cacheObject: CacheObject): String {
+        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${getExtensionFromMimeType(cacheObject.mimeType)}"
+    }
+
     override fun getStoragePath(cacheObject: CacheObject, path: String): String {
         return "${getCacheObjectRootPath(cacheObject)}/${path.trimStart('/')}"
     }

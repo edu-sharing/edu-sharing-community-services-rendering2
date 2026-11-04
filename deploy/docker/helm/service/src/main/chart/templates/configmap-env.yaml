@@ -169,6 +169,9 @@ data:
   {{- end }}
   {{- range $bucket := $register.buckets }}
   "app.repository.registration.id.{{ $id }}.externalBuckets.{{ $bucket.name }}.name": {{ $bucket.value | quote }}
+  {{- with $bucket.keyPrefix }}
+  "app.repository.registration.id.{{ $id }}.externalBuckets.{{ $bucket.name }}.keyPrefix": {{ . | quote }}
+  {{- end }}
   {{- with $bucket.quota }}
   {{/* Quota may be a plain byte count or a human-readable size (e.g. "10GB", accepted by the app's
        @DataSizeUnit-annotated config binding). A human-readable value already arrives as a Go

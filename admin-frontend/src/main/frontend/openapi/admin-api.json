@@ -1631,11 +1631,14 @@
             "type" : "integer",
             "format" : "int64"
           },
+          "keyPrefix" : {
+            "type" : "string"
+          },
           "isConfigured" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "isConfigured", "name", "quota" ]
+        "required" : [ "isConfigured", "keyPrefix", "name", "quota" ]
       },
       "ExternalBuckets" : {
         "properties" : {
