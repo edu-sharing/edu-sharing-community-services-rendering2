@@ -13,4 +13,13 @@ interface BucketStrategy {
     fun getCacheObjectFromStoragePath(bucket: String, storagePath: String): CacheObject?
     fun isManagedBucket(bucket: String, repoId: String): Boolean
     fun getTempBucket(repoId: String): String = "temp"
+
+    /** Object key of a not yet converted original inside the temp bucket (see [getTempBucket]). */
+    fun getTempStoragePath(cacheObject: CacheObject): String
+
+    /** Key prefix all rendering objects of [repoId] live under in their bucket; empty = bucket root. */
+    fun getRenderingKeyPrefix(repoId: String): String = ""
+
+    /** Key prefix all temp objects of [repoId] live under in the temp bucket; empty = bucket root. */
+    fun getTempKeyPrefix(repoId: String): String = ""
 }

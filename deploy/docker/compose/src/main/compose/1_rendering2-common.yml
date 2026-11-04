@@ -338,10 +338,13 @@ services:
       # enforced by the cache cleaner, and only takes effect while app.s3.bucket.mode=externalBucket.
       # Accepts a plain byte count or a human-readable size (e.g. 10GB — Spring's binary units, 1KB = 1024 bytes).
       app.repository.registration.id.local.externalBuckets.renderingBucket.quota: "${RENDERING2_S3_RENDERING_BUCKET_QUOTA:-0}"
+      # Optional key prefix inside the bucket (e.g. "rendering"); lets rendering and temp (or several repos) share one bucket.
+      app.repository.registration.id.local.externalBuckets.renderingBucket.keyPrefix: "${RENDERING2_S3_RENDERING_BUCKET_KEY_PREFIX:-}"
       app.repository.registration.id.local.externalBuckets.tempBucket.name: "${RENDERING2_S3_TEMP_BUCKET:-}"
       # Storage quota for the temp bucket (0/empty = no limit; same format as above). Informational
       # only — the cache cleaner never enforces it; see GET /admin/storage/usage?exact=true to measure it on demand.
       app.repository.registration.id.local.externalBuckets.tempBucket.quota: "${RENDERING2_S3_TEMP_BUCKET_QUOTA:-0}"
+      app.repository.registration.id.local.externalBuckets.tempBucket.keyPrefix: "${RENDERING2_S3_TEMP_BUCKET_KEY_PREFIX:-}"
       # Storage quota for this repository (0/empty = no limit; same format as above). Only enforced by
       # the cache cleaner, and only as long as none of this repo's buckets (above, or the lumi content
       # bucket) has its own quota configured — a single bucket quota switches this repo entirely to

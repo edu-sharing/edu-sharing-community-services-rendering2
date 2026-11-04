@@ -32,9 +32,11 @@ data class ModuleSettings(
 data class ExternalBucketConfig(
     val name: String = "",
     @param:DataSizeUnit(DataUnit.BYTES)
-    val quota: DataSize = DataSize.ofBytes(0)
+    val quota: DataSize = DataSize.ofBytes(0),
+    /** See [ExternalBucket.keyPrefix]. */
+    val keyPrefix: String = ""
 ) {
-    fun toExternalBucket() = ExternalBucket(name = name, quota = quota.toBytes())
+    fun toExternalBucket() = ExternalBucket(name = name, quota = quota.toBytes(), keyPrefix = keyPrefix)
 }
 
 data class ExternalBucketsConfig(

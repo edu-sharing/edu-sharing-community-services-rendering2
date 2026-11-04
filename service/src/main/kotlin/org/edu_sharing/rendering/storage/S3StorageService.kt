@@ -293,9 +293,13 @@ class S3StorageService(
         var totalSize = 0L
 
         managedBuckets.forEach { bucket ->
+            // Rendering buckets may be shared via a key prefix (externalBucket mode); other managed
+            // buckets (e.g. lumi's) are measured whole.
+            val prefix = if (bucketStrategy.isManagedBucket(bucket, repoId)) bucketStrategy.getRenderingKeyPrefix(repoId) else ""
             totalSize += s3Client.listObjectsV2Paginator(
                 ListObjectsV2Request.builder()
                     .bucket(bucket)
+                    .prefix(prefix)
                     .build()
             ).contents().sumOf { it.size() }
         }
@@ -559,9 +563,5 @@ class S3StorageService(
         )
     }
 
-    private fun getTempPath(cacheObject: CacheObject): String {
-        return "${cacheObject.type}/${cacheObject.nodeId}/${cacheObject.hash}${
-            bucketStrategy.getExtensionFromMimeType(cacheObject.mimeType)
-        }"
-    }
+    private fun getTempPath(cacheObject: CacheObject): String = bucketStrategy.getTempStoragePath(cacheObject)
 }

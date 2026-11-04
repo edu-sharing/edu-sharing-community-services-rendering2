@@ -76,7 +76,7 @@ class AdminStorageController(
         // attributed to this single repo — see isRepoAccurate().
         val exactBucket = (exact && bucket != null && isRepoAccurate() && bucketStrategy.isManagedBucket(bucket, repoId))
             .takeIf { it }
-            ?.let { bucket!! to storageService.getDirectorySize(bucket, "") }
+            ?.let { bucket!! to storageService.getDirectorySize(bucket, bucketStrategy.getRenderingKeyPrefix(repoId)) }
 
         val enforcedQuotas = storageManagerRegistry.getManagedBucketQuotas(repoId)
 
@@ -176,7 +176,7 @@ class AdminStorageController(
     ): BucketUsageInfo? {
         val tempBucket = registration.buckets?.tempBucket?.takeIf { it.isConfigured && it.quota > 0 } ?: return null
         val measureExact = exact && requestedBucket == tempBucket.name
-        val size = if (measureExact) storageService.getDirectorySize(tempBucket.name, "") else 0L
+        val size = if (measureExact) storageService.getDirectorySize(tempBucket.name, tempBucket.normalizedKeyPrefix()) else 0L
         return BucketUsageInfo(
             name = tempBucket.name,
             size = size,
