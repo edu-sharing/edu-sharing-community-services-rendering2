@@ -23,6 +23,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.toEntityFlux
 import org.springframework.web.util.UriComponentsBuilder
+import org.springframework.web.util.UriUtils
 import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClientRequestException
 import org.springframework.web.reactive.function.client.WebClientResponseException
@@ -31,6 +32,7 @@ import reactor.core.publisher.Flux
 import java.time.Duration
 import io.netty.handler.timeout.ReadTimeoutException
 import java.io.IOException
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeoutException
 
 @ConditionalOnController
@@ -76,8 +78,25 @@ class LumiProxyService(
             }
             return headers
         }
+
+        /**
+         * Request header that carries the current title of the node to lumi, which shows it in place of the title
+         * stored in the package (lumi's `nodeTitle.ts`). Percent-encoded, as header values cannot carry umlauts
+         * reliably. Not in [FORWARDED_REQUEST_HEADERS], so only this service sets it, never the browser.
+         */
+        internal const val NODE_TITLE_HEADER = "X-Edu-Sharing-Node-Title"
+
+        /** The lumi request header for [nodeTitle], or none for a node without a title. */
+        internal fun nodeTitleHeaders(nodeTitle: String?): Map<String, String> =
+            nodeTitle?.takeIf { it.isNotBlank() }
+                ?.let { mapOf(NODE_TITLE_HEADER to UriUtils.encode(it, StandardCharsets.UTF_8)) }
+                ?: emptyMap()
     }
 
+    /**
+     * @param additionalHeaders set on the response to the browser
+     * @param nodeTitle the current title of the node, sent to lumi as [NODE_TITLE_HEADER]
+     */
     @PreAuthorize("hasPermission(#nodeInfo.nodeId, 'ReadAll')")
     fun processProxyRequest(
         pathPrefix: String,
@@ -85,23 +104,30 @@ class LumiProxyService(
         body: String?,
         method: HttpMethod,
         request: HttpServletRequest,
-        additionalHeaders: Map<String, String> = emptyMap()
+        additionalHeaders: Map<String, String> = emptyMap(),
+        nodeTitle: String? = null,
     ): ResponseEntity<Resource> {
         return processProxyRequest(
             pathPrefix = pathPrefix,
             body = body,
             method = method,
             request = request,
-            additionalHeaders = additionalHeaders
+            additionalHeaders = additionalHeaders,
+            lumiRequestHeaders = nodeTitleHeaders(nodeTitle),
         )
     }
 
+    /**
+     * @param additionalHeaders set on the response to the browser
+     * @param lumiRequestHeaders set on the request to lumi, in addition to the [FORWARDED_REQUEST_HEADERS] of the browser
+     */
     fun processProxyRequest(
         pathPrefix: String,
         body: String?,
         method: HttpMethod,
         request: HttpServletRequest,
-        additionalHeaders: Map<String, String> = emptyMap()
+        additionalHeaders: Map<String, String> = emptyMap(),
+        lumiRequestHeaders: Map<String, String> = emptyMap(),
     ): ResponseEntity<Resource> {
         // Trace context (and the b3 header) is propagated automatically by the instrumented lumiWebClient;
         // the explicit TRACE header is kept for the Lumi service and sourced from the active trace id.
@@ -115,6 +141,7 @@ class LumiProxyService(
         val requestURIPath = requestURIPathSegments.joinToString(separator = "/", prefix = "/")
 
         val headers = filterForwardedHeaders(request)
+        lumiRequestHeaders.forEach { (name, value) -> headers.set(name, value) }
 
         traceId?.let { headers.set("TRACE", it) }
 

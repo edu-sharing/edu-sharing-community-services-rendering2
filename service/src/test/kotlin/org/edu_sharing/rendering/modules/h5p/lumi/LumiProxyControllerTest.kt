@@ -59,6 +59,7 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         every { nodeInfo.nodeId } returns "myNodeId"
         every { lumiContentManagementService.getNodeInfo(contentId) } returns nodeInfo
         every { lumiContentManagementService.getCspHeader("myNodeId") } returns "myCspHeader"
+        every { lumiContentManagementService.getNodeTitle("myNodeId") } returns null
         every {
             lumiProxyService.processProxyRequest(
                 pathPrefix = H5P_BASE_PATH,
@@ -66,7 +67,8 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
+                additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader"),
+                nodeTitle = null
             )
         } returns responseEntity
 
@@ -89,13 +91,50 @@ class LumiProxyControllerTest(@Autowired val mockMvc: MockMvc) {
         verifySequence {
             lumiContentManagementService.getNodeInfo(contentId)
             lumiContentManagementService.getCspHeader("myNodeId")
+            lumiContentManagementService.getNodeTitle("myNodeId")
             lumiProxyService.processProxyRequest(
                 pathPrefix = H5P_BASE_PATH,
                 nodeInfo = nodeInfo,
                 body = captureNullable(bodySlot),
                 method =capture(methodSlot),
                 request= capture(requestSlot),
-                additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader")
+                additionalHeaders = mapOf("Content-Security-Policy" to "myCspHeader"),
+                nodeTitle = null
+            )
+        }
+    }
+
+    /** The player shows the node's current title instead of the one in the package, so it is passed on to lumi. */
+    @Test
+    fun testGetContentPassesTheNodeTitleToLumi() {
+        val nodeInfo = LumiNodeInfo(lumiId = "abc123", nodeId = "myNodeId", hash = "myHash")
+        every { lumiContentManagementService.getNodeInfo("abc123") } returns nodeInfo
+        every { lumiContentManagementService.getCspHeader("myNodeId") } returns null
+        every { lumiContentManagementService.getNodeTitle("myNodeId") } returns "Pharmakologie – Stoffwechsel"
+        every {
+            lumiProxyService.processProxyRequest(
+                pathPrefix = H5P_BASE_PATH,
+                nodeInfo = nodeInfo,
+                body = null,
+                method = HttpMethod.GET,
+                request = any(),
+                additionalHeaders = emptyMap(),
+                nodeTitle = "Pharmakologie – Stoffwechsel"
+            )
+        } returns ResponseEntity.ok(ByteArrayResource("page".toByteArray()) as Resource)
+
+        mockMvc.perform(get("$H5P_BASE_PATH/abc123"))
+            .andExpect(status().isOk)
+
+        verify(exactly = 1) {
+            lumiProxyService.processProxyRequest(
+                pathPrefix = H5P_BASE_PATH,
+                nodeInfo = nodeInfo,
+                body = null,
+                method = HttpMethod.GET,
+                request = any(),
+                additionalHeaders = emptyMap(),
+                nodeTitle = "Pharmakologie – Stoffwechsel"
             )
         }
     }
