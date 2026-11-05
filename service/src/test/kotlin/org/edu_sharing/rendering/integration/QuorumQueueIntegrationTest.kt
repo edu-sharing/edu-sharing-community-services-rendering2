@@ -74,6 +74,13 @@ class QuorumQueueIntegrationTest(
         listOf(0 to "p0", 1 to "p1", 2 to "p2", 255 to "p255").forEach { (priority, payload) ->
             amqpTemplate.convertAndSend("", queue, payload, PriorityPostProcessor(priority))
         }
+        // convertAndSend returns before the broker has enqueued the message (a quorum queue only does so once the
+        // publish is committed through Raft). Receiving right away can race the last publish and fetch p2 before
+        // p255 has arrived, so wait until all four messages are in the queue.
+        val deadline = System.currentTimeMillis() + 10_000
+        while ((amqpAdmin.getQueueInfo(queue)?.messageCount ?: 0) < 4 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(50)
+        }
         val delivered = (1..4).map { amqpTemplate.receiveAndConvert(queue) }
         assertEquals(listOf("p255", "p2", "p1", "p0"), delivered)
         amqpAdmin.deleteQueue(queue)
