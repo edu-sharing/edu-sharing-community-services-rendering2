@@ -711,14 +711,16 @@ config:
       #   credentials:
       #   - name: baseurl
       #     value:
-      ## @param config.home.registrations[0].buckets Set buckets for repository registration (externalBucket mode only). Each entry's `value` is the bucket name; optional `quota` (a plain byte count or a human-readable size like "10GB", 0/unset = no limit) is only enforced for renderingBucket, informational-only for tempBucket
+      ## @param config.home.registrations[0].buckets Set buckets for repository registration (externalBucket mode only). Each entry's `value` is the bucket name; optional `quota` (a plain byte count or a human-readable size like "10GB", 0/unset = no limit) is only enforced for renderingBucket, informational-only for tempBucket. Optional `keyPrefix` (e.g. `rendering`) stores all objects of that bucket below the prefix, so repositories or the rendering and temp bucket can share one S3 bucket; use distinct prefixes
       buckets: []
       # - name: renderingBucket
       #   value: rendering2
       #   quota: 10GB
+      #   keyPrefix: rendering
       # - name: tempBucket
       #   value: temp
       #   quota: 0
+      #   keyPrefix: temp
   ## Container entrypoint waits (read by entrypoint.sh, not by Spring)
   entrypoint:
     ## @param config.entrypoint.infraWaitTimeout Max seconds to wait for each of MongoDB/S3/RabbitMQ/Redis before the container exits with 1

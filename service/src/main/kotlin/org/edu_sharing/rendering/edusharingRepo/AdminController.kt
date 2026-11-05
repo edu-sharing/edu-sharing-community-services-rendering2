@@ -17,6 +17,7 @@ import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistration
 import org.edu_sharing.rendering.edusharingRepo.entity.RepositoryRegistrationConfig
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryRegistrationStorageService
+import org.edu_sharing.rendering.modules.h5p.H5pRenderModule
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiContentManagementService
 import org.edu_sharing.rendering.storage.StorageManager
 import org.edu_sharing.rendering.storage.StorageManagerRegistry
@@ -180,8 +181,11 @@ class AdminController(
      * Name + quota of the H5P/lumi content bucket, queried directly from lumi (see
      * [LumiContentManagementService]) instead of from this registration. `null` if lumi is currently
      * unreachable — that must not prevent the detail view from showing the rest of the repo data.
+     * `null` without asking lumi when the repo does not have the H5P optional module activated.
      */
-    private fun lumiContentBucketInfo(repoId: String): Pair<String, Long>? {
+    private fun lumiContentBucketInfo(entity: RepositoryRegistration): Pair<String, Long>? {
+        val repoId = entity.repoId
+        if (!entity.optionalModules.contains(H5pRenderModule.MODULE_NAME)) return null
         return try {
             val info = lumiContentManagementService.getContentBucketInfo(repoId)
             info.contentBucket.takeIf { it.isNotBlank() }?.let { it to (info.contentBucketQuota ?: 0) }
@@ -201,7 +205,7 @@ class AdminController(
     }
 
     private fun toRepositoryDetailInfo(entity: RepositoryRegistration): RepositoryDetailInfo {
-        val contentBucketInfo = lumiContentBucketInfo(entity.repoId)
+        val contentBucketInfo = lumiContentBucketInfo(entity)
         return RepositoryDetailInfo(
             repoId = entity.repoId,
             url = entity.url,
@@ -216,8 +220,12 @@ class AdminController(
             quota = entity.quota,
             renderingBucket = entity.buckets?.renderingBucket?.takeIf { it.isConfigured }?.name,
             renderingBucketQuota = entity.buckets?.renderingBucket?.quota?.takeIf { it > 0 },
+            renderingBucketKeyPrefix = entity.buckets?.renderingBucket?.takeIf { it.isConfigured }
+                ?.normalizedKeyPrefix()?.ifEmpty { null },
             tempBucket = entity.buckets?.tempBucket?.takeIf { it.isConfigured }?.name,
             tempBucketQuota = entity.buckets?.tempBucket?.quota?.takeIf { it > 0 },
+            tempBucketKeyPrefix = entity.buckets?.tempBucket?.takeIf { it.isConfigured }
+                ?.normalizedKeyPrefix()?.ifEmpty { null },
             contentBucket = contentBucketInfo?.first,
             contentBucketQuota = contentBucketInfo?.second?.takeIf { it > 0 },
             allowedOrigins = entity.allowedOrigins.toList(),

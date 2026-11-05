@@ -253,8 +253,8 @@ class AdminEndpointsIntegrationTest(
             module = mutableMapOf("sodix" to ModuleSettings(credentials = mapOf("apiKey" to "super-secret"), cspHeader = "frame-ancestors *")),
             quota = 12345,
             buckets = ExternalBuckets(
-                renderingBucket = ExternalBucket(name = "rb", quota = 999),
-                tempBucket = ExternalBucket(name = "tb", quota = 111),
+                renderingBucket = ExternalBucket(name = "rb", quota = 999, keyPrefix = "/rendering"),
+                tempBucket = ExternalBucket(name = "tb", quota = 111, keyPrefix = "temp/"),
             ),
             signingAlgorithm = "SHA256withRSA",
         )
@@ -267,8 +267,10 @@ class AdminEndpointsIntegrationTest(
             .andExpect(jsonPath("$.optionalModules", hasItem("h5p")))
             .andExpect(jsonPath("$.renderingBucket").value("rb"))
             .andExpect(jsonPath("$.renderingBucketQuota").value(999))
+            .andExpect(jsonPath("$.renderingBucketKeyPrefix").value("rendering/"))
             .andExpect(jsonPath("$.tempBucket").value("tb"))
             .andExpect(jsonPath("$.tempBucketQuota").value(111))
+            .andExpect(jsonPath("$.tempBucketKeyPrefix").value("temp/"))
             // lumi is unreachable in the test context -> content bucket info stays null instead of
             // failing the request.
             .andExpect(jsonPath("$.contentBucket", nullValue()))
