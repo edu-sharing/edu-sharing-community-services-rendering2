@@ -767,6 +767,8 @@ config:
     host: edusharing-services-rendering2-mongodb
     ## @param config.mongodb.port Set mongodb port
     port: 27017
+    ## @param config.mongodb.replicas Set number of mongodb replicaset members; values greater than 1 expand config.mongodb.host into the statefulset members (host-0, host-1, ...), 1 uses config.mongodb.host as is (external mongodb)
+    replicas: 3
     ## @param config.mongodb.username Set mongodb username
     username: rendering2
     ## @param config.mongodb.password Set mongodb username

@@ -60,7 +60,7 @@ data:
   LOG_SCOPE: {{ .Values.config.log.scope | quote }}
   S3_HOST: {{ .Values.config.s3.host | quote }}
   S3_PORT: {{ .Values.config.s3.port | quote }}
-  MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
+  MONGODB_HOST: {{ if gt (.Values.config.mongodb.replicas | int) 1 }}{{ (printf "%s-0" .Values.config.mongodb.host) | quote }}{{ else }}{{ .Values.config.mongodb.host | quote }}{{ end }}
   MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
   TEMPORARY_AWS_S3_BUCKET: {{ .Values.config.s3.buckets.temporary | quote }}
   TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS: {{ .Values.config.s3.buckets.temporaryExpirationDays | quote }}
