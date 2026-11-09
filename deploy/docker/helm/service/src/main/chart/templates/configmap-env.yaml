@@ -24,7 +24,7 @@ data:
   {{- end }}
   REDIS_HOST: {{ .Values.config.redis.host | quote }}
   REDIS_PORT: {{ .Values.config.redis.port | quote }}
-  MONGODB_HOST: {{ (printf "%s-0" .Values.config.mongodb.host) | quote }}
+  MONGODB_HOST: {{ if gt (.Values.config.mongodb.replicas | int) 1 }}{{ (printf "%s-0" .Values.config.mongodb.host) | quote }}{{ else }}{{ .Values.config.mongodb.host | quote }}{{ end }}
   MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
   "server.servlet.context-path": {{ .Values.ingress.paths | first | quote }}
   "app.appId": {{ .Values.config.home.appid | quote }}
