@@ -775,6 +775,8 @@ config:
     password: ""
     ## @param config.mongodb.database Set mongodb database
     database: rendering2
+    ## @param config.mongodb.authSource Authentication database of the mongodb user, appended as ?authSource=... to the connection uri (empty = omit the option)
+    authSource: admin
     timeout:
       ## @param config.mongodb.timeout.connectTimeout MongoDB driver TCP connect timeout
       connectTimeout: "10s"
