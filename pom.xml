@@ -109,7 +109,7 @@
     </docker.edu_sharing.community.common.minideb.tag>
 
     <!-- release-2 -->
-    <bom.repository.version>11.0.0-RC40</bom.repository.version>
+    <bom.repository.version>11.0.0-RC41</bom.repository.version>
 
   </properties>
 
