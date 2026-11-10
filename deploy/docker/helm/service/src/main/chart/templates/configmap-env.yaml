@@ -26,6 +26,10 @@ data:
   REDIS_PORT: {{ .Values.config.redis.port | quote }}
   MONGODB_HOST: {{ if gt (.Values.config.mongodb.replicas | int) 1 }}{{ (printf "%s-0" .Values.config.mongodb.host) | quote }}{{ else }}{{ .Values.config.mongodb.host | quote }}{{ end }}
   MONGODB_PORT: {{ .Values.config.mongodb.port | quote }}
+  # The target database must be set explicitly: Spring Boot prefers spring.mongodb.database over the
+  # database in spring.mongodb.uri, so without this the baked-in default from application.properties
+  # would win over config.mongodb.database (the uri path only decides where the credentials are checked).
+  "spring.mongodb.database": {{ .Values.config.mongodb.database | quote }}
   "server.servlet.context-path": {{ .Values.ingress.paths | first | quote }}
   "app.appId": {{ .Values.config.home.appid | quote }}
   "app.public.protocol": {{ ternary "http" "https" (empty .Values.ingress.tls) | quote }}
