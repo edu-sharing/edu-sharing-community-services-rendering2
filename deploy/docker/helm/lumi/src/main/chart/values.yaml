@@ -149,6 +149,8 @@ config:
     username: rendering2
     ## @param config.mongodb.password Set mongodb password
     password: ""
+    ## @param config.mongodb.authSource Authentication database of the mongodb user, appended as ?authSource=... to the connection uri (empty = omit the option)
+    authSource: admin
     collections:
       ## @param config.mongodb.collections.content Set collection for content
       content: h5p
