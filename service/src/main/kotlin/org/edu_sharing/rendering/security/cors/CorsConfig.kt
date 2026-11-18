@@ -42,6 +42,13 @@ class CorsConfig(
         this.allowedPatterns.addAll(allowedPatterns)
     }
 
+    /**
+     * The origin a browser sends in its `Origin` header for this endpoint: `protocol://host[:port]`, without the
+     * context path and without the default port of the protocol. CORS compares the header with the allowed origins
+     * as a plain string, so an own origin built from the full url (which carries the context path) never matches.
+     */
+    private fun AppInfo.ConnectionInfo.origin(): String = "$protocol://$host:$port".cleanUrl()
+
     fun updateCorsConfiguration() {
         log.info("Creating new cors configuration.")
         val config = CorsConfiguration()
@@ -52,12 +59,9 @@ class CorsConfig(
         )
         config.allowedOrigins = allowedOrigins.toList()
         config.allowedOriginPatterns = allowedPatterns.toList()
-        log.debug("Adding own urls to cors configuration: {}, {}",
-            appInfo.public.url.cleanUrl(),
-            appInfo.internal.url.cleanUrl()
-            )
-        config.addAllowedOrigin(appInfo.public.url.cleanUrl())
-        config.addAllowedOrigin(appInfo.internal.url.cleanUrl())
+        val ownOrigins = listOf(appInfo.public.origin(), appInfo.internal.origin())
+        log.debug("Adding own origins to cors configuration: {}", ownOrigins)
+        ownOrigins.forEach { config.addAllowedOrigin(it) }
         config.allowCredentials = true
         config.allowedHeaders = listOf("Origin", "Content-Type", "Accept", "Authorization", "authorization", "Authentication-Info", "X-Client-Trace-Id")
         config.allowedMethods = listOf("GET", "POST", "PUT", "OPTIONS", "DELETE", "PATCH")
