@@ -1,6 +1,7 @@
 package org.edu_sharing.rendering.edusharingRepo
 
 import okhttp3.Dispatcher
+import okhttp3.OkHttpClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiClient
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AboutApi
 import org.edu_sharing.generated.repository.backend.services.rest.client.api.AdminV1Api
@@ -39,6 +40,17 @@ class RestClientProvider(
             .build()
         val adminV1Api = AdminV1Api(apiClient)
         return adminV1Api
+    }
+
+    /**
+     * Plain http client for repository calls that are authorized by the app signature headers only
+     * (no user, no ticket); the caller adds the headers of the [AuthHeaderProvider].
+     */
+    fun getSignedHttpClient(): OkHttpClient {
+        return ApiClient().httpClient.newBuilder()
+            .dispatcher(repositoryDispatcher)
+            .addInterceptor(tracePropagatingInterceptor)
+            .build()
     }
 
     fun getRenderingApiClient(url: String, headers: Map<String, String>): RenderingV1Api {

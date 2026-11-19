@@ -4,6 +4,7 @@ import org.edu_sharing.generated.repository.backend.services.rest.client.ApiCall
 import org.edu_sharing.generated.repository.backend.services.rest.client.ApiException
 import org.edu_sharing.rendering.core.annotation.ConditionalOnController
 import org.edu_sharing.rendering.edusharingRepo.repository.RepositoryRegistrationRepository
+import org.edu_sharing.rendering.utils.SecurityContextUtils
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.net.URLEncoder
@@ -14,6 +15,7 @@ import java.nio.charset.StandardCharsets
 class EduTrackingService(
     private val userBasedRestClientProvider: UserBasedRestClientProvider,
     private val repositoryRegistrationRepository: RepositoryRegistrationRepository,
+    private val shareLinkTrackingClient: ShareLinkTrackingClient,
     @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
 ) {
@@ -29,6 +31,12 @@ class EduTrackingService(
         }
         val registration = repositoryRegistrationRepository.findByRepoId(repoId)
             .orElseThrow { IllegalArgumentException("Repository not found") }
+
+        if (SecurityContextUtils.currentUser().isShare) {
+            // the recipient of a link share has no repository account to act as
+            shareLinkTrackingClient.track(registration.url, repoId, event, objectId)
+            return
+        }
 
         log.debug("Dispatching async tracking request to ${registration.url} for event=$event, objectId=$objectId")
         val client = userBasedRestClientProvider.getTrackingApiClient(registration.url, repoId)

@@ -14,7 +14,12 @@ data class JWTBasedUserDetail(
     val lastName : String,
     val email : String,
     val primaryAffiliation: String,
-    val isGuest: Boolean = false
+    val isGuest: Boolean = false,
+    /**
+     * Whether the token was issued for a recipient of a link share. Such a user has no account in the
+     * repository, so the repository calls on its behalf are authorized by the app signature only.
+     */
+    val isShare: Boolean = false
 ) : UserDetails {
 
     override fun getAuthorities(): MutableCollection<out GrantedAuthority> {
