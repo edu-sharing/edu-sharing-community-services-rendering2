@@ -1,71 +1,68 @@
 package org.edu_sharing.rendering.renderingJob.queue
 
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.Channel
+import com.rabbitmq.client.ShutdownSignalException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.core.AmqpAdmin
-import org.springframework.amqp.core.QueueInformation
+import org.springframework.amqp.AmqpIOException
+import org.springframework.amqp.rabbit.core.ChannelCallback
+import org.springframework.amqp.rabbit.core.RabbitOperations
+import java.io.IOException
 
 class LegacyQueueCleanerTest {
 
-    private val amqpAdmin: AmqpAdmin = mockk(relaxed = true)
+    private val channel: Channel = mockk()
+    private val rabbitOperations: RabbitOperations = mockk {
+        every { execute(any<ChannelCallback<Any?>>()) } answers { firstArg<ChannelCallback<Any?>>().doInRabbit(channel) }
+    }
     private val properties = LegacyQueueCleanupProperties().apply {
-        legacyQueueNames = mutableListOf("already_gone_queue", "busy_queue", "empty_queue", "queue_with_messages")
+        legacyQueueNames = mutableListOf("busy_queue", "orphaned_queue")
     }
-    private val cleaner = LegacyQueueCleaner(amqpAdmin, properties)
+    private val cleaner = LegacyQueueCleaner(rabbitOperations, properties)
+
+    private fun deleteOk(messageCount: Int) = AMQP.Queue.DeleteOk.Builder().messageCount(messageCount).build()
+
+    private fun inUse() = AmqpIOException(
+        IOException(
+            ShutdownSignalException(
+                false, false,
+                AMQP.Channel.Close.Builder().replyCode(AMQP.PRECONDITION_FAILED).replyText("PRECONDITION_FAILED - queue in use").build(),
+                null,
+            )
+        )
+    )
 
     @Test
-    fun `does nothing for a queue that no longer exists`() {
-        every { amqpAdmin.getQueueInfo("already_gone_queue") } returns null
-        every { amqpAdmin.getQueueInfo(neq("already_gone_queue")) } returns QueueInformation("x", 0, 1)
+    fun `deletes every legacy queue with if-unused and without if-empty, never probing it first`() {
+        every { channel.queueDelete(any(), any(), any()) } returns deleteOk(0)
 
         cleaner.cleanup()
 
-        verify(exactly = 0) { amqpAdmin.deleteQueue("already_gone_queue", any(), any()) }
+        verify(exactly = 1) { channel.queueDelete("busy_queue", true, false) }
+        verify(exactly = 1) { channel.queueDelete("orphaned_queue", true, false) }
+        verify(exactly = 0) { channel.queueDeclarePassive(any()) }
     }
 
     @Test
-    fun `does not delete a queue that still has an active consumer`() {
-        every { amqpAdmin.getQueueInfo("busy_queue") } returns QueueInformation("busy_queue", 5, 2)
-        every { amqpAdmin.getQueueInfo(neq("busy_queue")) } returns null
+    fun `a queue that still has a consumer does not stop the others from being processed`() {
+        every { channel.queueDelete("busy_queue", true, false) } throws inUse()
+        every { channel.queueDelete("orphaned_queue", true, false) } returns deleteOk(42)
 
         cleaner.cleanup()
 
-        verify(exactly = 0) { amqpAdmin.deleteQueue("busy_queue", any(), any()) }
+        verify(exactly = 1) { channel.queueDelete("orphaned_queue", true, false) }
     }
 
     @Test
-    fun `deletes an orphaned empty queue`() {
-        every { amqpAdmin.getQueueInfo("empty_queue") } returns QueueInformation("empty_queue", 0, 0)
-        every { amqpAdmin.getQueueInfo(neq("empty_queue")) } returns null
+    fun `an unexpected exception for one queue does not stop the others from being processed`() {
+        every { channel.queueDelete("busy_queue", true, false) } throws RuntimeException("connection lost")
+        every { channel.queueDelete("orphaned_queue", true, false) } returns deleteOk(0)
 
         cleaner.cleanup()
 
-        verify(exactly = 1) { amqpAdmin.deleteQueue("empty_queue", true, false) }
-    }
-
-    @Test
-    fun `deletes an orphaned queue even if it still has unconsumed messages`() {
-        every { amqpAdmin.getQueueInfo("queue_with_messages") } returns QueueInformation("queue_with_messages", 42, 0)
-        every { amqpAdmin.getQueueInfo(neq("queue_with_messages")) } returns null
-
-        cleaner.cleanup()
-
-        verify(exactly = 1) { amqpAdmin.deleteQueue("queue_with_messages", true, false) }
-    }
-
-    @Test
-    fun `an exception deleting one queue does not stop the others from being processed`() {
-        every { amqpAdmin.getQueueInfo("empty_queue") } returns QueueInformation("empty_queue", 0, 0)
-        every { amqpAdmin.getQueueInfo("queue_with_messages") } returns QueueInformation("queue_with_messages", 1, 0)
-        every { amqpAdmin.getQueueInfo("already_gone_queue") } returns null
-        every { amqpAdmin.getQueueInfo("busy_queue") } returns null
-        every { amqpAdmin.deleteQueue("empty_queue", true, false) } throws RuntimeException("lost the unused race")
-
-        cleaner.cleanup()
-
-        verify(exactly = 1) { amqpAdmin.deleteQueue("empty_queue", true, false) }
-        verify(exactly = 1) { amqpAdmin.deleteQueue("queue_with_messages", true, false) }
+        verify(exactly = 1) { channel.queueDelete("orphaned_queue", true, false) }
     }
 }
