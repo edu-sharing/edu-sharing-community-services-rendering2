@@ -9,7 +9,7 @@ import org.edu_sharing.rendering.core.dto.RenderDataResponse
 import org.edu_sharing.rendering.core.exception.EntryNotFoundException
 import org.edu_sharing.rendering.core.exception.ObjectTypeNotSupportedException
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
-import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositorySignatureVerifier
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.slf4j.LoggerFactory
@@ -19,7 +19,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
-import java.security.Signature
 import java.util.*
 
 @RestController
@@ -28,13 +27,11 @@ import java.util.*
 class RenderController (
     private val service: RenderDataService,
     private val trackingService: EduTrackingService,
-    private val repositoryPublicKeyService: RepositoryPublicKeyService,
+    private val repositorySignatureVerifier: RepositorySignatureVerifier,
     private val nodeSessionContextRepository: NodeSessionContextRepository,
     private val moduleRegistry: ModuleRegistry,
     @param:Value($$"${app.security.enabled}")
     private val securityEnabled: Boolean,
-    @param:Value($$"#{'\${app.security.allowed-signature-algorithms:SHA256withRSA,SHA512withRSA}'.split(',')}")
-    private val allowedSignatureAlgorithms: List<String>,
 ){
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -62,11 +59,8 @@ class RenderController (
         if (securityEnabled) {
             val decodedSignature = Base64.getDecoder().decode(body.signature)
             val signatureAlgorithm = body.signatureAlgorithm
-            require(signatureAlgorithm in allowedSignatureAlgorithms) {
-                "Signature algorithm '$signatureAlgorithm' is not allowed"
-            }
             log.debug("Verifying node signature: repoId=${body.repoId}, algorithm=$signatureAlgorithm, nodeDataLength=${decodedNode.size}")
-            verifySignedNode(decodedNode, decodedSignature, body.repoId, signatureAlgorithm)
+            repositorySignatureVerifier.verify(body.repoId, decodedNode, decodedSignature, signatureAlgorithm)
         }
         trackingService.trackObject(objectId = node.ref.id, event = body.eventType, repoId = node.ref.repo)
 
@@ -113,18 +107,5 @@ class RenderController (
         val node = nodeSessionContextRepository.getNode(nodeId)
             ?: throw EntryNotFoundException("No cached node for id $nodeId; a full re-render is required")
         return ResponseEntity.ok(service.fetchOnDemand(nodeId, node))
-    }
-
-    private fun verifySignedNode(nodeData: ByteArray, signature: ByteArray, repoId: String, signatureAlgorithm: String) {
-        val repoPublicKey = repositoryPublicKeyService.getRepositoryKey(repoId)
-        val verify = Signature.getInstance(signatureAlgorithm)
-        verify.initVerify(repoPublicKey)
-        verify.update(nodeData)
-        val result = verify.verify(signature)
-        if (!result) {
-            log.debug("Signature verification failed")
-            throw IllegalStateException("Signature verification failed")
-        }
-        log.debug("Signature verification passed: repoId=$repoId, algorithm=$signatureAlgorithm")
     }
 }

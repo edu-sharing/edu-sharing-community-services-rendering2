@@ -5,6 +5,7 @@ import org.edu_sharing.rendering.asset.AssetService
 import org.edu_sharing.rendering.core.RenderController
 import org.edu_sharing.rendering.core.RenderDataService
 import org.edu_sharing.rendering.core.SessionController
+import org.edu_sharing.rendering.core.VersionController
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingController
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.SessionTicketRepository
@@ -12,6 +13,7 @@ import org.edu_sharing.rendering.edusharingRepo.UserBasedRestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.cors.RegistrationCorsSyncRetrier
+import org.edu_sharing.rendering.edusharingRepo.services.RepositorySignatureVerifier
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ModuleInfoController
 import org.edu_sharing.rendering.modules.h5p.lumi.LumiProxyController
@@ -50,6 +52,8 @@ class ControllerRoleTest(
             RenderController::class,
             RenderDataService::class,
             SessionController::class,
+            VersionController::class,
+            RepositorySignatureVerifier::class,
             ModuleInfoController::class,
             LumiProxyController::class,
             LumiProxyService::class,

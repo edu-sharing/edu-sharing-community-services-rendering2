@@ -153,6 +153,16 @@ what was freed. lumi exports the same for its own library cache (`lumi_library_c
 `time() - rendering_cache_cleaner_last_run_timestamp_seconds` above a few intervals, `increase(..._failures_total[1h]) > 0`.
 Not covered: the temp bucket's quota is informational only (never part of the cleaner's scopes).
 
+## Version endpoint (`GET /public/version`)
+`VersionController` (`@ConditionalOnController`, `permitAll` in the `publicAPIFilterChain`) returns
+`{version, commit, imageTag}` for the status report of a registered repository (cve tracking). It verifies the
+repository's app signature itself: headers `X-Edu-App-Id/-Ts/-Signed/-Sig/-SignedAlg`, signed = app id + ts, at most
+`app.security.signature-max-offset-ms` (default 10000, like the repository's `ApplicationInfo.DEFAULT_OFFSET_MS`) old
+or in the future, algorithm in `app.security.allowed-signature-algorithms`, key from
+`RepositoryPublicKeyService.getRepositoryKey(appId)` (the registration). Anything else is a 401. The values come from
+`META-INF/build-info.properties` (`spring-boot-maven-plugin` goal `build-info`, extra properties `git.commit` from the
+super pom's git-commit-id-plugin and `docker.tag`); unresolved `${...}` placeholders are sent as null.
+
 ## Admin API (`/admin/**`)
 Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
 `@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
