@@ -72,6 +72,21 @@
       <a routerLink="/assets" routerLinkActive="active"><mat-icon aria-hidden="true">folder</mat-icon> Assets</a>
       <a routerLink="/jobs" routerLinkActive="active"><mat-icon aria-hidden="true">sync</mat-icon> Jobs</a>
       <a routerLink="/repo" routerLinkActive="active"><mat-icon aria-hidden="true">dns</mat-icon> Repository</a>
+
+      @if (version(); as v) {
+        <dl class="version" aria-label="Service version">
+          <dt>Version</dt>
+          <dd>{{ v.version ?? 'unknown' }}</dd>
+          @if (v.commit) {
+            <dt>Commit</dt>
+            <dd [title]="v.commit">{{ v.commit.slice(0, 8) }}</dd>
+          }
+          @if (v.imageTag) {
+            <dt>Image</dt>
+            <dd>{{ v.imageTag }}</dd>
+          }
+        </dl>
+      }
     </nav>
 
     <main class="content" id="main" tabindex="-1">

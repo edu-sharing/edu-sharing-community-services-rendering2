@@ -153,12 +153,31 @@ what was freed. lumi exports the same for its own library cache (`lumi_library_c
 `time() - rendering_cache_cleaner_last_run_timestamp_seconds` above a few intervals, `increase(..._failures_total[1h]) > 0`.
 Not covered: the temp bucket's quota is informational only (never part of the cleaner's scopes).
 
+## Version endpoint (`GET /public/version`)
+`VersionController` (`@ConditionalOnController`, `permitAll` in the `publicAPIFilterChain`) returns
+`{version, commit, imageTag}` for the status report of a registered repository (cve tracking). It verifies the
+repository's **app assertion** itself (`RepositoryAppAssertionVerifier`): a compact JWS in the header
+`X-Edu-App-Assertion` (not `Authorization`, which the `AuthTokenFilter` would read as a user JWT).
+- JOSE header: `alg` `RS256`/`RS384`/`RS512`, `typ` = `edu-app+jwt`, `kid` = RFC 7638 thumbprint of the repository's
+  public key; `crit` is refused.
+- Claims: `iss` (app id = repoId, selects the key of the registration), `aud` (`app.security.app-assertion.audience`,
+  default `rendering-service`), `iat`, `exp` (lifetime at most `app.security.app-assertion.max-lifetime`, default 60 s;
+  clock skew `app.security.app-assertion.clock-skew`, default 10 s), `jti` (not checked against replays: short-lived,
+  read-only endpoint). No binding to method/path, because ingresses may rewrite the context path.
+- The signature goes through `RepositorySignatureVerifier`, so `app.security.allowed-signature-algorithms` applies
+  (default `SHA256withRSA,SHA384withRSA,SHA512withRSA`). Verified by hand, not with jjwt: jjwt refuses RSA keys below
+  2048 bits, which older repositories may have.
+Anything else is a 401. The values come from `BuildInfoService`, i.e. `META-INF/build-info.properties`
+(`spring-boot-maven-plugin` goal `build-info`, extra properties `git.commit` from the super pom's git-commit-id-plugin
+and `docker.tag`); unresolved `${...}` placeholders are sent as null. The same values are shown in the admin frontend
+via `GET /admin/version` (`AdminVersionController`).
+
 ## Admin API (`/admin/**`)
 Consumed by the [`admin-frontend`](../admin-frontend/CLAUDE.md) SPA. All admin controllers are
 `@ConditionalOnMaster` + `@SecurityRequirement("basicAuth")` and live in the
 `privateAPIFilterChain` (HTTP-Basic, single `ROLE_ADMIN` user `app.security.adminPassword`,
 CSRF off). springdoc groups them under the `administration` OpenAPI group (`/admin/**`); each
-controller carries a `@Tag` (`repository`/`jobs`/`assets`/`storage`) that names the generated
+controller carries a `@Tag` (`repository`/`jobs`/`assets`/`storage`/`system`) that names the generated
 `admin-frontend` client service. That client is generated from a committed snapshot of this
 group's spec — `AdminOpenApiContractTest` regenerates/verifies it (see Testing); keep the two
 in sync (the CI `verify` stage fails on drift). `SpringDocConfig` registers a Kotlin-aware
@@ -170,6 +189,8 @@ repo at a time. Controllers:
 - `AdminJobController` — `GET /admin/jobs(/stats)`, `DELETE /admin/jobs/{id}` (deletes sub-jobs
   too; the queue self-heals as receivers drop messages without a DB entry).
 - `AdminController` — repo registration (existing) + `GET /admin/repository/details`.
+- `AdminVersionController` — `GET /admin/version` (build info of the service, `BuildInfoService`; the one admin
+  endpoint without repoId, it describes the service itself).
 - `AdminAssetController` — **tracking-driven** (the `Tracking` collection has `repoId`; S3 keys
   don't in `byType` mode): list grouped by nodeId, versions, delete single/by-type/all.
   Deletions remove the S3 object **and** the `TrackingEntry` together.

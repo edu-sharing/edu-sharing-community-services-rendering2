@@ -5,10 +5,12 @@ import io.mockk.every
 import io.mockk.verify
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositorySignatureVerifier
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Import
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
@@ -19,6 +21,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.Base64
 
 @WebMvcTest(RenderController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
+@Import(RepositorySignatureVerifier::class)
 class RenderControllerTest(@param:Autowired val mockMvc: MockMvc) {
 
     @MockkBean
@@ -53,7 +56,7 @@ class RenderControllerTest(@param:Autowired val mockMvc: MockMvc) {
 
     @Test
     fun `rejects a signature algorithm that is not whitelisted`() {
-        // MD5withRSA is not in the default whitelist (SHA256withRSA, SHA512withRSA);
+        // MD5withRSA is not in the default whitelist (SHA256withRSA, SHA384withRSA, SHA512withRSA);
         // the check runs before any signature verification, so no collaborators are touched.
         every { moduleRegistry.isFrontendRemoteRepository(any()) } returns false
         mockMvc.perform(

@@ -6,10 +6,12 @@ import io.mockk.just
 import io.mockk.runs
 import org.edu_sharing.rendering.edusharingRepo.EduTrackingService
 import org.edu_sharing.rendering.edusharingRepo.services.RepositoryPublicKeyService
+import org.edu_sharing.rendering.edusharingRepo.services.RepositorySignatureVerifier
 import org.edu_sharing.rendering.modules.ModuleRegistry
 import org.edu_sharing.rendering.security.NodeSessionContextRepository
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Import
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
@@ -30,6 +32,7 @@ import java.util.Base64
  * actual `ApiExceptionHandler` `@ControllerAdvice` — to verify the response is now 403.
  */
 @WebMvcTest(RenderController::class, excludeAutoConfiguration = [SecurityAutoConfiguration::class])
+@Import(RepositorySignatureVerifier::class)
 @TestPropertySource(properties = ["app.security.enabled=false"])
 class RenderControllerAccessDeniedTest(@param:Autowired val mockMvc: MockMvc) {
 
