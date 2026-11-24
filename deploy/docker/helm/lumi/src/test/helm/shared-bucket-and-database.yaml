@@ -1,0 +1,29 @@
+# Test values for the "shared bucket + shared database" opt-in branches of the lumi chart.
+# Only used by the helm-maven-plugin `template` executions in pom.xml (never packaged).
+config:
+  files:
+    temporaryStorage: disk
+  libraryCache:
+    mode: package
+  mongodb:
+    database: rendering2
+    username: rendering2
+    password: "p@ss+word/1"
+    authSource: admin
+    collections:
+      content: lumi_h5p
+      edusharing: lumi_edusharing
+      library: lumi_h5plibraries
+  s3:
+    manageBuckets: false
+    buckets:
+      content: rendering2-shared
+      # string prefix
+      contentKeyPrefix: lumi/content
+      library: rendering2-shared
+      # unquoted numeric prefix: decodes as float64, covers the int64 branch of the template
+      libraryKeyPrefix: 20240101
+persistence:
+  data:
+    temp:
+      create: true

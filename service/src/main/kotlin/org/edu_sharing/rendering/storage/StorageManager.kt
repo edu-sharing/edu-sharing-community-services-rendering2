@@ -15,7 +15,8 @@ interface StorageManager {
      */
     fun deleteObjectsFromStorage(trackingEntries: List<TrackingEntry>)
 
-    fun getManagedBuckets(repoId: String): List<String>
+    /** The storage scopes (name plus physical bucket/key prefix) this manager manages for this repo. */
+    fun getManagedScopes(repoId: String): List<ManagedScope>
 
     fun isBucketOwner(bucketName: String, repoId: String): Boolean
 

@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p
 
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiBucketInfo
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.clearAllMocks
 import io.mockk.confirmVerified
@@ -69,7 +70,9 @@ class H5pUploadServiceTest {
         )
         clearAllMocks()
         every { module.getCredentials(cacheObject.repoId) } returns emptyMap()
-        every { lumiContentManagementService.getContentBucket(cacheObject.repoId) } returns BUCKET
+        every { lumiContentManagementService.getContentScope(cacheObject.repoId) } returns BUCKET
+        every { lumiContentManagementService.getContentBucketInfo(cacheObject.repoId) } returns
+            LumiBucketInfo(contentBucket = BUCKET)
     }
 
     @AfterEach
@@ -153,6 +156,27 @@ class H5pUploadServiceTest {
     }
 
     // ── lookup miss: upload ───────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun testGetContentIdWithKeyPrefixTracksUnderTheScopeNameButMeasuresUnderTheKeyPrefix() {
+        // Arrange - lumi content lives under shared/lumi/content/, so S3 is addressed by bucket + prefix
+        // while the tracking entry carries the scope name.
+        val info = LumiBucketInfo(contentBucket = "shared", contentKeyPrefix = "lumi/content")
+        every { lumiContentManagementService.getContentScope(cacheObject.repoId) } returns info.scopeName()
+        every { lumiContentManagementService.getContentBucketInfo(cacheObject.repoId) } returns info
+        stubLookup(null)
+        every { contentTransferService.getAsInputStream(cacheObject) } returns TrackingInputStream("content")
+        every { storageService.getDirectorySize("shared", "lumi/content/newContentId") } returns 99L
+        justRun { trackingService.trackCacheObject(cacheObject, "shared/lumi/content", 99L) }
+        enqueueContentId("newContentId")
+
+        // Act
+        underTest.getContentId(cacheObject)
+
+        // Assert
+        verify(exactly = 1) { storageService.getDirectorySize("shared", "lumi/content/newContentId") }
+        verify(exactly = 1) { trackingService.trackCacheObject(cacheObject, "shared/lumi/content", 99L) }
+    }
 
     @Test
     fun testGetContentIdUploadsThePackageAndReturnsTheNewContentIdOnALookupMiss() {

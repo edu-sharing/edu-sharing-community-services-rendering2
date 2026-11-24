@@ -25,6 +25,8 @@ data class RepositoryDetailInfo(
     /** H5P/lumi content bucket; name + quota come from lumi itself, not from this registration. */
     val contentBucket: String?,
     val contentBucketQuota: Long?,
+    /** Normalized key prefix of the content bucket; `null` when empty or lumi is unreachable. */
+    val contentBucketKeyPrefix: String?,
     val allowedOrigins: List<String>,
     val allowedOriginPatterns: List<String>,
     val lastAllowedOriginSync: Long,

@@ -44,6 +44,36 @@
             </goals>
             <phase>test</phase>
           </execution>
+          <!-- Lint and package only see the default values; render the opt-in branches too, so that a
+               missing default or a template error in them fails the build. Values files live outside the chart. -->
+          <execution>
+            <id>template-shared-bucket-and-database</id>
+            <goals>
+              <goal>template</goal>
+            </goals>
+            <phase>test</phase>
+            <configuration>
+              <!-- the template goal is skipped by default -->
+              <skipTemplate>false</skipTemplate>
+              <values>
+                <yamlFile>${project.basedir}/src/test/helm/shared-bucket-and-database.yaml</yamlFile>
+              </values>
+            </configuration>
+          </execution>
+          <execution>
+            <id>template-mongodb-url-override</id>
+            <goals>
+              <goal>template</goal>
+            </goals>
+            <phase>test</phase>
+            <configuration>
+              <!-- the template goal is skipped by default -->
+              <skipTemplate>false</skipTemplate>
+              <values>
+                <yamlFile>${project.basedir}/src/test/helm/mongodb-url-override.yaml</yamlFile>
+              </values>
+            </configuration>
+          </execution>
           <execution>
             <id>package</id>
             <goals>

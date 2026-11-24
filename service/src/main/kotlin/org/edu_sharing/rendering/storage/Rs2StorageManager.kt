@@ -30,10 +30,12 @@ class Rs2StorageManager(
         storageService.removeObjects(cacheObjects)
     }
 
-    override fun getManagedBuckets(repoId: String): List<String> {
+    override fun getManagedScopes(repoId: String): List<ManagedScope> {
         val buckets = storageService.getBuckets().filter { bucketStrategy.isManagedBucket(it, repoId) }
         log.debug("Managed buckets for repoId=$repoId: $buckets")
-        return buckets
+        // Rendering buckets may be shared via a key prefix (externalBucket mode).
+        val prefix = bucketStrategy.getRenderingKeyPrefix(repoId)
+        return buckets.map { ManagedScope(name = it, bucket = it, keyPrefix = prefix) }
     }
 
     override fun isBucketOwner(bucketName: String, repoId: String): Boolean {
