@@ -40,6 +40,23 @@ data:
   {{- else }}
   CONTENT_AWS_S3_BUCKET_QUOTA: {{ $contentQuota | int64 | quote }}
   {{- end }}
+  {{- with .Values.config.s3.buckets.contentKeyPrefix }}
+  {{- /* Same float64 caveat as the quota above: an unquoted numeric prefix would render in scientific notation. */}}
+  {{- if kindIs "string" . }}
+  CONTENT_AWS_S3_KEY_PREFIX: {{ . | quote }}
+  {{- else }}
+  CONTENT_AWS_S3_KEY_PREFIX: {{ . | int64 | quote }}
+  {{- end }}
+  {{- end }}
+  {{- with .Values.config.s3.buckets.libraryKeyPrefix }}
+  {{- if kindIs "string" . }}
+  LIBRARY_AWS_S3_KEY_PREFIX: {{ . | quote }}
+  {{- else }}
+  LIBRARY_AWS_S3_KEY_PREFIX: {{ . | int64 | quote }}
+  {{- end }}
+  {{- end }}
+  AWS_S3_MANAGE_BUCKETS: {{ .Values.config.s3.manageBuckets | quote }}
+  H5P_TEMPORARY_STORAGE: {{ .Values.config.files.temporaryStorage | quote }}
   CONTENT_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.content | quote }}
   EDUSHARING_MONGO_COLLECTION: {{ .Values.config.mongodb.collections.edusharing | quote }}
   H5P_LIBRARY_CACHE: {{ .Values.config.libraryCache.mode | quote }}

@@ -59,20 +59,25 @@ class H5pUploadService(
             timeout = getTimeout(cacheObject.repoId)
         )
         if (cachedLumiId != null) {
-            trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentBucket(cacheObject.repoId))
+            trackingService.trackCacheObject(cacheObject, lumiContentManagementService.getContentScope(cacheObject.repoId))
             return cachedLumiId
         }
         log.info("Not yet cached. Uploading H5P-Package.")
         val uploaded = uploadPackage(cacheObject)
         val lumiId = uploaded.contentId
-        val size = storageService.getDirectorySize(lumiContentManagementService.getContentBucket(cacheObject.repoId), lumiId)
+        // One fetch for both: the scope name identifies the storage, bucket + prefix address it in S3.
+        val bucketInfo = lumiContentManagementService.getContentBucketInfo(cacheObject.repoId)
+        val size = storageService.getDirectorySize(
+            bucketInfo.contentBucket,
+            bucketInfo.normalizedContentKeyPrefix() + lumiId
+        )
         // Tracking libraryBytes is what lets the CacheCleaner free the library volume by deleting
         // this package again. A current lumi always reports it (0 while it runs the shared global
         // library storage); a lumi older than the per-package cache omits it, which is passed on as
         // null so an already-known size is left alone rather than reset to 0.
         trackingService.trackCacheObject(
             cacheObject,
-            lumiContentManagementService.getContentBucket(cacheObject.repoId),
+            bucketInfo.scopeName(),
             size,
             uploaded.libraryBytes
         )

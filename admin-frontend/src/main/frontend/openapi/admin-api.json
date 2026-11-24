@@ -1887,6 +1887,9 @@
             "type" : "integer",
             "format" : "int64"
           },
+          "contentBucketKeyPrefix" : {
+            "type" : "string"
+          },
           "allowedOrigins" : {
             "type" : "array",
             "items" : {

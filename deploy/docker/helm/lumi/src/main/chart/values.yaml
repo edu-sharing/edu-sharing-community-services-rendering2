@@ -18,6 +18,12 @@ global:
       ## @param global.cluster.pdb.enabled Enable PDB
       enabled: false
 
+    storage:
+
+      data:
+        ## @param global.cluster.storage.data.spec Set data storage spec (merged into every data volume claim, e.g. storageClassName)
+        spec: {}
+
   image:
     ## @param global.image.pullPolicy Set global image pullPolicy
     pullPolicy: Always
@@ -100,6 +106,8 @@ config:
     libraryWhitelistExtra: ""
     ## @param config.files.importTimeoutMs Set deadline of one package import in ms (0 = off)
     importTimeoutMs: 900000
+    ## @param config.files.temporaryStorage Where the temporary files of an H5P import live: "s3" (default, the temporary bucket) or "disk" (a per-import directory under /tmp that is removed after the import; adds roughly one copy of the unpacked content to /tmp during an import, so size persistence.data.temp accordingly)
+    temporaryStorage: s3
 
   libraryCache:
     ## @param config.libraryCache.mode How H5P libraries of imported packages are stored: "global" = one shared store (default), "package" = an isolated cache per package holding its exact library versions
@@ -136,6 +144,10 @@ config:
           ## @param config.metrics.rules.nodejsUp.labels.severity Set metric rule nodejsUp severity level
           severity: critical
 
+  ## Sharing the rendering service's database (fresh installs only; changing collections or prefixes orphans existing data):
+  ## set database, username and password to the service's values and use prefixed collection names
+  ## (content: lumi_h5p, library: lumi_h5plibraries, edusharing: lumi_edusharing). The bundled MongoDB creates the
+  ## rendering2 user with readWrite on the rendering2 database, so no authSource (admin/root) is needed.
   mongodb:
     ## @param config.mongodb.database Set mongodb database
     database: lumi
@@ -151,6 +163,8 @@ config:
     password: ""
     ## @param config.mongodb.authSource Authentication database of the mongodb user, appended as ?authSource=... to the connection uri (empty = omit the option)
     authSource: ""
+    ## @param config.mongodb.url Full MongoDB connection URL, used verbatim instead of the one built from host/port/replicas/username/password/database/authSource (e.g. mongodb+srv or further connection options; empty = build it)
+    url: ""
     collections:
       ## @param config.mongodb.collections.content Set collection for content
       content: h5p
@@ -160,6 +174,8 @@ config:
       library: h5plibraries
 
   s3:
+    ## @param config.s3.manageBuckets Let lumi create its buckets and manage lifecycle rules on them; set to false when the buckets already exist (e.g. a shared bucket) - lumi then never creates buckets nor reads or writes lifecycle rules
+    manageBuckets: true
     ## @param config.s3.host Set S3 host
     host: edusharing-rendering2-minio
     ## @param config.s3.port Set S3 port
@@ -187,13 +203,17 @@ config:
     buckets:
       ## @param config.s3.buckets.content Set S3 bucket for content
       content: lumi-contentbucket
+      ## @param config.s3.buckets.contentKeyPrefix Set key prefix inside the content bucket (empty = bucket root); use it to share a bucket with other applications
+      contentKeyPrefix: ""
       ## @param config.s3.buckets.contentQuota Set storage quota for the content bucket — a plain byte count or a human-readable size like "10GB" (binary units, 1KB = 1024 bytes); 0/unset = no limit; enforced by rendering2's CacheCleaner
       contentQuota: 0
       ## @param config.s3.buckets.library Set S3 bucket for library
       library: lumi-libbucket
+      ## @param config.s3.buckets.libraryKeyPrefix Set key prefix inside the library bucket (empty = bucket root); use it to share a bucket with other applications
+      libraryKeyPrefix: ""
       ## @param config.s3.buckets.temporary Set S3 bucket for temporary
       temporary: lumi-tempbucket
-      ## @param config.s3.buckets.temporaryExpirationDays Days after which objects in the temporary bucket expire (S3 lifecycle rule, re-applied on every start)
+      ## @param config.s3.buckets.temporaryExpirationDays Days after which objects in the temporary bucket expire (S3 lifecycle rule, re-applied on every start; skipped when config.s3.manageBuckets is false or config.files.temporaryStorage is disk)
       temporaryExpirationDays: 1
 
 ########################################################################################################################
@@ -205,7 +225,9 @@ persistence:
     temp:
       ## Package uploads are spooled to /tmp until their import is done, and the H5P library unpacks
       ## every package there too: an import needs the size of the package plus its unpacked size (up to
-      ## 2 GB + 4 GB with the default limits), plus one spooled copy per waiting upload. Without a volume this lands on the
+      ## 2 GB + 4 GB with the default limits), plus one spooled copy per waiting upload. With
+      ## config.files.temporaryStorage=disk the temporary files of an import (roughly one more copy of the unpacked
+      ## content) live here as well. Without a volume this lands on the
       ## node's ephemeral disk, like the service's temp files (persistence.data.temp there).
       ## @param persistence.data.temp.create Create a volume for temporary data (mounted at /tmp)
       create: false

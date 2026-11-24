@@ -275,6 +275,7 @@ class AdminEndpointsIntegrationTest(
             // failing the request.
             .andExpect(jsonPath("$.contentBucket", nullValue()))
             .andExpect(jsonPath("$.contentBucketQuota", nullValue()))
+            .andExpect(jsonPath("$.contentBucketKeyPrefix", nullValue()))
             .andExpect(jsonPath("$.signingAlgorithm").value("SHA256withRSA"))
             // Credential-Schlüssel sind sichtbar, der Wert NICHT.
             .andExpect(jsonPath("$.modules.sodix.credentialKeys", hasItem("apiKey")))

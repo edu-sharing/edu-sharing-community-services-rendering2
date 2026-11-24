@@ -20,7 +20,9 @@ zip artifact by Maven and the main `service` reaches it at `app.lumi.host` (defa
 | `src/s3Streams.ts` | Binds S3 body streams to the request; without it aborted downloads leak pool sockets. |
 | `src/importQueue.ts` | Runs package imports one at a time, with a deadline (below). Replaces the former `serializeUpload` promise chain in `router.ts`. |
 | `src/importScope.ts` | `AsyncLocalStorage` marker for "inside a package import"; lets the shared S3 client throttle only the import's requests. |
-| `src/s3Throttle.ts` | S3 client middleware: caps an import's concurrent S3 requests and reports every settled request to the pool watchdog. |
+| `src/s3Throttle.ts` | S3 client middleware: caps an import's concurrent S3 requests (one `Semaphore` shared by all clients) and reports every settled request to the pool watchdog. |
+| `src/s3Scopes.ts`, `src/s3KeyPrefix.ts` | Shared-bucket settings, startup validation, collection-name guard; key-prefix middleware (below). |
+| `src/importTemporaryStorage.ts`, `src/importEditor.ts` | Per-import disk temp storage and the editor built for one import (below). |
 | `src/s3Pool.ts` | Watchdog for the S3 connection pool (below). |
 | `src/metrics.ts` | Prometheus gauges for the import queue and the S3 pool. |
 | `src/traceContext.ts` | Adopts the incoming b3/W3C trace id and prefixes every `debug` log line with it. Binds `req.emit`/`res.emit` into the `AsyncLocalStorage` context — **do not remove**: without it every request with a body (the package import above all) logs untraced, because body parsers resume the chain from stream events that fire in the socket's async context. |
@@ -69,6 +71,9 @@ reach needs an entry there too.
   `ensureTempBucketExpiration`. The bucket rule is the only thing that deletes temp files
   (h5p-mongos3's `listFiles()` is empty, so `cleanUp()` is a no-op), and `temporaryFileLifetime`
   has no effect on S3 besides the lib's own, mis-converting lifecycle helper that we do not call.
+- **Shared bucket / database settings** (all optional, defaults = unchanged behaviour; details in *Shared bucket / shared database* below):
+  `CONTENT_AWS_S3_KEY_PREFIX`, `LIBRARY_AWS_S3_KEY_PREFIX` (empty), `AWS_S3_MANAGE_BUCKETS` (`true`),
+  `H5P_TEMPORARY_STORAGE` (`s3` | `disk`, default `s3`).
 - **S3 connection pool** (`createH5PEditor.ts`): `AWS_S3_MAX_SOCKETS` (default 256 — the AWS SDK
   default of 50 is a hard ceiling on parallel file serving, since every library/content file of every
   H5P page is its own S3 `GetObject`). **Both S3 timeouts default to 0 = off, and should stay off**:
@@ -163,9 +168,53 @@ replaces characters outside `A-Za-z0-9-._!()@/`); only a key that is still over 
 `CONTENT_AWS_S3_BUCKET_QUOTA` is **not** enforced by lumi at all: it is only reported on `/edusharing/buckets`.
 
 ## Tests
-`npm test` (`node --test` with ts-node, `test/*.test.ts`) covers the queue, the watchdog, the throttle and
-the size parsing. There is no integration test; the paths with real S3 were checked by hand against the
+`npm test` (`node --test` with ts-node, `test/*.test.ts`) covers the queue, the watchdog, the throttle, the
+size parsing, the key-prefix middleware, the scope validation, the bucket setup plan (`s3Setup.test.ts`) and the per-import temp storage. There is no integration test; the paths with real S3 were checked by hand against the
 compose stack with a TCP proxy in front of RustFS that swallows traffic on demand.
+
+## Shared bucket / shared database (opt-in)
+
+For an operator with ONE bucket and no database of its own. Everything is off by default; with none of the
+settings below lumi behaves exactly as before (one S3 client, three buckets ensured, lifecycle rule on the temp
+bucket, imports through the shared editor with the S3 temp storage).
+
+| Env | Default | Meaning |
+|---|---|---|
+| `CONTENT_AWS_S3_KEY_PREFIX` / `LIBRARY_AWS_S3_KEY_PREFIX` | empty | key prefix of the content / global library storage; normalized like the service (trim, strip `/`, one trailing `/`) |
+| `AWS_S3_MANAGE_BUCKETS` | `true` | `false`: never `createBucket`, never read or write lifecycle rules; only a warning-only `HeadBucket` |
+| `H5P_TEMPORARY_STORAGE` | `s3` | `disk`: per-import temp directory; `TEMPORARY_AWS_S3_BUCKET` is then ignored (not ensured, no lifecycle rule) |
+
+- **Startup validation** (`s3Scopes.ts`, pure functions): `s3` temp + bucket management + temp bucket equal to the
+  content or library bucket is **fatal** (the temp bucket's lifecycle rule has `Prefix: ''` and would expire the whole
+  bucket); the same without management only warns; content and library overlapping in one bucket (one normalized
+  prefix starts with the other, both empty included) warns. A fatal finding throws in `start()`, which logs
+  `Startup failed: ...` and exits 1. The same function family refuses lumi collection names that equal a rendering
+  service collection (`renderingJob`, `subJob`, `Tracking`, `rendererKeyConfig`, `repositoryRegistration`,
+  `shedLock`) or each other - the guard for lumi living in the service's database.
+- **Prefixes** (`s3KeyPrefix.ts`): h5p-mongos3 has no prefix option, so a storage under a prefix gets an S3 client
+  of its own with an `initialize`-step middleware that prefixes `Key`, `Prefix`, `StartAfter` and
+  `Delete.Objects[].Key` (on a **copy** of the input - h5p-mongos3 precomputes the Content-MD5 of a batch delete from
+  its own params) and strips the prefix from `ListObjectsV2` results (the library cuts its *own* prefix length off).
+  `CopySource` throws, so a future upstream copy fails loudly instead of writing outside the prefix. All clients share
+  the HTTP agents (pool limit, watchdog, `resetS3Pool` stay global) and ONE import `Semaphore`. Bucket management and
+  the S3 temp storage use the plain client. **The 1024-byte key limit is checked by h5p-mongos3 on the unprefixed
+  key**, so a prefix eats into it: a long prefix can push a key over what S3 accepts without lumi noticing first.
+- `GET /edusharing/buckets` reports `contentKeyPrefix` (`""` when none), so the service can tell lumi's objects apart.
+- **Disk temp storage** (`importTemporaryStorage.ts`, `importEditor.ts`): each import gets
+  `mkdtemp(<H5P_UPLOAD_DIR or os tmpdir>/lumi-import-)` with a `DirectoryTemporaryFileStorage`, created and removed
+  (`finally`) INSIDE the import queue's task, so an import abandoned at its deadline cleans up when it settles.
+  Reason: h5p-server does not delete temp files after saving *new* content, and without a temp bucket nothing
+  expires them. The import runs on its own editor (`createImportEditor`) over the shared cached library storage and
+  lock (global mode) or the staging storage (package mode). Pods sweep stale `lumi-import-*` directories at start,
+  before listening (only in disk mode; the volume is per pod). The main editor's temp storage is
+  `UnavailableTemporaryStorage` (500 on every call); the only routes that could reach it are switched off.
+  - **Disk sizing**: the peak grows by about one copy of the unpacked content (the unpack dir lives until the end of
+    `processPackage`), on top of the spooled upload and the unpacked package. Size `/tmp` / `H5P_UPLOAD_DIR` for it.
+  - **Filename shortening**: the storage shortens names to about 214 minus the directory length characters (instead
+    of `AWS_S3_MAX_FILE_LENGTH`); it never fails an import. The S3 character set (`@` kept) is used, because the temp
+    name becomes the content file's S3 key.
+- **Fresh installs only**: switching an existing lumi to prefixes (or another bucket layout) orphans its content -
+  the stored keys are not rewritten. Same rule as the service's `keyPrefix`.
 
 ## Per-package library cache (`src/packageLibraries/`)
 

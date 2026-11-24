@@ -285,26 +285,24 @@ class S3StorageService(
      * @return The total used storage space in bytes as a `Long`.
      */
     override fun getUsedSpace(repoId: String): Pair<Long, List<String>> {
-        var managedBuckets = storageManagerRegistry.getStorageManagers().flatMap { it.getManagedBuckets(repoId) }
+        var managedScopes = storageManagerRegistry.getStorageManagers().flatMap { it.getManagedScopes(repoId) }
         if (isStoringByRepoId()) {
-            managedBuckets = managedBuckets.filter { it.contains(repoId) }
+            managedScopes = managedScopes.filter { it.name.contains(repoId) }
         }
 
         var totalSize = 0L
 
-        managedBuckets.forEach { bucket ->
-            // Rendering buckets may be shared via a key prefix (externalBucket mode); other managed
-            // buckets (e.g. lumi's) are measured whole.
-            val prefix = if (bucketStrategy.isManagedBucket(bucket, repoId)) bucketStrategy.getRenderingKeyPrefix(repoId) else ""
+        managedScopes.forEach { scope ->
+            // Each scope is measured under its own physical bucket + key prefix (shared buckets).
             totalSize += s3Client.listObjectsV2Paginator(
                 ListObjectsV2Request.builder()
-                    .bucket(bucket)
-                    .prefix(prefix)
+                    .bucket(scope.bucket)
+                    .prefix(scope.keyPrefix)
                     .build()
             ).contents().sumOf { it.size() }
         }
 
-        return totalSize to managedBuckets
+        return totalSize to managedScopes.map { it.name }
     }
 
     override fun getBuckets(): List<String> {

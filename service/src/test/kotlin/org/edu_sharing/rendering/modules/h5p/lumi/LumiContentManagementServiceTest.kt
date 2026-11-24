@@ -1,5 +1,6 @@
 package org.edu_sharing.rendering.modules.h5p.lumi
 
+import org.edu_sharing.rendering.modules.h5p.lumi.dto.LumiBucketInfo
 import org.edu_sharing.rendering.core.resilience.testGuardRegistry
 import io.mockk.clearAllMocks
 import io.mockk.every
@@ -247,6 +248,31 @@ class LumiContentManagementServiceTest {
         // Assert
         assertEquals("lumi-contentbucket", result.contentBucket)
         assertEquals(10737418240L, result.contentBucketQuota)
+    }
+
+    @Test
+    fun testGetContentScopeUsesTheNormalizedKeyPrefixWhenLumiReportsOne() {
+        // Arrange
+        enqueueJson("""{"contentBucket": "shared", "contentKeyPrefix": "lumi/content/"}""")
+
+        // Act
+        val info = underTest.getContentBucketInfo("repo1")
+
+        // Assert
+        assertEquals("lumi/content/", info.normalizedContentKeyPrefix())
+        assertEquals("shared/lumi/content", underTest.getContentScope("repo1"))
+        assertEquals("shared", underTest.getContentBucket("repo1"))
+    }
+
+    @Test
+    fun testGetContentScopeIsTheBucketWhenLumiReportsNoOrAnEmptyKeyPrefix() {
+        // Arrange - an old lumi omits the field, a new one reports ""
+        enqueueJson("""{"contentBucket": "lumi-contentbucket"}""")
+        assertEquals("lumi-contentbucket", underTest.getContentScope("repo1"))
+
+        val other = LumiBucketInfo(contentBucket = "b", contentKeyPrefix = "")
+        assertEquals("b", other.scopeName())
+        assertEquals("", other.normalizedContentKeyPrefix())
     }
 
     @Test

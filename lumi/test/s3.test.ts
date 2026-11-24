@@ -76,7 +76,7 @@ test('only requests of an import wait for a permit, and every settled request co
     const stack: Array<(next: any) => (args: any) => Promise<any>> = []
     const client = {middlewareStack: {add: (middleware: any) => stack.push(middleware)}}
     let progress = 0
-    installS3Middleware(client, 2, {noteProgress: () => progress++} as unknown as S3PoolWatchdog)
+    installS3Middleware(client, new Semaphore(2), {noteProgress: () => progress++} as unknown as S3PoolWatchdog)
     let inFlight = 0
     let peak = 0
     const handler = stack[0](async () => {
@@ -99,7 +99,7 @@ test('only requests of an import wait for a permit, and every settled request co
 
 test('a failing request releases its permit', async () => {
     const stack: Array<(next: any) => (args: any) => Promise<any>> = []
-    installS3Middleware({middlewareStack: {add: (middleware: any) => stack.push(middleware)}}, 1)
+    installS3Middleware({middlewareStack: {add: (middleware: any) => stack.push(middleware)}}, new Semaphore(1))
     const handler = stack[0](async (args: any) => {
         if (args.fail) {
             throw new Error('s3 down')

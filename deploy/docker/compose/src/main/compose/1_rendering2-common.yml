@@ -453,20 +453,31 @@ services:
       S3_PORT: "${RENDERING2_S3_STORAGE_PORT:-9000}"
       MONGODB_HOST: mongo-database
       MONGODB_PORT: 27017
-      MONGODB_URL: "mongodb://${RENDERING2_LUMI_DATABASE_USER:-lumi}:${RENDERING2_LUMI_DATABASE_PASS:-lumi}@mongo-database:27017/${RENDERING2_LUMI_DATABASE_NAME:-lumi}"
+      # Full override of the connection URL, used verbatim (e.g. an external MongoDB or an authSource); empty = the
+      # default built from RENDERING2_LUMI_DATABASE_{USER,PASS,NAME}. To share the rendering service's database set
+      # those three to the service's values and the *_COLLECTION variables below to prefixed names (lumi_h5p, ...).
+      MONGODB_URL: "${RENDERING2_LUMI_MONGODB_URL:-mongodb://${RENDERING2_LUMI_DATABASE_USER:-lumi}:${RENDERING2_LUMI_DATABASE_PASS:-lumi}@mongo-database:27017/${RENDERING2_LUMI_DATABASE_NAME:-lumi}}"
       CONTENT_AWS_S3_BUCKET: "${RENDERING2_LUMI_CONTENT_BUCKET:-lumi-contentbucket}"
+      # Key prefixes inside the content/library bucket (empty = bucket root); use them to share a bucket.
+      CONTENT_AWS_S3_KEY_PREFIX: "${RENDERING2_LUMI_CONTENT_BUCKET_KEY_PREFIX:-}"
+      LIBRARY_AWS_S3_KEY_PREFIX: "${RENDERING2_LUMI_LIB_BUCKET_KEY_PREFIX:-}"
+      # false = lumi never creates buckets nor reads/writes lifecycle rules (the buckets must already exist).
+      AWS_S3_MANAGE_BUCKETS: "${RENDERING2_LUMI_S3_MANAGE_BUCKETS:-true}"
+      # Where the temporary files of an import live: s3 (temporary bucket) or disk (per-import dir under /tmp,
+      # roughly one extra copy of the unpacked content during an import).
+      H5P_TEMPORARY_STORAGE: "${RENDERING2_LUMI_TEMPORARY_STORAGE:-s3}"
       # Storage quota for the content bucket (0/empty = no limit; a plain byte count or a
       # human-readable size like 10GB — binary units, 1KB = 1024 bytes, see lumi's parseDataSize).
       # Only enforced by rendering2's CacheCleaner; queried live from lumi (GET /edusharing/buckets),
       # not duplicated in rendering2's own repository registration.
       CONTENT_AWS_S3_BUCKET_QUOTA: "${RENDERING2_LUMI_CONTENT_BUCKET_QUOTA:-0}"
-      CONTENT_MONGO_COLLECTION: h5p
+      CONTENT_MONGO_COLLECTION: "${RENDERING2_LUMI_CONTENT_COLLECTION:-h5p}"
       TEMPORARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_TEMP_BUCKET:-lumi-tempbucket}"
       # Days after which objects in the temp bucket expire (S3 lifecycle rule, re-applied on every lumi start).
       TEMPORARY_AWS_S3_BUCKET_EXPIRATION_DAYS: "${RENDERING2_LUMI_TEMP_BUCKET_EXPIRATION_DAYS:-1}"
-      LIBRARY_MONGO_COLLECTION: h5plibraries
+      LIBRARY_MONGO_COLLECTION: "${RENDERING2_LUMI_LIB_COLLECTION:-h5plibraries}"
       LIBRARY_AWS_S3_BUCKET: "${RENDERING2_LUMI_LIB_BUCKET:-lumi-libbucket}"
-      EDUSHARING_MONGO_COLLECTION: lumiedusharing
+      EDUSHARING_MONGO_COLLECTION: "${RENDERING2_LUMI_EDUSHARING_COLLECTION:-lumiedusharing}"
       BASE_URL: "${RENDERING2_SERVICE_PUBLIC_PATH:-/rendering}/public/h5p"
       CACHE: in-memory
       # How libraries of imported H5P packages are stored. "global" (default) keeps the single shared
