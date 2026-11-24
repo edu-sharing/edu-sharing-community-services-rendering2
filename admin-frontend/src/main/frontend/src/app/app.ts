@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,7 +16,7 @@ import { ContrastMode, SettingsService } from './core/settings.service';
 @Component({
   selector: 'app-root',
   imports: [
-    RouterOutlet, RouterLink, RouterLinkActive,
+    RouterOutlet, RouterLink, RouterLinkActive, DatePipe,
     MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule, MatToolbarModule,
   ],
   templateUrl: './app.html',

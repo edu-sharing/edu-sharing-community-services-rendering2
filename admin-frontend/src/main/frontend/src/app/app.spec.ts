@@ -28,7 +28,7 @@ describe('App', () => {
     fixture.detectChanges();
     http.match((req) => req.url.endsWith('/admin/repository/register')).forEach((req) => req.flush([]));
     http.expectOne((req) => req.url.endsWith('/admin/version'))
-      .flush({ version: '11.0.4', commit: 'c0ffee1234567890', imageTag: '11.0.4-1' });
+      .flush({ version: '11.0.4', commit: 'c0ffee1234567890', imageTag: '11.0.4-1', buildTime: '2026-11-23T13:05:09Z' });
     fixture.detectChanges();
 
     // Assert
@@ -37,5 +37,6 @@ describe('App', () => {
     expect(text).toContain('c0ffee12');
     expect(text).not.toContain('c0ffee1234567890');
     expect(text).toContain('11.0.4-1');
+    expect(text).toMatch(/Built\s*2026-11-23 \d\d:\d\d/);
   });
 });

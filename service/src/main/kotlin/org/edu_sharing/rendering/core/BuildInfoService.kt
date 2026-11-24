@@ -20,6 +20,7 @@ class BuildInfoService(
             version = filtered(build?.version),
             commit = filtered(build?.get("git.commit")),
             imageTag = filtered(build?.get("docker.tag")),
+            buildTime = build?.time?.toString(),
         )
     }
 

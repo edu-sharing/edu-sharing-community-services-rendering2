@@ -35,6 +35,7 @@ class VersionControllerTest(@param:Autowired val mockMvc: MockMvc) {
         @Bean
         fun buildProperties() = BuildProperties(Properties().apply {
             setProperty("version", "11.0.4")
+            setProperty("time", "1795439109000")
             setProperty("git.commit", "c0ffee")
             // unresolved maven placeholder, must be sent as null
             setProperty("docker.tag", "\${docker.tag}")
@@ -65,6 +66,7 @@ class VersionControllerTest(@param:Autowired val mockMvc: MockMvc) {
             .andExpect(jsonPath("$.version").value("11.0.4"))
             .andExpect(jsonPath("$.commit").value("c0ffee"))
             .andExpect(jsonPath("$.imageTag").doesNotExist())
+            .andExpect(jsonPath("$.buildTime").value("2026-11-23T13:05:09Z"))
     }
 
     @Test

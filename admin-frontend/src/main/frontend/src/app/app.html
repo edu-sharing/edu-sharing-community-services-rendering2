@@ -81,6 +81,10 @@
             <dt>Commit</dt>
             <dd [title]="v.commit">{{ v.commit.slice(0, 8) }}</dd>
           }
+          @if (v.buildTime) {
+            <dt>Built</dt>
+            <dd [title]="v.buildTime">{{ v.buildTime | date: 'yyyy-MM-dd HH:mm' }}</dd>
+          }
           @if (v.imageTag) {
             <dt>Image</dt>
             <dd>{{ v.imageTag }}</dd>

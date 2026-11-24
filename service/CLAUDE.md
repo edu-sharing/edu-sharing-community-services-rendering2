@@ -155,7 +155,7 @@ Not covered: the temp bucket's quota is informational only (never part of the cl
 
 ## Version endpoint (`GET /public/version`)
 `VersionController` (`@ConditionalOnController`, `permitAll` in the `publicAPIFilterChain`) returns
-`{version, commit, imageTag}` for the status report of a registered repository (cve tracking). It verifies the
+`{version, commit, imageTag, buildTime}` (`buildTime` = ISO-8601 instant of the build, from `build-info`'s `time`) for the status report of a registered repository (cve tracking). It verifies the
 repository's **app assertion** itself (`RepositoryAppAssertionVerifier`): a compact JWS in the header
 `X-Edu-App-Assertion` (not `Authorization`, which the `AuthTokenFilter` would read as a user JWT).
 - JOSE header: `alg` `RS256`/`RS384`/`RS512`, `typ` = `edu-app+jwt`, `kid` = RFC 7638 thumbprint of the repository's
