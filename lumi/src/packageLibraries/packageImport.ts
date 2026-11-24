@@ -2,6 +2,8 @@ import * as H5P from '@lumieducation/h5p-server'
 import {Logger} from '@lumieducation/h5p-server'
 import {H5PDeps} from '../createH5PEditor'
 import {PackageLibraryStore} from './types'
+import {createImportEditor} from '../importEditor'
+import {withImportTemporaryStorage} from '../importTemporaryStorage'
 
 const log = new Logger('PackageImport')
 
@@ -41,34 +43,24 @@ export const importPackage = async (
 ): Promise<{contentId: string; libraryBytes: number}> => {
     const staging = await store.createStaging()
     try {
-        const scopedEditor = new H5P.H5PEditor(
-            deps.editorCache,
-            deps.config,
-            staging.storage,
-            deps.contentStorage,
-            deps.temporaryStorage,
-            deps.translationCallback,
-            undefined,
-            {
-                ...deps.editorOptions,
-                // The install locks are keyed by ubername only. A private lock provider keeps this
-                // import from contending with anything else over library names it does not share.
-                lockProvider: new H5P.SimpleLockProvider()
-            },
-            undefined
-        )
+        // The install locks are keyed by ubername only. A private lock provider keeps this import from
+        // contending with anything else over library names it does not share.
+        const contentId = await withImportTemporaryStorage(deps, async temporaryStorage => {
+            const scopedEditor = createImportEditor(
+                deps, staging.storage, temporaryStorage, new H5P.SimpleLockProvider())
 
-        const result = await scopedEditor.uploadPackage(data, user, {onlyInstallLibraries: false})
-        log.debug(`Installed ${result.installedLibraries.length} libraries into staging area ${staging.id}.`)
+            const result = await scopedEditor.uploadPackage(data, user, {onlyInstallLibraries: false})
+            log.debug(`Installed ${result.installedLibraries.length} libraries into staging area ${staging.id}.`)
 
-        // Must run on the scoped editor too: storing content reads the libraries' semantics.
-        const contentId = await scopedEditor.saveOrUpdateContent(
-            undefined,
-            result.parameters,
-            result.metadata,
-            mainLibraryUbername(result.metadata),
-            user
-        )
+            // Must run on the scoped editor too: storing content reads the libraries' semantics.
+            return scopedEditor.saveOrUpdateContent(
+                undefined,
+                result.parameters,
+                result.metadata,
+                mainLibraryUbername(result.metadata),
+                user
+            )
+        })
 
         const libraryBytes = await store.promote(staging, contentId)
         return {contentId, libraryBytes}

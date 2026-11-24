@@ -172,7 +172,11 @@ class LumiContentManagementService(
         }
     }
 
+    /** The physical S3 bucket of lumi's content. Use [getContentScope] to identify the storage. */
     fun getContentBucket(repoId: String): String = getBucketInfo(repoId).contentBucket
+
+    /** The name identifying lumi's content storage in the service (see [LumiBucketInfo.scopeName]). */
+    fun getContentScope(repoId: String): String = getBucketInfo(repoId).scopeName()
 
     /**
      * Name + quota in one call. Prefer this over `getContentBucket(repoId)` followed by a separate

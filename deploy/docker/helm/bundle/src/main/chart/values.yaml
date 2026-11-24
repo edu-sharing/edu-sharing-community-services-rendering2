@@ -359,6 +359,28 @@ edusharing_services_rendering2_lumi:
       username: *mongoLumiConfigUsername
       ## @param edusharing_services_rendering2_lumi.config.mongodb.database Set mongodb database
       database: *mongoLumiConfigDatabase
+      # Example: lumi in the rendering database (fresh installs only; changing collections orphans existing data).
+      # The bundled MongoDB creates the rendering2 user with readWrite on the rendering2 database, so no authSource
+      # (admin/root) is needed. Replace the three values above and set the collections to prefixed names:
+      #   username: *mongoConfigUsername
+      #   database: *mongoConfigDatabase
+      #   collections:
+      #     content: lumi_h5p
+      #     library: lumi_h5plibraries
+      #     edusharing: lumi_edusharing
+      # (the password must then be the one of the rendering2 user, i.e. leave it unset to use global.password)
+      #
+      # Example: lumi in a shared bucket (the buckets must exist; lumi then neither creates them nor sets lifecycle
+      # rules, and keeps its temporary files on disk instead of in the temporary bucket). Under s3:
+      #   manageBuckets: false
+      #   buckets:
+      #     content: shared
+      #     contentKeyPrefix: lumi/content
+      #     library: shared
+      #     libraryKeyPrefix: lumi/libraries
+      # and, next to config.mongodb / config.s3:
+      #   files:
+      #     temporaryStorage: disk   # size persistence.data.temp for the extra copy of the unpacked content
 
 
     s3:

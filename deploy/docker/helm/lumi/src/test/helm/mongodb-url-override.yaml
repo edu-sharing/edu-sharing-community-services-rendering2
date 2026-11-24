@@ -1,0 +1,5 @@
+# Test values for the full MongoDB connection URL override of the lumi chart.
+# Only used by the helm-maven-plugin `template` executions in pom.xml (never packaged).
+config:
+  mongodb:
+    url: "mongodb://user:secret@external-mongo.example.org:27017/lumi?replicaSet=rs0&authSource=admin"

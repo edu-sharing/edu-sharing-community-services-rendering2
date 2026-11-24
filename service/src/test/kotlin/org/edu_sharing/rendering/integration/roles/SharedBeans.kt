@@ -4,6 +4,7 @@ import org.edu_sharing.rendering.ServicesRenderingService2Application
 import org.edu_sharing.rendering.cacheCleaner.CustomTrackingEntryRepositoryImpl
 import org.edu_sharing.rendering.cacheCleaner.TrackingService
 import org.edu_sharing.rendering.config.*
+import org.edu_sharing.rendering.core.BuildInfoService
 import org.edu_sharing.rendering.core.PingController
 import org.edu_sharing.rendering.core.dto.mapper.Mapper
 import org.edu_sharing.rendering.core.resilience.RemoteCallGuardRegistry
@@ -195,6 +196,7 @@ abstract class SharedBeans {
             PermissionEvaluator::class,
             PdfRenderModule::class,
             PingController::class,
+            BuildInfoService::class,
             QueueConfig::class,
             QueueConsumerMetrics::class,
             QueueProperties::class,

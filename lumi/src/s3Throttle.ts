@@ -36,7 +36,7 @@ export class Semaphore {
  */
 interface MiddlewareStackHolder {
     middlewareStack: {
-        add(middleware: (next: (args: any) => Promise<any>) => (args: any) => Promise<any>,
+        add(middleware: (next: (args: any) => Promise<any>, context: any) => (args: any) => Promise<any>,
             options: { step: 'initialize'; name: string }): void
     }
 }
@@ -57,10 +57,13 @@ interface MiddlewareStackHolder {
  */
 export const installS3Middleware = (
     client: MiddlewareStackHolder,
-    importConcurrency: number,
+    /**
+     * The permits of an import. One semaphore is shared by all clients (there is more than one when key
+     * prefixes are configured), because the limit is per import, not per client.
+     */
+    semaphore: Semaphore,
     watchdog?: S3PoolWatchdog
 ): void => {
-    const semaphore = new Semaphore(importConcurrency)
     client.middlewareStack.add(
         next => async args => {
             const throttled = inImportScope()

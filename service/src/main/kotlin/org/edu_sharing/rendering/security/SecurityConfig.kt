@@ -77,7 +77,9 @@ class SecurityConfig(
             }.authorizeHttpRequests {
                 it.requestMatchers(
                     "/public/modules",
-                    "/public/session"
+                    "/public/session",
+                    // verifies the repository signature itself (VersionController)
+                    "/public/version"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }

@@ -447,6 +447,47 @@
         } ]
       }
     },
+    "/admin/version" : {
+      "get" : {
+        "tags" : [ "system" ],
+        "operationId" : "getVersion",
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "basicAuth" : [ ]
+        } ]
+      }
+    },
     "/admin/storage/usage" : {
       "get" : {
         "tags" : [ "storage" ],
@@ -1697,6 +1738,22 @@
         },
         "required" : [ "domains", "publicKey", "repoId", "url" ]
       },
+      "VersionResponse" : {
+        "properties" : {
+          "version" : {
+            "type" : "string"
+          },
+          "commit" : {
+            "type" : "string"
+          },
+          "imageTag" : {
+            "type" : "string"
+          },
+          "buildTime" : {
+            "type" : "string"
+          }
+        }
+      },
       "BucketUsageInfo" : {
         "properties" : {
           "name" : {
@@ -1832,6 +1889,9 @@
           "contentBucketQuota" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "contentBucketKeyPrefix" : {
+            "type" : "string"
           },
           "allowedOrigins" : {
             "type" : "array",

@@ -723,6 +723,20 @@
                                 <goal>repackage</goal>
                             </goals>
                         </execution>
+                        <execution>
+                            <!-- META-INF/build-info.properties, read by the VersionController (status report of the repository) -->
+                            <id>build-info</id>
+                            <goals>
+                                <goal>build-info</goal>
+                            </goals>
+                            <configuration>
+                                <additionalProperties>
+                                    <!-- set by the git-commit-id-plugin of the super pom -->
+                                    <git.commit>${git.commit.id}</git.commit>
+                                    <docker.tag>${docker.tag}</docker.tag>
+                                </additionalProperties>
+                            </configuration>
+                        </execution>
                     </executions>
                     <configuration>
                         <mainClass>${spring-boot.run.main-class}</mainClass>

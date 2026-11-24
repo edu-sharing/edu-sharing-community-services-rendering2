@@ -16,7 +16,7 @@ WORKDIR application
 # rebuilt with yet, and install LibreOffice
 RUN apk update && \
     apk upgrade --no-cache && \
-    apk add --no-cache libreoffice fontconfig ttf-dejavu msttcorefonts-installer && \
+    apk add --no-cache libreoffice fontconfig ttf-dejavu msttcorefonts-installer tini && \
     update-ms-fonts
 
 # Verify installation
@@ -49,9 +49,12 @@ COPY --chown=worker:worker assets/profiler profiler/
 ########################################################################################################################
 
 EXPOSE 8080
+# tini runs as PID 1 and reaps orphaned child processes: JODConverter restarts LibreOffice (max-tasks-per-process,
+# timeouts) and the orphaned soffice.bin would otherwise stay behind as a zombie, because the JVM does not reap
+# children it did not start itself.
 # Container args (compose `command:` with heap/JMX flags) are JVM options: with `sh -c <script>` they would otherwise
 # become $0/$1.. of the script and be silently ignored, so the script forwards them via "$@" (the trailing `sh` is $0).
-ENTRYPOINT ["sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError ${JAVA_OPTS} \"$@\" -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher", "sh"]
+ENTRYPOINT ["tini", "--", "sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError ${JAVA_OPTS} \"$@\" -Dspring.profiles.active=docker org.springframework.boot.loader.launch.JarLauncher", "sh"]
 
 ########################################################################################################################
 

@@ -10,6 +10,9 @@ import {H5pError, Logger} from "@lumieducation/h5p-server";
 import {parseDataSize} from "./dataSize";
 import {createScopedPlayer, importPackage, mainLibraryUbername, PackageLibraryStore} from "./packageLibraries";
 import {H5PDeps} from "./createH5PEditor";
+import {createImportEditor} from "./importEditor";
+import {withImportTemporaryStorage} from "./importTemporaryStorage";
+import {normalizeKeyPrefix} from "./s3Scopes";
 import {createImportQueue, getImportQueueStatus} from "./importQueue";
 import {importErrorStatus} from "./importErrors";
 import {getS3PoolStatus, resetS3Pool} from "./s3Pool";
@@ -115,7 +118,9 @@ const router = (
     h5pPlayer: H5P.H5PPlayer,
     languageOverride: string | 'auto' = 'auto',
     eduCollection: Collection,
-    packageLibraries?: PackageLibraries
+    packageLibraries?: PackageLibraries,
+    /** Needed for imports with disk temp storage in global mode; `index.ts` always passes it. */
+    deps?: H5PDeps
 ): express.Router => {
     const router = express.Router()
     // Spooled to disk, not held in memory: uploads wait their turn in the import queue, and with a
@@ -200,21 +205,31 @@ const router = (
                     // file from the temporary to the content storage, which is as much S3 traffic as
                     // the library installation and must neither overlap another import nor run unbounded.
                     contentId = await importQueue.run(async () => {
-                        const result = await h5pEditor.uploadPackage(
-                            uploadedFile,
-                            request.user,
-                            {onlyInstallLibraries: false}
-                        )
+                        const importInto = async (editor: H5P.H5PEditor) => {
+                            const result = await editor.uploadPackage(
+                                uploadedFile,
+                                request.user,
+                                {onlyInstallLibraries: false}
+                            )
 
-                        log.info(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
+                            log.info(`Valid H5P data imported for nodeId: ${request.body.nodeId}.`)
 
-                        return h5pEditor.saveOrUpdateContent(
-                            undefined,
-                            result.parameters,
-                            result.metadata,
-                            mainLibraryUbername(result.metadata),
-                            request.user
-                        )
+                            return editor.saveOrUpdateContent(
+                                undefined,
+                                result.parameters,
+                                result.metadata,
+                                mainLibraryUbername(result.metadata),
+                                request.user
+                            )
+                        }
+                        // Disk temp storage: the import gets its own editor over the same shared library storage
+                        // and lock, with a temp directory that lives exactly as long as this task.
+                        if (deps?.temporaryStorageMode === 'disk') {
+                            return withImportTemporaryStorage(deps, temporaryStorage => importInto(
+                                createImportEditor(deps, h5pEditor.libraryStorage, temporaryStorage,
+                                    deps.editorOptions.lockProvider)))
+                        }
+                        return importInto(h5pEditor)
                     })
                 }
                 log.info(`Lumi content Id for ES-Node ${request.body.nodeId} successfully created: ${contentId}.`)
@@ -359,7 +374,10 @@ const router = (
         }
         const buckets: Record<string, unknown> = {
             contentBucket: process.env.CONTENT_AWS_S3_BUCKET,
-            contentBucketQuota
+            contentBucketQuota,
+            // The key prefix of lumi's content storage, "" when none. The rendering service needs it to
+            // tell lumi's objects from others in a shared bucket.
+            contentKeyPrefix: normalizeKeyPrefix(process.env.CONTENT_AWS_S3_KEY_PREFIX)
         }
         // Only reported when the per-package cache is active and its size is known. Like the buckets above
         // it is a soft limit: lumi reports it and never rejects an import for it. The rendering service's
