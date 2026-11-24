@@ -32,6 +32,9 @@
       <dt>Content bucket (H5P/lumi)</dt>
       <dd class="mono">
         {{ r.contentBucket ?? '–' }}
+        @if (r.contentBucketKeyPrefix) {
+          <span class="muted">(key prefix {{ r.contentBucketKeyPrefix }})</span>
+        }
         @if (r.contentBucketQuota) {
           <span class="muted">({{ r.contentBucketQuota | bytes }} quota)</span>
         }

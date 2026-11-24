@@ -16,7 +16,11 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import software.amazon.awssdk.core.pagination.sync.SdkIterable
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
+import software.amazon.awssdk.services.s3.model.S3Object
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
@@ -146,5 +150,28 @@ class S3StorageServiceTest {
             S3Exception.builder().statusCode(403).build()
 
         assertThrows<S3Exception> { underTest.createBucketIfMissing("rs2-image") }
+    }
+
+    @Test
+    fun `getUsedSpace measures every scope under its own bucket and key prefix`() {
+        val rs2 = mockk<StorageManager>()
+        val lumi = mockk<StorageManager>()
+        every { rs2.getManagedScopes("repo1") } returns listOf(ManagedScope("shared", "shared", "rendering/"))
+        every { lumi.getManagedScopes("repo1") } returns listOf(ManagedScope("shared/lumi/content", "shared", "lumi/content/"))
+        every { storageManagerRegistry.getStorageManagers() } returns listOf(rs2, lumi)
+        val requests = mutableListOf<ListObjectsV2Request>()
+        every { s3Client.listObjectsV2Paginator(capture(requests)) } answers {
+            val request = requests.last()
+            val size = if (request.prefix() == "rendering/") 100L else 40L
+            val iterable = mockk<ListObjectsV2Iterable>()
+            every { iterable.contents() } returns SdkIterable<S3Object> { mutableListOf(S3Object.builder().size(size).build()).iterator() }
+            iterable
+        }
+
+        val (total, names) = underTest.getUsedSpace("repo1")
+
+        assertEquals(140L, total)
+        assertEquals(listOf("shared", "shared/lumi/content"), names)
+        assertEquals(listOf("shared" to "rendering/", "shared" to "lumi/content/"), requests.map { it.bucket() to it.prefix() })
     }
 }
