@@ -14,7 +14,7 @@ import java.security.Signature
 @ConditionalOnController
 class RepositorySignatureVerifier(
     private val repositoryPublicKeyService: RepositoryPublicKeyService,
-    @param:Value($$"#{'\${app.security.allowed-signature-algorithms:SHA256withRSA,SHA512withRSA}'.split(',')}")
+    @param:Value($$"#{'${app.security.allowed-signature-algorithms:SHA256withRSA,SHA384withRSA,SHA512withRSA}'.split(',')}")
     private val allowedSignatureAlgorithms: List<String>,
 ) {
 

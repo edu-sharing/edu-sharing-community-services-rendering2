@@ -56,7 +56,7 @@ class RenderControllerTest(@param:Autowired val mockMvc: MockMvc) {
 
     @Test
     fun `rejects a signature algorithm that is not whitelisted`() {
-        // MD5withRSA is not in the default whitelist (SHA256withRSA, SHA512withRSA);
+        // MD5withRSA is not in the default whitelist (SHA256withRSA, SHA384withRSA, SHA512withRSA);
         // the check runs before any signature verification, so no collaborators are touched.
         every { moduleRegistry.isFrontendRemoteRepository(any()) } returns false
         mockMvc.perform(

@@ -13,6 +13,8 @@ import org.edu_sharing.rendering.edusharingRepo.UserBasedRestClientProvider
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsAllowedOriginsReceiver
 import org.edu_sharing.rendering.edusharingRepo.cors.CorsSyncService
 import org.edu_sharing.rendering.edusharingRepo.cors.RegistrationCorsSyncRetrier
+import org.edu_sharing.rendering.edusharingRepo.services.AppAssertionProperties
+import org.edu_sharing.rendering.edusharingRepo.services.RepositoryAppAssertionVerifier
 import org.edu_sharing.rendering.edusharingRepo.services.RepositorySignatureVerifier
 import org.edu_sharing.rendering.integration.AbstractIntegrationTest
 import org.edu_sharing.rendering.modules.ModuleInfoController
@@ -54,6 +56,8 @@ class ControllerRoleTest(
             SessionController::class,
             VersionController::class,
             RepositorySignatureVerifier::class,
+            RepositoryAppAssertionVerifier::class,
+            AppAssertionProperties::class,
             ModuleInfoController::class,
             LumiProxyController::class,
             LumiProxyService::class,

@@ -30,8 +30,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -40,8 +40,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -84,8 +84,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -94,8 +94,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -138,8 +138,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -148,8 +148,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -180,8 +180,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -190,8 +190,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -231,8 +231,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -241,8 +241,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -293,8 +293,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -303,8 +303,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -352,8 +352,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -362,8 +362,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -411,8 +411,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -421,8 +421,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -437,6 +437,47 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/RegistrationInfo"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "basicAuth" : [ ]
+        } ]
+      }
+    },
+    "/admin/version" : {
+      "get" : {
+        "tags" : [ "system" ],
+        "operationId" : "getVersion",
+        "responses" : {
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
                 }
               }
             }
@@ -475,8 +516,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -485,8 +526,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -534,8 +575,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -544,8 +585,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -650,8 +691,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -660,8 +701,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -699,8 +740,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -709,8 +750,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -758,8 +799,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -768,8 +809,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -832,8 +873,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -842,8 +883,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -893,8 +934,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -903,8 +944,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -949,8 +990,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -959,8 +1000,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1023,8 +1064,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1033,8 +1074,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1141,8 +1182,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1151,8 +1192,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1190,8 +1231,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1200,8 +1241,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1256,8 +1297,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1266,8 +1307,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1305,8 +1346,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1315,8 +1356,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1354,8 +1395,8 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Bad Request",
+          "403" : {
+            "description" : "Forbidden",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1364,8 +1405,8 @@
               }
             }
           },
-          "403" : {
-            "description" : "Forbidden",
+          "400" : {
+            "description" : "Bad Request",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1696,6 +1737,19 @@
           }
         },
         "required" : [ "domains", "publicKey", "repoId", "url" ]
+      },
+      "VersionResponse" : {
+        "properties" : {
+          "version" : {
+            "type" : "string"
+          },
+          "commit" : {
+            "type" : "string"
+          },
+          "imageTag" : {
+            "type" : "string"
+          }
+        }
       },
       "BucketUsageInfo" : {
         "properties" : {
