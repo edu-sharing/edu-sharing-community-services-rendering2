@@ -21,6 +21,8 @@ import {registerImportMetrics} from "./metrics";
 import {installProcessGuards, readShutdownTimeoutMs} from "./shutdown";
 import {readDataSize} from "./dataSize";
 import {extendWhitelist} from "./whitelist";
+import {readS3Scopes, validateCollectionNames, validateS3Scopes} from "./s3Scopes";
+import {sweepImportTemporaryDirs} from "./importTemporaryStorage";
 import {
     FsPackageLibraryStore,
     packageLibraryRouter,
@@ -113,6 +115,26 @@ const start = async () => {
 
     log.info("Config loaded")
     log.debug(JSON.stringify(config, null, 2))
+
+    // Refuse dangerous storage layouts before anything is touched; see s3Scopes.ts.
+    const s3Scopes = readS3Scopes()
+    const findings = validateS3Scopes(s3Scopes)
+    findings.warnings.forEach(warning => log.warn(warning))
+    if (findings.fatal.length) {
+        throw new Error(`Invalid S3 configuration: ${findings.fatal.join(' ')}`)
+    }
+    const collectionProblems = validateCollectionNames({
+        CONTENT_MONGO_COLLECTION: process.env.CONTENT_MONGO_COLLECTION,
+        LIBRARY_MONGO_COLLECTION: process.env.LIBRARY_MONGO_COLLECTION,
+        EDUSHARING_MONGO_COLLECTION: process.env.EDUSHARING_MONGO_COLLECTION
+    })
+    if (collectionProblems.length) {
+        throw new Error(`Invalid MongoDB collection configuration: ${collectionProblems.join(' ')}`)
+    }
+    if (s3Scopes.temporaryStorage === 'disk') {
+        // Leftovers of a crashed run; nothing can be importing yet.
+        await sweepImportTemporaryDirs()
+    }
 
     // Init mongoDB
     const mongoDb = await dbImplementations.initMongo()
@@ -247,7 +269,7 @@ const start = async () => {
     app.use(
         h5pEditor.config.baseUrl,
         router(h5pEditor, h5pPlayer, 'auto', eduCollection,
-            packageLibraryStore ? {store: packageLibraryStore, deps} : undefined),
+            packageLibraryStore ? {store: packageLibraryStore, deps} : undefined, deps),
     );
 
     const port = process.env.PORT || '3000';

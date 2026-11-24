@@ -7,7 +7,10 @@ import * as http from "http";
 import * as https from "https";
 import {guardFileStreams} from "./s3Streams";
 import {registerS3PoolWatchdog, S3PoolWatchdog} from "./s3Pool";
-import {installS3Middleware} from "./s3Throttle";
+import {installS3Middleware, Semaphore} from "./s3Throttle";
+import {installS3KeyPrefix} from "./s3KeyPrefix";
+import {planS3Setup, readS3Scopes, TemporaryStorageMode} from "./s3Scopes";
+import {UnavailableTemporaryStorage} from "./importTemporaryStorage";
 
 const log = new Logger("CreateH5PEditor")
 
@@ -78,7 +81,12 @@ export interface H5PDeps {
     config: H5P.IH5PConfig
     editorCache: H5P.IKeyValueStorage
     contentStorage: H5P.IContentStorage
+    /**
+     * The shared temp storage. In `disk` mode it is an {@link UnavailableTemporaryStorage}: temp files
+     * then only exist inside an import, see `withImportTemporaryStorage`.
+     */
     temporaryStorage: H5P.ITemporaryFileStorage
+    temporaryStorageMode: TemporaryStorageMode
     translationCallback?: H5P.ITranslationFunction
     editorOptions: {
         enableHubLocalization: boolean
@@ -156,7 +164,7 @@ export default async function createH5PEditor(
         ...(trustAllCertificates ? {rejectUnauthorized: false} : {})
     })
 
-    const s3 = dbImplementations.initS3({
+    const makeS3Client = () => dbImplementations.initS3({
         forcePathStyle: true,
         region: region,
         ...(checksumCalculationWhenRequired
@@ -166,7 +174,8 @@ export default async function createH5PEditor(
             }
             : {}),
         // Passed as plain NodeHttpHandler options (not an instance) so the client builds the handler with
-        // the @smithy/node-http-handler version it depends on itself.
+        // the @smithy/node-http-handler version it depends on itself. Every client gets the same agents,
+        // so the pool limit, the watchdog and resetS3Pool stay global.
         requestHandler: {
             connectionTimeout: connectionTimeout,
             requestTimeout: requestTimeout,
@@ -174,6 +183,7 @@ export default async function createH5PEditor(
             httpsAgent
         }
     })
+    const s3 = makeS3Client()
     log.info(`Initiated S3 client (maxSockets=${maxSockets}, connectionTimeout=${connectionTimeout}ms, requestTimeout=${requestTimeout}ms).`)
 
     // Both timeouts above stay off, so a socket that is never given back (a body nobody reads, a peer
@@ -188,7 +198,28 @@ export default async function createH5PEditor(
         stallMs: poolStallMs,
         checkIntervalMs: Math.max(1_000, Math.min(15_000, Math.floor(poolStallMs / 4)))
     })
-    installS3Middleware(s3, importConcurrency, poolWatchdog)
+    // One semaphore for all clients: the limit is per import, not per client.
+    const importSemaphore = new Semaphore(importConcurrency)
+    installS3Middleware(s3, importSemaphore, poolWatchdog)
+    // A storage under a key prefix needs a client of its own, because the prefix middleware sits on the
+    // client. Without prefixes every storage uses `s3`, exactly as before. The bucket management and the
+    // temp storage always use the plain client.
+    const scopedClient = (prefix: string) => {
+        if (!prefix) {
+            return s3
+        }
+        const client = makeS3Client()
+        installS3Middleware(client, importSemaphore, poolWatchdog)
+        installS3KeyPrefix(client, prefix)
+        return client
+    }
+    const scopes = readS3Scopes()
+    const plan = planS3Setup(scopes)
+    const contentS3 = scopedClient(plan.contentClientPrefix)
+    const libraryS3 = scopedClient(plan.libraryClientPrefix)
+    if (plan.contentClientPrefix || plan.libraryClientPrefix) {
+        log.info(`S3 key prefixes: content "${plan.contentClientPrefix}", libraries "${plan.libraryClientPrefix}".`)
+    }
     registerS3PoolWatchdog(poolWatchdog)
     poolWatchdog.start()
     log.info(`S3 pool watchdog ${poolStallMs ? `armed (stall after ${poolStallMs}ms)` : 'disabled'}, ` +
@@ -216,11 +247,21 @@ export default async function createH5PEditor(
         }
     };
 
-    await Promise.all([
-        ensureBucketExists(process.env.LIBRARY_AWS_S3_BUCKET),
-        ensureBucketExists(process.env.CONTENT_AWS_S3_BUCKET),
-        ensureBucketExists(process.env.TEMPORARY_AWS_S3_BUCKET)
-    ]);
+    const diskTemp = plan.temporaryStorage === 'disk'
+    // Both lists are empty or filled depending on bucket management; see planS3Setup.
+    await Promise.all(plan.ensureBuckets.map(ensureBucketExists))
+    // The operator owns these buckets (e.g. a single bucket provided by the hosting). Never create
+    // one; only say so when it is not reachable.
+    await Promise.all(plan.headOnlyBuckets.map(async bucket => {
+        try {
+            await s3.headBucket({Bucket: bucket})
+        } catch (error: any) {
+            log.warn(`Bucket ${bucket} is not accessible (AWS_S3_MANAGE_BUCKETS=false, not creating it): ${error.message}`)
+        }
+    }))
+    if (diskTemp) {
+        log.info("Temporary files go to local disk, one directory per import (H5P_TEMPORARY_STORAGE=disk).")
+    }
 
 
     // Init library storage. We use mongo library storage.
@@ -232,7 +273,7 @@ export default async function createH5PEditor(
     // The index names the position of `rangeStart` in the storage's getFileStream signature
     // (library files are never range-requested, hence none).
     const mongoS3LibraryStorage = guardFileStreams(new dbImplementations.MongoS3LibraryStorage(
-        s3,
+        libraryS3,
         mongoDb.collection(process.env.LIBRARY_MONGO_COLLECTION),
         libraryStorageOptions
     ));
@@ -257,22 +298,27 @@ export default async function createH5PEditor(
     }
     // getFileStream(contentId, filename, user, rangeStart, rangeEnd)
     const contentStorage = guardFileStreams(new dbImplementations.MongoS3ContentStorage(
-        s3,
+        contentS3,
         mongoDb.collection(process.env.CONTENT_MONGO_COLLECTION),
         contentStorageOptions
     ), 3)
 
     log.info("Initiated S3 and mongo content storage.")
-    const tempFileStorageOptions = {
-        s3Bucket: process.env.TEMPORARY_AWS_S3_BUCKET,
-        maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
+    let tempFileStorage: H5P.ITemporaryFileStorage
+    if (diskTemp) {
+        tempFileStorage = new UnavailableTemporaryStorage()
+    } else {
+        const tempFileStorageOptions = {
+            s3Bucket: process.env.TEMPORARY_AWS_S3_BUCKET,
+            maxKeyLength: Number.parseInt(process.env.AWS_S3_MAX_FILE_LENGTH, 10)
+        }
+        // getFileStream(filename, user, rangeStart, rangeEnd)
+        tempFileStorage = guardFileStreams(new dbImplementations.S3TemporaryFileStorage(
+            s3,
+            tempFileStorageOptions
+        ), 2)
+        log.info("Initiated S3 temp file storage.")
     }
-    // getFileStream(filename, user, rangeStart, rangeEnd)
-    const tempFileStorage = guardFileStreams(new dbImplementations.S3TemporaryFileStorage(
-        s3,
-        tempFileStorageOptions
-    ), 2)
-    log.info("Initiated S3 temp file storage.")
 
     const editorOptions = {
         enableHubLocalization: true,
@@ -297,7 +343,11 @@ export default async function createH5PEditor(
     // We set the lifecycle rule ourselves instead of calling its setBucketLifecycleConfiguration:
     // that one divides temporaryFileLifetime by 1000*60*24 instead of ms-per-day (120 minutes
     // become 5 days) and cannot be steered in real days.
-    await ensureTempBucketExpiration(s3, process.env.TEMPORARY_AWS_S3_BUCKET)
+    // Skipped without bucket management (the bucket is not ours to configure) and with disk temp storage
+    // (there is no temp bucket).
+    if (plan.setTemporaryLifecycle) {
+        await ensureTempBucketExpiration(s3, process.env.TEMPORARY_AWS_S3_BUCKET)
+    }
 
     log.info("Initiated H5P editor.")
     return {
@@ -306,6 +356,7 @@ export default async function createH5PEditor(
         editorCache,
         contentStorage,
         temporaryStorage: tempFileStorage,
+        temporaryStorageMode: scopes.temporaryStorage,
         translationCallback,
         editorOptions
     };
