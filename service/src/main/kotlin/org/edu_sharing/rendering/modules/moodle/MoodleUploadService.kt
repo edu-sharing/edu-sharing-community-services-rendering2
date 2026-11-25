@@ -17,6 +17,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
 import kotlin.time.Duration.Companion.milliseconds
@@ -36,6 +37,9 @@ class MoodleUploadService(
     /** Overall budget for a restore to finish. Mutable for tests only. */
     internal var restoreDeadline: Duration = RESTORE_DEADLINE
 
+    /** Moodle base URLs already reported as running a plugin without course versioning (log once per pod). */
+    private val unversionedMoodles: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
     companion object {
         private val RESTORE_POLL_INTERVAL: Duration = Duration.ofSeconds(1)
         private val RESTORE_DEADLINE: Duration = Duration.ofMinutes(10)
@@ -44,6 +48,9 @@ class MoodleUploadService(
         private const val MAX_CONSECUTIVE_POLL_FAILURES = 5
 
         private const val REST_PATH = "/webservice/rest/server.php"
+
+        /** Moodle's errorcode for a parameter the webservice function does not declare (or does not accept). */
+        private const val INVALID_PARAMETER = "invalidparameter"
     }
 
     /**
@@ -120,7 +127,7 @@ class MoodleUploadService(
         webClient: WebClient,
         webserviceToken: String
     ): Int {
-        val response = getMoodleUploadResponse(
+        val response = callUpload(
             moodleJobMessage = moodleJobMessage,
             config = config,
             webClient = webClient,
@@ -140,7 +147,7 @@ class MoodleUploadService(
         webClient: WebClient,
         webserviceToken: String
     ): Int {
-        val response = getMoodleUploadResponse(
+        val response = callUpload(
             moodleJobMessage = moodleJobMessage,
             config = config,
             webClient = webClient,
@@ -271,22 +278,66 @@ class MoodleUploadService(
         // sanitized excerpt instead of the raw response.
         RemoteResponseParser.parse(rawBody, JsonNode::class.java, objectMapper, "Moodle ($context)")
 
-    private fun getMoodleUploadResponse(
+    /**
+     * Calls the restore/SCORM [method] with the node's content hash, so Moodle keeps one course per
+     * node version (idnumber `<nodeId>_<hash>`). `nodeId` is the original's id for collection
+     * references (see `Node.storageNodeId`), which carry the original's hash.
+     *
+     * A plugin older than course versioning does not know the `hash` parameter, and Moodle rejects
+     * unknown parameters with errorcode `invalidparameter` before the function runs. The call is then
+     * repeated without the hash, which keeps the old, unversioned behaviour. This makes the upgrade
+     * order of rendering service and plugin irrelevant.
+     */
+    private fun callUpload(
         moodleJobMessage: MoodleJobMessage,
         config: Map<String, String>,
         webClient: WebClient,
         webserviceToken: String,
         method: String
     ): JsonNode {
+        val hash = moodleJobMessage.hash.takeIf { it.isNotBlank() }
+        val response = getMoodleUploadResponse(moodleJobMessage, config, webClient, webserviceToken, method, hash)
+        if (hash == null || !response.isMoodleError(INVALID_PARAMETER)) {
+            return response
+        }
+        val retry = getMoodleUploadResponse(moodleJobMessage, config, webClient, webserviceToken, method, hash = null)
+        // A retry that fails the same way points at another parameter (e.g. the category), not at the plugin.
+        if (!retry.isMoodleError(INVALID_PARAMETER)) {
+            val baseUrl = config["baseurl"] ?: ""
+            if (unversionedMoodles.add(baseUrl)) {
+                log.warn(
+                    "Moodle at {} rejects the content hash: its local_edusharing_webservice plugin predates course " +
+                        "versioning, so new node versions keep showing the old course. Update the plugin.",
+                    LogSanitizer.sanitize(baseUrl)
+                )
+            } else {
+                log.debug("Moodle at {} rejects the content hash, called {} without it", LogSanitizer.sanitize(baseUrl), method)
+            }
+        }
+        return retry
+    }
+
+    private fun JsonNode.isMoodleError(errorCode: String) = path("errorcode").asText("") == errorCode
+
+    private fun getMoodleUploadResponse(
+        moodleJobMessage: MoodleJobMessage,
+        config: Map<String, String>,
+        webClient: WebClient,
+        webserviceToken: String,
+        method: String,
+        hash: String?,
+    ): JsonNode {
         val response = webClient.postMoodleForm(
             path = REST_PATH,
             query = mapOf("wsfunction" to method, "moodlewsrestformat" to "json"),
-            form = mapOf(
-                "wstoken" to webserviceToken,
-                "nodeId" to moodleJobMessage.nodeId,
-                "category" to (config["categoryid"] ?: "1"),
-                "title" to moodleJobMessage.title,
-            ),
+            form = buildMap {
+                put("wstoken", webserviceToken)
+                put("nodeId", moodleJobMessage.nodeId)
+                put("category", config["categoryid"] ?: "1")
+                put("title", moodleJobMessage.title)
+                // Only when known: an older plugin rejects the key even with an empty value.
+                if (hash != null) put("hash", hash)
+            },
             timeout = moodleTimeout(config),
             what = "Moodle $method call",
         )
