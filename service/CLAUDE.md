@@ -131,6 +131,15 @@ rejects with a status that says whose fault it is, and the service maps it -
 A rejected package is logged at WARN without a stack trace (it is not an error of the system); everything else
 at ERROR as before. The statuses are lumi's - see its guide, *Why an import is rejected*.
 
+### Moodle / SCORM course versioning
+The Moodle plugin (`local_edusharing_webservice`, separate repo) keys a restored course by `course.idnumber =
+<nodeId>_<hash>` (`node.content.hash`, a 32-bit hashCode). `MoodleUploadService` therefore sends `hash` next to `nodeId`
+(the original's id for collection references - `storageNodeId()`). Moodle rejects parameters a function does not
+declare (errorcode `invalidparameter`, before anything runs), so against a plugin older than 11.0.9 the call is
+repeated **without** `hash` (one WARN per pod and Moodle) - keep that fallback, it makes the upgrade order of service
+and plugin irrelevant. The plugin adopts a pre-versioning course (`idnumber = nodeId`) on its first call with a hash
+instead of importing it again.
+
 ### Quota metrics and alarms
 All quotas are **soft**: nothing refuses a request because a bucket, a repository or lumi's H5P library cache is over
 its quota. The `CacheCleaner` frees them on a schedule - and when it cannot keep up (it does not run, it fails, the
