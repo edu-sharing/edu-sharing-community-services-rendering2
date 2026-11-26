@@ -154,8 +154,8 @@ services:
       app.internal.port: 8080
       app.session.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_NODE_PERMISSION_EXPIRATION_TIME:-60}"
       app.session.image.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_IMAGE_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      app.session.audio.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_AUDIO_NODE_PERMISSION_EXPIRATION_TIME:-}"
-      app.session.video.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_VIDEO_NODE_PERMISSION_EXPIRATION_TIME:-}"
+      app.session.audio.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_AUDIO_NODE_PERMISSION_EXPIRATION_TIME:-7200}"
+      app.session.video.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_VIDEO_NODE_PERMISSION_EXPIRATION_TIME:-7200}"
       app.session.pdf.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_PDF_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.moodle.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_MOODLE_NODE_PERMISSION_EXPIRATION_TIME:-}"
       app.session.scorm.nodePermissionExpirationTime: "${RENDERING2_SERVICE_SESSION_SCORM_NODE_PERMISSION_EXPIRATION_TIME:-}"

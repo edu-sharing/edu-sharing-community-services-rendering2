@@ -941,7 +941,7 @@ config:
       partitioned: true
     nodePermissionExpirationTime:
       ## @param config.session.nodePermissionExpirationTime.audio Set session nodePermissionExpirationTime for audio
-      audio: ""
+      audio: 7200
       ## @param config.session.nodePermissionExpirationTime.default Set default session nodePermissionExpirationTime
       default: 60
       ## @param config.session.nodePermissionExpirationTime.document Set session nodePermissionExpirationTime for document
@@ -965,7 +965,7 @@ config:
       ## @param config.session.nodePermissionExpirationTime.spreadsheet Set session nodePermissionExpirationTime for spreadsheet
       spreadsheet: ""
       ## @param config.session.nodePermissionExpirationTime.video Set session nodePermissionExpirationTime for video
-      video: ""
+      video: 7200
 
 ########################################################################################################################
 
